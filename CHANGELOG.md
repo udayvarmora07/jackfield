@@ -6,6 +6,12 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- Read-only grouped personal-folder and Codex project declaration diagnostics,
+  plugin invocation-intent caveats, lock-name collisions and source-path
+  uncertainty. Native activation remains unknown.
+- Indexed, lossless archives for completed task/progress history, with all
+  pending owner, human-review and release gates retained in the live tracker.
+
 - Packaged Bash/Zsh completion scripts and optional Python 3.14 command typo
   suggestions, without shell configuration changes or a new command.
 - Per-skill discovery evidence in Workspaces, matching current inventory with

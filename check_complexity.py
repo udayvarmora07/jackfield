@@ -43,6 +43,8 @@ TARGET_FILES = (
     "skillsmgr/validator.py",
     "skillsmgr/effective.py",
     "skillsmgr/hygiene.py",
+    "skillsmgr/project_config.py",
+    "skillsmgr/discovery_diagnostics.py",
     "skillsmgr/authoring.py",
     "skillsmgr/source_lock.py",
     "skillsmgr/source_update.py",

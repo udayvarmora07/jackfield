@@ -17,7 +17,7 @@ import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
-from . import authoring, file_reads, key_support, loader, lockfiles, native_state, paths, source_lock, validator
+from . import authoring, discovery_diagnostics, file_reads, key_support, loader, lockfiles, native_state, paths, project_config, source_lock, validator
 from .lockfiles import MAX_STRING, bounded_text as _bounded
 from .tokens import DEFAULT_WINDOW, WINDOWS, count_tokens, estimate, window_name
 
@@ -71,6 +71,9 @@ _CATEGORY_ORDER = (
     "opencode-output-truncation",
     "opencode-autoinvoke-conflict",
     "plugin-member-skill",
+    "plugin-invocation-policy",
+    "claude-grouped-personal-folders",
+    "codex-project-skill-config",
     "claude-listing-budget",
     "codex-listing-budget",
     "codex-explicit-only-skill",
@@ -84,6 +87,8 @@ _CATEGORY_ORDER = (
     "source-lock-inaccessible",
     "source-lock-unbound",
     "source-lock-evidence",
+    "lockfile-name-collision",
+    "lockfile-source-path",
     "authoring-smell",
 )
 _CATEGORY_RANK = {value: index for index, value in enumerate(_CATEGORY_ORDER)}
@@ -1861,8 +1866,8 @@ def _plugin_member_finding(record: dict, cache: dict, home_prefix: str) -> dict 
     return _finding(
         "plugin-member-skill", "info", "observed",
         f"{record.get('name', '')} is part of a plugin folder",
-        ("Claude Code loads this folder as a plugin, so the skill depends on the plugin's "
-         "manifest, hooks and ${CLAUDE_PLUGIN_ROOT}. Copying only the skill folder, as "
+        ("A plugin manifest was observed for this folder; actual plugin loading is unknown. "
+         "The skill may depend on its manifest, hooks and ${CLAUDE_PLUGIN_ROOT}. Copying only the skill folder, as "
          "sync and `npx skills add` do, drops them (vercel-labs/skills#2609)."),
         [record], {"plugin_dir": _redacted_path(str(folder), home_prefix), "plugin_name": name,
                    "source": _PLUGIN_SOURCE},
@@ -1873,7 +1878,36 @@ def _plugin_member_finding(record: dict, cache: dict, home_prefix: str) -> dict 
 def _plugin_member_findings(prepared: list[dict], home) -> list[dict]:
     cache: dict = {}
     home_prefix = _home_prefix(home)
-    return [f for f in (_plugin_member_finding(r, cache, home_prefix) for r in prepared) if f]
+    findings = []
+    for record in prepared:
+        member = _plugin_member_finding(record, cache, home_prefix)
+        if member:
+            findings.append(member)
+            invocation = _plugin_invocation_finding(record, member)
+            if invocation:
+                findings.append(invocation)
+    return findings
+
+
+def _plugin_invocation_finding(record: dict, member: dict) -> dict | None:
+    """Separate a portable manual-only declaration from observed native behavior."""
+    if (not member['evidence'].get('plugin_name') or record.get('disabled') or
+            record.get('document_missing') or record.get('decode_error') or
+            _frontmatter_value(record, 'disable-model-invocation') is not True):
+        return None
+    return _finding(
+        'plugin-invocation-policy', 'info', 'partial',
+        'Manual-only intent in a plugin member needs runtime verification',
+        'This plugin member declares disable-model-invocation: true. Claude Code documents '
+        'that key as preventing automatic invocation. Issue #22345 reported contrary plugin '
+        'behavior in version 2.1.29; it does not establish behavior in the installed version. '
+        'The separate documented skillOverrides limitation is not evidence about this key.',
+        [record], {**member['evidence'], 'disable_model_invocation': True,
+                   'runtime_state': 'unknown',
+                   'source': 'https://code.claude.com/docs/en/skills#control-who-invokes-a-skill',
+                   'issue': 'https://github.com/anthropics/claude-code/issues/22345'},
+        'Verify invocation in your installed Claude Code version; local frontmatter alone does not prove native behavior.',
+    )
 
 
 def _count_plugin_skills(folder: Path) -> int:
@@ -2115,10 +2149,49 @@ def _redact_lockfile_paths(evidence: dict, home_prefix: str) -> dict:
         for row in lock.get("entries") or []:
             if isinstance(row, dict) and row.get("installed_path"):
                 row["installed_path"] = _redacted_path(row["installed_path"], home_prefix)
+        _redact_collision_paths(lock.get('name_collisions', []), home_prefix)
     for signal in evidence.get("unavailable_signals") or []:
         if isinstance(signal, dict) and signal.get("path"):
             signal["path"] = _redacted_path(signal["path"], home_prefix)
     return evidence
+
+
+def _redact_collision_paths(collisions, home_prefix):
+    for collision in collisions:
+        collision['installed_path'] = _redacted_path(collision['installed_path'], home_prefix)
+
+
+def _lockfile_path_findings(section):
+    findings = []
+    for kind in ('global', 'project'):
+        lock = section.get(kind, {})
+        collisions = lock.get('name_collisions', [])
+        if collisions:
+            findings.append(_finding(
+                'lockfile-name-collision', 'warning', 'observed',
+                f'{kind.title()} lock names map to the same installed folder',
+                'Different declared skill names normalize to one local folder. Per-entry '
+                'presence and hashes therefore do not establish separate installed copies.',
+                [], {'kind': kind, 'groups': collisions[:50], 'omitted': max(0, len(collisions) - 50)},
+                'Review the original lock keys and installed folder before choosing an update. No source path is selected automatically.',
+            ))
+        uncertain = [row for row in lock.get('entries', []) if _uncertain_source_path(row)]
+        if uncertain:
+            findings.append(_finding(
+                'lockfile-source-path', 'info', 'partial',
+                f'{kind.title()} lock source paths need review',
+                'A source-path declaration has an unknown type, parent segments or an oversized value. '
+                'This report does not inspect the source repository; installed-folder hashes '
+                'cannot establish a unique upstream source match.',
+                [], {'kind': kind, 'count': len(uncertain), 'source_resolution': 'unverified'},
+                'Inspect skillPath in the original lockfile and its source checkout. A declaration is not proof of current source resolution.',
+            ))
+    return findings
+
+
+def _uncertain_source_path(row):
+    path = row.get('source_path', {})
+    return path.get('state') == 'unrecognized' or path.get('parent_segments') or path.get('truncated')
 
 
 def _report_extras(project_root, home, xdg_state_home) -> dict:
@@ -2132,6 +2205,53 @@ def _report_extras(project_root, home, xdg_state_home) -> dict:
         if value is not None:
             extras[key] = value
     return extras
+
+
+def _codex_project_section(scope, project_root, unavailable):
+    if scope not in ('all', 'codex', 'agents', 'project-agents'):
+        return {'state': 'unavailable', 'reason': 'Codex roots are outside this report scope.'}, []
+    section = project_config.observe_project_skill_config(project_root)
+    section.update(runtime_state='unknown', source='project/.codex/config.toml')
+    if section['state'] == 'unavailable':
+        unavailable.append({'signal': 'codex-project-config', 'explanation': section['reason']})
+    if project_root is not None and (section['state'] == 'unavailable' or section['schema_unknown'] or section['omitted']):
+        unavailable.append({'signal': 'codex-project-config-partial', 'explanation': 'Project declaration evidence is incomplete; document coverage is separate.'})
+    if section['state'] != 'observed' or not (section['rules'] or section['include_instructions'] is False):
+        return section, []
+    finding = _finding(
+        'codex-project-skill-config', 'info', 'partial',
+        'Codex project skill declarations need session verification',
+        'Skill settings were observed in the supplied project config. Issue #24237 reports '
+        'project rules failing to filter user skills and include_instructions=false suppressing '
+        'the whole skill-instruction block. This is a reported compatibility limit, not a '
+        'verdict about your installed version, trusted project settings or active session.',
+        [], {**section, 'issue': 'https://github.com/openai/codex/issues/24237'},
+        'Check the trusted configuration and skill listing in the actual Codex session. '
+        'This report does not apply project declarations to the listing estimate or native switches.',
+    )
+    return section, [finding]
+
+
+def _grouped_personal_section(scope, home, unavailable):
+    if scope not in ('all', 'claude-code'):
+        return {'state': 'unavailable', 'reason': 'Claude personal roots are outside this report scope.'}, []
+    section = discovery_diagnostics.observe_grouped_personal_skills(home)
+    if section['partial']:
+        unavailable.append({'signal': 'claude-grouped-personal-folders', 'explanation': 'Group inspection was incomplete or unsafe; these folders are outside the flat document inventory.'})
+    if not section['groups']:
+        return section, []
+    finding = _finding(
+        'claude-grouped-personal-folders', 'info', 'partial',
+        'Grouped personal skill folders need discovery review',
+        'Nested primary-document folders were observed below personal group directories '
+        'without their own primary document. They are outside this tool\'s flat personal '
+        'inventory. Claude Code documents nested project .claude/skills discovery; that '
+        'does not establish recursive discovery within a personal skills directory.',
+        [], {**section, 'documentation': 'https://code.claude.com/docs/en/skills#load-skills-in-monorepos-and-subdirectories'},
+        'Review the observed group names and check discovery in your Claude Code version. '
+        'No move, enable action or native loading verdict is proposed.',
+    )
+    return section, [finding]
 
 
 def hygiene_report(
@@ -2205,6 +2325,7 @@ def _hygiene_report(
         home=home,
         xdg_state_home=xdg_state_home,
     )
+    findings.extend(_lockfile_path_findings(lockfile_section))
     claude_listing, listing_findings = _claude_listing_section(
         prepared,
         home=home,
@@ -2226,6 +2347,10 @@ def _hygiene_report(
     findings.extend(_autoinvoke_conflict_findings(prepared))
     findings.extend(_plugin_member_findings(prepared, home))
     skills_dir_plugins = _skills_dir_plugins_section(scope, home, degraded)
+    codex_project, project_findings = _codex_project_section(scope, project_root, unavailable)
+    findings.extend(project_findings)
+    grouped_personal, grouped_findings = _grouped_personal_section(scope, home, unavailable)
+    findings.extend(grouped_findings)
     findings.sort(key=_finding_sort_key)
     full_summary = _summary(findings, len(records), len(prepared), len({str(r.get("name", "")) for r in prepared}))
     full_summary["unavailable"] += len(unavailable)
@@ -2246,6 +2371,8 @@ def _hygiene_report(
         "codex_config": codex_config,
         "codex_listing": codex_listing,
         "skills_dir_plugins": skills_dir_plugins,
+        "codex_project_config": codex_project,
+        "claude_grouped_folders": grouped_personal,
         "unavailable_signals": sorted(unavailable, key=lambda item: (str(item.get("signal", "")), str(item.get("name", "")))),
         "degraded": sorted(degraded, key=lambda item: (str(item.get("section", "")), str(item.get("instance", "")), str(item.get("reason", "")))),
         "limits": {

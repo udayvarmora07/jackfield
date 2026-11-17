@@ -6,6 +6,15 @@
 
 **[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **29 top-level commands + 11 subcommands (7 trash/templates/db actions, 3 update actions and 1 AI action) + 3 aliases (`ls`, `rm`, `gui`) = 43 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
 
+## Read-only compatibility findings
+
+**[SPEC]** Existing `doctor --hygiene` output and JSON expose grouped personal
+Claude folders, supplied-project Codex declarations, plugin invocation intent,
+lock-name collisions and source-path uncertainty. The observations do not
+change inventory or native state. Existing scope/project flags and exit
+behavior remain unchanged; no command or flag is added. Details and bounds:
+@docs/49-read-only-compatibility-followups-2026-11-17.md.
+
 ## Shell completion
 
 **[SPEC]** The installed package includes static Bash and Zsh completion scripts.

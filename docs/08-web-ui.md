@@ -4,6 +4,20 @@
 
 **AI manifest**: The GUI of skills-manager is a **local web UI** (browser frontend + Python stdlib backend). It replaces the former GTK4 GUI. This doc is the single source of truth for the web UI: how it runs, what endpoints exist, and how the frontend is structured. Do not re-read source to answer questions this doc already answers.
 
+## 2026-11-17 compatibility follow-ups
+
+**[SPEC]** The existing hygiene response includes additive
+`codex_project_config` and `claude_grouped_folders` observations, and lockfile
+entries include unverified `source_path` evidence plus `name_collisions` at
+the lock level. Quality uses its existing generic finding renderer for
+`codex-project-skill-config`, `claude-grouped-personal-folders`,
+`plugin-invocation-policy`, `lockfile-name-collision` and
+`lockfile-source-path`. No extra endpoint, action or client-side scan is added.
+Project declarations do not alter listing totals or native-state observations;
+grouped personal folders do not become inventory instances. Unsafe or truncated
+attempted observations remain partial. Scope, platform and source boundaries:
+@docs/49-read-only-compatibility-followups-2026-11-17.md.
+
 ## 2026-11-17 discovery evidence and simulation labels
 
 **[SPEC]** Workspaces includes Skill discovery evidence for a typed inventoried

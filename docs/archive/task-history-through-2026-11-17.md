@@ -1,0 +1,3074 @@
+# Task History through 2026-11-17
+
+**Version 1.0.0**
+
+**AI manifest**: Historical entries moved verbatim from `task.md` on
+2026-11-17. They record earlier states, including unchecked historical items.
+The current queue is @task.md; the current receipt is @docs/06-progress-log.md.
+Sections with relative Markdown links remain in the original file so their
+links and archived entry bytes need no changes. Index: @docs/archive/README.md.
+
+## Five-task continuation (2026-11-17)
+
+- [x] F8: ship static Bash/Zsh completion and optional Python 3.14 typo
+  suggestions through the existing parser, without a new command. Completion
+  uses a private grammar variable to preserve the shell search path.
+- [x] Docs/44 §8: add per-skill, per-consumer discovery evidence to Workspaces,
+  using existing root definitions and inventory with explicit unknown loading.
+- [x] Surface filesystem acquisition failures in hygiene so a failed scan
+  cannot silently look empty or replace a saved browser baseline.
+- [x] Correct AI routing and budget UI claims to describe model simulations,
+  with the native runtime boundary visible before and after a run.
+- [x] Treat unobserved Codex invocation metadata as unknown listing content,
+  retaining known budget evidence without asserting a full listing size.
+
+The maintainer authorized verification, commit and a normal main push after
+this verified five-item batch. Human sign-offs, native study, product decisions and
+protected publication remain open. History archival is deferred for this batch.
+
+Verification: 2,130 tests pass on Python 3.12 (five optional skips), plus
+66 focused cases on each Python 3.11, 3.13 and 3.14. Both smokes,
+repository/static gates, browser discovery/notice checks, accessibility audits
+and exact wheel/sdist install probes pass. Zsh also passes using a temporary
+extracted Ubuntu 5.9 executable, including shell search-path preservation.
+The original 15 gated/deferred tracker entries remain open.
+
+## Document change baseline continuation (2026-11-17)
+
+- [x] Complete docs/45 N5 as an advisory comparison with an explicitly saved
+  browser baseline of primary skill-document hashes. Keep server reads
+  read-only, store no contents or filesystem paths in the browser baseline,
+  preserve unobserved entries and reject updates with known missing evidence.
+  Seventeen new regressions and 2,094 total tests on Python 3.12 pass
+  (three optional skips), with both smokes, browser checks, settled-theme
+  accessibility audits, repository gates and exact wheel/sdist install probes.
+  Cross-tab writes use an exclusive browser lock; unsupported browsers retain
+  comparisons with writes disabled. Main integration and push are authorized.
+
+## Project context continuation (2026-11-17)
+
+- [x] Complete docs/45 N7: share a read-only project selector between v2
+  Quality and Workspaces; pass contained project context to the existing
+  hygiene report, refuse escaping project links, and verify stale responses.
+  Existing server roots remain the boundary; no new CLI command or Store method.
+  Verified with 14 new regressions and 2,077 total tests on Python 3.12
+  (three optional skips), both smokes, browser keyboard/narrow-layout checks,
+  picker accessibility audits, static/docs/design/complexity gates and fresh
+  pinned wheel/sdist installation probes. Main integration is authorized; the original 15
+  approval, human-study, native-fidelity and deferred tracker entries remain open.
+
+## Remaining-task verification (2026-11-17)
+
+The maintainer requested pushing this verified batch to main. Delivery
+preparation includes a fresh remote/main check, current-tree verification,
+reviewed commit groups, credential scans and the existing recovery checkpoint.
+The compatibility and AI commits are `36571e7` and `a1124dd`; a fresh
+2,063-test suite, both smokes, repository gates and package probes pass.
+Publication and the remaining human/native-fidelity gates stay open.
+
+- [x] Recheck the hosted installer steps and the README download URLs against
+  current main; close the two stale installer entries below with live evidence.
+Vendor verification is complete (docs/45 V1–V6 below). The read-only diagnostic
+now includes Cursor's Claude/Codex compatibility roots and observes Codex's
+user listing cap. At that checkpoint, ten new regressions and 2,060 tests pass on each Python
+3.11–3.14 (three optional skips each), both smokes and static/docs/design/
+complexity gates pass, and exact pinned artifacts pass isolated install probes.
+The live HTTP fidelity study is now in progress with the maintainer-authorized
+Command Code GOAT key held only in the study process environment.
+The later DeepSeek/Muse-only instruction is enforced. Live DeepSeek evidence
+reproduced reasoning-only output truncation; the transport/headroom and cap
+accounting correction is complete.
+The corrected DeepSeek HTTP study completed six calls and matched all 36
+authored labels (12 synthetic prompts, three repeats). Evidence and native
+comparison limits: @docs/48-ai-http-study-2026-11-17.md. Native fidelity remains
+open. Final verification: 2,063 tests on Python 3.12 (three optional skips),
+154 AI tests on each Python 3.11–3.14, both smokes, static/docs/design/
+complexity gates and exact pinned artifact/install probes all pass. No
+runtime surface, schema or dependency changed. There are 15 open tracker
+entries: 12 pending and 3 in progress, including historical overlaps.
+
+## Main integration and verified cleanup (2026-11-17)
+
+- [x] Recover interrupted `codex/first-run-guidance` work and independently
+  compare the dirty primary parity copies against main; the parity behavior
+  is already integrated, so retain later main code and port only unique receipts.
+- [x] Verify private backups of both dirty states and an independently loaded
+  all-ref/reflog bundle before integration. Preserve the alternate redesign,
+  its backup, historical remote refs and the open publishing-action PR.
+- [x] Fix review-discovered duplicate bundled-prose scans; regressions fail
+  before the correction and retain distinct package-script evidence afterward.
+- [x] Complete combined verification: 2,050 tests on each Python 3.11–3.14
+  (three optional skips each), both smokes, 37 v2 scenarios, 38 classic
+  scenarios / 342 assertions, viewport/static/docs/design/complexity gates,
+  pinned artifacts and the installed-wheel AI probe.
+- [x] Prepare guarded main integration and cleanup: preserve stale primary
+  copies in a verified recovery stash, retain private launch settings, and
+  remove completed worktrees only after exact remote-commit containment,
+  stable file/admin manifests and visible-host-process rechecks.
+
+- [x] Fast-forward and push the verified implementation as `b6ed401`, then
+  recheck exact remote containment, manifests, archives, operations and visible
+  host handles before removing the guidance and old main worktrees. Primary
+  now holds clean main; obsolete guidance/parity branch pointers are removed.
+  The former 46 primary file versions remain byte-verified in recovery stash
+  `571f2a4` and private archives; local launch settings remain unchanged.
+
+## Merged branch/worktree cleanup (2026-11-13)
+
+- [x] Recheck all 14 local branches, 6 live remote heads and 13 worktrees;
+  prove the 10 completed Claude/Codex task tips are exact ancestors of GitHub
+  main `85611ba`, with clean ordinary status and no ongoing Git operation.
+- [x] Preserve complete checkout/admin archives, ignored evidence, raw shared
+  reflogs/configuration and a verified all-ref/recovery bundle. Independent
+  recovery resolved 103 ref/recovery objects; stale rebase product patches
+  match their final commits. Luna/Terra reviewed the checks.
+- [x] Remove only those 10 inactive merged worktrees and their local branches,
+  with fresh path/state/hash/ancestry/visible-host-handle guards; use no force.
+- [x] Verify all other refs and the primary checkout's original file bytes;
+  Git connectivity passes. Retain primary dirty parity work, local main,
+  alternate redesign, backup history, all remote branches, stashes and WIP refs.
+
+Recovery: `/home/uday-varmora/skillsmgr-cleanup-20261113-hlvp1yl1`.
+The original task/progress files are saved there before this local receipt.
+Other-UID and protected infrastructure process handles were not all readable;
+activity checks are point-in-time, not a guarantee against future writers.
+No application behavior, skill data, release or remote branch was changed.
+
+## First-run guidance continuation (2026-11-13)
+
+- [x] Complete docs/45 F1 (hint only), F2 and F4–F7, plus F3's wording-only
+  option, on `codex/first-run-guidance` from current main. Preserve the dirty
+  primary parity checkout; add no command, flag, Store method or dependency.
+- [x] Verify empty/filtered/JSON listings, fresh versus missing/corrupt indexes,
+  permission remedies, terminal path rendering, candidate thresholds, and
+  independent Home listing reads including stale results and retry.
+- [x] Finish current-tree tests, both smokes, browser checks, static/docs/design
+  and complexity gates; evidence and remaining limits are recorded above.
+
+## Project review and suggestions (2026-11-13)
+
+- [x] Whole-project review recorded in
+  `docs/45-project-review-and-suggestions-2026-11-13.md`. Proposals only.
+- [ ] Owner's call: release 1.1.0 (PyPI still serves 1.0.1) and questions
+  Q1–Q4 in docs/45 §7.
+- [x] First-run fixes F1 (hint only), F2, F4–F7 and F3's wording-only option:
+  see the continuation above.
+- [x] Risk checks on prose (N4) and authoring hints (N6): separate file-owned
+  worker tasks, followed by the combined current-tree verification above.
+- [x] Verify vendor changes V1–V6 against primary sources before changing
+  `effective.py`, `native_state.py` or docs/12. Source dispositions:
+  @docs/46-vendor-compatibility-verification-2026-11-17.md. Correct confirmed
+  Cursor compatibility-root and Codex listing-cap gaps; retain unknown
+  precedence and unknown budgets for invalid/unreadable settings.
+
+## One-command install (2026-11-13)
+
+- [x] `install.sh` (Linux/macOS, `curl … | sh`) and `install.ps1` (Windows,
+  `irm … | iex`): uv, then pipx, then a private venv; `--with-tiktoken`,
+  `--version`, `--source`, `--from`, `--dry-run`, `--uninstall`. Never edits
+  shell start-up files or PATH and never touches skill data.
+- [x] `tests/test_install_script.py`: 18 offline tests with fake uv/pipx/python;
+  three guard mutations each caught. Real venv and uv installs from this
+  checkout verified on Linux.
+- [x] Hosted installer verification: [CI run 44023733666](https://github.com/udayvarmora07/skills-manager/actions/runs/44023733666)
+  passed all 15 jobs on `29da4e6`. Real install/uninstall steps passed on
+  Linux, macOS and Windows for Python 3.11 and 3.14; both Windows jobs also
+  passed the Windows PowerShell 5.1 dry-run check. No local Windows run claimed.
+- [x] Both README one-line installer URLs return HTTP 200 (2026-11-17) and
+  exactly match the current checkout's `install.sh` and `install.ps1` bytes.
+  This verifies script availability, not publication of the November package.
+
+## README rewrite (2026-11-13)
+
+- [x] Rewrote `README.md` as a task-first guide: names, features table,
+  install, verified quickstart, core ideas, scopes, web UI page map, recipes,
+  AI assist, egress table (now lists the AI client), architecture sketch,
+  troubleshooting/FAQ and a documentation map. Commands were run in an
+  isolated data dir; the screenshot uses an absolute URL so PyPI renders it.
+
+## AI assist, bring your own key (2026-11-09)
+
+- [x] 2026-11-13 transport review (docs/39 §17): bounded retries for
+  transient provider failures (quota/spend-limit codes final), Anthropic
+  prompt caching of the reused skill listing with cached tokens counted
+  against the caps, low-effort plus thinking allowance for thinking models,
+  and cross-process day-cap reservations. 23 tests in
+  `tests/test_ai_transport.py`; no live provider was called.
+- [x] 2026-11-13 overnight round 1 (@docs/44-overnight-user-problems-2026-11-13.md):
+  BOM-before-frontmatter lint (codex#13918), Codex dead `[[skills.config]]`
+  path entries in hygiene/Quality (codex#51044), OpenRouter `cache_control`
+  for `anthropic/` models, and an `agent-parse-risk` hygiene finding so the
+  silent-parse warnings reach Doctor and Quality. No live provider call.
+- [x] 2026-11-13 overnight round 2: Codex listing-budget estimate
+  (`codex_listing`, 2% of the window, codex#19679) beside `claude_listing`,
+  and an `opencode-output-truncation` warning for documents over
+  2,000 lines / 50 KiB (opencode#62718). Read-only; no command or route added.
+- [x] 2026-11-13 overnight round 3: A6 standalone explainer (`ai_explain.py`,
+  `POST /api/ai/explain-findings`, v2 Tools → Explain risk findings). Opinions
+  sit beside unchanged findings; uncited false-positive claims become unclear.
+- [x] 2026-11-13 overnight round 4: `plugin-member-skill` finding and
+  `skills_dir_plugins` section for Claude Code skills-dir plugins
+  (vercel-labs/skills#2609), and an `opencode-autoinvoke-conflict` warning
+  when `disable-model-invocation` and `metadata.opencode/autoinvoke` disagree
+  (sst/opencode#52747). Read-only; no command or route added.
+- [x] 2026-11-13 overnight round 5: Codex explicit-only skills
+  (`agents/openai.yaml` `policy.allow_implicit_invocation: false`, codex#23454)
+  are left out of `codex_listing` and named by a `codex-explicit-only-skill`
+  finding; `file:` and absolute home-path link targets are a `machine-local`
+  broken reference (gemini-cli#29548). Read-only; no command or route added.
+
+- [x] Health-check follow-up: reproduce empty startup URL publication in both
+  optional browser launchers; publish through the existing atomic-write helper
+  and cover the reader/writer interleaving with deterministic regressions.
+- [x] Repeat extended classic/v2 browser checks (38 scenarios / 342 assertions
+  and 37 scenarios), six viewports, and the verification ladder after the
+  startup-publication fix: 1,891 tests on each Python 3.11–3.14 with no skips,
+  both smokes, static/docs/design/syntax/complexity and fresh package/wheel probes.
+- [x] Back up the default rebuildable index and repair two stale rows through
+  `db resync`; Doctor healthy and all source skill-file hashes unchanged.
+  Real HTTP-provider checks still require AI configuration; prior hosted CI
+  completed 14 jobs successfully but could not acquire its last macOS runner.
+
+- [x] Fresh 2026-11-12 close-out: 1,889 tests on every Python 3.11–3.14,
+  no skips with the separate reference oracle; shared AI checks, both smokes,
+  compilation/syntax/static/docs/design gates and exact pinned artifact probe.
+  Durable evidence is under this worktree's Git metadata; full results:
+  @docs/06-progress-log.md.
+
+- [x] Automate repeat AI checks and installed-artifact validation through one
+  shared developer runner and the existing GitHub Actions jobs, following the
+  maintainer's 2026-11-10 request. No unattended paid agent calls. Local/CI
+  instructions: @docs/43-ai-verification-automation-2026-11-10.md.
+
+- [x] Handoff 3.1: compact old usage rows, stop between calls on client closure,
+  record partial runs, show Past runs as text, and view/remove saved regression
+  prompts with stale-edit protection and full 500-prompt replacement.
+- [x] Research communities, competitors, GitHub demand, BYOK practice and literature
+  (@docs/39-ai-features-research-and-catalogue-2026-11-09.md).
+- [x] A0 BYOK foundation: stdlib client, env-first key, 0600 settings, caps, ledger.
+- [x] A1 trigger test and A2 held-out-verified description rewrite, REST + v2 pages.
+- [x] A3 overlap judge on near-duplicate candidates.
+- [x] A4 listing-budget fitter verified by A1.
+- [x] A5 review briefing for registry fetch and update review.
+- [x] A7 regression pack: saved prompt sets re-run after edits and model changes.
+- [x] A8 eval runner with and without the skill.
+- [x] A9 ask your library (names and descriptions only; real skills only).
+- [x] A10 porting notes (deterministic facts; model explains only those).
+- [x] A11 verified drafting: validation and measured routing, unsaved New skill form.
+- [x] A13 conciseness advisor: computed counts and whole-tree source-update review.
+- [x] A12 metadata-only profile suggestions with managed-root confinement and confirmed catalog save.
+  Handoff with prompts and acceptance criteria: @docs/40-codex-handoff-2026-11-09.md.
+- [x] A14 approved by the maintainer's instruction to start both AI tasks:
+  implement dry-run-first `ai trigger-test --saved`, versioned JSON, seeded
+  listing order and fail-closed observed-regression gating. Verification:
+  @docs/42-ai-cli-ci-2026-11-09.md.
+- [x] Run a bounded real-agent smoke comparison through the signed-in Claude
+  CLI: two conclusive synthetic cases, 2/2 first-skill agreement. Reproduction
+  and sanitized evidence: @docs/41-ai-fidelity-study-2026-11-09.md.
+- [/] Broader fidelity study with distractors, near misses, repeats and the
+  product's configured HTTP transport; the two-case result does not validate it.
+  HTTP portion completed 2026-11-17: DeepSeek V4.1 Flash via GOAT matched
+  36/36 authored labels, using four skills, 12 prompts and three repeats.
+  Native comparison remains unavailable for the permitted models in the
+  existing harness; see @docs/48-ai-http-study-2026-11-17.md.
+- [x] Prepare developer fidelity harness with dry-run default, explicit
+  maintainer execution and fake-executable tests; the bounded native smoke
+  measurement is recorded above, with broader fidelity still pending.
+- [x] Fix the fidelity cleanup test's process-status read race found by pre-push
+  verification; a reaped child is successful cleanup, while a live child fails.
+- [x] Handoff 3.6 read-only chores: confirm obsolete Dependabot closure and
+  accepted pin/CI evidence; review milestone-5 research and inventory preserved
+  backup/stash archives. Dispositions and first section 4 proposal: @docs/40-codex-handoff-2026-11-09.md.
+
+## Audited merged-work cleanup (2026-11-09)
+
+- [x] Inventory every local/remote branch and worktree against fetched main.
+- [x] Independently review ancestry, ignored data, active use and residual work.
+- [x] Verify a recovery bundle containing all pre-cleanup Git refs.
+- [x] Byte-archive and recheck all 16 inactive merged worktrees before removal.
+- [x] Remove 21 merged local branches, 5 merged remote heads and 2 stale registrations.
+- [x] Verify all 47 primary file hashes, retained refs/main, repository connectivity,
+  docs gates and 1,765 tests (2 optional skips). Five worktrees and six local
+  branches remain intentionally.
+
+Evidence: @docs/38-worktree-cleanup-2026-11-09.md.
+
+## Integrate codebase untangling into main (2026-11-09)
+
+- [x] Confirm explicit main-push authorization and use only Terra subagents.
+- [x] Fetch `origin/main` and verify the refactor is based on its `f323f16` tip.
+- [x] Preserve the dirty primary checkout; inventory all task files and restored APIs.
+- [x] Re-run current-tree gates, commit the complete task and fast-forward `main`.
+- [x] Push normally to `origin/main`; verify remote `e4e100b` matches the tested tree.
+
+## Codebase untangling continuation (2026-11-09)
+
+- [x] Recover the named Claude session, optional scope, checkpoint and decision log.
+- [x] Preserve the dirty primary checkout and the pending frontend changes.
+- [x] Complete shared workflows, public compatibility and frontend tool inventory.
+- [x] Consolidate bounded file acquisition with caller-specific parsing/link policy.
+- [x] Remove restating comments and duplicate risk tests; restore public API behavior tests.
+- [x] Repeat Luna/Terra review; preserve all explicitly exported baseline APIs.
+- [x] Final ladder: 1,765 tests each on Python 3.11–3.14 (two optional skips),
+  both smokes, static/design/docs/security gates, pinned artifact builds and
+  isolated install probes, classic 38 scenarios / 342 assertions, v2 37
+  scenarios and the six-viewport harness. All pass; no original budget raised.
+
+Decision log: @docs/37-codebase-untangling-2026-11-09.md.
+
+## Remaining eligible work, second continuation (2026-11-08)
+
+- [x] docs/29 H2, explain-only: `doctor --hygiene --scope all` gains a read-only
+  `agents_bridge` section and an `agents-bridge-gap` info finding naming enabled
+  `~/.agents/skills` skills Claude Code cannot see (its documented roots exclude
+  `~/.agents/skills`, docs/34). Remedy is the existing `sync` copy; the link
+  remedy carries the open anthropics/claude-code #14836 caveat. Real data: 7
+  skills. `tests/test_agents_bridge.py` (9; 8 red before). A bridge that writes
+  links stays deferred: it would be a new command, and #14836/#31005 are open.
+- [x] docs/29 row 25: documented Skill CI recipe,
+  @docs/36-skill-ci-recipe-2026-11-08.md. Its script block is executed by
+  `tests/test_skill_ci_recipe.py` (5; mutation-checked).
+- [x] Pre-existing order dependence: `tests/test_sidecar_binding.py` failed
+  after four web test modules left a deleted Store bound in the `scopes`
+  context; the fixture now starts unbound and restores the prior binding.
+- [x] Release live state re-checked 2026-11-08: PyPI latest is still 1.0.1, so
+  the 1.0.2 publish still waits on the human `release` approval.
+- [x] Independent DeepSeek review (max effort): 2 findings fixed with red tests
+  (truncated-scan claim; glob expansion), 1 pinned as not-a-defect (SIGTERM
+  cleanup), 2 refuted; the hardcoded-date time bomb in
+  `tests/test_agent_scope_trash.py` fixed. Ladder: 1,741 tests × 3.11–3.14,
+  v2 36/36, classic 38/342, all gates green.
+
+## Interrupted sub-session continuation complete (2026-11-07)
+
+- [x] Recover the named Claude sub-session, its decisions and both completed
+  worker snapshots; preserve the dirty primary checkout.
+- [x] Complete R15 shared reviews and SCOPE-2 peer-link inspection. Keep linked
+  scope views visible, physical reference voting deduplicated, and owner-only
+  mutation paths.
+- [x] Fix review findings in batch whole-tree approval, transactional sidecar
+  bindings (including failed rollback evidence), active Store identity and
+  linked agent-trash roots; retain regression coverage.
+- [x] Correct comment claims about review-directory permissions, filesystem
+  authority and unknown effective loading; preserve executable Python ASTs.
+- [x] Current-tree ladder: 1,724 cases on each Python 3.11–3.14 (two optional
+  skips, separately exercised), v2 36 scenarios, classic 38 scenarios / 342
+  assertions, six-viewport harness, both smokes, compilation/syntax, all gates,
+  and hash-pinned wheel/sdist build with isolated install smokes.
+
+Decision dispositions and intentional deferrals are in
+@docs/35-open-decisions-resolved-2026-11-07.md; detailed evidence and limitations
+are in the newest @docs/06-progress-log.md entry. Human sign-offs and external
+publication remain separate.
+
+## Performance and UX session completion (2026-11-06)
+
+Prepared on `claude/project-perf-ux-review-4da40d`; the maintainer subsequently
+authorized integration into `main` and a normal push. Main `d00cb78` was merged
+into the performance branch before verification, and main was then
+fast-forwarded to the verified performance commit `68e50f0`.
+
+- [x] Add backend regressions for concurrent snapshot isolation, failures,
+  independent read keys and report-scoped hygiene memo lifetime.
+- [x] Cover opt-in `body=0` list projection, unchanged default/detail behavior,
+  body-aware search, paging/HEAD, invalid flags and shared startup HTTP scans.
+- [x] Preserve global scope counts for unindexed documents and missing/corrupt
+  indexes; keep `/api/scopes` read-only and independent of index health.
+- [x] Preserve query parameters and browser hash routes on `/v2` redirects.
+- [x] Add behavioral frontend checks for parallel startup, bounded formatters,
+  Vue row-cache invalidation, selection Sets and body-less list editing.
+- [x] Refactor private helpers without raising existing complexity budgets.
+- [x] Document the list flag and performance behavior in @docs/08-web-ui.md.
+- [x] Finish editor race review, including same-name copies in different
+  scopes and Edit invoked while detail is loading.
+- [x] Full matrix: 1,363 tests on each Python 3.10–3.14; both smokes,
+  compilation, docs, design tokens, complexity, pinned Ruff/Bandit and
+  pinned wheel/sdist build and package-data inspection.
+- [x] Final browser verification: classic 38 scenarios / 318 assertions,
+  v2 28 scenarios and the six-viewport smoke harness; zero failures.
+
+## CI blocker — extended tar headers (2026-11-06)
+
+- [x] Reproduce the roughly 25 MB allocation with CPython 3.13.18's tarfile
+  module: chunked metadata reads reached the decompressed-stream cap before
+  rejection. The existing 12 MiB regression budget remains unchanged.
+- [x] Check declared PAX/GNU extension payloads, including padding and stream
+  position, against the existing cap before tarfile reads them. Cover all five
+  extension types initially and recursively, reader cleanup, and valid PAX/GNU
+  long-name imports.
+- [x] Full local verification: 1,339 tests on each Python 3.10–3.14, both
+  smokes, compilation, complexity, docs, design tokens, pinned Ruff/Bandit,
+  and pinned wheel/sdist build and package-data inspection.
+
+## Continuation verification — classic screens, scale, screen reader (2026-11-06)
+
+See @docs/32-continuation-verification-2026-11-06.md.
+
+- [x] Classic-only screens E2E (`tools/e2e_classic`): 37 scenarios / 312
+  assertions, 0 failures twice. Fixed C-1 (batch dialog focus return) and C-2
+  (Quality report unreachable after selecting a skill).
+- [x] Synthetic 10,000-instance run: no crash, error or >5 s stall; measured
+  payload, render, heap, DOM and interaction costs for both UIs.
+- [x] Screen-reader investigation (Orca 46 transcripts + CDP audit): fixed
+  SR-1 (P0, Enter on "Open skill" ran the fix), SR-2/3/4 (P1) and SR-5–13,
+  15, 16; v2 browser suite 27/27 twice.
+- [ ] Human spoken screen-reader sign-off using the docs/32 walkthrough.
+- [x] Decided 2026-11-07 (@docs/35-open-decisions-resolved-2026-11-07.md):
+  `/api/scopes` keeps token totals (0.003 s over the shared scan on 2,062 real
+  rows; the rescan cost was already removed); classic row cap declined (classic
+  is no longer the default and the cap breaks "exact visible-set").
+- [x] Batch plan binding (P3, 2026-11-07): plan id binds each target's
+  `content_hash`/`disabled`, bounded whole-tree digests, and sync destination
+  copies. Companion edits invalidate approval as well as document edits.
+  `tests/test_batch_plan_binding.py`: 4 of 5 red before.
+- [x] P3: Enter in Workspaces project field; classic Install shows API trust
+  blockers (2026-11-07, `tests/test_classic_install_preview_contracts.py`).
+
+## Research roadmap — backend items (docs/28 R-table, docs/29 Horizon 1; 2026-11-06)
+
+Branch `claude/research-roadmap-c0a574`. Only items the roadmap marks as not
+needing maintainer approval; each lands as its own commit with red-first tests.
+
+- [x] **R1 (P0)** — tar members are streamed and capped while reading
+  (`archive.open_tar`, `_BoundedReader`, `MAX_ARCHIVE_DECOMPRESSED_BYTES`).
+  `tests/test_audit_r1_streamed_tar.py`: 2 of 6 fail on the old code
+  (17.4 MB and 101 MB peak traced memory against a 12 MB budget).
+- [x] **R2 (P0)** — manager sidecars stripped at `Store.add`, archive import
+  (skills + trash), multipart upload; registry snapshots refuse both names at
+  any depth; registry commit writes provenance post-install or rolls back.
+  `tests/test_audit_r2_intake_sidecars.py`: 7 of 7 assertions red before.
+- [x] **R2 follow-up (2026-11-07):** sidecars bound to the install that wrote
+  them by a record in `<data>/sidecar-bindings/` (recorded path + sha256; HMAC
+  rejected, see docs/35). Unbound sidecars read untrusted; source-lock reports
+  `unbound`. `tests/test_sidecar_binding.py` (15, incl. a red-first read-race
+  test).
+- [x] **R5** — lock files in `<data>/locks/` (owner-only, `O_NOFOLLOW`), 60 s
+  cross-process acquire timeout → `LockTimeoutError` (409).
+  `tests/test_audit_r5_lock_root.py`: 6 of 6 red before.
+- [x] **R9** — every POST except the multipart source-update upload requires
+  `application/json` (415 otherwise). `tests/test_audit_r9_post_media_type.py`.
+  Integrated with frontend `fe46552`: the shared transport declares JSON for
+  bodyless mutations and preserves FormData/Blob upload types.
+- [x] **R14** — JSON nesting bounded to 64 levels (decoder recursion is also
+  caught); unresolved project expansion is a clean 400 on workspaces and
+  doctor/explain. `tests/test_continuation_http.py` covers POST/PATCH bodies
+  and both project routes without modifying the existing skill.
+- [x] **R6 / H1** — compatibility dedupe + portability message, unknown-key
+  warning, 1,536-character description cap.
+- [x] **R4 (read-only, JSON part)** — `native_state` from Claude Code
+  `skillOverrides`, OpenCode `permission.skill`, and Gemini CLI
+  `skills.disabled`/`skills.enabled`/`admin.skills.enabled`, with per-file
+  evidence and partial/unknown effective state; batched reads, no settings
+  writes.
+- [x] **R10** — advisory hidden-Unicode / bidi / tag-character evidence with
+  escaped code points, bounded output and no safe verdict or text rewriting.
+- [x] **D-1 (2026-11-07):** Python floor raised to 3.11 (3.10 EOL 2026-10-01,
+  PEP 619); Codex `[[skills.config]]` read with stdlib `tomllib`
+  (`tests/test_native_state_codex.py`, 16).
+- [x] **Parent P1/P2 findings:** serialize scoped edit/toggle/restore/sync;
+  preserve damaged target bytes before force sync; fix per-entry search and
+  doctor encoding classification. See @docs/30-backend-continuation-2026-11-06.md
+  for all triage dispositions, verification and integration requirements.
+
+- [x] **Parent REST:** immediate 413 with connection closure; history zero
+  and blank-window 400s; independent-template layout contract clarified.
+
+## Research roadmap — not yet started (docs/28 R-table, docs/29; recorded 2026-11-06)
+
+These were in the research docs but missing from this checklist. "No" means
+the docs mark them as not needing maintainer approval.
+
+- [x] **R7** repo hygiene, closed 2026-11-08 with this disposition: `git gc` run
+  (pack 67.6 → 63.3 MiB; 64.7 MiB on 2026-11-08) and `AGENTS-1.md` removed with
+  maintainer authorization (2026-11-07). The seven `prototype-*` directories and
+  `.specs/prototypes/` are tracked design history cited by the progress log; they
+  are kept, and deleting them stays the maintainer's call (docs/28 R7).
+- [x] **R8** triage refreshed 2026-11-07 in @docs/23-github-actions-dependency-pr-review-2026-09-23.md:
+  all five Dependabot targets are themselves superseded; recommend one reviewed
+  pin PR, done as #20 with a passing release dry run (draft release, deleted).
+  Issue #14 stays open on its F-2 `[ASK]`.
+- [x] **R11** read `skills-lock.json` / `.skill-lock.json` / `apm.lock.yaml`:
+  declared vs present vs hash, folded into the existing `doctor --hygiene`
+  report as a read-only `lockfiles` section (2026-11-07, `skillsmgr/lockfiles.py`).
+  `apm.lock.yaml` is reported as an unavailable signal and never parsed.
+- [x] **R12** consumer rows for Amp, Roo, Cline, Kiro, Zed (documented orders)
+  and Copilot, Windsurf/Devin (undocumented, no winner), from the cited
+  @docs/34-agent-skill-loading-research-2026-11-07.md. OpenCode corrected to its
+  now-documented order (2026-11-07, `tests/test_effective_new_consumers.py`).
+- [x] **R13** name-only candidates ranked by description size in the
+  hygiene `claude_listing` section (2026-11-07). Usage-ranked demotion would
+  need transcript counts, which stay a ⚠ decision.
+- [x] **R15** install argv is rendered by `insights.install_argv`, exceptions
+  live in `errors.py`, and `review_artifacts.py` now shares review-id, expiry,
+  serialization, credential-key, status and file-read checks across registry,
+  source update and backup sync. The 23 pre-refactor characterization cases
+  and four failure-path regressions preserve caller contracts.
+- [x] **R16** `backup_sync._run_git` pins program-executing config with `-c` and
+  a scrubbed environment (2026-11-07). `tests/test_audit_r16_git_config.py`
+  includes a real-git test where a hostile `core.sshCommand` used to run.
+- [x] **R17** `skills-ref` 0.1.1 as a dev-only differential oracle
+  (`tests/test_skills_ref_oracle.py`, skips unless `SKILLS_REF_PYTHON` is set).
+  14/17 verdicts agree; the 3 divergences (Unicode names = R18, unknown fields
+  warn, unquoted colon warns) are pinned and mutation-checked (2026-11-07).
+- [x] **R18** declined 2026-11-07: names stay ASCII (NFD/NFC filesystem
+  divergence, confusables; docs/35).
+- [x] **R19** deferred 2026-11-07: new command with no consumer yet (docs/35).
+- [x] docs/29 H1: advisory `ignored-frontmatter` hygiene finding from cited
+  per-agent key lists (`skillsmgr/key_support.py`, 2026-11-07).
+- [x] docs/29 H1: README "what it will not do" and a source-verified privacy
+  statement (2026-11-07), including tiktoken's first-use download.
+- [x] docs/29 H2 explain-only and the Skill CI recipe (2026-11-08; see the top
+  section). A link-writing bridge command remains deferred (⚠ new command).
+- [x] docs/29 D-2…D-10 resolved or deferred with reasons in
+  @docs/35-open-decisions-resolved-2026-11-07.md (D-3 already shipped as R11;
+  owner questions D-4/5/6/9/10 deferred).
+
+## v2 interface — prototype-final on real data (2026-11-06)
+
+- [x] Combined backend `fbe8ec2` + frontend `7d225dc` verification and durable
+  D1–D14 report: @docs/31-combined-e2e-verification-2026-11-06.md.
+  1,337 tests on each Python 3.10–3.14; 24 browser assertion groups; both
+  smokes, gates and pinned packaging passed. Automatic sdist-install tooling
+  remains unavailable; the separate clean pinned-tool install passed.
+- [x] Partial native-settings declarations shown separately from file toggles;
+  loading remains unknown. Binary-copy repair guidance explains text Undo limits.
+- [x] Error presentation sanitizes initial-load failures as well as toasts;
+  library/traceback details receive actionable fallback text.
+- [x] Sync Undo restores prior file enabled state and refreshes after failure;
+  mixed binary/text repairs and refused-link sources cannot offer automatic repair.
+  Companion-file copying and text-only Undo limits are disclosed before sync.
+- [x] Recovery grid and buttons fit the 320px CSS viewport exposed by actual
+  400% Chrome zoom; the browser regression covers every v2 screen.
+- [x] `skillsmgr/webui/v2/` served at `/v2/`: Home, Skills, Skill page + edit,
+  Sync map, Inbox, Recovery, New skill, dark theme, shortcut list.
+- [x] Honest model: no "older copy" claims, refused symlinks are "Linked
+  elsewhere", file-like entries are "Not a skill"; tie between copies asks.
+- [x] Undo via backend snapshots verified on disk (sync, edit, on/off).
+- [x] `tests/test_v2_interface_contracts.py` (model, escaping, API set, contrast
+  in both themes, served assets, traversal).
+- [x] Decide: make `/v2/` the default route (classic moves to `/classic/`).
+  Done in `61355a2` at the maintainer's request (docs/29 D-7).
+- [x] Port Install, Profiles, Quality, Workspaces, Settings into v2 (`61355a2`;
+  see the V2 feature parity section above).
+- [x] In-app restore for agent-scope trash (2026-11-07): `scopes.scope_trash_list`
+  / `restore_trashed`, `?scope=` on the trash routes (which used to restore the
+  global trash), v2 Undo + Recovery card; verified in a real browser on an
+  isolated fixture. `tests/test_agent_scope_trash.py` (12; 7 red before).
+- [x] Slim v2's `/api/skills` list payload: v2 starts with `body=0` and fetches
+  each document on demand (2026-11-07). A real-browser run caught an untracked
+  reactivity read that kept Edit disabled; fixed and pinned.
+- [ ] Human perceptual review and screen-reader validation of v2. Automated
+  forced-colors, keyboard and actual 200%/400% browser-zoom results are recorded separately.
+## User research follow-ups (2026-10-30)
+
+Proposals from @docs/26-user-research-skills-context-2026-10-30.md — each
+needs a maintainer decision before work starts (⚠ = locked constraint 5).
+
+- [x] **Defect:** observed state ignores each agent's native switch. Claude
+  Code, OpenCode and Gemini CLI JSON declarations are read (R4,
+  `native_state`), and Codex `[[skills.config]]` TOML since 2026-11-07 (D-1,
+  Python >= 3.11). Effective state stays unknown. Original note: (Codex
+  `[[skills.config]]` in `~/.codex/config.toml`, Claude Code `skillOverrides`,
+  OpenCode `permission.skill`, Gemini workspace/user disable), so the UI can
+  show **Active** for a skill Codex has disabled. Latent: no disable rule exists
+  on this machine today (the one entry is `enabled = true`). Read-only fix first (§4b).
+- [ ] Deferred (docs/35): per-project profiles that translate one toggle into each agent's
+  native setting (⚠); Codex's switch is user-level only and must say so.
+- [ ] Deferred (docs/35): interoperate with Microsoft APM `apm.yml` instead of a new lockfile.
+- [ ] Deferred (docs/35): Hermes-Curator-style stale → archive with pin/restore/dry-run (⚠).
+- [x] "What the model sees": `claude_listing` in `doctor --hygiene` estimates
+  the Claude Code listing against its documented budget (env, settings
+  fraction or 1%; the char/token conversion is stated as an assumption), honours
+  `name-only`/`user-invocable-only`/`off` and `disable-model-invocation`, and
+  marks the estimate partial when project settings are unread. This machine:
+  77,516 chars vs ~40,000 (2026-11-07). Shown in v2 Quality as the "What
+  Claude Code sees" card (checked in a real browser at desktop and 320px).
+- [x] Resident-token effect on every v2 toggle toast and switch (2026-11-07).
+- [x] Silent-failure lint: the >1,536-char cap (R6), plus empty frontmatter and
+  unquoted `: ` in plain scalars (2026-11-07, `tests/test_validator_silent_failures.py`).
+- [ ] Deferred (docs/35): transcript-based usage counts (⚠) and project skill lockfile (⚠).
+- [ ] Owner's call, deferred (docs/35): docs/27 monetization questions MON-Q1…MON-Q5 (services-first year; widen scope to MCP + AGENTS.md; public top-skills report; zh-CN UI; which docs/14 tiers stay). Proposals only, nothing approved.
+
+## UI redesign — Warm Instrument (2026-10-08)
+
+The maintainer selected **Prototype A — Warm Instrument** from
+`.specs/prototypes/` (B and C kept as the alternates it was chosen over).
+
+- [x] **Design contract.** `DESIGN.md` at the repository root: tokens, measured
+  contrast ratios, rationale, and the refused defaults a later pass must not
+  slide back into. Passes `npx @google/design.md lint` with **0 errors**.
+- [x] **Palette re-derived and measured.** The prototype's parchment
+  `#faf7f1` + copper `#9e4415` and near-black + vermilion dark theme were
+  replaced; both are named AI-tell clusters and the scanner flagged the
+  second. Every replacement value measured before it was written — the first
+  pass had five failures, two of them thresholds I had invented for the check.
+- [x] **`check_design_tokens.py`**, re-deriving every ratio from the shipped
+  `styles.css` on each run. Proved by **mutation**: a lightened text token, a
+  lightened control border, and a font-CDN reference were each injected and
+  each caught.
+- [x] **Typeface vendored**, not fetched: 12 woff2 faces (latin + latin-ext,
+  6 weights across both families) under `webui/static/fonts/`.
+- [x] **Context-budget meter** leads the Overview, on a 125% axis so 111% and
+  121% render as different bars, and it works at 320px.
+- [x] **Observed state `linked`** added, distinct from `malformed`. On this
+  machine 301 of 1,962 instances were being labelled "Malformed" when they are
+  symlinks the tool deliberately refuses to follow. No security change.
+- [x] **Rows group identities by state, problems first**, so the scopes that
+  disagree are the thing the eye lands on.
+- [x] **A uniform row state is stated once**, in the pane header, instead of
+  badged on every row; the per-row chip stays in the a11y tree.
+- [x] **19 tests** in `tests/test_redesign_contracts.py`, red-first: 11 fail
+  against the pre-change source at `570179b`.
+- [x] **Full ladder green**: 1,232 tests on 3.11/3.12/3.13/3.14, both smokes,
+  `check_docs`, `check_complexity`, Bandit (0 issues), Ruff (clean),
+  six-viewport browser harness, wheel + sdist built and clean-installed.
+
+- [ ] **Human perceptual review of the redesign. Not an agent's to do.**
+  The harness renders and measures; it does not sign off. Still unexercised:
+  a non-Chromium engine, forced-colors mode, 200%/400% zoom, and a screen
+  reader. This is the same open gate G8 carried, carried forward honestly.
+
+- [x] **SCOPE-2 decided and implemented (2026-11-07):** agent scope links
+  into another known managed agent root are readable with explicit read-only
+  metadata. Mutations through the alias remain refused; unmanaged targets
+  and global-store links retain their existing refusal. The v2 model keeps
+  alias scope views and writable owners, and deduplicates physical documents
+  for reference voting.
+  See @docs/35-open-decisions-resolved-2026-11-07.md.
+
+## docs/24 audit remediation — day 1 and week 1, 2026-10-04
+
+`main` is green for the first time since 2026-09-16; all four previously-skipped
+gates now run. Full evidence in @docs/06-progress-log.md.
+
+- [x] A1: assert the purge invariant, not one branch of it (turns `main` green).
+- [x] A9: repair the registry client against the public skills.sh routes; keep
+  browse/curated token-gated with an actionable message.
+- [x] A2: correct the locking model in `docs/01-architecture.md` and sweep the
+  three stale code comments. (`AGENTS.md` needed no change — the audit overstated it.)
+- [x] A3: guarded upgrade path for a legacy over-permissive data root, plus the
+  missing SEC-19 regression.
+- [x] A4: re-aim the complexity ratchet at the modules that hold the logic and
+  fail on baseline keys that no longer resolve.
+- [x] A5: lock the agent-scope toggle's check-then-rename.
+- [x] A6: hold the index lock across the update commit's revalidate-then-swap window.
+- [x] A7: commit the Markdown-renderer payload set as a real executed test.
+- [x] UI quick wins: `--s3`, reduced-motion iteration count, WCAG 1.4.11 border
+  contrast, WCAG 2.5.3 label, anchor colour, trash-purge labelling/placement.
+- [x] CI: re-enable Chrome's user-namespace sandbox on the runner and tighten the
+  Node tool cache, so the browser job passes without weakening SEC-15.
+- [x] D1 (pure-latency part): the primary read path no longer pays four costs
+  it had no contract behind — a redundant whole-result `deepcopy` in the shared
+  read, one skills-root resolution *per row*, a full directory-ancestry walk to
+  guard a sidecar that is not there, and a second read of every global
+  document just to recompute a token estimate the loader had already produced.
+  Interleaved A/B at 1,200 skills: `Store.list()` −34%, `scopes.list_all()`
+  (the default Library view) −40%, `Store.doctor()` −16%, `search` −39%.
+- [x] D1 (lazy observations): **resolved, not outstanding.** This line asked for a
+  decision; the decision was made and is recorded further down this same section
+  (see "D1 lazy observations: measured, declined, and a real bug found instead").
+  The premise did not survive measurement — skipping the read saves 53.1% at
+  1,200 skills, not the ~44% docs/24 inferred from cProfile, which inflates
+  per-row Python overhead against syscalls — so laziness would trade away
+  user-visible drift reporting (`malformed`/`decode_error`, which the Overview
+  attention queue is built on) for less than half the latency. **Not shipped**;
+  the maintainer explicitly deferred it on 2026-10-05 because the seam needed is
+  a new `Store` method (locked constraint 5). What the investigation found
+  instead was a real bug, fixed in `21b755c`. Kept as a pointer rather than
+  deleted: two entries for one item, contradicting each other, is how this file
+  goes stale in the first place.
+- [x] D1 (agent scopes, measured 2026-10-05): `scopes.list_all()` — the default
+  Library view — re-read and re-parsed **every document in every agent scope**
+  on every request, with no observation reuse. Measured 3.7 s at 1,965 real
+  skills. Fixed by a bounded, process-local derived-record reuse in `loader.py`,
+  keyed on the **sha256 of the document bytes** plus the filesystem facts that are
+  not facts about those bytes and the document path. The audit's recommended
+  `(mtime_ns, size)` key was **rejected by measurement**: it is blind by
+  construction to a same-size edit inside the filesystem's mtime granularity
+  (1 s HFS+, 2 s FAT, ~1 s on network mounts) and this repo has macOS and
+  Windows legs. Interleaved A/B, 9 alternating rounds: 1,200 rows warm −29.4% /
+  cold −1.2%; 2,000 rows warm −30.3% / cold +0.1%. **Cold is flat and reported as
+  flat.** `document_reuse_worthwhile()` switches reuse off above the bound, so a
+  scan larger than the cache keeps its exact pre-reuse behaviour instead of
+  thrashing (5,000 docs through a 1,000-entry bound re-derived 5,001 — 0% reuse).
+  A hit re-stamps `observed_at` on the copy leaving the cache, because a hit is
+  still a real observation; the stored entry is not mutated.
+- [x] D2: `/api/doctor?scope=all` no longer walks every scope root twice.
+  `_doctor_scope_enrichment` takes **one** merged snapshot
+  (`records = scopes.list_all()`) and summarises both the `scopes` and
+  `duplicates` sections from it, using the existing `records=` seam that
+  `/api/stats` already used. Probed by counting the call: `scopes.list_all()`
+  is invoked **exactly once** per request. (The audit measured this route at
+  51 s; that wall-clock figure was **not** re-measured here — only the
+  mechanism that caused it was.)
+- [x] D3-4: `GET /api/skills` no longer creates the data layout or the index,
+  and a damaged layout answers one repairable 404 instead of four 400s beside
+  two 200s. Also fixed two non-hermetic test suites that read the real `$HOME`.
+- [x] D3-1 / D3-2: a non-UTF-8 `SKILL.md` no longer answers the raw route with
+  a 400 carrying the interpreter's own codec text, and no longer answers the
+  list route with a raw 500. Both read sites go through `_skill_text()`
+  (`skillsmgr/webapp.py`). Probed on a live loopback server with a deliberately
+  corrupt `SKILL.md`: `/api/skills/<n>/raw` → **404**
+  `{"error": "skill '…' has no readable SKILL.md", "code": "not_found"}` with no
+  codec text in the body, and `/api/skills/<n>` → **200**.
+- [x] D3-3: `GET /api/export` no longer writes an unpruned archive on every
+  call. `_serve_export` builds into a `tempfile.mkdtemp()` staging directory and
+  removes it in a `finally`; the CLI keeps its documented behaviour of writing to
+  `backups/`. Probed with three consecutive downloads: `backups/` empty before
+  and after, zero staging directories left behind.
+- [x] D3-10: `Sec-Fetch-Site` is compared after `.strip().lower()`
+  (`web_security.py`), so surrounding whitespace and casing cannot smuggle a
+  cross-site request past the policy. Probed: `cross-site`, `" cross-site "`,
+  `Cross-Site` and `"  CROSS-SITE\t"` all → **403**; `same-origin` → **200**.
+- [x] D3-11: `PUT /api/import` matches its multipart content-type
+  case-insensitively at both call sites (`skillsmgr/webapp.py`). Probed:
+  `multipart/form-data`, `MULTIPART/FORM-DATA` and `Multipart/Form-Data` all
+  → **200**.
+- [x] D3-5: an unsafe upload part rejects the whole upload with a 400 naming
+  the part, instead of vanishing under a `200 {"skipped": []}` payload.
+  Both upload paths now share one predicate.
+- [x] D3-8: unparseable numerics, unknown windows and malformed scope
+  lists are 400s instead of silent defaults — including `/api/sync`
+  iterating a string `to_scopes` one character at a time.
+- [x] D3-9: `GET /api/skills` takes opt-in `limit`/`offset` with
+  `X-Total-Count`; unimplemented paging params are 400s, not ignored.
+- [x] D3-6: a stale index row is a 404 in REST and never serves its stored body.
+- [x] D3-7: one error shape — `{"error", "code"}` — for every route.
+- [x] D3-12: the validated, normalised host is what binds; a bind failure is a
+  clean `StoreError`, not a raw `gaierror`.
+- [x] §C4 #3: `_route_get` 89 → 13 and `_route_post` 80 → 11, guarded by 16
+  characterisation tests that passed on the pre-refactor tree too. Merged.
+- [x] §A8: `skillsmgr/examples/skills-manager-management/` ships as package
+  data (it was absent from the sdist **and** the wheel), and the packaging
+  gate now proves it is present. Merged.
+- [x] Complexity ratchet: the baseline was carrying silent guard headroom
+  (`_route_get` recorded 96, measured 13, and the ratchet only fails on
+  *increase*). Regenerated with 0 entries raised, and `slack_baseline_keys()`
+  now fails the gate whenever an entry sits above its measured metric.
+- [x] §C2/§G6: five observed-state predicates collapsed to one seam, one
+  Escape rule, one transport. Requests across 10 navigations 17 -> 9.
+- [x] §D1 (agent scopes, narrow): the scan stops re-deriving what it validated
+  (`282cf2a`, merged as `0439fb5`). This is **not** the item below — the
+  observation-reuse half is still open.
+- All four parallel branches merged; ladder green at **1,141 tests** on `b50ca1e`
+  (120.0 s) with `check_docs.py` and `check_complexity.py` (**686** functions
+  across 16 files) green, and both smokes green on the `522b81f` base.
+- [x] Dark-theme pane separation (audit G2 #7): the list and detail panes
+  measured 1.00:1 and were separated only by a 1px 1.46:1 border. The divider is
+  now 3.43:1 against the detail pane and 3.96:1 against the list pane, panes
+  1.16:1. Two adjacent dark surfaces cannot reach 3:1 tastefully, so the contrast
+  rides on the boundary. The list pane recedes onto `--bg`; elevating it to
+  `--surface-2` would have dropped `--border-strong` to 3.01:1 and degraded every
+  form control. Light theme deliberately untouched. **The audit's other half was
+  already satisfied on 2026-10-04** — the real defect was that the pane divider
+  never used `--border-strong`.
+- [x] **CI pin-gate blind spot (`b50ca1e`):** both action-pin gates required a
+  leading `- ` before `uses:`, so the two-line `- name:` / `uses:` step form was
+  invisible to both. **20 of 29** `actions/*` sites were checked; **9 were not** —
+  `setup-node`, both `upload-artifact`, all five `download-artifact`, and
+  `actions/attest-build-provenance`, the release attestation. Proven red-first:
+  repinning the attestation to a floating `@v2` or to 40 zeros left the suite
+  green. `EXPECTED_FIRST_PARTY_SHAS` already carried entries for four of them;
+  they were written expecting enforcement and were never read. Fixed test-only;
+  the real tree passes with the fix, so the gate was blind, not the workflows
+  wrong.
+- [x] **Hygiene thrashed the new reuse cache (`5aec3c2`):** the §D1 work added a
+  4,096-entry bound and `document_reuse_worthwhile()` precisely because a bounded
+  LRU cannot beat a sequential scan larger than itself. `loader.scan_dir`
+  consulted it; `hygiene._prepare_records` did not, and `hygiene_report` defaults
+  `max_instances` to 10,000 — above the bound and above this repo's own documented
+  10,000-inventory benchmark. The decision is now made once per batch, **after**
+  the truncation, and both tests are mutation-caught.
+- [x] **D1 lazy observations: measured, declined, and a real bug found instead.** The
+  premise did not survive measurement: skipping the document read saves 53.1% at
+  1,200 skills (155.3 -> 72.8 ms), not the 54%-of-82% docs/24 inferred from
+  cProfile -- cProfile inflates per-row Python overhead against syscalls. Roughly
+  half the cost is not the read, so laziness would trade away user-visible drift
+  reporting for less than half the latency. **Not shipped**; the seam is in place
+  if that trade is ever worth making. What the investigation found instead:
+  `GET /api/skills?scope=global` read every document twice and the second read
+  **clobbered a correct token estimate with 0** for any non-UTF-8 document
+  (reproduced on the pre-change tree: 84 -> 0). Fixed in `21b755c`.
+- [x] **`/api/search` no longer pays a `Store.get()` per row.** The measurement in
+  this item was sound and its reuse-cache explanation was correct, but **two of
+  its three conclusions were wrong**, and re-deriving them is the whole content
+  of this entry. The per-row `get()` was never in `Store.search()` — it was in
+  `scopes._global_search_records`, which the route reaches through
+  `search_all()`. And the route's *own* `Store.search()` call
+  (`webapp.py`, inside `if scope in ("all", "")`) was **dead code**: the line
+  above it coerces `""`, `"   "` and an absent parameter all to `"global"`, so
+  `scope` can never be empty and the `else` could never run. That branch is
+  removed, and a source-reading test now fails if a `Store.search` call
+  reappears in `_route_search_get` — a behavioural test cannot see it, because
+  it is unreachable.
+
+  The waste was larger than "a per-row SQLite query". `Store.get()` returns
+  `body` **from the index** (`SELECT *`) and spends its document read only
+  filling `Store._OBSERVED_KEYS`, which does not include `body`, and which this
+  caller discarded entirely. So the old form re-read and re-hashed **every
+  document in the library to derive metadata nobody looked at** — and the reuse
+  cache could not help, because proving the bytes unchanged *is* the file read.
+  Fixed with one `SELECT name, body` over the existing private
+  `Store._index_rows` read seam. Red-first: the counting test reports
+  **5 `Store.get()` calls before, 0 after**; the dead-branch test fails against
+  the pre-change `webapp.py`.
+
+  **[SPEC] The body *source* is deliberately unchanged** — still the index,
+  exactly as `Store.search()` has always used it — so `skills-mgr search` and
+  the web route keep agreeing on what a body match means. Making this route
+  filesystem-authoritative instead would leave the CLI disagreeing with it,
+  which is a worse defect than the staleness it removes; that behaviour is now
+  pinned by a test so a future "fix" cannot silently introduce the split.
+
+  **No new CLI command and no new public `Store` method** (locked constraint 5
+  untouched). `scopes` already reached a private `Store` method
+  (`_check_store_layout`), so this crosses an existing line. The two owning
+  doc lines that described the old "public `list()`/`get()` seam" are updated in
+  the same commit.
+
+  **Measured, not asserted.** Interleaved A/B on a hermetic 200-skill store,
+  best-of-5 per arm: **100.0 ms → 32.6 ms (3.07x, −67.4%)**. At 1,000 skills:
+  **564.7 ms → 183.9 ms (3.07x, −67.4%)** — flat, because both arms are O(n) and
+  only the per-row constant changes.
+  **Output equality checked field by field at both sizes.** At 300 skills:
+  `differing keys: NONE`. At 1,000 skills the *only* differing field across all
+  1,000 rows is `observed_at`, and only because the two arms ran one second
+  apart (`12:04:52Z` vs `12:04:53Z`) — it records *when the read happened*, so
+  two runs seconds apart cannot agree. Everything else, including `body`,
+  matched exactly. An earlier "byte-identical" claim would have been wrong on
+  that one field, which is why it was checked rather than assumed.
+- [x] **C4 #4, second half: the one-document invariant got one enforcement
+  point** (`cf40958`). The audit called it "implemented twice"; it was
+  **implemented four times** — `store._reject_both_documents`,
+  `loader.conflicting_documents`, an inline `dst.is_file()` in
+  `scopes.toggle_skill`, and a third condition inside `archive.has_skill_document`.
+  The two *writable-side* copies were behaviourally **equivalent**, proven by
+  running the full state matrix (active-only / disabled-only / both / neither ×
+  enable × disable) on 3.11–3.14: `scopes` reaches `dst.is_file()` only after
+  `src.is_file()` returned true, so "src and dst" collapses to "dst". So this was
+  a duplicated guard **capable of drifting, not one that had drifted** — recorded
+  that way deliberately, because the stronger claim was not what the evidence
+  supported. `loader.reject_conflicting_documents()` is now the single seam
+  (`store.py:98`, `scopes.py:833` toggle, `scopes.py:883` sync), with an optional
+  `scope_id` clause answering "which copy is ambiguous?" for the multi-root agent
+  case the global store has no equivalent of. `StoreError` is unchanged, so REST
+  stays 400 and the CLI stays exit 1.
+  **The real finding was a behaviour gap the refactor exposed:** `sync_skill`
+  *created* the mixed state every other path refuses to install — reported
+  `{'synced': [...], 'skipped': []}` while installing a state the tool then
+  refuses to toggle, with no route back. It now refuses the mixed **source** up
+  front, before any target is touched, so a refused sync is a no-op rather than a
+  partial install. Pinned by `tests/test_one_document_invariant.py` (16 tests,
+  4 failures + 5 errors against the pre-change source); one reads the source tree
+  because a behavioural test alone cannot catch the *next* copy.
+  **The stale wording above named `scopes.py:795`, which had already moved — the
+  line number was recorded, not re-derived.**
+- [x] **Context budget:** `docs/06-progress-log.md` measured 313,968 characters
+  / 40,906 words / 4,004 lines and was being injected into the context window of
+  every session before any work started. Rule adopted: **an entry stays resident
+  if and only if its dated heading is 2026-09-23 or later**; everything dated
+  2026-09-22 or earlier moved verbatim to `docs/archive/`. The file now measures
+  **64,666 characters / 9,478 words / 1,091 lines** — 79% fewer characters, 77%
+  fewer words — and carries a digest plus the 21 resident entries. 170 older
+  dated entries and two undated trailing checklists moved to
+  `docs/archive/06-progress-log-2026-09.md` and
+  `docs/archive/06-progress-log-2026-08.md`, verified byte-identical to the
+  source at the moment of the cut. `check_docs.py` needed no change, and the
+  gate was proved to still watch `docs/archive/` by injecting four defects into
+  an archive file and confirming each was caught. See @docs/archive/README.md
+  and @docs/06-progress-log.md.
+- [x] 1.0.2 artifacts built from the current tree (`522b81f`) with the pinned
+  hash-verified toolchain (`setuptools==84.0.0`, `build 1.2.2.post1`, Python
+  3.12.3, `--no-isolation`): wheel `efee22f311284e33bf811ce52571d8a365547e56f1ecc2f0b14585d3b3d5dded`
+  (369,397 bytes), sdist `817c46f5cd1ea3733a41fa90d370861c194be26375c7ce743389fffe417ba770`
+  (348,984 bytes). **These supersede** the `6733da9` hashes (`2d7beb9b…` /
+  `3e8aa27a…`) still recorded in the 2026-09-23 progress entry, which is now
+  marked superseded in place. Verified with a **second implementation** (42/42
+  checks), not by trusting the gate: the management-skill example is present in
+  both artifacts *and* an actual `site-packages` install, 46/46 `skillsmgr/` files
+  are byte-identical across both artifacts and against the source tree, and
+  neither artifact carries `tests/`, `docs/`, `.env`, a database or bytecode.
+  Reproducibility: with `SOURCE_DATE_EPOCH` pinned the wheel is byte-identical
+  across two builds; the sdist is **not** — all payloads match but 7
+  build-generated members get wall-clock mtimes and the gzip header MTIME is
+  wall-clock. Content-reproducible, container bytes are not.
+- [/] Publish 1.0.2 — **TestPyPI SHIPPED; PyPI is `waiting` on the maintainer's
+  `release`-environment approval.** `v1.0.2` is pushed at `ef9bfd6`; CI is
+  16/16 green. The external outage that blocked this has cleared: the failing
+  call was `audience retrieval` against
+  `https://test.pypi.org/_/oidc/audience`, which answered 503 on 2026-10-06
+  morning and answers **200** now (three samples, with `/simple/`, `/legacy/`
+  and `/pypi/<name>/json` all 200). Re-running the failed job was the whole fix,
+  exactly as recorded. `publish to TestPyPI` **succeeded**; `publish to PyPI` is
+  `waiting` on the `release` environment, whose required reviewer is
+  `udayvarmora07` — it cannot and did not proceed unattended. Not worked around
+  by publishing straight to PyPI: the TestPyPI stage is the gate, and skipping it
+  is the failure mode SEC-7 exists to prevent.
+
+  **[SPEC] The hashes recorded for this release were WRONG, and verifying them
+  is what caught it.** Neither recorded set matches what actually shipped:
+
+  | source | wheel | sdist |
+  |---|---|---|
+  | recorded in `task.md` | `efee22f3…` (369,397 B) | `817c46f5…` (348,984 B) |
+  | recorded in the progress log | `032ae368…` (380,909 B) | `fc0f34cb…` (361,035 B) |
+  | **actually published** | **`db2c07bb…` (380,909 B)** | **`a2962d4a…` (360,164 B)** |
+
+  Two sets were recorded for the same version, and neither is the artifact that
+  published. **The content is correct** — verified against the tag, not against
+  the docs: all 46 `skillsmgr/` files present, none extra, none missing, and the
+  2 that differ from the working tree (`scopes.py`, `webapp.py`) are
+  byte-identical to their `ef9bfd6` versions, because those are the only two
+  files changed after the tag. `check_package_data.py --dist-dir` PASSes on the
+  exact published bytes (6 web UI files, 2 example files, correct Vue sha256,
+  MIT), and TestPyPI's own recorded digests match the download.
+  **[?]** Why the byte-level difference, honestly bounded: the shipped sdist is
+  documented as *not* byte-reproducible (wall-clock mtimes), and the wheel is
+  only byte-identical across builds *with `SOURCE_DATE_EPOCH` pinned* — the
+  release workflow evidently does not pin it, so a CI rebuild can never match a
+  locally-recorded hash. That is a real reproducibility gap, not a
+  mismeasurement, and it is left recorded rather than guessed at.
+  **[NOTE] The reason nobody noticed:** `verify exact artifacts` verifies the
+  artifacts it builds in-run; it never compares them against the hashes written
+  in `task.md`. This is the repository's own recurring lesson — *a gate that
+  reports PASS about a path it cannot see is not a gate* — in a fourth recorded
+  instance, after BUG-13/SEC-13 and the two action-pin gaps.
+- [x] **Structural UI changes (audit G8): implemented, merged, tagged, and
+  rendered.** All three §G8 recommendations in @docs/24 landed in `6f72f0d` and
+  merged as `f11549a`, **inside the tagged `v1.0.2`**, pinned by 27 tests in
+  `tests/test_g8_ui_structure_contracts.py` (run: `Ran 27 tests ... OK`): the
+  Overview hero is gone from both `index.html` and `styles.css` and the
+  attention queue leads (`index.html:413`); the Library uses one 40px filter
+  bar (`styles.css:496`) with uniform scope/state suppressed to screen-reader-
+  only text, an 11px type floor and 56px rows (`styles.css:710`); and the
+  primary line is scope + state with paths demoted into `<details>` disclosures
+  carrying a Copy button (`index.html:588`, `:715`). Rendered evidence is
+  committed at `.specs/evidence/ui-g8-release-1.0.2-2026-10-06/` (six viewports
+  plus a `REVIEW.md` with a sha256 per capture).
+  **What is still NOT done, and is not an agent's to do:** `REVIEW.md` records
+  that no human perceptual review was performed, and no non-Chromium engine,
+  forced-colors mode, 200%/400% zoom, or screen reader was exercised. The
+  harness renders; it does not sign off. That gate is the same one as the
+  unrun participant sessions in @docs/25-design-partner-pilot-kit.md, and it
+  stays open rather than being marked done by an agent.
+- [x] `check_docs.py` source-symbol extraction covered a class's methods but not
+  its class-level attribute assignments, so a documented reference to a real class
+  constant (e.g. `Store`'s `_OBSERVED_KEYS`) was reported as a nonexistent symbol.
+  Hit while writing the `loader.py` entry; fixed in `3ff1b7e` once the gate and
+  `tests/**` were free, red-first. The failure mode was backwards — the gate was
+  pressuring an author to *weaken a true claim* rather than to fix a real
+  reference.
+
+### Why five of the six items above were stale
+
+**[NOTE]** D2, D3-1, D3-2, D3-10 and D3-11 are all verified done, and they are
+the sharpest part of this reconciliation: **five of them were not merely
+unchecked in this file, they were absent from it entirely.** Only D3-3 appeared
+and was `[ ]`. So the file was not "behind" on those items — it had no record
+of them at all, which is worse for a document whose stated job is to be the
+single source of truth for remaining work: an item missing from the list is an
+item nobody will pick up, and an item wrongly open is an item somebody will
+re-do.
+
+**What went wrong.** Work landed in branches whose commits recorded the finding
+id in the code and in `docs/06-progress-log.md`, but the `task.md` line was
+never touched. The parallel-worktree pattern makes this likely rather than
+accidental: a branch that owns `skillsmgr/**` and `tests/**` has no reason to
+edit this file, and `AGENTS.md` asks each session to update `task.md` without
+giving it an owner. Every one of the five was caught in review, not by the
+checklist.
+
+**What prevents a recurrence, and what does not.** `check_docs.py` cannot help
+here: it checks documentation against *source surfaces* (CLI commands, REST
+routes, `Store` methods), and none of these five items has a source surface to
+drift from. Do not add a gate for it. What actually works is ownership — a
+finding id that is closed in a commit must close its `task.md` line in the same
+commit, or the commit message must say why not. Until that is a rule someone
+enforces, the honest position is that `task.md` is a *good* checklist, not a
+complete one, and this pass found the gap by reading the code rather than the
+file.
+
+## Next five audit-derived tasks — planned 2026-09-23
+
+- [x] Reconcile @docs/18-project-improvement-audit-2026-09-22.md against the
+  current tree and create @docs/22-next-five-task-execution-plan-2026-09-23.md.
+- [x] T1: Review the five current Dependabot GitHub Actions PRs and record a
+  supported disposition for each in @docs/23-github-actions-dependency-pr-review-2026-09-23.md.
+- [/] T2: Prepare the metadata-corrected package release; publish only after
+  exact candidate review and maintainer approval. **Preparation is complete** —
+  the 1.0.2 artifacts are built from `522b81f` and independently verified (see the
+  artifact item above). Only the publish step remains, and it is human-gated.
+- [x] T3: Measure cold and warm full-inventory behavior at 100, 1,000, and
+  10,000 actual skill files; record the bounded 10,000-run limit in
+  @docs/16-product-baseline-2026-09-18.md.
+- [x] T4: Extend the existing first-run UI into a populated scan-to-action
+  journey with honest scope and effective-state evidence.
+- [x] T5: Publish an opt-in agent management skill example using existing
+  JSON and preview surfaces with explicit mutation approval.
+
+## Public onboarding copy and evidence — 2026-09-23
+
+- [x] Replace the README's category-ownership and single-target installer claims with a sourced, accurate comparison and clear local-update boundary.
+- [x] Capture and label a current-build synthetic overview screenshot near the README top.
+- [x] Clarify the issue-first contribution route with a draft-PR fallback while retaining maintainer approval for locked changes.
+
+The five open Dependabot action-update PRs remain a separate compatibility/CI
+review; this documentation slice does not merge or close them. A new package
+release and human usability sessions remain separate gates.
+
+## P0 Trust Gate and Release Metadata Hardening — 2026-09-22
+
+- [x] Repair full-import rollback diagnostics and add forced restoration-failure regression coverage.
+- [x] Add the narrow Ruff `F821`/`F822`/`F823` gate with one pinned CI execution and mutation-proof contract coverage.
+- [x] Review all Bandit 1.9.4 findings, fix silent enrichment/opener behavior, and record named dispositions in `docs/STATIC-ANALYSIS.md`.
+- [x] Make Markdown discovery deterministic across tracked and first-party files, including safe fallback and symlink containment.
+- [x] Migrate to PEP 639 SPDX metadata and verify wheel/sdist license metadata and byte-identical `LICENSE` content.
+- [x] Update contributor/module/session/changelog/docs-index/progress evidence and run the final current-tree ladder.
+
+Final evidence: 878 unittest tests, both smoke suites, documentation,
+complexity (261 tracked functions), package-data, pinned Ruff 0.16.8, pinned Bandit 1.9.4, the
+hash-verified setuptools 84.0.0 wheel/sdist build, Node syntax, and
+`git diff --check` passed. The default interpreter's optional build check
+remains `UNAVAILABLE`; the disposable pinned build environment produced and
+verified both artifacts.
+
+## Safe local source update implementation plan — 2026-09-22
+
+- [x] Select one high-leverage feature from the whole-project audit and define
+  its bounded product scope.
+- [x] Create an implementation-ready Luna Max handoff covering architecture,
+  CLI and REST contracts, UI behavior, persistence, concurrency, failures,
+  phases, tests, acceptance criteria, and definition of done.
+- [x] Owner approval: add the proposed top-level `update` CLI command with
+  `preview`, `apply`, and `snapshots` subcommands.
+- [x] Implement `docs/19-safe-local-source-update-implementation-plan.md` in
+  phased source-lock, service, CLI, REST, UI, documentation, and verification
+  slices.
+
+## Skill Hygiene Report implementation plan — 2026-09-22
+
+- [x] Implement `docs/20-skill-hygiene-report-implementation-plan.md` as a
+  deterministic, read-only report behind the existing Doctor and Quality
+  surfaces.
+- [x] Add bounded domain analysis and focused hygiene contracts.
+- [x] Integrate Doctor CLI/REST behavior while preserving the existing paths.
+- [x] Enrich Quality with grouped hygiene findings, retry, search, and exact
+  instance navigation.
+- [x] Complete documentation, performance evidence, and the current-tree
+  verification ladder.
+
+Final evidence: 866 unittest tests passed; `smoke_store.py`, `smoke_web.py`,
+the six-viewport browser harness (320/400/640/900/1280/1440px), Node syntax,
+documentation, complexity, package-data, and `git diff --check` gates passed.
+Record-only hygiene benchmarks on Python 3.12.3/Linux (five warm runs) were
+11.48 ms median / 12.20 ms p95 for 100 records, 86.89 ms / 90.92 ms for
+1,000, and 1,415.49 ms / 1,593.21 ms for 10,000; the largest fixture hit the
+documented 100,000 candidate-pair cap and reported degraded evidence. The
+optional `python3 -m build` artifact check remains unavailable because the
+`build` module is not installed.
+
+## Whole-project improvement audit — 2026-09-22
+
+- [x] Review the repository, documentation, verification evidence, competitors,
+  ecosystem discussions, community requests, and representative user scenarios.
+- [x] Record the findings and prioritized roadmap in
+  `docs/18-project-improvement-audit-2026-09-22.md` and register it in the docs
+  index.
+
+## Runtime contention and form metadata hardening — 2026-09-22
+
+- [x] Reproduce and fix repeated SQLite schema bootstrap during concurrent read
+  requests without changing the filesystem source-of-truth contract, schema, or
+  public Store API.
+- [x] Coalesce identical in-flight filesystem/index reads so a spike does not
+  multiply the same expensive scan; completed results are not cached.
+- [x] Add `name` metadata to remaining web form controls reported by Chrome's
+  form-field audit.
+- [x] Re-run the focused regressions, full verification ladder, browser harness,
+  and bounded load checks; record results in `docs/06-progress-log.md`.
+
+## UI redesign slice — 2026-09-20
+
+- [x] Reworked the web workspace into sibling navigation-rail, list-pane, and
+  detail-pane regions without changing backend contracts.
+- [x] Added readable scope counts, wrapped row badges, native skill metadata
+  disclosure, visible New skill action, authored light/dark tokens, and bounded
+  modal/import surfaces.
+- [x] Fixed mobile navigation for profiles, workspaces, trash, and empty
+  onboarding; preserved row targeting and modal focus restoration.
+- [x] Added `.ui-craft/brief.md`, `.ui-craft/tokens.md`, and the implementation
+  note `.specs/reports/ui-redesign-2026-09-20.md`.
+- [x] Implementation-agent visual inspection and stateful CDP automation are
+  complete for final current-build evidence at
+  `.specs/evidence/ui-overview-2026-09-21-final/`: six viewport captures
+  (320, 400, 640, 900, 1280, and 1440 px) plus `scenarios/` captures for
+  empty, search, form validation, error/success feedback, divergent detail,
+  destructive confirmation, disabled filtering, recovery, and dark theme.
+  The probes reported zero console/runtime errors, failed requests, or page
+  overflow. This is implementation-agent and automated evidence only; human
+  participant/usability and external communication approval remain pending.
+
+## Library browse slice — 2026-09-21
+
+- [x] Added an optional compact document/index-card grid for the Library while
+  keeping list presentation as the first-run default.
+- [x] Persisted only the explicit browse presentation choice in localStorage;
+  filters, logical/instance mode, exact physical batch targets, keyboard
+  activation, detail drill-down, and narrow-screen list → detail navigation
+  continue to use the existing state and handlers.
+- [x] Added source-contract coverage for list default, grid opt-in,
+  accessibility/keyboard behavior, shared drill-down, and batch selection.
+- [x] Kept the implementation in the current Vue 3 no-build frontend and
+  vanilla CSS; no backend/API/Store/schema/runtime dependency changed.
+
+## Observed identity slice — 2026-09-21
+
+- [x] Shipped observed agent/consumer/workspace identity and state summaries on
+  logical Library rows and grid cards, including active, disabled,
+  malformed/unaddressable, and divergent observations.
+- [x] Kept resolved physical alias grouping and exact scope-qualified Instances
+  mode/detail targeting intact; identity summaries are derived only from the
+  existing `/api/skills` records and `/api/scopes` descriptors.
+- [x] Added Node-backed domain/source contracts for aliased roots, unknown
+  consumers, project/workspace labels, observed states, accessible wrapping,
+  and no precedence/effective-state claims.
+
+## Profile quick-apply slice — 2026-09-21
+
+- [x] Shipped profile detail counts for observed, disabled, divergent, and
+  missing members, configured targets, and exact observed instance scope/path
+  evidence.
+- [x] Added `Review enable plan` for profiles with observed physical instances;
+  it derives deduplicated `{name, scope, path}` targets and keeps missing and
+  divergent members visibly unresolved.
+- [x] Frozen batch-modal target snapshots are reused by preview and execute for
+  both normal Library batches and profile apply; successful profile execution
+  refreshes its read-only preview.
+- [x] Added source/behavior contracts for snapshot use, target derivation,
+  unresolved visibility, exact before→after text, recovery policy, and refresh;
+  the profile action contract exercises computed unresolved-member data and the
+  exact enable target/context handoff.
+- [x] Kept the implementation in the existing Vue frontend and REST seams; no
+  backend/API/Store/schema/CLI/dependency/build change was made.
+
+## Install/update and Recovery centers — 2026-09-21
+
+- [x] Added task-oriented Install and Recovery navigation views composed from
+  existing registry, provenance, trash, history, import, and export seams.
+- [x] Install inventory reports existing `registry_provenance` fields only and
+  does not claim an update without registry evidence.
+- [x] Corrected registry fetch to the honest two-step boundary: the first
+  request creates a review id/evidence, and only a separate explicit trust
+  request with `{fetch:true, review_id, trust_confirmed:true}` commits it.
+- [x] Added review evidence for expiry, validation warnings, advisory risk, and
+  registry/snapshot hashes, plus a clear global-store-only Recovery boundary.
+- [x] Added source and Node behavior contracts for navigation, no false update
+  claims, and the exact two-step request payloads; no backend/API/Store/schema/
+  CLI/dependency/build change was made.
+- [x] Acceptance pass keeps Recovery as the single recovery nav entry, makes
+  Install/Recovery persistent search meaningful, labels inventory as
+  registry-backed skills, binds trust to returned review evidence, retires
+  stale reviews on a new request, and forces Recovery history/snapshots to the
+  global scope.
+
+## Settings and accessibility controls — 2026-09-21
+
+- [x] Added a Settings task-center view with native, keyboard-accessible theme
+  and text-size controls, a compact preview, and honest system/reduced-motion
+  evidence.
+- [x] Theme preference is persisted locally as `system`, `light`, or `dark`;
+  legacy saved `light`/`dark` values remain explicit choices. System mode
+  follows `(prefers-color-scheme: dark)` live with modern and legacy listener
+  cleanup; the topbar control cycles modes with an accurate label.
+- [x] Added persisted Standard/Large text sizing through a root data attribute,
+  44px option targets, and rem-scaled CSS. The external CSP-safe bootstrap
+  applies persisted theme and text-size preferences before CSS paint, while
+  system mode follows the OS when no preference is saved. No backend/API/Store/
+  schema/CLI/dependency/build behavior changed.
+- [x] Added source and Node contracts for localStorage migration, matchMedia
+  changes/listener cleanup, native labels, touch targets, and 200% zoom copy.
+
+## Quality evidence center — 2026-09-21
+
+- [x] Added a top-level Quality task center before Settings with persistent
+  search, a read-only overview, and exact skill selection/drill-down through
+  the existing Library detail seam.
+- [x] Composed independent observed evidence for specification/addressability,
+  physical-copy state/divergence, provenance when present, and token/size
+  estimates; risk, eval/usefulness, trust, and effective-load signals remain
+  explicitly unavailable when the current APIs cannot prove them.
+- [x] Reused existing Validate, Doctor, Stats, and Library
+  actions with loading, empty, error, keyboard, mobile, and 44px-target paths.
+- [x] Added source and Node behavior contracts for evidence boundaries, Quality
+  search, summary derivation, and exact Library drill-down; no backend/API/
+  Store/schema/CLI/dependency/build behavior changed.
+
+## Command palette — 2026-09-21
+
+- [x] Added a visible topbar Commands trigger and Ctrl/Cmd+K toggle using the
+  existing modal, inert, and focus-restoration system.
+- [x] Added an accessible combobox/listbox palette with initial search focus,
+  result-count status, no-results guidance, Arrow/Home/End/Enter/Escape
+  handling, 44px result targets, active-result scrolling, and updated keyboard
+  help. Options remain non-tabbable rows under the combobox active-descendant
+  model, including pointer selection.
+- [x] Indexed only existing navigation, global, and currently available
+  selected-record actions; Remove continues through its existing confirmation,
+  and command execution transfers focus to the destination or new dialog.
+- [x] Added frontend source/behavior contracts and six-viewport browser-harness
+  coverage for Home/End visibility, navigation-heading focus, dialog focus
+  return, and option-row Tab exclusion. No backend/API/Store/schema/CLI/
+  dependency/build behavior changed.
+
+## UI craft polish pass — 2026-09-21
+
+- [x] Reviewed the complete `.specs/evidence/flameshot-ui-2026-09-20` screenshot
+  set plus the current overview, Library grid, mobile, profile, install, and
+  recovery captures against the project UI brief and design-system guidance.
+- [x] Reworked observed-identity rows so labels and state badges remain readable
+  in narrow grid cards, with safe ellipsis and full hover titles for truncated
+  values.
+- [x] Made the active mobile view tab scroll into view after navigation and
+  added hidden scrollbars/snap alignment so the compact navigation remains
+  discoverable without changing the information architecture.
+- [x] Raised mobile interactive controls and form fields to 44px touch targets,
+  replaced broad chip transitions with explicit properties, and added source
+  contracts for the visual behavior. No backend/API/Store/schema/CLI/
+  dependency/build behavior changed.
+- [x] Verification for this pass is recorded in `docs/06-progress-log.md`.
+
+## UI hardening polish pass — 2026-09-22
+
+- [x] Changed grid-card identity metadata to a readable label-then-state
+  rhythm so long observed-state badges cannot compress scope or consumer names
+  into vertical text; deferred off-screen cards for large local libraries.
+- [x] Added the mobile readable-input baseline, touch-action hints, balanced
+  headings, explicit light/dark color-scheme signaling, and a compact 320px
+  brand treatment that keeps the workspace identity visible without crowding
+  actions.
+- [x] Made the brand control return to Overview, associated previously unlabeled
+  history/install controls with visible labels, and removed duplicate context
+  panes from mobile Install, Recovery, and Settings flows.
+- [x] Added source contracts for the responsive, semantic, and performance
+  behavior. No backend/API/Store/schema/CLI/dependency/build behavior changed.
+- [x] Verification for this pass is recorded in `docs/06-progress-log.md`.
+
+## UI interaction accessibility pass — 2026-09-22
+
+- [x] Added complete Actions-menu keyboard behavior: labelled menu ownership,
+  first-item focus on open, Arrow/Home/End navigation, Escape close, and
+  stable trigger focus when a menu item opens a dialog or starts an action.
+- [x] Added Space activation to the custom archive drop zone and raised modal
+  close/copy controls to the existing touch-target standard, including the
+  mobile 44px treatment.
+- [x] Added source contracts for the menu, drop zone, and touch-target
+  behavior. No backend/API/Store/schema/CLI/dependency/build behavior changed.
+- [x] Extended the existing CDP browser harness to verify menu open focus,
+  ArrowDown movement, Escape dismissal, trigger focus restoration, and the
+  no-overflow six-viewport matrix.
+- [x] Re-ran the full verification ladder and refreshed current viewport
+  evidence for this pass.
+
+## UI focus and announcement pass — 2026-09-22
+
+- [x] Replaced the global outline suppression with an explicit 2px accent
+  focus outline, offset, scroll margin, and theme-aware focus halo; field and
+  command-palette focus states now preserve that keyboard indicator.
+- [x] Removed the broad live region from the detail document pane so screen
+  readers receive focused headings and targeted status/alert announcements
+  instead of re-reading the whole workspace for every change.
+- [x] Added source contracts for focus appearance and targeted announcements.
+  No backend/API/Store/schema/CLI/dependency/build behavior changed.
+- [x] Re-ran the current-tree ladder and refreshed viewport evidence before
+  closing this pass.
+
+## UI navigation hierarchy pass — 2026-09-22
+
+- [x] Grouped the desktop navigation rail into Workspace, Operations, and
+  Preferences with icon cues while keeping the existing view routes and
+  `aria-current` state.
+- [x] Added compact mobile affordances for Commands, New skill, and Actions;
+  the brand now uses a stable short mark at narrow widths instead of a clipped
+  wordmark, while full labels and accessible names remain available.
+- [x] Kept navigation groups flat and horizontally scrollable on phones,
+  preserved 44px touch targets, and added a non-interactive heading focus
+  treatment so orientation focus does not look like an editable control.
+- [x] Added source-contract coverage and refreshed the six-viewport browser
+  harness. No backend/API/Store/schema/CLI/dependency/build behavior changed.
+
+## UI semantic accessibility audit pass — 2026-09-22
+
+- [x] Corrected Overview and Quality metric summaries to use valid definition
+  list `dt`/`dd` pairs while preserving the existing visual hierarchy.
+- [x] Kept visible brand and Commands labels inside their accessible names at
+  desktop and compact mobile breakpoints, with screen-reader-only action
+  context where the visual label is hidden.
+- [x] Added a concise local-first page description and a source contract for
+  the semantic/accessibility treatment. No backend/API/Store/schema/CLI/
+  dependency/build behavior changed.
+- [x] Lighthouse snapshot audit now reports 100 Accessibility, 100 Best
+  Practices, 100 SEO, and 100 Agentic Browsing with zero failed audits; the
+  six-viewport browser harness remains green.
+
+## UI regional formatting foundation — 2026-09-22
+
+- [x] Added a persisted Settings preference for system, United States, United
+  Kingdom, and India regional number/date formats, with an inline preview.
+- [x] Routed counts, file sizes, document metadata, trash/history timestamps,
+  and modal summaries through locale-aware `Intl` wrappers; removed direct
+  `toLocaleString()` template calls so one preference controls the surface.
+- [x] Kept the accessibility language truthful: the document remains `lang="en"`
+  until translated resources exist, and Settings explicitly says regional
+  formats do not translate interface copy.
+- [x] Added responsive select/preview styling and Node/source contracts. No
+  backend/API/Store/schema/CLI/dependency/build behavior changed.
+- [x] Verification for this pass is recorded in `docs/06-progress-log.md`.
+
+## UI regional formatting coverage audit — 2026-09-22
+
+- [x] Audited the complete screenshot-derived numeric surface and routed
+  secondary Profile, Doctor, Stats, budget-percentage, and token-share values
+  through the shared locale formatter.
+- [x] Updated Settings context copy and the status bar so the local-only
+  regional-format preference is discoverable and its active locale remains
+  visible after leaving the Settings view.
+- [x] Added source contracts for the secondary count coverage and preserved
+  the English-copy/language boundary. No backend/API/Store/schema/CLI/
+  dependency/build behavior changed.
+- [x] Verification for this pass is recorded in `docs/06-progress-log.md`.
+
+## Documentation milestone — 2026-09-20 comparison refresh
+
+- [x] Reconciled the competitive snapshot to upstream commit
+  `6ae02e39d9efea0faf75e643b8205f97833a593d` / version `1.40.0`, preserving the
+  2026-09-15 observation as history.
+- [x] Recorded the canonical local-web architecture verdict, the preferred
+  Chromium app-mode launcher, and the evidence-gated DEC-09 packaging option.
+- [x] Added the proposed follow-on sequence to @docs/15-product-ux-delivery-plan-2026-09-15.md
+  and ROADMAP.md. These are proposals, not active implementation checkboxes.
+- [x] Refreshed @docs/08-web-ui.md and @docs/06-progress-log.md without changing
+  runtime, API, schema, CLI, dependency, or product behavior.
+
+## Current state — 2026-09-22 (dated record; the authoritative section is the 2026-10-04 one above)
+
+- **DEL-00: DONE (2026-09-18).** The pre-existing registry network/provenance
+  batch is identified and kept separate from the product UX work. The current
+  tree passes 836 unittest tests, both smoke suites, compile, docs, complexity,
+  CLI help, package-data source integrity, frontend syntax, diff checks, and
+  the six-viewport browser harness with menu keyboard checks. A non-failing browser client-disconnect
+  traceback is recorded for DEL-03. Recovery artefacts are recorded in
+  `.specs/reports/del-00-step-1-2026-09-18.md`; no staging or commit was done.
+
+- **DEL-00 through DEL-04 engineering delivery sequence: DONE (2026-09-18).**
+  Baseline evidence, logical Library navigation, responsive/progressive
+  loading, and first-run onboarding were each implemented and verified as
+  separate steps. DEL-01's five-participant usability protocol remains
+  intentionally unclaimed until real consented participants are available.
+
+- **DEL-05 and DEL-06: DONE (2026-09-18).** Tags, profiles, exact-target batch
+  plans, adapter evidence, and contained project observations are implemented
+  and verified without a new CLI command, Store method, SQLite schema, runtime
+  dependency, or deployment mutation.
+
+- **DEL-07 read-only foundation: DONE (2026-09-19).** `source_lock.py` now
+  provides bounded source identities, whole-directory candidate manifests,
+  added/removed/changed-file evidence, CRLF/LF-only explanations, candidate
+  validation and advisory risk findings, explicit physical-target metadata, and
+  a permanently non-committing review result. No new CLI command, Store
+  method, SQLite schema, dependency, network request, or REST mutation was
+  added.
+
+- **DEL-07 live workflow: DONE (2026-09-20).** `source_lock.py` now persists
+  bounded `.skillsmgr-source-lock.json` evidence and exposes a separate
+  review-id/apply/rollback transaction. Apply requires explicit target
+  containment, a fresh review, `approve=True`, an explicit complete-tree
+  snapshot root, and revalidation under the cross-process mutation lock. No
+  CLI command, Store method, SQLite schema, dependency, network request, or
+  REST mutation was added.
+
+- **DEL-08 review/commit split: DONE (2026-09-20).** The existing registry
+  install and `POST /api/install` surfaces now separate network fetch/review
+  from no-network commit. Private expiring credential-free review artifacts
+  hold the validated snapshot and inspection evidence; commit requires the
+  review id plus explicit trust confirmation and is single-use. Store API,
+  global-only scope, SQLite schema, and existing command surfaces remain
+  unchanged.
+
+- **DEL-11 local evidence: DONE (2026-09-20).** The dev-only browser harness
+  now has an opt-in `--screenshots-dir` capture path. A fresh current-build
+  run produced five dated local PNGs at `.specs/evidence/del-11-2026-09-20-run2/`
+  with zero console/runtime/network failures and no viewport overflow. These
+  are local automated evidence only; a second fresh run produced the same
+  five-viewport evidence at `.specs/evidence/del-11-2026-09-20-run3/`.
+  External screenshots and real consented participant sessions remain
+  intentionally human-gated.
+
+- **DEL-11 local capture refresh (2026-09-20).** A further current-build
+  browser-harness run produced five PNGs at
+  `.specs/evidence/del-11-2026-09-20-run4/`; all five viewports reported zero
+  console/runtime/network failures and no horizontal overflow. All five PNGs
+  were visually inspected by the implementation agent with no obvious shell
+  clipping. This remains local automated preparation only and does not close
+  the externally reviewed screenshot or consented-participant gates.
+
+- **DEL-11 review packet (2026-09-20).** Added
+  `.specs/evidence/del-11-2026-09-20-run4/REVIEW.md` with the capture commit,
+  command, SHA-256 hashes, tool provenance, and an explicit human approval
+  checklist. The packet remains pending human review and does not claim that
+  the current viewport-health captures are the complete four-scene external
+  communication set.
+
+- **DEL-11 proof-scene candidates (2026-09-20).** Created four fresh
+  page-only 1280x900 candidates from disposable synthetic data for the
+  Logical Library, Effective-state evidence, Quality and trust, and Recovery
+  scenes. Labeled copies with date/build/viewport footers and raw/labeled
+  SHA-256 hashes are recorded in
+  `.specs/evidence/del-11-2026-09-20-proof-scenes/REVIEW.md`. This is still a
+  candidate packet; human communication approval remains open.
+
+- **DEL-11 candidate polish (2026-09-20).** Recaptured all four scenes with
+  the stable owner-only fixture root
+  `/tmp/skills-manager-external-demo-20260920` so visible paths are clearly
+  synthetic rather than random temporary internals. Refreshed the labeled
+  PNGs and manifest hashes; the human review gate remains pending.
+
+- **Overview final evidence and acceptance corrections (2026-09-21): DONE.**
+  The implementation-agent visual inspection and stateful CDP pass cover
+  `.specs/evidence/ui-overview-2026-09-21-final/`, including six viewport
+  captures and the `scenarios/` set for empty, search, form validation,
+  error/success feedback, divergent detail, destructive confirmation, disabled
+  filtering, recovery, and dark theme. The pass found zero console/runtime
+  errors, failed requests, or page overflow. Shipped corrections include
+  union-counted malformed/unaddressable attention, honest enabled/parsed/
+  addressable active counts, global-search routing without focus theft,
+  settled readiness and load-error states, form error associations with first
+  invalid focus, exclusive detail rendering, race-safe attention deep links,
+  single-owner modal focus restoration, and disabled-route stale-detail
+  clearing. Human participant/usability and external communication approval
+  remain pending and are not inferred from this local evidence.
+
+- **DEL-09 Git/review/apply integration: DONE (2026-09-20).** `backup_sync.py`
+  now reads safe Git remote metadata and fetches through Git's configured
+  credential helper/SSH agent without receiving or persisting credentials. It
+  stores bounded private expiring sync reviews and applies only after fresh
+  candidate-hash validation, explicit target containment, `approve=True`, and
+  a complete-tree snapshot through the existing source-lock seam. No CLI
+  command, Store method, SQLite schema, or runtime dependency was added.
+
+- **DEL-09 dry-run foundation: DONE (2026-09-19).** `backup_sync.py` now
+  normalizes bounded credential-free manifests, reports exact local/remote
+  deltas and conflicts, plans non-destructive three-way choices, and exposes
+  retryable interruption state. The Git/remote/apply integration is delivered
+  in the 2026-09-20 close-out above; this dated foundation entry remains the
+  pure-planner history with no new CLI command, Store method, or schema.
+
+- **DEL-10 integrity foundation: DONE (2026-09-19).** `bundles.py` now
+  provides deterministic version-1 manifest bytes, SHA-256 identity, and
+  detached HMAC evidence with explicit tamper, wrong-key, revocation, and
+  shared-secret limitations. Full archive/team distribution remains
+  unimplemented under the resolved ADR-004 policy; no key transport, archive
+  integration, command, Store method, schema, network, or mutation was added.
+
+- **DEL-10 policy decisions: DONE (2026-09-20).** ADR-004 §6 now resolves
+  HMAC/shared-secret integrity as the only crypto scope, file-only offline
+  distribution, and content-only signed metadata. Named-person identity,
+  hosted distribution, approval-state, eval/review metadata, archive
+  integration, and key lifecycle remain explicitly out of the shipped scope.
+
+- **Queue reconciliation: DONE (2026-09-20).** The stale Milestone 11 L2
+  checkbox and the old audit-batch T11 marker are reconciled with the current
+  tree: ZIP import is shipped, and the audit tracker reports no open findings.
+  The only uncompleted current evidence gates are external screenshots and
+  consented human sessions; they remain human-gated and are not fabricated by
+  automated runs.
+
+- **Current-tree verification: DONE (2026-09-22).** The final ladder passes:
+  836 unittest tests, both Store/Web smoke suites, JavaScript syntax, Python
+  compilation, complexity at 238 functions, documentation/source consistency,
+  vendored Vue integrity, CLI help, all six browser-harness viewports with
+  menu keyboard checks, and `git diff --check`. The pinned temporary build
+  toolchain also builds and inspects the current wheel and sdist with all six
+  web UI files; the optional clean sdist-install probe remains unclaimed
+  because its fresh venv does not include setuptools.
+
+## Milestone 75 — DEL-07 read-only source locks and update preview (2026-09-19)
+
+- [x] Add bounded, credential-free source identity for local/Git/archive/registry evidence.
+- [x] Compare complete candidate trees with symlink, traversal, depth, count, and size guards.
+- [x] Explain CRLF/LF-only changes while retaining raw hashes, sizes, and text diff evidence.
+- [x] Run candidate validation before readiness and keep risk findings advisory/heuristic.
+- [x] Require explicit physical target metadata and keep preview permanently non-mutating.
+- [x] Add hermetic contracts and ADR-008; update architecture/module/index docs and this record.
+- [x] Approve and implement a live review/commit/source-lock persistence workflow with explicit rollback.
+
+## Milestone 76 — DEL-08 trust-first registry install evidence (2026-09-19)
+
+- [x] Validate the complete staged registry snapshot before the existing global `Store.add` seam.
+- [x] Return validation warnings and advisory/heuristic `risk_scan()` evidence in CLI/REST fetch results.
+- [x] Keep explicit trust confirmation, bounded network/cache/hash/provenance controls, and manual install paths unchanged.
+- [x] Add invalid-snapshot-before-mutation coverage and update CLI, web, README, and ADR-005 documentation.
+- [x] Split network fetch into a separately approved, expiring review/commit transaction with no-network single-use commit.
+
+## Milestone 77 — DEL-11 positioning, distribution, and adoption brief (2026-09-19)
+
+- [x] Add the one-sentence control-plane position and evidence-based differentiation.
+- [x] Document migration from manually managed roots without deletion, upload, daemon, or precedence claims.
+- [x] Define a reproducible four-scene proof story and the existing five-viewport browser evidence procedure.
+- [x] Verify package, loopback, desktop-launcher, and artifact-claim boundaries without fabricating adoption metrics.
+- [x] Add a consent-safe design-partner brief with data handling, success signals, and exit conditions.
+- [x] Add a dated current-build screenshot capture path and record local viewport evidence.
+- [ ] Capture dated external screenshots and run real consented participant sessions; this repository records the protocol only.
+
+## Milestone 78 — DEL-09 backup/sync dry-run planner (2026-09-19)
+
+- [x] Add bounded, sorted, credential-free manifests with safe member paths.
+- [x] Report exact local/remote changes and three-way conflicts without writes.
+- [x] Keep review as the default conflict action; expose explicit non-destructive strategies.
+- [x] Record retryable interrupted-sync state and snapshot/recovery evidence.
+- [x] Add ADR-009, module/architecture/index docs, hermetic contracts, and this record.
+- [x] Approve and implement Git/remote/auth/apply integration with private review artifacts and snapshot-backed recovery.
+
+## Milestone 79 — DEL-10 offline team-integrity foundation (2026-09-19)
+
+- [x] Define bounded deterministic manifest bytes covering member paths and SHA-256 digests.
+- [x] Add detached HMAC-SHA256 evidence without storing or transporting keys.
+- [x] Report valid, wrong-key, tampered, revoked, and malformed-signature outcomes honestly.
+- [x] Preserve the shared-secret-only guarantee; do not imply named-person identity or safety.
+- [x] Add contracts and update ADR-004, architecture/module/index docs, progress, and this record.
+- [x] Refresh `docs/SESSION-CONTEXT.md` with the 787-test current state and new evidence-module inventory.
+- [x] Resolve ADR-004 §6 crypto/distribution/metadata decisions before archive or team workflow integration.
+
+## Milestone 69 — DEL-01 product baseline and research harness (2026-09-18)
+
+- [x] Codify hermetic empty, small, divergent, malformed, and 2,000-instance
+  fixtures in `baseline_harness.py` without reading private user content.
+- [x] Add a bounded startup-critical REST probe and stable JSON evidence schema;
+  preserve the existing five-viewport browser harness.
+- [x] Add focused contracts and `docs/16-product-baseline-2026-09-18.md`.
+- [x] Refresh the privacy-safe synthetic all-fixture baseline; the dated
+  report is `.specs/evidence/del-11-2026-09-20-run3/baseline.json` and records
+  the expected empty, small, divergent, malformed, and 2,000-instance shapes.
+- [ ] Run five consent-safe human usability sessions; automated work does not
+  fabricate participant evidence.
+
+## Milestone 70 — DEL-02 logical Library and navigation foundation (2026-09-18)
+
+- [x] Add derived physical-root/path observations to scope list rows without
+  changing the filesystem authority, SQLite schema, CLI, or Store API.
+- [x] Add `groupLogicalSkills()` with alias deduplication, instance retention,
+  and explicit divergent-content detection.
+- [x] Make the web UI default to a logical Library view with a persistent
+  Instances view; selected mutations continue to target one physical instance.
+- [x] Add focused frontend grouping coverage and update the web/module docs.
+- [x] Verify frontend syntax, grouping/scopes contracts, both smoke suites, and
+  the docs consistency gate.
+
+## Milestone 71 — DEL-03 responsive shell and progressive startup (2026-09-18)
+
+- [x] Fetch scopes, skills, and trash once in parallel; load secondary stats
+  after the first required data sources settle.
+- [x] Add a narrow-screen Library/detail state with explicit Back navigation
+  and focus return to the selected row.
+- [x] Collapse secondary filters behind a small-screen disclosure while
+  keeping the desktop controls unchanged.
+- [x] Bound disconnected-client writes so browser aborts do not emit raw
+  server tracebacks; add focused UI and web-handler regressions.
+- [x] Update the web UI map and verify the focused contracts, smoke suites,
+  frontend syntax, browser harness, and docs gate.
+
+## Milestone 72 — DEL-04 first-run onboarding (2026-09-18)
+
+- [x] Add a local-only empty-library checklist derived from detected scope
+  roots and the completed initial scan.
+- [x] Link the first-run actions directly to create, archive import, folder
+  add, and the existing health-check workflow.
+- [x] Keep onboarding dismissible and restartable in memory so it never blocks
+  expert access or adds a persistence contract.
+- [x] Add focused onboarding coverage and document the behavior.
+- [x] Verify the complete regression ladder after the final delivery step:
+  760 unittest tests, both smoke suites, compile, docs, complexity,
+  package-source integrity, CLI help, diff checks, frontend syntax, and all
+  five browser-harness viewports pass; optional artifact coverage is
+  unavailable because `python3 -m build` is not installed.
+
+## Milestone 73 — DEL-05 tags, profiles, and batch plans (2026-09-18)
+
+- [x] Add filesystem-owned tags and saved profiles with bounded metadata,
+  read-only membership previews, and full export/import preservation.
+- [x] Add tag/untagged filtering, visible-filter select-all, profile editing,
+  and explicit profile missing/disabled/divergent states in the web UI.
+- [x] Add preview-locked enable/disable/soft-remove/sync batch operations with
+  exact physical targets, stale-plan rejection, partial-failure reporting, and
+  recovery guidance.
+- [x] Preserve templates, rebuild/resync behavior, and the existing CLI/Store/
+  SQLite contracts; add focused catalog and web route coverage.
+- [x] Run the final current-tree regression ladder and record its evidence:
+  764 unittest tests, both smoke suites, compile, docs, complexity (238
+  functions), package-source integrity, CLI help, diff checks, frontend syntax,
+  and all five browser-harness viewports pass; optional artifact coverage is
+  unavailable because `python3 -m build` is not installed.
+
+## Milestone 74 — DEL-06 workspaces, projects, and adapter catalog (2026-09-18)
+
+- [x] Add a read-only adapter catalog derived from the existing consumer/root
+  evidence, with verified/experimental tiers, reload guidance, platform notes,
+  and explicit unknown precedence.
+- [x] Add contained project-root observations with outside-path redaction and
+  no project creation, deletion, or deployment side effects.
+- [x] Render adapter evidence and project observations in the responsive web
+  UI, while preserving unresolved effective-state semantics and alias-safe
+  physical targeting.
+- [x] Add focused evidence/containment contracts and ADR-007 documentation.
+- [x] Run the final current-tree regression ladder and record its evidence:
+  764 unittest tests, both smoke suites, compile, docs, complexity (238
+  functions), package-source integrity, CLI help, diff checks, frontend syntax,
+  and all five browser-harness viewports pass; optional artifact coverage is
+  unavailable because `python3 -m build` is not installed.
+
+- **SEC-14…SEC-18: DONE (2026-09-15).** First-party workflow actions
+  are pinned; the browser/launcher executable boundary is hardened; release
+  governance files and the protected writer environment are present; and local
+  sensitive-file ignore rules are added. Focused contracts, the live browser
+  harness, and the complete verification ladder pass.
+
+- **SEC-19/FM-19: DONE (2026-09-15).** Environment-selected data roots are
+  canonicalized and rejected when they are not trusted writable directories;
+  manager-created root components use owner-only permissions. Validator link
+  and layout references now decode URL paths, ignore fragments/queries, and
+  tolerate sentence punctuation when checking existing targets. Focused and
+  full regressions pass; no new command, Store method, schema, dependency, or
+  bind was added.
+
+- **EVAL-2: DONE (2026-09-15).** Eval iteration recording stages the complete replacement and restores the prior iteration when `BaseException` interrupts immediately after the backup move; if rollback is interrupted or fails, the backup is preserved and the error identifies it. Duplicate `(case, variant)` runs are rejected before writes. Workspace derivation checks lexical and resolved containment, including symlink aliases beneath `data_dir/skills`, while valid external authoring remains beside the skill. Focused regressions cover all three findings. No commands, Store methods, schema, dependencies, staging, or commit.
+
+- **CLI-9/10/11: DONE (2026-09-15).** Human `trash purge` reports a count while JSON keeps the name list; ignored or incompatible selectors and dependent flags fail cleanly before Store creation; eval case files reject Windows drive-prefixed paths. Focused CLI/eval regressions cover invalid and valid combinations. No command, Store method, schema, or dependency changes.
+
+- **Competitive product/business planning: DONE (2026-09-15).** Dated research
+  now separates observed competitor/current-product evidence from strategy and
+  hypotheses, positions the product as an AI Agent Skill Control Plane, and
+  defines customer segments, monetization, GTM, success measures, target IA,
+  phased workstreams, acceptance criteria, experiments, dependencies, security
+  gates, and approval decisions in @docs/14-competitive-product-business-strategy-2026-09-15.md
+  and @docs/15-product-ux-delivery-plan-2026-09-15.md. Planning only: no product
+  behavior, command, Store method, schema, dependency, bind, or framework changed.
+
+- **Frontmatter/validator follow-up: DONE (2026-09-15).** Five low-severity
+  audit findings are closed: folded `>` scalars preserve more-indented line
+  breaks (`FM-13`); `validate_skill_name()` rejects Windows device names
+  (`FM-15`); NUL-byte link/layout references produce clean validation warnings
+  (`FM-16`); `validate_text()` checks a frontmatter `name` without requiring a
+  caller name (`FM-17`); and passive "should be used when" descriptions satisfy
+  the use-context check (`FM-18`). Red-first stdlib regressions cover each
+  finding. No command, Store method, schema, dependency, or bind changed.
+
+- **Final audit tail: DONE (2026-09-16).** `FM-20` now rejects over-depth and
+  cyclic programmatic frontmatter graphs without a raw recursion failure;
+  `FM-21` routes template names through the canonical bounded/reserved-name
+  validator; `INS-1` keeps script scanning explicitly advisory and heuristic;
+  `INS-2` keeps offline registry trust, hash, and eligibility unverified even
+  when caller intent is supplied; and `INFO-1` is recorded as a verified
+  `cmd_open` false positive with an argv-injection regression. No command,
+  Store method, schema, dependency, or bind changed.
+
+- **FM-9 dumper-key fidelity: DONE (2026-09-16).** Control-bearing mapping
+  keys now use escaped double-quoted output that round-trips through the
+  parser, and root/nested mappings reject distinct Python keys that serialize
+  to the same frontmatter key. Red-first regressions cover both halves; no
+  command, Store method, schema, dependency, or bind changed.
+
+- **Registry network/provenance: DONE (2026-09-16).** Bounded skills.sh
+  browsing/search/curated reads and an explicit global fetch now use private
+  auth-isolated caching, upstream-compatible hash verification, atomic snapshot
+  materialization, and a credential-free provenance sidecar reconciled by the
+  loader. The current tree was re-verified after final cleanup. No new command,
+  Store method, schema, dependency, or bind was added.
+
+## Milestone 68 — Registry network browsing, fetching, and provenance (2026-09-16)
+
+- [x] Add a stdlib-only skills.sh client for bounded browse, search, curated,
+  detail-compatible references, and snapshot fetches with HTTPS host,
+  redirect, response, auth, cache, and stale-cache boundaries.
+- [x] Validate upstream-compatible hashes plus a framed local integrity hash;
+  materialize snapshots atomically and reject traversal, symlink, duplicate,
+  size-limit, and manager-sidecar inputs.
+- [x] Add credential-free provenance sidecars with per-file hashes and loader
+  reconciliation; surface registry operations through the existing CLI, REST,
+  and Vue install workflow. Fetch requires explicit trust confirmation and is
+  global-store-only.
+- [x] Add hermetic core/integration contracts and update ADR, README, CLI, web,
+  architecture, roadmap, and progress documentation.
+- [x] Re-run the complete current-tree verification ladder after all edits.
+
+## Milestone 67 — Worktree comparison and frontend report close-out (2026-09-16)
+
+- [x] Compare every registered worktree and local branch with pushed `main`;
+  retain already-integrated snapshot/migration work without reapplying stale
+  architecture changes.
+- [x] Port the valid frontend report fixes: CRLF Markdown, array compatibility
+  formatting, accessible Path metadata, chip-count contrast, visible raw
+  metadata failures, and drained oversized-body `413` responses.
+- [x] Add focused regressions, update the changelog/progress record, and run
+  the current-tree verification ladder before pushing.
+
+**Verified on the current tree (re-derived after the registry network/provenance close-out, 2026-09-16):**
+**750 `unittest` tests OK**; `smoke_store.py` and `smoke_web.py` PASSED;
+`check_docs.py` PASSED; `check_complexity.py` PASSED (**226 functions**, budget
+≤ 15); `node --check` clean on `skillsmgr/webui/app.js` and
+`skillsmgr/webui/domain.js`; CLI help runs; `check_package_data.py` asserts the
+vendored Vue sha256 and then reports `UNAVAILABLE` locally without the optional
+`build` tooling (standing behaviour), and PASSes on real built artifacts.
+Counts quoted inside the dated bullets below are the record of the slice that
+wrote them, not of today.
+
+## Milestone 66 — FM-9 dumper-key fidelity close-out (2026-09-16)
+
+- [x] Implement escaped double-quoted mapping keys for representable control
+  characters, including newlines and tabs, with exact dump/parse round-trips.
+- [x] Reject root and nested mappings whose distinct Python keys serialize to
+  the same frontmatter key instead of emitting duplicate-key documents.
+- [x] Add red-first regressions and update audit/checklist/progress records;
+  preserve the accepted SEC-4 constraint and run the verification ladder.
+
+## Milestone 65 — Final audit-tail close-out (2026-09-16)
+
+- [x] Close `FM-20` with an iterative frontmatter dumper depth/cycle guard and
+  a regression that proves deep programmatic input produces a bounded error.
+- [x] Close `FM-21` by routing template names through canonical bounded and
+  reserved-device-name validation.
+- [x] Close `INS-1` by broadening the script heuristic while marking findings
+  advisory/heuristic and keeping them out of enforcement decisions.
+- [x] Close `INS-2` by making offline registry trust, hash, and eligibility
+  explicitly unverified; preserve compatibility fields with safe false values.
+- [x] Close `INFO-1` as a verified false positive and pin editor metacharacters
+  to inert argv behavior.
+- [x] Update the audit tracker and owning docs; run the complete current-tree
+  verification ladder without staging or committing.
+
+## Milestone 64 — Trust-root and validator reference hardening (2026-09-15)
+
+- [x] Add SEC-19 and FM-19 regressions for unsafe environment roots and
+  decorated existing references.
+- [x] Validate/canonicalize `$SKILLS_MANAGER_DATA` and `$XDG_DATA_HOME`
+  roots, reject unsafe roots, and create new manager directories privately.
+- [x] Normalize URL-decoded validator references without weakening containment
+  or the warning-only out-of-root link contract.
+- [x] Update audit/security/contributor/changelog/progress/task records and
+  run the complete verification ladder without staging or committing.
+
+- **FM-11: DONE (2026-09-14).** `validate_skill()` now compares frontmatter
+  `name` with the resolved skill-directory basename, while preserving caller
+  name-format validation. Malformed symlink resolution now returns a clean
+  validation error instead of leaking filesystem exceptions. Focused stdlib
+  regressions cover mismatched and matching names, symlink paths, and an
+  unresolvable directory; no CLI/Store/schema/dependency changes.
+
+- **CLI-8: DONE (2026-09-14).** Install source, agent, and skill values now share bounded validation across CLI/REST: option-like, traversal, absolute, Windows drive-prefixed, empty, and over-256-character values are rejected. Red-first CLI/REST parity contracts pass. No new command, Store method, schema change, or dependency.
+
+- **CLI-7: DONE (2026-09-14).** `install --list-only` now executes the list-form ecosystem runner argv with `-l` and reports runner output/exit behavior; `--dry-run` and `--preview` remain non-executing. Red-first subprocess-mock contracts cover human output, JSON failure shape, and dry-run no-call. REST parity was inspected and remains unchanged. No new command, Store method, schema change, or dependency.
+
+- **CLI-6: DONE (2026-09-14).** `view --raw --json` now rejects incompatible output modes with a clean exit-1 `StoreError`; normal raw and JSON modes remain unchanged. Red-first global and agent-scope contracts cover the rejection. No new command, Store method, schema change, or dependency.
+
+- **CLI-5: DONE (2026-09-14).** `doctor --scope` now validates known scope ids, rejects unknown values with clean exit 1, and audits known agent filesystem scopes directly. Red-first coverage includes human/JSON errors and malformed agent documents. Full suite: 657 tests; both smokes and docs/complexity checks pass. No new command, Store method, schema change, or dependency.
+
+- **Deep-audit remediation batch 7: DONE (2026-09-14).** `CLI-4` through `CLI-8` are fixed: eval workspaces are kept outside the managed tree; doctor validates scopes; view rejects raw+JSON; list-only executes the runner; CLI/REST install values reject traversal, absolute, drive-prefixed, option-like, empty, and oversized values. Tracker: @docs/13-audit-remediation-status-2026-09-11.md (**77 fixed, 1 partial, 1 accepted, 23 open** of 102). No new CLI command, Store method, schema change, or runtime dependency.
+
+- **Deep-audit remediation batch 6: DONE (2026-09-14).** `STORE-11`/`SEC-12` now use a bounded reentrant lock table backed by cross-process advisory file locks; stale transaction/temp artifacts are repairable through `resync()` with diagnostics. `SCOPE-5` uses one resolved scope-root identity for nested path resolution. `SCOPE-8` filters live read-only targets and reports partial/total sync failures cleanly. `SEC-10` removes duplicate aggregate scans and reuses one merged snapshot in stats. `SEC-11` preserves multipart bytes and decodes RFC2231 filenames. New tests: `tests/test_audit_batch6_contracts.py` (25). Tracker: @docs/13-audit-remediation-status-2026-09-11.md (**74 fixed, 1 partial, 1 accepted, 26 open** of 102). No new CLI command, `Store` method, schema change, or runtime dependency.
+
+- **Deep-audit remediation batch 5: DONE (2026-09-12).** The remaining Medium
+  security/supply-chain audit findings plus the `SEC-13` `[?]`. `SEC-5` (`form-action 'none'`),
+  `SEC-6` (upload name-conflict/NUL-byte errors are clean `400`s, no raw
+  exception text, clean server log), `SEC-7` (no install from an index inside a
+  `contents: write` job; PyPI verification moved to a read-only
+  `postpublish-verify` job), `SEC-8` (exact `setuptools==84.0.0` backend plus a
+  hash-verified `requirements-build.txt` built with `--no-isolation`), `SEC-9`
+  (vendored Vue pinned by sha256, verified in the source tree and inside both
+  artifacts, `.gitattributes` keeps it byte-stable) are `FIXED`. `SEC-4`
+  (`script-src 'unsafe-eval'`) is recorded as `ACCEPTED`: the only real fix needs
+  a build step, which locked constraint 4 forbids, so the trade-off is documented
+  in @docs/08-web-ui.md and pinned by a test. `SEC-13` is `FIXED` — a real build
+  settled its `[?]` (the sdist shipped all 29 test modules) **and** exposed that
+  the `BUG-13` gate could not see any sdist member outside `skillsmgr/`; the
+  reader now keeps them and `MANIFEST.in` prunes `tests` (73 → 45 members). New
+  tests: `tests/test_audit_batch5_contracts.py` (20). Tracker:
+  @docs/13-audit-remediation-status-2026-09-11.md (**67 fixed, 1 partial, 1
+  accepted, 33 open** of 102). No new CLI command, `Store` method, schema change,
+  or runtime dependency.
+
+- **Five issues closed out: DONE (#3, #4, #5, #12, #13).** Issue #13 (non-UTF8
+  `SKILL.md` raising a raw `UnicodeDecodeError`) is fixed with the
+  *read/report paths tolerate, write paths fail closed* contract: the loader
+  marks the row `malformed` with an actionable `decode_error`, `Store.doctor`
+  reports `undecodable_documents` as drift, and every rewrite path uses
+  `read_skill_text_strict()` so lossy replacement characters can never reach a
+  write. Issue #12 shipped as the read-only
+  `doctor --explain CONSUMER [--project DIR] [--skill NAME]` diagnostic
+  (`skillsmgr/effective.py`, also `GET /api/doctor?explain=…`), which derives
+  the winner per consumer at read time from cited rules, persists nothing, and
+  keeps `effective_state: unresolved`. Issues #3/#4 (offline registry bridge,
+  file-based eval harness) and #5 (ZIP import) were re-verified end to end and
+  committed. New tests: `tests/test_encoding_contracts.py` (23) and
+  `tests/test_effective_explain_contracts.py` (36); suite total 435 OK, both
+  smokes PASS, docs and complexity gates PASS.
+
+- **Distribution rename: DONE.** The published package identity is
+  `skill-control-plane`; imports remain `skillsmgr`, the CLI remains
+  `skills-mgr`, the repository remains `udayvarmora07/skills-manager`, and
+  internal `skills-manager` data/database names are unchanged. Trusted-publisher
+  release references and artifact fixtures use the new distribution identity;
+  historical notes are retained.
+
+- **L2 ZIP import: DONE.** `Store.import_` accepts ZIP or tar content (sniffed),
+  applies the shared budgets (`archive.py`), rejects symlink-bit/disallowed
+  members, extracts only to contained staging paths, and reuses the staged
+  commit pipeline. REST `PUT /api/import` accepts `.zip`. No new CLI command,
+  schema change, or dependency. Hardened after an adversarial audit: per-member
+  compression-ratio budget, a failed staging copy can no longer delete the
+  existing skill, `--full` trash/templates install as one rolled-back
+  transaction with index reconciliation, and manifest `full`/metadata types are
+  validated before mutation. 315 unittest green (2026-09-10).
+- **L6 release: PUBLISHED SUCCESSFULLY (2026-09-10).** The
+  `skill-control-plane` 1.0.1 release completed through TestPyPI, PyPI, GitHub
+  Release, provenance attestation, and post-publish install/CRUD verification.
+  Imports, CLI, and internal data/database names remain unchanged. This
+  worktree performs no publish, tag, or push action.
+- CI portability defects (Windows glob, macOS resolved-path expectation, Chrome
+  DevTools port discovery) are fixed in this round; dated milestones below are
+  historical records and are not rewritten.
+- **Documentation truth pass: DONE.** Milestone 56 below reconciled every living
+  document with the source after the audit remediation: the `SESSION-CONTEXT`
+  claim that reads are not `Host`-validated was **false** (the policy guards
+  `GET`/`HEAD` too, `SEC-1`) and its gate counts were stale, and
+  `03-cli-surface.md`/`08-web-ui.md`/`01-architecture.md` were missing the
+  control-character, sanitization, fail-closed, `HEAD`/`OPTIONS`/`TRACE`,
+  `degraded`, `doctor?explain`-confinement, symlink and lock behaviour they now
+  document. No product behaviour changed.
+
+
+## Milestone 63 — Launcher, workflow, governance, and hygiene hardening (2026-09-15)
+
+- [x] Add red-first regressions for `SEC-14`…`SEC-18` and preserve the legacy
+  launcher contracts with hermetic executable fixtures.
+- [x] Pin first-party GitHub Actions to reviewed full SHAs and keep the version
+  comments next to each use.
+- [x] Keep Chrome's sandbox enabled, bind the harness CDP listener to loopback,
+  and share trusted PATH executable discovery between the two launchers.
+- [x] Add `CODEOWNERS`, GitHub Actions Dependabot updates, and the `release`
+  environment to the contents-writing release job.
+- [x] Add preventive `.env`, database, credential, and private-key ignore rules.
+- [x] Update the audit tracker, security/contributor docs, changelog, and
+  progress records; run the complete verification ladder without staging or
+  committing.
+
+## Milestone 62 — Frontmatter and validator follow-up (2026-09-15)
+
+- [x] Add one red-first regression for each selected finding: `FM-13`,
+  `FM-15`, `FM-16`, `FM-17`, and `FM-18`.
+- [x] Preserve YAML folded-scalar line breaks around more-indented content.
+- [x] Reject reserved Windows device names in the canonical skill-name gate.
+- [x] Convert NUL-byte link/layout path failures into validation warnings.
+- [x] Validate frontmatter names independently of the optional caller name and
+  recognize passive "used when" use-context phrasing.
+- [x] Update `TODO.md`, `docs/13-audit-remediation-status-2026-09-11.md`,
+  `CHANGELOG.md`, and this progress record with the new disposition.
+- [x] Run focused and full regression/gate verification on the current tree;
+  no staging or commit.
+
+## Milestone 61 — Competitive product, UX, and business planning (2026-09-15)
+
+- [x] Record the exact competitor revision, dated public/project observations,
+  evidence limits, capability comparison, and reusable UI/workflow lessons.
+- [x] Define the product category, positioning, differentiation, target customer
+  jobs, business model, pricing hypotheses, packaging boundary, GTM, metrics,
+  risks, decisions, and non-goals.
+- [x] Translate the strategy into a target information architecture, logical
+  skill mental model, desktop/mobile behavior, 90-day slices, 12-month
+  workstreams, dependency order, acceptance criteria, experiments, security and
+  verification gates, and definitions of ready/done.
+- [x] Mark all profile/provenance/network/sync/team/packaging proposals with
+  explicit ADR, service, or locked-constraint approval boundaries; no proposal
+  is represented as shipped.
+- [x] Add both HADS documents to the docs index, link them from the public
+  roadmap, and update the dated progress record. Documentation-only; no product
+  surface or persistence change.
+
+## Milestone 60 — CLI-5 doctor scope validation (2026-09-14)
+
+- [x] Red-first CLI contracts reject unknown `doctor --scope` values with clean
+  exit 1 in human and JSON modes.
+- [x] Known agent scopes scan/report their own filesystem, including malformed
+  documents, rather than returning only the global Store doctor result.
+- [x] `global` and `all` behavior remains compatible; no command, Store method,
+  schema, or dependency added.
+- [x] Focused tests (32), full suite (657), both smoke scripts, compile, and
+  diff checks pass; no staging or commit.
+
+## Milestone 59 — CLI-4 eval workspace containment (2026-09-14)
+
+- [x] Red-first CLI contract rejects direct and symlink-resolved `--workspace`
+  paths under the managed `data_dir/skills` tree before writing eval output.
+- [x] Explicit workspaces outside the managed tree remain valid; existing
+  `--path` authoring behavior remains covered and unchanged.
+- [x] Production change is limited to the eval workspace resolver and CLI
+  handler; no commands, Store API, schema, or dependencies changed.
+- [x] Focused eval harness tests pass (42 tests); diff reviewed with no staging
+  or commit.
+
+## Milestone 58 — Deep-audit remediation batch 5 (2026-09-12, 5 findings + 1)
+
+Fifth remediation batch, continuing the audit's severity order past batch 4.
+This round touched two product files (`webapp.py`, `web_upload.py`), one repo
+gate (`check_package_data.py`), the build configuration, three new root-level
+build files, and documentation. **No locked constraint moved:** no new CLI
+command, no `Store` method, no SQLite schema/`SCHEMA_VERSION` change, no runtime
+dependency, and the web UI still has stdlib backend, no build step, loopback
+bind. Per-finding status is in @docs/13-audit-remediation-status-2026-09-11.md.
+
+- [x] `SEC-5` — `form-action 'none'` added to the CSP (`form-action` does not
+  fall back to `default-src`); asserted on live `200`/`404`/`405` responses.
+- [x] `SEC-6` — `web_upload._stage_path()` decides the staging path before any
+  write: a file/directory name conflict is a clean `400` in either part order, a
+  NUL-byte filename gets an explicit message, remaining `OSError`/`ValueError`
+  become a `StoreError` carrying only the OS reason, and the server log stays
+  clean.
+- [x] `SEC-7` — every install inside the `contents: write` release job is
+  `--no-index` against the artifacts this workflow built and attested; the
+  post-publish PyPI check moved to a new `postpublish-verify` job with
+  `contents: read` and no `id-token: write`.
+- [x] `SEC-8` — `setuptools==84.0.0` in `[build-system]` plus a new
+  `requirements-build.txt` (all four packages, every file digest) installed with
+  `--require-hashes` and built with `--no-isolation` in both workflows;
+  verified by a real hash-checked install, build, and `--dist-dir` gate PASS.
+  Honest limit recorded: PEP 518 cannot carry hashes in `[build-system]`.
+- [x] `SEC-9` — `check_package_data.py` records and verifies
+  `VUE_VERSION`/`VUE_UPSTREAM_URL`/`VUE_SHA256`/`VUE_SIZE` for the checked-in
+  bundle **and** the payload inside both artifacts, before the optional build
+  step; digest independently confirmed byte-identical to the upstream
+  `vue@3.5.13` file; `.gitattributes` marks it `-text`.
+- [x] `SEC-4` — recorded as `ACCEPTED`, not fixed: removing
+  `script-src 'unsafe-eval'` requires precompiled render functions (a build
+  step), so the trade-off, its cost, and the condition that would revisit it are
+  documented in @docs/08-web-ui.md and pinned by a test.
+- [x] `SEC-13` — its `[?]` settled with a real build (the sdist shipped 29 test
+  modules) and a second defect found and fixed: `read_archive_files()` hid every
+  sdist member outside `skillsmgr/` from the `BUG-13` policy, so its own test
+  passed on a wheel fixture. Members are now inspected and `MANIFEST.in` prunes
+  `tests` (73 → 45 members).
+- [x] Red-first: the new test module reported 16 failures + 3 errors before any
+  fix landed.
+- [x] Verify: **627 unittest PASS** (+20), both smokes PASS, compile PASS,
+  `node --check` PASS, `check_docs.py` PASS, `check_complexity.py` PASS (ratchet
+  flat), `check_package_data.py` PASS on real artifacts, YAML parses for both
+  workflows, `git diff --check` PASS.
+- [x] Docs: tracker (@docs/13), progress log (@docs/06), this file, `TODO.md`,
+  `CHANGELOG.md`, `CONTRIBUTING.md`, @docs/08-web-ui.md and
+  @docs/SESSION-CONTEXT.md updated together.
+
+**Acceptance gate:** every closed finding is cited by a test that names its ID;
+every acceptance check above was re-run on the current tree; no baseline
+inflation (`complexity-baseline.json` untouched).
+
+## Milestone 1 — Docs layer (2026-08-13)
+
+- [x] Confirm repo layout and module inventory
+- [x] Verify CLI command surface (27 top-level + 7 nested + 3 aliases, 37 invocable names) from `skillsmgr/cli.py`
+- [x] Verify Store public API via grep of `skillsmgr/store.py`
+- [x] Verify GUI toolkit availability (GTK4 4.14 selected, GTK3 3.24 fallback)
+- [x] Capture AGENTS.md research takeaways (Red Hat article + context-engineering / agent-legibility skills)
+- [x] Create `docs/` directory
+- [x] Write `task.md` (this file)
+- [x] Write `AGENTS.md` (hot cache, router, <=150 lines)
+- [x] Write `docs/README.md` (docs index, hot/warm/cold map)
+- [x] Write `docs/01-architecture.md` (data model, data-dir layout)
+- [x] Write `docs/02-modules.md` (module-by-module facts)
+- [x] Write `docs/03-cli-surface.md` (command table, exit codes)
+- [x] Write `docs/04-store-api.md` (public API + SQLite schema)
+- [x] Write `docs/06-progress-log.md` (dated log entries)
+- [x] Write `docs/07-context-strategy.md` (hot/warm/cold model for sessions)
+- [x] QA docs: every @docs/ pointer resolves, HADS format valid, no stale facts
+
+## Milestone 2 — GUI (local web UI, replaced GTK4 on 2026-08-14)
+
+- [x] Scaffold `skillsmgr/gui.py` + `__main__` integration (GTK4, later deleted)
+- [x] Main window: skill list (mirror `list` output, status columns)
+- [x] Detail view: view skill metadata + body (mirror `view`)
+- [x] Actions: create, add, edit, disable, enable, remove (trash/purge), restore
+- [x] Search bar (mirror `search` scoring, live filtering)
+- [x] Manage: validate, doctor, stats, history, trash views, templates list/new, db rebuild/resync
+- [x] Import/export/backup/restore (import modal + export download + folder upload)
+- [x] Error paths: StoreError/SkillNotFound surfaced as dialogs/toasts, never tracebacks
+- [x] Launch check: web UI serves on 127.0.0.1 and opens in browser
+
+## Milestone 3 — Zero-error iteration loop
+
+- [x] Run `python3 -m skillsmgr --help` — no CLI regressions
+- [x] Run `python3 smoke_store.py` — passes
+- [x] Run `python3 smoke_web.py` — passes (all REST endpoints)
+- [x] Browser click-through: create/edit/disable/remove+undo/restore/trash/validate/doctor/stats/history/templates/import/export/theme — zero console errors
+- [x] Mobile 400px viewport: no topbar overflow
+- [x] Fix 4 CLI bugs (export/backup/db rebuild/doctor) found by reproduction
+## Milestone 4 — Security + hardening audit (2026-09-04)
+
+- [x] Security audit + bug audit via subagents (P0/P1/P2 triaged with evidence)
+- [x] P0 fixes: `validate --all` fs-scan, PATCH name ignored, import traversal/type/empty guards, 25 MB body + Content-Length caps, generic 500 + stderr log, tar `filter="data"`, restore timestamp-regex, purge skips non-timestamp dirs
+- [x] P1/P2 fixes: scopes injectable global store (`set_global_store`, wired in `WebAppServer`), `sync_skill` name validation, loader `malformed` flag, frontend `listSeq`/`detailSeq` race guards + scope-aware undo/restore, docs `--scope`/`--raw`/zip corrections, web-UI rule-1 correction
+- [x] `smoke_store.py` made hermetic (tmp fixture replaces external opencode path)
+- [x] Full CLI E2E matrix on temp data dir (create/list/view/raw/edit/search/limit/disable/enable/validate/stats/doctor/history/export/remove/trash/restore/purge/templates/db/sync/scopes/tokens/install-dry-run + error paths; exit codes 0/1/2 verified)
+- [x] Full REST edge matrix (traversal→400, empty→400, zip→400, bad-archive→400, oversize→400, long-query→400, history clamp, PATCH-name-ignored, disable/enable, static `..`→404, unknown→404)
+- [x] `node --check` on `webui/app.js`; UI serve check (index + vendored Vue 200)
+- [x] `security_best_practices_report.md` (no criticals; H-1 supply-chain note, M-1 tar-fallback, M-2 member allowlist, M-3 path disclosure)
+- [x] `skills-manager-threat-model.md` v1.0 (assets A-1..A-4, boundaries B-1..B-5, paths T-1..T-10, risks R-1..R-5)
+
+## Milestone 6 — OSS launch kit (2026-09-05)
+
+- [x] Packaging: `pyproject.toml` (`skills-manager`, `requires-python >=3.10`, `skills-mgr` entry, stdlib-only, no dev deps), `.gitignore`, `LICENSE` (MIT)
+- [x] Docs: `README.md` (badges, quickstart, scopes table, web UI, data model), `CONTRIBUTING.md` (stdlib-unittest, locked constraints), `SECURITY.md` (72h ack / 14d fix, localhost scope notes), `CHANGELOG.md` (Keep a Changelog, Unreleased + 1.0.0), `ROADMAP.md` (v1.1 / v1.2+ / non-goals)
+- [x] Reports: `security_best_practices_report.md`, `skills-manager-threat-model.md` (T-1…T-10, R-1…R-5)
+- [x] Tests: `tests/test_store.py` (22), `tests/test_webapp.py` (3, serve_forever thread + shutdown/join/close), `tests/test_web_scopes.py` (13, hermetic HOME+DATA override) — 38 total, all OK via `python3 -m unittest discover -s tests`
+- [x] CI: `.github/workflows/ci.yml` (3.10/3.11/3.12, py_compile + unittest + both smokes + node --check), bug/feature templates, PR template
+- [x] Fixes in this pass: test `_skill_body` helper (dump_frontmatter takes dict only, body appended separately); real `Store.restore()` prefix-collision bug (now `_strip_trash_suffix(p.name) == name`); README cursor path (`~/.cursor/skills`); pytest→unittest everywhere (offline env)
+- [x] Verified: compile OK, 38 unittest OK, both smokes pass, `node --check` OK, `--help` OK, `--scope agents` OK (empty — no ~/.agents on this box)
+- [x] Published: `udayvarmora07/skills-manager` created via `gh`, `main` + `v1.0.0` pushed, CI green (run 33914953774); PyPI name `skills-manager` confirmed free, `dist/` built (sdist+wheel) — upload blocked pending PyPI API token (`/tmp/buildenv/bin/python -m twine upload dist/*`)
+
+## Milestone 7 — v1.1 spec-lint+ (in progress, 2026-09-05)
+
+- [x] Spec-lint+ in `validator.py` (no new commands/Store methods): name regex already rejects `--` (`^[a-z0-9]+(-[a-z0-9]+)*$`, verified); `description_score()` (use-context detection + vague-filler hits); description warnings (missing use-context, filler words); body token warning (>5000 tokens, progressive-disclosure guidance); `scripts/`/`references/`/`assets/` layout check (dangling mentions)
+- [x] Tests: 5 new `unittest` cases (43 total OK) + `smoke_store.py` spec-lint section
+- [x] Cross-scope dedup (same-name detect + descriptions-differ flag + converge via existing sync): `scopes.find_duplicates()` read-only over `list_all()`; surfaced in `doctor --scope all` (text + `duplicates` JSON key), `/api/doctor?scope=all` (`duplicates` + `scopes` keys), doctor modal section with Sync… converge buttons; 4 hermetic tests (47 total OK) + `smoke_web.py` shape assertion
+- [x] Token budget view in CLI + UI (verified already complete, no new code needed): `tokens --scope all` aggregate (`total/avg/max`, `largest[]`, `pct_window`), `/api/stats?window=` (`all_tokens/all_avg/all_pct`, top-5 `largest`), `/api/tokens`, frontend budget bar + window selector + per-row tokens + sync-mirror cost hint
+- [x] Rollback snapshots + one-command migration (constraint-5 ASK → issues #1 + #2 opened via `gh`, no code until approved)
+
+## Milestone 8 — World-class roadmap baseline (2026-09-07 UTC / 2026-09-08 local)
+
+- [x] Capture reproducible baseline command output in `docs/09-baseline-evidence-2026-09-07.md` (compile, 47 unit tests, both smoke suites, frontend syntax, CLI help, package-build result, Git state)
+- [x] Record exact current-`main` behavior for P0-SEC-001 through P0-SEC-005 in `docs/09-baseline-evidence-2026-09-07.md` using isolated temporary data and no product-code changes
+- [x] Compare both unmerged worktrees file-by-file against `main`; record the overlap/conflict map and safe replay order in `docs/10-worktree-integration-comparison-2026-09-08.md`
+- [x] Resolve the two reviewed historical worktrees without wholesale merging:
+  archive their exact tips as local tags, remove their clean worktrees and local
+  branches, and preserve the three dirty/active historical worktrees.
+
+## Milestone 9 — Selective replay and path safety (2026-09-08)
+
+- [x] Build the selective replay/status map in `docs/11-integration-status-2026-09-08.md`; candidate worktrees remain unmerged and classified.
+- [x] Add `docs/PRE-MERGE-CHECKLIST.md` for provenance, source/artifact integrity, safety, verification, and documentation gates.
+- [x] Decide `dist/` and `skills_manager.egg-info/` are ignored local artifacts, not release inputs.
+- [x] Add canonical `validate_skill_name()` and resolved `contained_path()`/`safe_skill_path()` helpers without changing the public Store API or SQLite schema.
+- [x] Guard Store and agent-scope filesystem operations, URL-decoded REST names, CLI names, trash destinations, and manifestless import fallback names.
+- [x] Add hermetic regression coverage for symlink/absolute/parent escapes, Store/scope mutations, encoded REST reads/deletion, pre-handler CLI rejection, invalid archive fallback names, and victim preservation.
+- [x] Verify: compile PASS, **57 unittest PASS**, `smoke_store.py` PASS, `smoke_web.py` PASS, `node --check` PASS, CLI help PASS, and `git diff --check` PASS.
+
+## Milestone 10 — Archive and trash safety (2026-09-08)
+
+- [x] Prevent forced imports from treating invalid manifest destinations as
+  filesystem paths or deleting an outside destination.
+- [x] Make trash list/restore/purge/doctor accept only exact canonical skill
+  names with valid timestamp suffixes; ignore malformed, symlinked, and
+  prefix-collision entries.
+- [x] Add tar archive preflight before destination mutation: validate member
+  layout and duplicates, extract privately, validate the manifest and skill
+  documents, then commit planned skills.
+- [x] Reject absolute/traversal members, unexpected layouts, symlinks, hard
+  links, FIFOs, device/special members, and duplicate archive names.
+- [x] Feature-detect `tarfile.data_filter` and use a guarded regular-file/
+  directory extractor when it is unavailable; never use unfiltered extraction.
+- [x] Add hermetic regressions for forced invalid destinations, archive
+  traversal/duplicates/special members, no-filter compatibility, malformed
+  trash entries, and valid archive round trips.
+- [x] Verify: compile PASS, **65 unittest PASS**, `smoke_store.py` PASS,
+  `smoke_web.py` PASS, `node --check` PASS, CLI help PASS, and `git diff --check`.
+
+## Milestone 11 — Parser, search, and localhost request safety (2026-09-08)
+
+- [x] Add frontmatter document/key/collection/scalar/nesting resource limits and
+  convert deep parser failures into clean `FrontmatterError` responses.
+- [x] Preserve valid frontmatter round trips and add deterministic malformed/deep
+  input regressions.
+- [x] Bound wildcard search length and star complexity, collapse repeated stars,
+  and return clean errors instead of allowing regex exhaustion.
+- [x] Route Store, global, agent, merged, CLI, and REST searches through the same
+  bounded matcher; preserve body matching.
+- [x] Centralize mutation request checks for Host, Origin, Referer, and
+  `Sec-Fetch-Site`; define header-absent local-client behavior explicitly.
+- [x] Require JSON for JSON mutation bodies, reject non-loopback server binds,
+  and add defensive CSP/cross-origin/MIME/framing response headers.
+- [x] Add hermetic regressions for hostile origins, referers, fetch metadata,
+  hosts, content types, every mutating HTTP method, wildcard exhaustion, body
+  matching, and frontmatter limits.
+- [x] Verify: compile PASS, **76 unittest PASS**, `smoke_store.py` PASS,
+  `smoke_web.py` PASS, `node --check` PASS, CLI help PASS, focused REST probes
+  PASS, and `git diff --check` PASS.
+
+## Milestone 48 — Registry bridge (offline) + eval harness (file-based), 2026-09-10
+
+Decision record: @docs/ADR-003-registry-bridge-and-eval-harness.md. No new CLI
+command, no new `Store` method, no schema change, no network access, and no
+runtime dependency: both items extend existing surfaces only.
+
+- [x] `insights.registry_reference()` parses a registry reference offline (`owner/repo`, `owner/repo/slug`, `https://skills.sh/{source}/{slug}`, `https://github.com/owner/repo`), length-caps and validates every segment, and rejects traversal, separators, absolute paths, and non-registry hosts.
+- [x] `insights.registry_bridge_plan()` maps a skill id onto the exact `npx skills add … -s <slug>` command, keeps the explicit-trust gate (`blockers`, `may_install`), surfaces the linkable `/security/{provider}` audit pages, and carries the `content_hash` slot for change detection.
+- [x] `insights.install_argv()`/`install_command_line()` became the single renderer behind the printed dry-run text, the executed argv, and the bridge plan; `install_command_for_display()` delegates to it and one test pins the historical output.
+- [x] Surfaces: `install --preview [--trust-confirmed] [--registry-hash HEX]` and `POST /api/install {preview: true, …}`; `install` behavior, the runner allowlist, dry-run-first, and the REST legacy payload shape are unchanged.
+- [x] `skillsmgr/evals.py` implements the official file contract: `evals/evals.json` cases (optional `slug`/`assertions`), `iteration-N/eval-<slug>/{with_skill,without_skill}/{outputs/output.txt,grading.json,timing.json}`, and a per-iteration `benchmark.json` with per-variant case pass rates and the `with_skill` − `without_skill` delta.
+- [x] Deterministic assertion subset only (`equals`, `contains`, `not_contains`, `regex`, `is_json`); a case without assertions is recorded `graded: false` instead of passing or failing; bounds on cases, file size, case text, output length, run count, pattern length, and regex input.
+- [x] Surfaces: `validate --evals` (read-only report), `validate --evals-run FILE` (explicit recording, single target), `--workspace DIR` (CLI-only), and `POST /api/validate {evals: true}` / `{runs: […], iteration?}` with the historical read-only response shape preserved when neither is sent.
+- [x] Workspaces default to `<data>/evals/<name>-workspace` (outside `skills/`, so scans, `doctor` orphans, exports, and the index never see run data); with `--path` the beside-the-skill layout is used only when the directory is outside the store's `skills/` tree, otherwise it falls back to the store workspace; recording writes atomically and never touches skill files or SQLite.
+- [x] Advisory by construction: eval findings never change `valid` or the exit code, scores never gate installs or edits, and no registry value is cached or fetched.
+- [x] Tests: `tests/test_registry_bridge_contracts.py` (21) and `tests/test_eval_harness_contracts.py` (38), including a no-network-import pin and no-mutation assertions.
+- [x] Verify: compile PASS, **376 unittest PASS**, both smokes PASS, `node --check` PASS, `check_docs.py` PASS, `check_complexity.py` PASS (159 functions), CLI help PASS, `git diff --check` PASS.
+- [!] Still open on both items and requiring their own ADR: registry browse/fetch, caching, auth, and provenance persistence (#3); eval provider abstraction, credentials, isolation, and persisted cross-machine results (#4).
+
+## Milestone 5 — Proposed ideas (research verdicts 2026-09-09, see Milestone 31)
+
+- [!] Native window wrapper (pywebview/Electron) — verdict: REJECT as a product direction; browser stays canonical. At most an unbundled loopback-only launcher, never a shipped dependency.
+- [x] Skill-body editor has an escaped live markdown preview; no renderer dependency added.
+- [x] Keyboard-shortcut cheatsheet modal (`?` key) added after the keyboard contract.
+- [!] Pytest suite is not planned: `tests/` uses the approved stdlib `unittest` suite; adding third-party test tooling would require an explicit tooling decision
+- [x] CI workflow (compile + unittest + smokes on push) is present in `.github/workflows/ci.yml`; future CI expansion remains tracked in the roadmap
+- [x] Zip-import support, approved 2026-09-10: extended `import` only with a
+  shared bounded ZIP preflight, explicit contained-path extractor, symlink-bit
+  rejection, staged commit/hash verification, and malicious-ZIP regressions. No
+  new command or runtime dependency was added.
+- [!] Tar-fallback refusal on Python < 3.12 — verdict: REJECT (keep feature-detect + guarded manual extractor; refusal breaks supported 3.10/3.11 for zero fail-closed gain). Record on issue #6.
+- [!] Out-of-root link warning → validation error — verdict: REJECT strict promotion (keep warning + `risk_scan()`; 200-target probe found 0 real escapes). Record on issue #7.
+
+## Milestone 12 — Archive resource, manifest, and commit safety (2026-09-08)
+
+- [x] Add compressed-size, expanded-size, per-member-size, member-count,
+  path-length, nesting-depth, and compression-ratio limits to tar preflight.
+- [x] Validate the `skills-mgr` manifest app/version/timestamp contract,
+  canonical unique names, manifest-to-path alignment, and extracted
+  frontmatter names before any destination mutation.
+- [x] Preserve canonical manifestless fallback validation and support ZIP
+  archives by content sniffing; both tar and ZIP formats use the shared
+  preflight/validation/commit pipeline.
+- [x] Stage each skill commit, restore the prior destination on replacement
+  failure, clean failed new destinations, and report completed/failed skills
+  explicitly in `imported`/`skipped`.
+- [x] Add hermetic regressions for archive budgets, strict manifests, ZIP
+  traversal/absolute/backslash/drive/symlink/duplicate cases, frontmatter/name
+  mismatch, forced-destination preservation, and injected per-skill copy
+  failures.
+- [x] Verify: compile PASS, **86 unittest PASS**, both smoke suites PASS,
+  frontend syntax PASS, CLI help PASS, and `git diff --check` PASS.
+
+## Milestone 13 — Recovery snapshots, migration, and localhost policy (2026-09-08)
+
+- [x] Decide the localhost mutation-token question in ADR-001: no token is
+  warranted while the server is loopback-only, sessionless, and supports local
+  non-browser clients.
+- [x] Add validated snapshots under `<data>/snapshots/<scope>/<name>/` with
+  newest-five retention, canonical scope/name/path guards, automatic snapshots
+  before global/agent edits and forced sync overwrite, and global/agent restore.
+- [x] Add `--snapshot` restore/history visibility to the existing CLI and REST
+  surfaces, plus web UI snapshot listing and rollback controls.
+- [x] Add `--full` to existing export/backup/import surfaces without adding a
+  command: full exports include skills, validated trash, and templates; full
+  imports remain skip-by-default and require an explicit full archive.
+- [x] Route full migration through the hardened tar/resource/manifest pipeline;
+  agent scopes and snapshots stay excluded from migration archives.
+- [x] Add rollback, five-retention, agent-scope, full migration, slim/full
+  compatibility, and REST snapshot regression coverage.
+- [x] Verify focused recovery tests PASS; final full-suite/smoke/frontend/help
+  evidence is recorded after the final verification run.
+
+## Milestone 14 — Atomic recovery and documentation truth (2026-09-08)
+
+- [x] Add atomic sibling-temp text writes with flush/fsync/replace and a documented durability policy.
+- [x] Preserve original skill content across replacement, serialization, index, and history failures.
+- [x] Serialize same-process per-skill mutations; document cross-process recovery through atomic replacement plus doctor/resync.
+- [x] Add failure-injection, concurrent-edit, doctor-drift, and content-hash backup regressions.
+- [x] Extend doctor diagnostics for transaction artifacts, temporary files, stale snapshots, and filesystem/index drift.
+- [x] Reconcile architecture, module, Store API, CLI, README, settings, and session-context documentation with current source.
+- [x] Add `check_docs.py` and a CI documentation/source consistency gate without adding a product CLI command.
+
+## Milestone 15 — Root and consumer discovery baseline (2026-09-08)
+
+- [x] Record the approval-gated `SkillRoot`/`Consumer`/binding/instance/effective-state model in `docs/ADR-002-root-consumer-effective-state.md`.
+- [x] Inventory official discovery roots, precedence, recursion, reload, and client metadata in `docs/12-agent-root-discovery-2026-09-08.md`; unresolved Codex/Command Code behavior is marked `[?]`.
+- [x] Correct Cursor's user root to `~/.cursor/skills` and document shared compatibility roots.
+- [x] Deduplicate resolved physical roots before aggregate scope counts/listing and sync target expansion.
+- [x] Document global, user, project, and nested-project semantics without introducing approval-gated runtime entities or schema changes.
+
+## Milestone 16 — Root capability and observed instance states (2026-09-08)
+
+- [x] Enable recursive discovery only for consumer roots whose official inventory supports it; flat roots remain one-level scans.
+- [x] Expose root availability as `writable`, `read-only`, `missing`, or `unsupported` in scope descriptors.
+- [!] Keep true consumer/project effective resolution approval-gated; compatibility output explicitly reports `effective_state: unresolved`.
+- [!] Add observed instance states (`active`, `disabled`, `invalid`, `duplicated`, `divergent`, `unmanaged`); `shadowed` remains blocked on precedence-aware effective resolution.
+- [x] Preserve the unique physical-root sync guarantee and add recursive/state regression coverage.
+
+## Milestone 17 — Observations and internal hotspot extraction (2026-09-08)
+
+- [x] Preserve unknown/client frontmatter and partition portable fields from extensions without losing round-trip data.
+- [x] Add non-persisted content/metadata hashes, observed timestamps, and provenance to loaded/public records.
+- [x] Extract archive inspection/extraction/staged-commit policy into `skillsmgr/archive.py` with Store compatibility adapters.
+- [x] Extract atomic writes/locks/tree hashing into `skillsmgr/atomic_io.py` and root discovery/state policy into `skillsmgr/root_discovery.py`.
+- [x] Keep public CLI/Store signatures, SQLite schema, and filesystem source-of-truth behavior unchanged.
+
+## Milestone 18 — Web/CLI contract hardening and complexity ratchet (2026-09-08)
+
+- [x] Extract web request security, JSON serialization, and multipart upload policy into private modules with compatibility wrappers.
+- [x] Fix text `scopes` output regression and forward REST import `full=1` to full archive restoration.
+- [x] Add CLI, REST, and AST complexity regression tests; add stderr-only rollback diagnostics.
+- [x] Wire `check_complexity.py` into contributor and CI verification.
+- [x] Deep-test REST malformed input, security, upload, archive, CLI, diagnostics, and complexity seams; fix type-validation 500s and integrate CLI output helpers.
+- [x] Add an audit regression test proving extracted web helpers, `RequestError`, and CLI output aliases retain their historical private call shapes.
+
+## 2026-09-08 — REST validation regression closeout (17:20 UTC)
+
+- [x] Reject non-string `/api/install` `source`, `scope`, and `runner` values with JSON HTTP 400 before command construction.
+- [x] Enforce string-only scalar skill metadata at REST create/patch boundaries; preserve ignored `name` patch behavior.
+- [x] Reject unsupported `allowed_tools` lists consistently for global and agent-scope create/patch requests, while preserving accepted strings.
+- [x] Add focused hermetic REST regressions for malformed install/create/patch payloads and global/agent `allowed_tools` behavior.
+- [x] Verification recorded in the progress log: targeted web tests, full unittest (128 tests), both smoke suites, compile, frontend syntax, docs, complexity, and diff checks.
+
+## Milestone 19 — Hermetic smoke fixture refactor (2026-09-08)
+
+- [x] Share only minimal temporary-store and loopback-server lifecycle helpers between `smoke_store.py` and `smoke_web.py`.
+- [x] Preserve executable smoke output and behavior; add focused helper lifecycle tests in `tests/test_smoke_fixtures.py`.
+- [x] Run final full unittest, both smokes, compile, docs, complexity, and diff checks; record exact results in the progress log.
+
+## Milestone 21 — Documentation consistency gate (2026-09-08)
+
+- [x] Check all local `@docs/*.md` pointers, including historical Markdown, without network access.
+- [x] Check documented `Store.method`, module symbols, and explicit `skillsmgr/*.py` paths against AST source facts.
+- [x] Derive current CLI command counts from `cli.py`; check stale current command/UI claims while preserving historical docs semantics.
+- [x] Check package/source/documented version alignment and add focused stdlib tests for each failure class.
+- [x] Wire `check_docs.py` into contributor checks; CI already runs the docs gate.
+
+## Milestone 20 — Distribution package-data verification (2026-09-08)
+
+- [x] Add stdlib-only `check_package_data.py` to build exact wheel/sdist outputs in a temporary directory and inspect `skillsmgr/webui/` plus vendored Vue contents.
+- [x] Add deterministic offline archive assertions for wheel/sdist member sets and missing Vue/package-data rejection.
+- [x] Add optional isolated temporary-venv install probes for both artifacts without network or runtime dependency changes.
+- [!] Build/install coverage reports `UNAVAILABLE` when optional `python -m build` tooling is absent; existing `dist/` artifacts are never treated as fresh evidence. `--require-build` returns exit 2 for release-required jobs.
+
+## 2026-09-08 — CLI data-dir search regression closeout (18:27 UTC)
+
+- [x] Make CLI global search use the Store selected by `--data-dir`, not `scopes._GLOBAL_STORE`.
+- [x] Keep merged search global records on the requested Store while agent records continue through scope adapters.
+- [x] Add hermetic two-data-dir CLI regressions for global and merged search isolation.
+- [x] Preserve global body matches in scope and merged searches by building ranking records through public `Store.list()`/`Store.get()` seams, without changing result schemas or ranking rules.
+- [x] Convert wildcard-complexity `ValueError` to the established `StoreError` contract in `scopes.search_all`, including CLI and REST callers.
+- [x] Update search documentation and retain the focused body/ranking/error regressions in `tests/test_search_contracts.py`.
+- [x] Verification: focused search tests and final full unittest suite (208) passed; smoke, compile, docs, complexity, frontend, and diff checks also passed; package-data build remains environment-unavailable as recorded in the progress log.
+
+## 2026-09-08 — REST two-server search isolation regression closeout
+
+- [x] Pass each REST global and merged search call through the handler's `self.store`; preserve agent-scope adapters, body-aware ranking, output schemas, singleton compatibility, and all locked constraints.
+- [x] Add a hermetic two-`WebAppServer` regression proving each server's `scope=global` search returns only its own global result and `scope=all` returns that global result plus the shared agent result; stop both servers during cleanup.
+- [x] Verification: focused search contracts (11 tests) PASS; final full unittest suite (208 tests) PASS; `smoke_store.py` PASS (`ALL STORE SMOKE TESTS PASSED`); `smoke_web.py` PASS (`ALL WEB SMOKE TESTS PASSED`); Python compile PASS; `node --check skillsmgr/webui/app.js` PASS; `check_docs.py` PASS; `check_complexity.py` PASS (168 functions); `git diff --check` PASS.
+
+## Milestone 22 — Advanced loop-engineering campaign (2026-09-09)
+
+- [x] Ran nine deterministic hermetic probe loops (stdlib only, probe code kept outside the repo in `~/sm-probes/`): store-lifecycle burst (600 ops), frontmatter round-trip/hostile fuzz (1,200 docs), failure injection, REST fuzz (700 requests), concurrency stress, search/validator/loader-templates/CLI-env fuzz, CLI adversarial matrix (182 checks), archive boundary+grammar fuzz (450 archives), scope differential loop (1,200 ops).
+- [x] Fixed 15 genuine defects surgically with red-first hermetic regressions (no new commands/flags, no Store public methods, no schema change — private helpers and internal `_unlocked` splits only): trashed-row reactivation on create/add (FIX-1), same-second trash counter recognition (FIX-2), honest double-remove error (FIX-3), import backup-move recovery preserving the original (FIX-4), truncated-gzip clean StoreError (FIX-5), CLI schema bootstrap on first run (FIX-6), install source/agent validation parity (FIX-7), flow scalar + quote-char key quoting (FIX-8), list doc correction (FIX-9), nested-block mapping emission with inline empty collections (FIX-10), post-sync global resync + resync reactivation (FIX-11), per-skill lock coverage + stranded-temp cleanup (FIX-12), purge StoreError wrapping (FIX-13), duplicate frontmatter keys now fail loudly (FIX-14, promoted from OBS-1), `purged` names deduped (FIX-15, promoted from OBS-3).
+- [x] Kept every gate green without baseline inflation: 224 unittest PASS, both smokes PASS, compile/`node --check`/`git diff --check` PASS, `check_docs.py` PASS, `check_complexity.py` PASS (194 functions, new helpers under budget).
+- [x] Recorded the full method, evidence, and per-finding repro/root-cause/fix detail in `loop-engineering-findings.md`; updated `docs/02-modules.md` (store atomicity/index, frontmatter round-trip incl. duplicate-key rejection), `docs/04-store-api.md` (`purged` dedup) and `docs/03-cli-surface.md` (`list` status semantics).
+
+## Milestone 24 — Browser UX, accessibility, module seams, and documentation truth (2026-09-09)
+
+- [x] Split CLI parser construction and handlers into `cli_parser.py` and `cli_handlers.py` while preserving `skillsmgr.cli` imports and output aliases.
+- [x] Split frontend transport/formatting/frontmatter/escaped-Markdown policy into no-build `webui/domain.js`, loaded before `app.js`; package-data discovery remains recursive.
+- [x] Add dialog focus lifecycle: safer initial focus, Tab trap, Escape close, opener restoration, labelled dialogs, `inert`/`aria-hidden` background, live status/error announcements, and shortcut help.
+- [x] Add escaped editor Markdown preview and pre-sync resolution/overwrite/rollback preview.
+- [x] Add `browser_harness.py`: hermetic Store + loopback server + system Chrome CDP, console/runtime/network failure capture, and 320/400/640/900/1280px overflow matrix.
+- [x] Reconcile AGENTS, web UI/module/session docs, TODO/PLAN/task/CHANGELOG/progress claims; current effective shadowing and native-wrapper work remain explicitly approval-gated/deferred.
+- [x] Verification during implementation: CLI/web/package/docs focused tests PASS; smoke web PASS; frontend syntax PASS; browser harness PASS across all five viewports.
+
+## Milestone 23 — Controlled release engineering (2026-09-09)
+
+- [x] Rewrote `ci.yml` into separate `unit` (3.10–3.14 matrix) / `adversarial` / `package` (build-once + `--dist-dir` gate + artifact upload + clean-install smoke) / `docs` / `xplat` (Linux/macOS/Windows × 3.10/3.14 path/archive contracts) / `browser` jobs with least-privilege `contents: read` permissions and a pin-policy header.
+- [x] Added `check_package_data.py --dist-dir` build-once inspection mode with hermetic regressions (pass on exact wheel+sdist, fail on missing member).
+- [x] Closed the Windows-separator containment gap hermetically: `contained_path()` and archive member validation reject `\` and drive-letter prefixes on every host (red-first, prior suite stayed green).
+- [x] Added tag-gated `release.yml`: validate tag/package-version alignment before build or publish; build once → verify exact artifacts → attest provenance → TestPyPI → protected `release` environment PyPI via Trusted Publishing (no long-lived token) → GitHub Release → tag/version/asset/CRUD/PyPI-install verification.
+- [x] **HISTORICAL/SUPERSEDED pre-publish record:** Qualified PyPI claims before publication: badge removed, README stated PyPI was a future release with source/CI-artifact install paths; classifiers extended to 3.13/3.14 to match the tested matrix. The README now records the successful 1.0.1 publication.
+- [x] Locked all of the above with `tests/test_ci_release_contracts.py` (CI structure, xplat containment, build-once, release, PyPI-claim contracts); updated `TODO.md` Milestone 8, `CHANGELOG.md` Unreleased, `CONTRIBUTING.md` checks, and `docs/06-progress-log.md`.
+- [x] Verified: full unittest suite PASS, both smokes PASS, compile/`node --check`/`git diff --check` PASS, `check_docs.py` PASS, `check_complexity.py` PASS, YAML parses, `git status` shows only intended files.
+- [x] Closed release-integrity and cross-platform CI gaps found in review: release tags must equal the package version before build/publish; xplat jobs use the portable `python` executable on Windows; workflows use least-privilege permissions; browser CI runs the CDP harness plus both frontend syntax checks.
+
+## Milestone 25 — Milestone 9 read-only insight foundation (2026-09-09)
+
+- [x] T1 per-consumer “what this agent sees” observed view (`insights.consumer_view`; precedence stays unresolved per ADR-002).
+- [x] T2 two-way and three-way skill diff (`insights.diff_skills`/`diff_three_way`; conflicts hold base).
+- [x] T3 ownership-state classifier (`managed`/`unmanaged`/`adopted`/`quarantined`/`invalid`).
+- [x] T4 provenance summary over loader observations (known/unknown split; persistence approval-gated).
+- [x] T5 update preview (changed files, token/body/snapshot risks, rollback flag from snapshot list).
+- [x] T6 quarantine staging planner (stage-only plan, `validate_skill_name`, zero disk mutation).
+- [x] T7 explainable static risk scan (script/link/tool/pattern findings with why + evidence).
+- [x] T8 offline registry preview (dry-run steps, explicit trust gate; network browse deferred).
+- [x] T9 provider-neutral eval harness skeleton (stdlib-only plan, caller-supplied deterministic scorer, advisory-only).
+- [x] T10 signed/team bundle deferral policy (`deferred` pending issue #11 trust review).
+- [x] T11 red-first hermetic contracts in `tests/test_insights_contracts.py` (57 tests: 20 foundation + 11 fail-closed + 9 round-3 + 7 round-4 + 5 E2E + 5 round-5 audit locks; all red-first).
+- [x] T12 `skillsmgr/insights.py` implementation (pure, stdlib-only, no CLI/Store/schema/network changes).
+- [x] T13 docs reconciliation (`docs/02-modules.md`, `TODO.md` Milestone 9, this milestone, `CHANGELOG.md`, progress log).
+- [x] T14 full verification ladder plus fresh-tmp live-seam exercise (recorded in progress log).
+- [x] T15 clean diff review and commit of exactly the intended files.
+
+## Milestone 26 — Insights fail-closed hardening (2026-09-09, second 15)
+
+- [x] T1 input-type guards: dict/list `ValueError` policy across diff, provenance, risk, consumer, ownership seams.
+- [x] T2 safe token coercion in `update_preview` (non-numeric/negative/bool tokens coerce to `None`, no raw raises).
+- [x] T3 bounded `body_diff` output (`MAX_BODY_DIFF_LINES` = 200 + `body_diff_truncated` flag).
+- [x] T4 strict `registry_preview`/`eval_plan`/`eval_score` shape validation (non-dict cases, missing keys rejected).
+- [x] T5 name edge cases (`quarantine_plan`/`registry_preview` reject blank and non-string names).
+- [x] T6 11 red-first hermetic hardening tests (2 failures + 9 errors before green).
+- [x] T7 `skillsmgr/insights.py` hardening implementation (pure, stdlib-only, no locked-constraint changes).
+- [x] T8 16-probe adversarial fuzz re-run (all clean `ValueError`/safe values after fix).
+- [x] T9 `docs/SESSION-CONTEXT.md` file inventory gains `insights.py` + contracts.
+- [x] T10 stale "20 tests" claims corrected; fail-closed policy documented in `docs/02-modules.md`.
+- [x] T11 full ladder: 275 unittest PASS, both smokes PASS, compile/frontend/docs/complexity/diff/help PASS.
+- [x] T12 fresh-tmp live-seam re-exercise (huge-body bound, weird-token, registry-gate, eval all OK).
+- [x] T13 `browser_harness.py` re-run PASS (`"passed": true`).
+- [x] T14 staged diff review and commit of exactly the intended files.
+- [x] T15 progress log entry with final evidence.
+
+## Milestone 27 — Insights robustness round 3 (2026-09-09, third 15)
+
+- [x] T1 strict-string names (`_canonical_name`; `123`/`True`/list/dict rejected; padded strings trim).
+- [x] T2 JSON-serializability contract across all 11 helper outputs.
+- [x] T3 deterministic ordering under shuffle (consumer view sorts; ownership preserves input order).
+- [x] T4 non-string fields locked (int body, dict description, list tools/extensions).
+- [x] T5 hostile strings (null bytes, 100KB, emoji) fast and JSON-clean.
+- [x] T6 scorer propagation + plan-shape locks (`eval_score` malformed/misaligned `ValueError`).
+- [x] T7 three-way missing-key + registry extra-key behavior locks.
+- [x] T8 whitespace names + huge-input timing bounds (4000-line diff, 100k-line scan < 5s).
+- [x] T9 4-thread concurrency smoke (100 iterations each, zero errors).
+- [x] T10 `risk_scan` refactor (19 → max 9 local complexity; hotspot ratchet unaffected).
+- [x] T11 strict-name gaps implemented to green (1 red failure first).
+- [x] T12 full ladder: 284 unittest PASS, smokes, compile/frontend/docs/complexity/diff/help PASS.
+- [x] T13 fresh-tmp live seam + `browser_harness.py` PASS.
+- [x] T14 staged diff review and commit of exactly the intended files.
+- [x] T15 progress log entry with final evidence.
+
+## Milestone 28 — Deep E2E audit of all 45 insights tasks (2026-09-09, E1–E9)
+
+- [x] E1 real lifecycle E2E (global + cursor creates, dup, disabled, list/scan/find_duplicates).
+- [x] E2 views/ownership/provenance E2E (counts, unresolved precedence, five states, content hashes).
+- [x] E3 diff/preview/rollback E2E (cross-scope diff, snapshot auto-capture, byte-accurate restore).
+- [x] E4 risk/quarantine/registry/eval/bundle E2E (hostile skill findings, trust gate, 1/1 scoring).
+- [x] E5 purity audit (SHA-256 tree hash + input deepcopy: zero mutation).
+- [x] E6 JSON/determinism/concurrency/perf probe (30× instant, 8×150 threads, 6000-line bound).
+- [x] E7 REST matrix + CLI lifecycle (200s, validate/purge clean).
+- [x] E8 one genuine defect fixed red-first (`_record_invalid` via real skill-dir validation; first wrong fix reverted with evidence).
+- [x] E9 full ladder green (289 unittest, smokes, gates, harness) recorded here and in the progress log.
+
+## Milestone 29 — Insights boundary round 4 (2026-09-09, next 10)
+
+- [x] T1 deep-copy records in `consumer_view` (nested mutation leak closed).
+- [x] T2 scorer must be callable (`eval_score` clean `ValueError`).
+- [x] T3 quarantine source must be a string.
+- [x] T4 snapshot items must be non-empty strings.
+- [x] T5 registry description non-string becomes a blocker, not a crash.
+- [x] T6 consumer argument must be a string.
+- [x] T7 registry source/scope/content_hash must be strings or missing.
+- [x] T8 7 red-first boundary tests (5 failures + 2 errors before green; 52 total).
+- [x] T9 ladder green: 296 unittest, smokes, compile/frontend/docs/complexity/diff/help, harness, fresh-tmp.
+- [x] T10 per-group commits plus push (this entry, then push step).
+
+## Milestone 48 — Final-verdict loop-engineering round (2026-09-10, FINAL per maintainer authorization)
+
+Method: 4 hermetic re-probe agents (archive ZIP/TAR; parser/search/links;
+REST/effective/insights; release/docs/worktrees/encoding/signing/atomicity —
+stdlib only, `/tmp` probes, zero product-code changes) + 8-family survey
+workflow (309 quoted URL entries, 194 unique sources) + 3 targeted
+`web_search` batches. Baseline held green (301 unittest, both smokes,
+compile, frontend, docs, complexity, diff).
+
+- [x] F1 archive re-probes (Python 3.12.3, `data_filter` present): ZIP
+  rejected cleanly (`StoreError`, `store.py:1221`, no destination);
+  `zipfile` preserves all hostile names verbatim + dupes + symlink-bit
+  (`(external_attr>>16)&0o170000==0o120000`); tar `validate_members`
+  9/9 hostile rejections (`archive.py:50`); budgets exact (200 ok/201
+  reject, path 512/513, nesting 16/17, 9MB member, 40000:1 ratio;
+  `archive.py:20-26`); feature-detect `archive.py:131-153`.
+- [x] F2 parser/search/link re-probes: dup/huge/400-deep/2000-deep all
+  clean `FrontmatterError`, never `RecursionError`; >10 stars/>200 chars
+  instant `ValueError` (worst valid 11ms); link matrix exact
+  (`validator.py:323-360` warning-only); walk: `~/.agents` 55/0,
+  `~/.claude` + `~/.codex` 34 legitimate out-of-root each (sibling-skill
+  refs, not escapes) + regex artifacts documented.
+- [x] F3 REST/effective/insights re-probes: x-origin purge 403 + trash kept,
+  bad/missing CT 415, bad install 400, long query 400, same-origin
+  201/200, 5 headers live; `consumer_view`/`effective_state` unresolved,
+  10 `risk_scan` findings hostile / 0 clean, registry trust gate,
+  eval advisory-only, bundle deferred; tree-hash zero-mutation proven;
+  no network/backend/extension/signing code (`urllib` parse-only);
+  CWD-dependent project scopes + `SCHEMA_VERSION = "1"` frozen.
+- [x] F4 release/docs/worktree/encoding/signing/atomicity re-probes:
+  versions/tag `1.0.0` aligned, release gate present, PyPI 404, UNAVAILABLE
+  branch code-real; **HISTORICAL/SUPERSEDED: `dist/` wheel stale (missing `domain.js`,
+  `--dist-dir` FAILs — rebuild from clean tree before release)**; docs
+  truth all green (CLI 27+7+3=37, insights 57); **worktrees: 3 merged-but-stale
+  + 2 genuinely unmerged** (via `merge-base`); **#13 confirmed**
+  (`loader.py:31` raw escape breaks store-wide scans; validator catches);
+  HMAC ok / `ed25519` absent; atomic writes + newest-5 snapshots green.
+- [x] F5 survey synthesis: registry DEFER (ToxicSkills 13.4% critical);
+  eval ADVISORY-ONLY (promptfoo + judge-bias lit); ZIP APPROVE (PEP 706
+  has no zip equivalent — manual validation mandatory); tar-refusal REJECT
+  (CVE-2025-4138 bypasses filters); link REJECT (68 legit layouts +
+  warn-precedent); extension SEPARATE; wrapper REJECT; signing DEFER
+  (NIST non-repudiation gap + threshold=0 flaw).
+- [x] F6 verdicts recorded FINAL in `TODO.md` (header + M4 ×2 + Deferred
+  ×8 + L6), `PLAN.md` (§9 + §11), this milestone, and progress log; full
+  ladder re-run green (recorded in progress log).
+- [x] Standing order: L2 ZIP is the only code item (needs approval #5);
+  issue #12 diagnostic next (needs approval); REJECT items (#6/#7/#9)
+  ready to close with evidence; DEFER items (#3/#4/#8/#11) untouched;
+  L6 gate holds with one pre-release fix (rebuild `dist/`).
+
+## Milestone 49 — Approval-safe verification campaign, round 17 (2026-09-10, 10 tasks)
+
+Goal: execute the latest `TODO.md`/`PLAN.md` queue without crossing locked
+constraints. This round made no product-code, schema, dependency, release, or
+live-user-data changes. ZIP support and the effective-resolution diagnostic
+remain approval-gated; the release gate remains intentionally unfulfilled until
+an authorized clean build/publish.
+
+- [x] T1 baseline ladder: 301 `unittest` tests, both smoke suites, compile,
+  frontend syntax, docs, complexity, diff, and CLI help all passed.
+- [x] T2 skills catalog: 62 installed skills audited; `find-skills` and
+  `first-principles-production-engineering` were loaded; no new skill installed
+  because the stdlib-only and hermetic-workflow constraints need no dependency.
+- [x] T3 P0 rotation: P0-001 traversal victim survived; P0-002 hostile-origin
+  purge returned 403 and preserved trash; P0-003 hostile archive was rejected
+  before destination creation; P0-004 wildcard complexity was bounded; and
+  P0-005 deep flow input returned `FrontmatterError`, never raw recursion.
+- [x] T4 issue #13 characterization: an invalid UTF-8 `SKILL.md` still causes
+  raw `UnicodeDecodeError` in `scan_dir`, `Store.list`, `doctor`, and `resync`,
+  while validator handling remains clean. No fix was applied because the issue
+  is an explicit behavior decision and approval is unavailable.
+- [x] T5 L6 hygiene: package/`__version__`/`v1.0.0` remain aligned; the existing
+  release workflow has build-once, exact-artifact, attestation, TestPyPI,
+  protected-release, and GitHub Release gates; the stale local wheel still
+  fails `check_package_data.py --dist-dir` for missing `domain.js`, so no publish
+  or version/tag action was taken.
+- [x] T6 REST matrix: hostile Origin, Referer, Fetch Metadata, and Host were
+  rejected with 403; missing JSON content type returned 415; malformed install
+  input and overlong search returned 400; same-origin create returned 201; all
+  five defensive response headers were present.
+- [x] T7 resource bounds: archive member-count/path/nesting limits, parser
+  deep/large-document limits, and search length/star limits rejected or returned
+  clean bounded errors through their public seams.
+- [x] T8 CLI contracts: fresh-data create/list/search/doctor/remove paths worked;
+  missing skills, invalid names, missing restore targets, and invalid token
+  windows returned clean nonzero results without tracebacks.
+- [x] T9 browser/live seam: `browser_harness.py` passed all five viewports with
+  zero errors and no overflow; a fresh temporary Store served one live skill
+  through a loopback `WebAppServer`.
+- [x] T10 docs hygiene and finalization: this milestone and the progress log
+  record exact evidence; only the four intended documentation files were
+  committed and pushed; the final ladder and Git status/diff review passed.
+
+## Milestone 31 — Loop-engineering research verdicts (2026-09-09, start here next session)
+
+Research: 9 hermetic probe scripts (isolated temp dirs, stdlib only, no
+product-code changes) + ~30 web-search batches (~200 sources) + 5 primary
+`web_fetch` reads + repo evidence. Baseline held green throughout (301
+unittest PASS, `check_docs.py` PASS, `check_complexity.py` PASS).
+
+- [x] R1 probes recorded: link matrix (`../`, absolute, deep escape warn;
+  `https://`/`#`/`<angled>` clean; 200-target walk = 145
+  external/anchor, 55 in-root, 0 out-of-root); zip (`zipfile` keeps
+  hostile names verbatim; symlink-bit detectable); tar (6/6 hostile
+  classes rejected); search (`*a*a*a*a*` instant, 500-char query clean
+  `ValueError`); frontmatter (dup/huge/flow-bomb all clean
+  `FrontmatterError`); eval/risk/registry/quarantine (9 findings on
+  hostile skill, trust gate `False→True`, stage-only); effective
+  boundary (`consumer_view` count + `unresolved`, 3-way sides, preview
+  risks, `unknown` provenance); REST (x-origin 403, no-CT 415, bad
+  install 400, long query 400); signing (HMAC ok, `ed25519` absent).
+- [x] R2 verdicts written into `TODO.md` (Milestone 4 note, Deferred
+  section, Milestone 11 queue), this milestone, `PLAN.md` (§9 + §11),
+  and `docs/06-progress-log.md`.
+- [x] L1 closed issue #10 with evidence 2026-09-09 (no code; CLOSED) — see `TODO.md` L1.
+- [x] L2 ZIP slice shipped 2026-09-10 as the approved `import`-only
+  extension with the red-first hostile corpus — see `TODO.md` L2. This dated
+  queue record is retained for historical traceability.
+- [x] L3 effective-explain research done docs-only 2026-09-09 (3 `[?]`s closed in `docs/12-agent-root-discovery-2026-09-08.md` v1.1.0; diagnostic proposal filed as issue #12, awaiting approval) — see `TODO.md` L3.
+- [x] L4 rejections #6/#7/#9 recorded with file/line evidence 2026-09-09 — see `TODO.md` L4.
+- [x] L5 deferred #3/#4/#8/#11 verified untouched 2026-09-09 (all OPEN, zero comments; no network/backend/signing code) — see `TODO.md` L5.
+- [x] L6 release-gate verified 2026-09-09 (dry-run green, no publish; tag `v1.0.0` = package `1.0.0`; `release.yml` tag/version gate + build-once + `--dist-dir` + attestation + TestPyPI→`release` env; package-data honestly UNAVAILABLE without `build`) — see `TODO.md` L6.
+
+## Milestone 32 — Milestone 11 verdict execution, round 1 (2026-09-09, 15 tasks)
+
+Docs + GitHub only; zero product-code changes; no locked-constraint changes.
+
+- [x] T1 baseline ladder green on clean tree (301 unittest, smokes, compile/frontend/docs/complexity/diff recorded).
+- [x] T2 L1 evidence pinned (`index.html:70,373,756-760`, `domain.js:60`, `app.js:6,130`).
+- [x] T3 issue #10 commented with evidence and CLOSED.
+- [x] T4 tar-fallback rejection recorded on issue #6 (`archive.py:133-158`, PEP 706, 3.10/3.11 matrix).
+- [x] T5 link-warning rejection recorded on issue #7 (`validator.py:323-352`, 200-target walk, `risk_scan()`).
+- [x] T6 desktop-wrapper rejection recorded on issue #9 (constraint 4, harness 320–1280px).
+- [x] T7 Codex `[?]` closed (`.agents/skills/` REPO/USER/ADMIN/SYSTEM + no-merge; facade compat-only) — `https://learn.chatgpt.com/docs/build-skills`.
+- [x] T8 Command Code `[?]` closed (six-way order, Duplicate-names, `/skill:<name>`, live reload) — `https://commandcode.ai/docs/skills`.
+- [x] T9 Claude same-name `[?]` closed (triple-winner + both-load exceptions) — `https://code.claude.com/docs/en/skills`.
+- [x] T10 read-only `doctor --explain CONSUMER --project DIR` diagnostic proposed (issue/ADR approval needed; `check_docs.py` PASS).
+- [x] T11 deferred #3/#4/#8/#11 verified untouched (all OPEN zero comments; no network/backend/extension/signing code; ZIP rejection-only).
+- [x] T12 release gate verified without publishing (tag=version, `--dist-dir`/attestation/TestPyPI→release env; package-data UNAVAILABLE honestly).
+- [x] T13 TODO/task/PLAN/progress-log updated for L1/L3/L4/L5/L6 (L2 stays the only code item, approval-gated).
+- [x] T14 full ladder + harness + fresh-tmp re-run (recorded in progress log).
+- [x] T15 clean diff review, commit, and push of exactly the intended files.
+
+## Milestone 33 — Milestone 11 verdict execution, round 2 (2026-09-09, 15 tasks)
+
+Docs truth + GitHub proposals + verification; zero product-code changes; no locked-constraint changes.
+
+- [x] T1 baseline ladder green (301 unittest, smokes, compile/frontend/docs/complexity/diff).
+- [x] T2 docs-truth audit (`01-architecture` repo-map gaps, `05-gui-plan` SUPERSEDED label, `settings.json` history, historical counters).
+- [x] T3 `SESSION-CONTEXT.md` v0.3.0 (date, 27+7+3=37 counts, full module inventory, insights-57, Milestone 11 status, discovery v1.1.0 pointer).
+- [x] T4 counts truth (`CHANGELOG` 52→57 with round breakdown; `task.md` T11 52→57; `01-architecture` repo-map refresh; CLI 27+7+3=37 re-derived from `check_docs._command_inventory` + live parser).
+- [x] T5 L2 confirmed approval-gated (issue #5 OPEN zero comments; `store.py:1221` ZIP rejection-only, no `ZipFile` extraction).
+- [x] T6 `doctor --explain CONSUMER --project DIR` proposal filed as issue #12 (read-only, cited, unpersisted; constraint-5 approval requested).
+- [x] T7 deferred #3/#4/#8/#11 re-verified untouched (all OPEN zero comments; no network/backend/extension/signing code).
+- [x] T8 release dry-run (package/`__version__`/tag `1.0.0` aligned; tag gate + perms verified; no bump/tag/publish).
+- [x] T9 package-data honestly UNAVAILABLE; README PyPI-future claim + live 404 confirmed.
+- [x] T10 worktree map checked (5 Carson dirs; `git worktree list` heads recorded; `docs/10` scope is the 2-candidate comparison, not a live map).
+- [x] T11 browser harness re-run `"passed": true` (5 viewports, zero failures).
+- [x] T12 fresh-tmp live seam (create→validate→doctor→search→remove→purge→doctor, all OK).
+- [x] T13 TODO/task/PLAN/progress-log updated for round 2 (this milestone; L6 dry-run note; stale-claim status note).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 34 — Loop-engineering re-verification campaign, round 3 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, `/tmp` scripts, no product-code changes) + docs hygiene + verification; no locked-constraint changes. L2 ZIP and issue #12 both await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, complexity, diff; issues #5 + #12 OPEN).
+- [x] T2 store-lifecycle burst (600+ ops, honest double-remove `SkillNotFound`, same-second trash cycle, doctor ok).
+- [x] T3 frontmatter 1200 round-trips + 8 hostile inputs (dup/deep/huge/no-close fail-closed `FrontmatterError`; nested-flow/large-body accepted without crash).
+- [x] T4 search bounds (7 adversarial patterns fast or clean `ValueError`) + validator link matrix (8/8 exact).
+- [x] T5 archive boundary (8 hostile tar classes + garbage + truncated fail-closed; ZIP rejection-only; valid manifest tar round-trips).
+- [x] T6 scope differential (404 rows, dup flagged `descriptions_differ`, global/agent isolation, sync converges).
+- [x] T7 concurrency (8×100 mixed reads zero errors) + perf (100k-line scan 0.03s, 20k views 0.10s).
+- [x] T8 REST fuzz (655 requests, 0 fail-opens; purge takes no body by contract so the no-CT probe covers `/api/skills`).
+- [x] T9 CLI matrix (81 checks, 0 fail-opens: traversal/invalid names, search/hostile, lifecycle, exit codes 0/1/2).
+- [x] T10 insights sweep (degenerate/purity/determinism/concurrency clean; `eval_score` missing-`expect` tolerant by design, `eval_plan` strict).
+- [x] T11 browser harness `"passed": true` (5 viewports, zero failures).
+- [x] T12 fresh-tmp live seam (create→validate→doctor→search→remove→purge→doctor, all OK).
+- [x] T13 docs hygiene (drop #10 Deferred line now its retention pass elapsed; ref issue #12; L3 wording).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 35 — Recovery/contract re-verification campaign, round 4 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, `/tmp` scripts, no product-code changes) over recovery + contract surfaces; no locked-constraint changes. L2 ZIP and issue #12 both await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, complexity, diff).
+- [x] T2 failure injection (dropped-table edit preserves FS content + stderr-only rollback diagnostic; rebuild heals; row-delete drift flagged then resynced).
+- [x] T3 upload bounds (oversize/bad Content-Length → 400; 250-part multipart → 400; valid folder PUT → 200).
+- [x] T4 history clamp (limit 5/0/huge/missing) + stats shape + tokens estimate/aggregate + long-search `ValueError`.
+- [x] T5 backup/restore hash-verified (`content_hash` + file bytes equal, not row counts) + template dup/bad-name guards.
+- [x] T6 doctor drift (`.skillsmgr-tmp` + `.skillsmgr-stage` leftovers flagged; orphan dir flagged then resynced; stale snapshot flagged).
+- [x] T7 two-data-dir CLI isolation (each dir finds only its own skill) + REST two-server contracts (11 search tests incl. isolation, all OK).
+- [x] T8 REST isolation suite green (same 11-test run covers global/agent/merged + two-server cases).
+- [x] T9 concurrent same-skill writes (4×25 zero errors, doctor clean, no stranded temps, 101 history rows).
+- [x] T10 insights E2E (views/diff/ownership/preview/quarantine-stage-only/risk/registry-trust/eval-1-1/bundle-deferred + store purity).
+- [x] T11 browser harness `"passed": true` file-verified (5 viewports, zero failures; `tail`-pipe artifact explained — JSON split across streams).
+- [x] T12 fresh-tmp live seam (create→validate→doctor→remove→purge→doctor, all OK).
+- [x] T13 docs hygiene (this milestone + progress-log entries; no backlog wording changes needed).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 36 — CI/contracts/migration re-verification campaign, round 5 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, `/tmp` scripts, no product-code changes) over CI/release structure, docs/frontend/security contracts, migration, snapshots, and process concurrency; no locked-constraint changes. L2 ZIP and issue #12 both await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest after one flaky concurrency rerun, docs, complexity, diff; 9 issues OPEN).
+- [x] T2 CI/release audit (unit 3.10–3.14 + adversarial/package/docs/xplat-3OS/browser jobs; `contents:read`; build-once + `--dist-dir`; release tag-gate + attest + TestPyPI→`release` + GitHub Release + post-publish verify).
+- [x] T3 package-data offline (exact-accept wheel+sdist, vue-missing reject, `--require-build` exit 2).
+- [x] T4 docs deep-links (all `@docs/` resolve; module paths exist; `Store.*` methods exist).
+- [x] T5 frontend wiring (9 domain exports, 19 menuDo actions dispatched, `/` `?` Esc + focus-trap, 13 modals `role=dialog`).
+- [x] T6 live security headers (CSP/`frame-ancestors 'none'`/nosniff/referrer/CORP/Cache-Control on `/`, `/api/*`, `/app.js`).
+- [x] T7 threat-model/ADR file:line refs (all resolve to real files + in-range lines).
+- [x] T8 complexity baseline (151 functions, budget ≤ 15, gate exit 0; no drift).
+- [x] T9 full migration (skip-by-default respected; `--full --force` restores skills + trash + templates).
+- [x] T10 snapshot retention (7 edits → newest 5 kept; byte-accurate `--snapshot` restore).
+- [x] T11 cross-process CLI (2 procs × 10 edits rc 0; doctor consistent).
+- [x] T12 version alignment (`1.0.0` everywhere) + gitignore (`dist/`, egg-info, pycache ignored).
+- [x] T13 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 37 — P0 acceptance-gate re-verification, round 6 (2026-09-09, 15 tasks)
+
+Direct replay of the five Milestone 1 acceptance reproductions on current `main` (hermetic `/tmp` scripts, no product-code changes) + red-first proof + compatibility + protocol self-audit; no locked-constraint changes. L2 ZIP and issue #12 both await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff; P0 regression tests inventoried: path-safety, webapp x-origin, archive traversal, frontmatter bounds, search bounds).
+- [x] T2 P0-SEC-001 replay (get/edit/remove/disable/enable `../../victim` all rejected; victim + sentinel survive).
+- [x] T3 P0-SEC-002 replay (x-origin purge → 403, trash preserved; same-origin purge → 200).
+- [x] T4 P0-SEC-003 replay (`skills/weird name` manifestless import rejected; no destination created).
+- [x] T5 P0-SEC-004 replay (201-char alternating wildcard → clean `ValueError`, instant).
+- [x] T6 P0-SEC-005 replay (400-deep block + 2000-deep flow → clean `FrontmatterError`, never raw `RecursionError`).
+- [x] T7 red-first proof (copied tree: `NAME_RE=^.*$` → traversal test RED; archive guard `if False` → traversal test RED).
+- [x] T8 guard centralization (`validator.validate_skill_name` + `path_safety.contained_path`/`safe_skill_path`; 61 call-sites; REST decodes-then-guards per `webapp.py:198-200`).
+- [x] T9 alternate surfaces (CLI view/edit/remove/disable/enable/restore + REST `%2e%2e` forms + scopes — all rejected).
+- [x] T10 valid compatibility (64-char/boundary names, disable/enable `0`, plain + `my-*` search, Agent Skills extensions, export→import round-trip).
+- [x] T11 protocol self-audit (12/12 steps evidenced in this round; see progress log).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entries).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 38 — Module-seam + backlog-truth campaign, round 7 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, `/tmp` scripts, no product-code changes) over loader/observations/roots/tokens/templates/web/sync/ranking/diagnostics + stale-note refresh; no locked-constraint changes. L2 ZIP and issue #12 both await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff).
+- [x] T2 loader edges (good/badfm/dupkey/disabled/noload all exact; latin-1 behavior recorded — see T2b note in log).
+- [x] T3 observations (stable 64-char hashes, portable/extension split, observed_at/provenance, body-sensitive).
+- [x] T4 root discovery (dup `duplicated`+`divergent`, `unresolved`, skip-without-force, dup-root single-touch).
+- [x] T5 tokens (windows/estimate/aggregate shapes) + templates (dup/bad-name guards; 100-char names valid by rule).
+- [x] T6 web serialization (object/array/415/malformed) + install allowlist (injection/runner/types rejected, dry-run 200).
+- [x] T7 sync semantics (skip-without-force, force-converge, dup-root single-touch, bad-name rejected).
+- [x] T8 ranking (exact 100 first, shuffle-deterministic, body-match 40, 50× stable).
+- [x] T9 diagnostics (stderr-only, `None` return, context preserved).
+- [x] T10 TODO M4 note refreshed (`[?]`s closed in v1.1.0; issue #12 filed; gate PASS).
+- [x] T11 PLAN §13 rewritten as completed audit trail + `CIE`→`CI` typo (gate PASS).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entries incl. T2b finding).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 39 — Trust-surface + docs-contract campaign, round 8 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, `/tmp` scripts, no product-code changes) over locked constraints, secrets, README/CONTRIBUTING verbatim, roadmap verdicts, CLI/REST error shapes, XSS, REST/Store doc coverage, git hygiene; no locked-constraint changes. L2 ZIP and issue #12 both await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff).
+- [x] T2 locked constraints (no ORM import; schema `1`; stdlib-only with optional-guarded tiktoken; loopback + vendored Vue + no CDN; commands preserved across the `cli.py`→`cli_parser.py` split).
+- [x] T3 secrets scan (98 tracked files; no keys/tokens/private-keys; no world-writable; `.autogit` untracked-ignored).
+- [x] T4 README quickstart verbatim E2E (list/create/search/tokens/validate/export/install-dry-run all rc 0 on fresh tmp).
+- [x] T5 CONTRIBUTING checklist (compile/complexity/docs/package-UNAVAILABLE/init/create all green).
+- [x] T6 roadmap verdicts wired (v1.2+ six lines + `pywebview` line now quote their research verdicts; gate PASS).
+- [x] T7 CLI UX (26/26 `--help` rc 0; bad-command exit 2; invalid names exit 1 with clean message; no traceback on `SkillNotFound`).
+- [x] T8 REST errors (8/8 JSON `{error}`, no `Traceback`: 404/400 shapes + form-415).
+- [x] T9 XSS audit (`esc()` full entity map; 2 `v-html` sinks both via `renderMarkdown`; no `innerHTML`; `rel=noopener`; no `javascript:`).
+- [x] T10 REST table audit (skills/search/maintenance/trash/templates/import-export rows verified; no phantom `/api/tokens` or `/api/db` routes — tokens ride `stats`/`scopes`, maintenance is `/api/rebuild`+`/api/resync`).
+- [x] T11 Store API audit (every documented `Store.*` exists in source).
+- [x] T12 git hygiene (only `ROADMAP.md` modified + ignored `.autogit`; no large files; `dist/`/egg-info ignored).
+- [x] T13 harness `"passed": true` on rerun (first run: one `net::ERR_ABORTED` at 320px + server `BrokenPipeError` — probe-race flake, zero console errors) + fresh-tmp live seam OK.
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 40 — Steady-state verification, round 9 (2026-09-09, 15 tasks)
+
+Hermetic spot-probes (stdlib only, `/tmp` scripts, no product-code changes) confirming the steady state holds; no locked-constraint changes. L2 ZIP and issue #12 both await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, complexity, diff).
+- [x] T2 L2/L6 still gated (issues #5 + #12 OPEN, zero comments; ZIP rejection-only, no `ZipFile` extraction).
+- [x] T3 deferred #3/#4/#8/#11 untouched (all OPEN zero comments).
+- [x] T4 P0 spot (001 traversal rejected + victim survives; 002 x-origin 403).
+- [x] T5 archive (ZIP reject with reason; valid versioned-manifest tar round-trips `['ok']`).
+- [x] T6 search/validator (alternating wildcard clean `ValueError`; escape warns, `https` clean).
+- [x] T7 release dry-run (`1.0.0` aligned, no bump/tag/publish; PyPI still 404; package-data UNAVAILABLE).
+- [x] T8 docs gates (docs/complexity PASS; package-data honest UNAVAILABLE).
+- [x] T9 CLI isolation (each data-dir finds only its own; exit 1 missing / 2 usage).
+- [x] T10 REST fail-closed (purge 403 + trash preserved; form 415; bad install 400 JSON; long query 400).
+- [x] T11 hygiene (versions aligned; `dist/` ignored; 5 worktrees unmerged as documented; tree clean but `.autogit`).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 41 — Support-module + finding-filing campaign, round 10 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, inline heredocs, no product-code changes) over colors/cli_output/history/web-static/path_safety/validator/frontmatter/atomic_io/insights-trust + T2b filed as issue #13; no locked-constraint changes. L2 ZIP and issues #12/#13 await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff).
+- [x] T2 T2b encoding finding filed as issue #13 (repro + smallest-fix sketch + scope questions; no code).
+- [x] T3 colors (`Colors.paint`, NO_COLOR/FORCE_COLOR, empty-text, helpers).
+- [x] T4 `cli_output` (`render_table` list-of-lists + header bold, `truncate`, `print_json`, `err` to stderr).
+- [x] T5 history/stats (limit clamp/0/missing; total/active/disabled/trashed counts).
+- [x] T6 web static (`/`, `/app.js`, vendored Vue) + raw (`text/plain`, scope-404, traversal-404).
+- [x] T7 `path_safety` (`\`/drive/`..`/absolute rejected on POSIX; valid composes under root).
+- [x] T8 validator (valid/use-context/token-over-5000/name-mismatch contracts).
+- [x] T9 frontmatter dump (quote/nested round-trips; flow-mapping `TypeError` scoped to bracket lists; dup-key loud).
+- [x] T10 `atomic_io` (write/replace, no stranded temps, deterministic + sensitive tree hash, lock context).
+- [x] T11 insights trust gates (quarantine `stage-only`/`activated:false`, blank/non-string rejected; registry trust gate both ways; JSON-clean).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 42 — Frontend-contract + steady-state campaign, round 11 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, inline heredocs, no product-code changes) over CSS/a11y/viewports/counts/claims/gating/P0-spots/protocol; no locked-constraint changes. L2 ZIP and issues #12/#13 await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff).
+- [x] T2 issues #5/#12/#13 + #3/#4/#8/#11 + #6/#7/#9 all still OPEN (rejections carry 1 comment each).
+- [x] T3 T2b encoding repro unchanged (raw `UnicodeDecodeError`; issue #13 stands).
+- [x] T4 CSS (900/640 stacked-layout/topbar rules + 380/420/780 component caps; `prefers-reduced-motion`; `overflow-x`; focus styles; 3 `@media` blocks).
+- [x] T5 a11y (13 labelled dialogs, `aria-modal`, live region, `sr-only`, `kbd`, Esc + focus trap, `inert`).
+- [x] T6 viewports (5/5 no overflow, zero errors, exit 0).
+- [x] T7 counts (insights 57, CLI 27+7+3=37 re-derived from AST).
+- [x] T8 PyPI still 404; README future-release claim accurate.
+- [x] T9 deferred untouched (zero comments each).
+- [x] T10 P0 spots (001 victim survives; 002 purge 403 + trash kept).
+- [x] T11 protocol compliance (12-step checklist lives in `TODO.md`; rounds evidence each step).
+- [x] T12 harness green + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 43 — CLI-surface behavior campaign, round 12 (2026-09-09, 15 tasks)
+
+Hermetic CLI-behavior probes (fresh `$SKILLS_MANAGER_DATA` per probe, no product-code changes) over history/trash/states/edit/scopes/sync/tokens/validate/templates/db; no locked-constraint changes. L2 ZIP and issues #12/#13 await approval — no code until then. (Live-`~/.agents` note: one R12-T7 probe wrote `sy-1` to the real agents scope; removed immediately after, verified clean.)
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff).
+- [x] T2 history (create+edit story, `--limit`, `--json` rows, missing → empty, `doctor --json ok`).
+- [x] T3 trash (list/restore/purge cycle; double-remove honest error; purge empties; doctor consistent).
+- [x] T4 states (disable→`disabled`, re-disable honest error; enable→`active`, re-enable honest error; JSON `disabled: 0`).
+- [x] T5 edit (description-only keeps category; body-only keeps description; `--metadata` accepted; missing → clean error).
+- [x] T6 scopes (7 ids incl. `cursor`; missing `~/.cursor/skills` → clean empty, documented in `03-cli-surface`; bogus scope → clean error).
+- [x] T7 sync (`--from/--to/--force/--json`; skip-without-force message; force converges).
+- [x] T8 tokens (skill/text/scope/window shapes; bad window lists choices cleanly).
+- [x] T9 validate (name/all/external-`--path`/json/missing contracts; `--path` takes an external skill dir).
+- [x] T10 templates (empty hint, `new`, list, dup `FileExistsError` as clean error).
+- [x] T11 db (`rebuild` added-counts; `resync` complete-counts).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 44 — Remaining-CLI + frontend-seam campaign, round 13 (2026-09-09, 15 tasks)
+
+Hermetic probes (fresh tmp envs, no product-code changes) over add/view/create/list/search/install/export-open/snapshots/domain.js; no locked-constraint changes. L2 ZIP and issues #12/#13 await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff) + issues #5/#12/#13 OPEN.
+- [x] T2 gating re-confirmed (zero comments; ZIP rejection-only).
+- [x] T3 add (existing dir, `--name` requires frontmatter rename first, missing-dir + bad-name clean errors).
+- [x] T4 view (`--raw` round-trips body; `--json` 17-key record incl. hashes/provenance).
+- [x] T5 create (`--body-file`, `--allowed-tools`, `--license/--category/--version`; dup clean error).
+- [x] T6 list (`--disabled`, `--category`, `--json` shapes) + search (`--limit`, `--json` hits).
+- [x] T7 scopes note (7 ids; `cursor` clean-empty) — see round 12.
+- [x] T8 install (dry-run default print vs `--dry-run` bare command; `../evil` passes char-allowlist — runner allowlist + dry-run-first is the control; bad runner clean error).
+- [x] T9 export/backup alias (both write tarballs) + `open` (`EDITOR=true` resyncs; missing → clean error).
+- [x] T10 snapshots (`history --json` ids; `--snapshot` byte-accurate rollback; bogus id clean error).
+- [x] T11 `domain.js` via browser-global seam (compat/tools enrichment, `1.5k`, `rel=noopener` strong/link render).
+- [x] T12 harness `"passed": true` on rerun (first run: one `net::ERR_ABORTED` at 1280px + `BrokenPipeError` — probe-race flake, zero console errors) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 45 — Global-flags + lifecycle-defaults campaign, round 14 (2026-09-09, 15 tasks)
+
+Hermetic probes (fresh tmp envs incl. isolated `HOME` for scope tests, no product-code changes) over init/webui/globals/version/remove/sync-defaults/JSON-shapes/name-errors/smoke-idempotence; no locked-constraint changes. L2 ZIP and issues #12/#13 await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, diff) + issues #5/#12/#13 OPEN.
+- [x] T2 gating re-confirmed (zero comments; ZIP rejection-only).
+- [x] T3 init (layout skills/db/templates/backups/trash; idempotent re-init).
+- [x] T4 webui (`--host/--port/--no-browser` flags; `gui` alias shares help).
+- [x] T5 globals (`--data-dir` creates alt root; `--color/--no-color` accepted).
+- [x] T6 version (`skills-mgr 1.0.0`, `prog="skills-mgr"`).
+- [x] T7 remove (default trash with hint; `--purge` deletes; `--trash` explicit; missing-restore clean error).
+- [x] T8 sync defaults (isolated `HOME`: `(none)` targets + clean message; no live-scope writes this round).
+- [x] T9 JSON parity (list/view-17/search/doctor-15/stats/history shapes all parse).
+- [x] T10 name errors (uniform `must match` message; `-lead` hits argparse option parsing — CLI convention, not a bug).
+- [x] T11 smokes idempotent (store + web PASS twice in a row).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 46 — Skills-catalog + encoding-deep-dive + bounds-rotation campaign, round 15 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, inline heredocs, no product-code changes) covering the goal's skill requirements plus bound-family rotation; no locked-constraint changes. L2 ZIP and issues #12/#13 await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, complexity, diff).
+- [x] T2 catalog audit (62 `~/.agents/skills`, incl. `sy-1` probe residue already cleaned round 12) + `first-principles-production-engineering` loaded and applied (smallest-change, verification-before-claims, root-cause loops).
+- [x] T3 `find-skills` loaded; decision: no install — stdlib-only constraint + hermetic-probe workflow need no ecosystem skill; recorded here.
+- [x] T4 T2b deep-dive (26 `read_text` sites classified; only archive/validator catch decode; user-visible is fail-closed exit-1/JSON-error; finding commented on issue #13 with fix options).
+- [x] T5 P0 rotation (003 rejected + no dest; 004 bounded `ValueError`; 005 block+flow `FrontmatterError`).
+- [x] T6 archive budgets (member-count 201, nesting 20, path-length 520 — all rejected).
+- [x] T7 parser limits (keys/scalar bounded; deep-nest + huge-doc parsed without crash).
+- [x] T8 search timing (6 adversarial patterns ≤ 184ms or clean `ValueError`).
+- [x] T9 REST matrix (Host/Fetch/Referer/Origin → 403; 5 security headers live).
+- [x] T10 CLI contracts (8 missing-skill + 3 invalid-name paths: rc 1, clean messages, zero tracebacks).
+- [x] T11 docs truth (gates PASS; insights 57; CLI 27+7+3=37; versions `1.0.0`).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 47 — Suite-health + stability campaign, round 16 (2026-09-09, 15 tasks)
+
+Hermetic probes (stdlib only, inline heredocs, no product-code changes) over suite stability, gate coverage, workflows, hygiene, and P0 rotation; no locked-constraint changes. L2 ZIP and issues #12/#13 await approval — no code until then.
+
+- [x] T1 baseline ladder green (301 unittest, docs, complexity, diff).
+- [x] T2 gating re-confirmed (#5 OPEN 0 comments; #13 OPEN 1 deep-dive comment; ZIP rejection-only).
+- [x] T3 concurrency file 5/5 green (no flake this round; round-5 single slow-join noted as scheduling).
+- [x] T4 full suite 2/2 green back-to-back (18.2s + 18.4s).
+- [x] T5 suite health (0 skips; 301 counted; per-file table recorded; `-v` shows 300 `ok` + 1 diagnostic-print line, not a skip).
+- [x] T6 gate coverage (`CURRENT_DOCS` pins v1.1.0 discovery + v0.3.0 context; round milestones live in `task.md`/progress-log by design).
+- [x] T7 workflows (ci: unit/adversarial/package/docs/xplat/browser; release: build/verify/attest/testpypi/pypi/github-release; CI contracts 20/20).
+- [x] T8 tracked-junk zero (`dist/`/egg-info/pycache/`.pyc` untracked).
+- [x] T9 deferred untouched (zero comments each) + PyPI still 404.
+- [x] T10 P0 rotation (003 rejected + no dest; 004 bounded; 005 flow `FrontmatterError`).
+- [x] T11 compliance (AGENTS.md ALWAYS + 12-step protocol present; rounds evidence each step).
+- [x] T12 harness `"passed": true` (5 viewports, exit 0) + fresh-tmp live seam OK.
+- [x] T13 docs hygiene (this milestone + progress-log entry).
+- [x] T14 clean diff review, commit, and push of exactly the intended files.
+- [x] T15 final ladder re-run + evidence (recorded in progress log).
+
+## Milestone 30 — Insights audit round 5 (2026-09-09, next 10)
+
+- [x] T1 baseline ladder green on clean tree (296 unittest, smokes, gates recorded).
+- [x] T2 adversarial sweep: degenerate/nested/unicode/large inputs all JSON-clean.
+- [x] T3 filesystem audit: dangling/file/deleted/locked paths `invalid`; insights performs no direct `open()`.
+- [x] T4 concurrency + perf: 8×150 mixed 2.49s clean; 200k-line scan 0.06s; 20k views < 0.1s.
+- [x] T5 REST/CLI/Store regression: validate/search/purge clean, no drift.
+- [x] T6 docs truth: stale "31 tests" claims corrected to 52 in three files.
+- [x] T7 5 red-first round-5 lock tests (57 total in the file).
+- [x] T8 minimal fixes (docs truth only; zero product-code changes needed).
+- [x] T9 full ladder + harness + fresh-tmp recorded here and in the progress log.
+- [x] T10 per-group commits plus push (this entry, then push step).
+
+## Milestone 50 — GitHub issue close-out (#3, #4, #5, #12, #13) (2026-09-11, 12 tasks)
+
+Delivered against the five maintainer-selected issues with `gh` as the surface:
+one real bug fix, one approved read-only diagnostic, and three already-built
+items verified end to end before closing. No locked constraint changed.
+
+- [x] T1 baseline ladder green before any edit (376 unittest, both smokes, docs, complexity).
+- [x] T2 #13 red-first: 20 failing assertions reproducing the raw `UnicodeDecodeError` contract gap (scan_dir/resync/doctor/list + write paths).
+- [x] T3 #13 fix: `loader.read_skill_text()`/`read_skill_text_strict()`; rows marked `malformed` + `decode_error`; `doctor.undecodable_documents` drift class (in `ok`) + CLI line; `Store.list`/`get` surface the flags; validator reuses the message.
+- [x] T4 #13 write paths fail closed (`Store.edit`/`restore`, `read_snapshot`, `scopes.get_raw`/`edit_skill`/`restore_snapshot`/sync overwrite) and leave files byte-identical.
+- [x] T5 #13 complexity ratchet: `doctor` artifact discovery extracted into `_doctor_artifacts`/`_stale_snapshots`/`_is_*` so the new drift class adds no hotspot growth.
+- [x] T6 #13 tests: `tests/test_encoding_contracts.py` (23) incl. REST list/detail/doctor drift reporting and clean CLI exit codes.
+- [x] T7 #3/#4 verification: registry preview (audit links, trust gate, hash slot) and eval harness (`--evals`, `--evals-run` recording `iteration-N/eval-*/` + benchmark delta, no SQLite rows) re-run hermetically, then committed.
+- [x] T8 #5 verification: hermetic zip import parity with tar plus a hostile-zip probe (traversal member rejected, nothing outside staging).
+- [x] T9 #12 implementation: `skillsmgr/effective.py` (cited per-consumer rows, ordered/no-merge/undocumented policies, skipped disabled-invalid instances, bounded reads) + `doctor --explain` + `GET /api/doctor?explain=`.
+- [x] T10 #12 tests: `tests/test_effective_explain_contracts.py` (36) incl. six-way/no-merge/triple+both-load/ambiguous/unknown/missing-project and read-only tree-hash + no-DB proofs.
+- [x] T11 docs truth: `docs/01-architecture.md`, `docs/02-modules.md`, `docs/03-cli-surface.md`, `docs/08-web-ui.md`, `docs/06-progress-log.md`, `docs/SESSION-CONTEXT.md`, `ROADMAP.md`, `TODO.md` (Milestone 4 + Milestone 11 L3 + deferred intro), `task.md`.
+- [x] T12 final ladder (435 unittest, smokes, docs, complexity, help) then commit, push, and close each issue with file/line evidence.
+- [x] T13 CI flake fix: `test_record_runs_never_touches_skill_files_or_the_index` dropped the read-time `observed_at` stamp (py3.10 failure); test 20/20, suite 3/3, CI green on HEAD.
+
+## Milestone 51 — Remaining issue close-out (#6, #7, #8, #9, #11) (2026-09-11, 9 tasks)
+
+Every remaining open issue resolved: rejected directions pinned by executable
+tests, the one allowed desktop artefact shipped, the required team-sharing
+design ADR written, and two findings from the probes filed as a new issue (#14)
+instead of being changed silently. No locked constraint changed.
+
+- [x] T1 baseline ladder green before editing (435 unittest, both smokes, docs, complexity).
+- [x] T2 #6 closed as not-planned with `TarFallbackPolicyPins` (permissive-filter bypass, no-filter traversal, both capability branches).
+- [x] T3 #7 closed as not-planned with `tests/test_link_severity_contracts.py` (warning stays warning, valid stays True, risk_scan signal, promotion guard).
+- [x] T4 #8 closed as not-planned for this repo with `tests/test_web_client_contracts.py` (extension-host mutations, cross-site 403, no CORS, loopback bind) + the "Local client integration contract" section in `docs/08-web-ui.md`.
+- [x] T5 #9 shipped the allowed artefact: `desktop_launcher.py` (unbundled, loopback-only, app-window with browser fallback) + `tests/test_desktop_launcher_contracts.py`.
+- [x] T6 #11 design scope closed: `docs/ADR-004-team-sharing-signed-bundles.md` + threat-model delta (T-13, T-14, R-6, R-7, recommendations 4-6).
+- [x] T7 New issue #14 filed for the read-path Host gap (F-1) and the `localhost` Host alias rejection (F-2), with measured evidence and three options.
+- [x] T8 docs truth: `docs/README.md` (ADR-004 index), `docs/01-architecture.md` (launcher + test count), `docs/08-web-ui.md`, `docs/06-progress-log.md`, `docs/SESSION-CONTEXT.md`, `ROADMAP.md`, `TODO.md` (five entries + deferred intro/tail), `check_docs.py` CURRENT_DOCS, `task.md`.
+- [x] T9 final ladder (477 unittest, smokes, docs, complexity, launcher help + a real launcher run) then commit, push, and close #6/#7/#8/#9/#11 with evidence.
+- [x] T10 CI follow-up: the launcher pins imported `tomllib` (3.11+) and failed the py3.10 job, so `pyproject.toml` is read as text instead; no 3.11+-only stdlib import remains in `tests/` or `desktop_launcher.py`. CI green on the fixing commit (`256f6b1`).
+
+## Milestone 52 — Deep-audit remediation (20 findings) (2026-09-11, 20 tasks)
+
+Every finding in `DEEP-AUDIT-2026-09-11.md` selected for remediation is fixed with
+its own red-first regression test. No locked constraint moved: filesystem stays
+the source of truth, `SCHEMA_VERSION = "1"` unchanged, CLI stdlib-only, web UI
+stdlib-backend/no-build/loopback, and no new CLI command or `Store` method.
+
+- [x] T1 FM-1: frontmatter block-marker scan is block-scalar aware (indented `---` is content, column-zero `---` still closes).
+- [x] T2 STORE-1: `commit_staged_skill` rollback catches `BaseException`; a displaced original survives an interrupt.
+- [x] T3 STORE-3/SCOPE-13: one-document invariant enforced in `add`/`disable`/`enable`/`toggle_skill` and reported by `doctor.conflicting_documents`.
+- [x] T4 STORE-4: `import_` takes the destination's per-skill lock around the staged commit.
+- [x] T5 STORE-5: one trash lock for `restore`/`purge_trash`, `StoreError` instead of raw `OSError`, and `resync()` reconciles orphan `trashed` rows.
+- [x] T6 STORE-2: `add()` holds the per-skill lock and installs via a staged `os.replace`.
+- [x] T7 FM-2: a sequence root is a clean `FrontmatterError` instead of a `list` that broke every consumer.
+- [x] T8 FM-3/FM-4: out-of-range escape codes and lone surrogates are rejected at parse time.
+- [x] T9 BUG-1: `create()` bootstraps the schema; driver errors are translated to `StoreError` at every seam.
+- [x] T10 SCOPE-4: an unreadable document becomes a `malformed` row instead of aborting every scope view.
+- [x] T11 SEC-1: the Host/Origin/Fetch-Metadata policy guards GET as well as the mutating methods.
+- [x] T12 SEC-3: `effective.explain` redacts every path outside an explicit `allowed_root`; HTTP always passes one.
+- [x] T13 SEC-2: bounded `os.scandir` walk (entries + depth) and `project-outside-managed-roots` for an out-of-boundary project.
+- [x] T14 CLI-1: eval regex assertions run under a wall-clock alarm and abort as a failed assertion.
+- [x] T15 CLI-2/SCOPE-12: metadata keys reject control characters, the dumper refuses unwritable keys, and both edit paths fail closed on a malformed document.
+- [x] T16 CLI-3: `cli_output.sanitize_text` strips C0/C1/DEL, separators, and format characters from every untrusted display field.
+- [x] T17 FM-5..FM-12/FM-14: block-scalar fidelity (indentation indicator, whitespace-only values, CR content, tab-before-hash truncation, newline-only values, YAML chomping, bare `- |` elements).
+- [x] T18 BUG-2: `loader.required_field_gaps` aligns loader/effective validity with `validate_skill`.
+- [x] T19 SCOPE-1/2/3: one symlink policy — `symlinks=True` plus escape refusal on sync, escaping links reported as drift, and `contained_entry` preserves the named entry.
+- [x] T20 BUG-5/3/4/6/7: frontend state and error surfacing, pinned by `tests/test_webui_contracts.py`.
+- [x] T21 final ladder (530 unittest, both smokes, docs, complexity, `node --check`) then docs truth in `docs/06-progress-log.md` and this file.
+
+## Milestone 53 — Deep-audit remediation, batch 2 (5 findings) (2026-09-11, 5 tasks)
+
+Continues the `DEEP-AUDIT-2026-09-11.md` remediation order (items 20-21): the
+precedence-reporting and scope-identity defects. No locked constraint moved.
+
+- [x] SCOPE-6: `_overall()` derives the top-level verdict from the per-skill entries (`no-instances` / `partially-resolved` / `both-load-only`), and a nested-only both-load instance is `both-load-only` with its instances as candidates instead of contradicting its own `also_loads`.
+- [x] SCOPE-7: `effective.explain` claims roots by physical identity (shared `physical_roots` set across tiers and both-load), records an already-scanned alias per tier, and never lists the winner as its own `shadowed` copy.
+- [x] SCOPE-9: one identity for the global scope — `_global_skills_dir()` returns the injected Store's tree when one is injected, so `sync_skill(..., ["global"])` lands where every other view reads.
+- [x] SCOPE-10: `_GLOBAL_STORE` is a `ContextVar` and `_StoreBoundHTTPServer` binds the server's own store per request thread, so two in-process servers on different data dirs cannot read or write each other's data.
+- [x] SCOPE-11: `list_all()` keys on `(scope, name, path)`, so distinct same-name instances inside one recursive scope are all listed with their `duplicated`/`divergent` states and the All view agrees with `/api/stats`.
+- [x] T6 final ladder (542 unittest x3 consecutive, both smokes, docs, complexity) then docs truth in `docs/02-modules.md`, `docs/06-progress-log.md` and this file.
+
+## Milestone 54 — Deep-audit remediation, batch 3 (7 findings) + completion (2026-09-11)
+
+Store integrity findings from `DEEP-AUDIT-2026-09-11.md`, authored by a parallel
+session in the same working tree and completed/verified here. No locked constraint
+moved.
+
+- [x] STORE-6: `purge_trash` no longer holds one write transaction across every `rmtree`.
+- [x] STORE-7: `remove(purge=True)` displaces the tree first, so a partial purge advertises no husk and leaks no raw `PermissionError`.
+- [x] STORE-8: `export()` is atomic, collision-free within a second, and leaves no truncated archive.
+- [x] STORE-9: `export`/`tree_content_hash` no longer follow symlinks; a previously-unimportable archive now round-trips.
+- [x] STORE-10: `list`/`get`/`search`/`stats` reflect filesystem truth; ghost rows stay visible to `doctor()` as drift.
+- [x] STORE-12: `resync`/`db_rebuild` take the shared library lock.
+- [x] STORE-13: `doctor` sees document-less directories while still ignoring its own staging markers.
+- [x] T8 completion: fixed the batch-3 `remove(purge=True)` teardown defect and the wrong lock key in its resync test, and added a property-based lock-sharing test.
+- [x] T9 completion: restored the complexity ratchet by refactoring four functions (no re-baselining, no masking).
+- [x] T10 independent verification of all seven findings against the audit's described symptoms.
+- [x] T11 final ladder (564 unittest, both smokes, docs, complexity) + `AGENTS.md` concurrent-writers rule + docs truth in `docs/06-progress-log.md`, `docs/13-audit-remediation-status-2026-09-11.md` and this file.
+
+## Milestone 55 — Deep-audit remediation, batch 4 (14 findings) (2026-09-11)
+
+The low/info tail: Store contract truth, web-app hardening, loader/scope
+consistency, gate blind spots and dead code. No locked constraint moved.
+
+- [x] STORE-14: corrected all five false claims in `docs/04-store-api.md` and fixed three latent defects (history-row erasure on a failed re-create, silent full-import rollback, `*.tmp` false positive in `doctor`).
+- [x] BUG-8: all nine silent `except Exception: pass` blocks replaced with `diagnose()` plus explicit payload degradation.
+- [x] BUG-9: HEAD mirrors GET without a body; OPTIONS/TRACE return JSON 405 with `Allow` and the security headers (was a header-less HTML 501).
+- [x] BUG-10: dot-directories/non-canonical names marked `addressable: false` + `unaddressable` state; undecodable documents no longer report mojibake descriptions.
+- [x] BUG-11: `create_template` creates the directory before taking the lock.
+- [x] BUG-12: `_MUTATION_LOCKS` bounded at 512 with eviction of only provably free locks (reentrancy-safe).
+- [x] BUG-13: `check_package_data.py` refuses members that must never ship (`tests/`, `docs/`, `.env`, databases, bytecode, VCS/cache dirs).
+- [x] BUG-14: SHA-pin contract matches reusable-workflow refs.
+- [x] BUG-15: removed `_scopeParam`/`_scopeQs`, the unused `esc` export, `_dump_scalar_value`, `_dump_block_item` and a dead local; restored and documented the deliberate `RequestError` re-export.
+- [x] SCOPE-14: names failing `NAME_RE` are listed but clearly flagged unaddressable.
+- [x] SCOPE-15: one rogue index row no longer kills every global aggregate.
+- [x] SCOPE-16: `_both_load`/`_facade_warnings` respect `MAX_INSTANCES` and warn on truncation.
+- [x] SCOPE-17: `HOME=""`/whitespace no longer relocates scopes to `/`; relative data-dir overrides are absolute.
+- [x] SCOPE-18: the flat-path short-circuit no longer hides a nested skill behind a same-named grouping directory.
+- [x] T15 final ladder (593 unittest at the batch close; **598** after the traceability follow-up), both smokes, docs, complexity, `node --check`, and docs truth in `docs/04-store-api.md`, `docs/06-progress-log.md`, `docs/13-audit-remediation-status-2026-09-11.md`.
+
+## Milestone 56 — Documentation truth pass (2026-09-11)
+
+A truth pass over the living documentation after the deep-audit remediation.
+**No product behaviour changed**: no CLI command, flag, exit code, endpoint,
+`Store` method, schema value, or locked constraint was touched. Counts were
+re-derived by running the gates; behaviour claims were read out of the source or
+probed on a hermetic temporary data dir.
+
+- [x] T1 Inventoried every tracked `.md` and classified it *living* (describes the
+  present) versus *historical* (a dated record). Only living documents were
+  edited; `docs/09-*`, `docs/10-*`, `docs/11-*`, `docs/05-gui-plan.md`,
+  `docs/06-progress-log.md` history and the dated counters inside earlier
+  milestones here were left untouched.
+- [x] T2 `docs/SESSION-CONTEXT.md` v0.7.0: rewrote the gotcha that stated reads are
+  not `Host`-validated (issue #14, open) — false now, and misleading in the
+  dangerous direction; it documents the all-method policy plus `HEAD` mirroring
+  `GET` and `OPTIONS`/`TRACE` → JSON `405`. Counts corrected: 475 → **598** tests,
+  164 → **216** functions. Gotcha numbering (…12, 13, 14, 11) renumbered to 11–14.
+- [x] T3 `docs/03-cli-surface.md` v0.4.0: new *Untrusted display text* section; the
+  `--metadata` control-character rejection, the `edit` fail-closed contract, and
+  per-command sanitization notes were added where the commands are described. The
+  header's verification date now matches the modules actually read.
+- [x] T4 `docs/08-web-ui.md` v0.4.0: request policy applies to every method; the
+  `HEAD`/`OPTIONS`/`TRACE` contract; `degraded` on `/api/doctor?scope=all` and
+  `/api/stats`; the `doctor?explain` confinement and `project-outside-managed-roots`;
+  `addressable: false`/`unaddressable`; the dead `_scopeParam`/`_scopeQs` helper
+  reference was replaced with the current inline construction.
+- [x] T5 `docs/01-architecture.md` v0.3.0: added the **Symlink policy** and
+  **Locking model** sections and refreshed both stale test counters.
+- [x] T6 `docs/12-agent-root-discovery-2026-09-08.md` v1.2.0,
+  `docs/ADR-002-root-consumer-effective-state.md` v1.1.0,
+  `docs/ADR-001-localhost-mutation-token.md` v1.1.0: recorded `doctor --explain`
+  as shipped, invariant 1 as enforced, the policy widening as supporting the
+  no-token decision, and `unaddressable` in the instance-state vocabulary.
+- [x] T7 Security docs: `skills-manager-threat-model.md` v1.3 (T-14 mitigated,
+  new T-15/T-16, R-7 closed, recommendation 5 rewritten as "F-1 decided, F-2
+  open"), `SECURITY.md` (all-method boundary + two disclosure limits),
+  `security_best_practices_report.md` (re-dated, new controls added). All three
+  plus `docs/04-store-api.md` had their `file.py:line` citations replaced with
+  symbol names after each one was checked — most had drifted onto unrelated code;
+  only `archive.py`'s two ranges still resolved to the intended functions.
+- [x] T8 `TODO.md`: the "Ground truth" block no longer states 47 tests as the
+  current baseline (that is now labelled as the 2026-09-07 backlog-start record,
+  with today's re-derived numbers beside it), the published-tag line names
+  `v1.0.1`, and Milestone 51 records this pass.
+- [x] T9 `docs/README.md` v0.2.0 indexes `docs/13-audit-remediation-status-2026-09-11.md`,
+  and that tracker's own current-state table was corrected (208 → **216**
+  functions — re-derived by running the gate against the checkpoint refs, which
+  shows the published 208 was already wrong when written; "four refs" → eight
+  `refs/wip/audit-*` refs).
+- [x] T9b Every `OPEN` row in that tracker was then re-probed against the current
+  tree rather than trusted, and **two were wrong**: `SEC-5` (its `501`-with-no-
+  headers half was already closed by `BUG-9`) and `SEC-13` (its "no gate inspects
+  non-`webui` members" half was already closed by `BUG-13`) are now `PARTIAL`, the
+  tally is `61 fixed / 3 partial / 38 open`, and the remaining halves are named
+  (`form-action` still absent from the CSP; whether the sdist still ships `tests/`
+  is `[?]` because `python3 -m build` is unavailable here). The other 38 `OPEN`
+  rows stand. No finding was re-opened or closed by new work.
+- [x] T10 `docs/06-progress-log.md` gained the newest-first entry for this pass.
+- [x] T11 Final ladder on the current tree (sequential, not concurrent): **607 tests
+  OK**, both smokes, `check_docs.py`, `check_complexity.py` (216 functions),
+  `node --check` on both frontend files, CLI help, `check_package_data.py`
+  (`UNAVAILABLE`, standing).
+
+## Milestone 58 — Overview operator surface (2026-09-21)
+
+**[NOTE]** This frontend-only slice keeps Vue 3, the standard-library backend,
+and the filesystem as source of truth. It adds no endpoint, Store method,
+schema value, runtime dependency, or build step.
+
+- [x] Added an Overview-first application shell with Library naming, preserved
+  Profiles, Workspaces, Recovery navigation, and hidden the Library
+  list pane while Overview is open on desktop.
+- [x] Added derived logical-skill, instance, active, disabled, divergent,
+  malformed, unaddressable, recovery, and recent-history observations. The
+  attention queue routes only to existing Library, Install, Doctor, and Trash
+  surfaces; it does not invent validation or provenance results.
+- [x] Added first-run Overview actions for Create, Add folder, Import, and a
+  read-only health check, plus skip-link and programmatic heading focus paths.
+- [x] Hardened the developer browser harness with isolated HOME/data roots,
+  realistic filesystem fixtures, a 1440px viewport, and stable Vue readiness
+  polling. Implementation-agent visual inspection and stateful CDP automation
+  are complete; human participant/usability and external communication approval
+  remain pending.
+- [x] Shipped follow-on: task-center, Settings, and bounded Quality surfaces
+  now compose existing seams; deeper provenance/quality evidence remains
+  evidence-gated. The hybrid Library browse slice is shipped in the
+  2026-09-21 Library browse milestone above.
+
+## Milestone 57 — Docs gate hardened + whole-repo lint pass (2026-09-11)
+
+Follow-on to Milestone 56. The truth pass fixed drift by hand; this makes the
+gate catch the same classes automatically, and completes the sweep with a real
+linter. **No product behaviour changed** (no CLI command, flag, exit code,
+endpoint, `Store` method or schema value).
+
+- [x] T1 Cross-checked the docs against the source with purpose-built checkers
+      instead of reading prose: CLI parity (parser ↔ `docs/03`), REST parity
+      (`webapp.py` routes ↔ `docs/08`), `Store` parity (public methods ↔
+      `docs/04`, both directions), the session-context file inventory, every
+      `MAX_*` constant quoted in a doc, and every symbol named as a call.
+- [x] T2 Real drift found and fixed: `/api/tokens` was implemented but absent from
+      the endpoint tables; `docs/04` documented a **nonexistent**
+      `Store.db_resync(self)` while the real `resync()` was undocumented;
+      `docs/04` showed `add(self, path, …)` where the parameter is `src`;
+      `docs/08` had a `DELETE` row whose unescaped `|` gave the table an extra
+      column; `docs/10` had a line starting `#2` that rendered as a spurious H1.
+- [x] T3 Ran `markdownlint-cli2` (structural ruleset, installed outside the repo)
+      over all 39 markdown files: 103 real defects (91 unlabelled fences, 11 files
+      without a final newline, 1 spurious heading) and 137 render-neutral style
+      hits. All real defects fixed; the style rules were left alone so each doc
+      keeps its voice. Proven content-neutral by diffing with the fence labels
+      stripped.
+- [x] T4 `check_docs.py` extended, offline/AST-only like the rest of the file:
+      HADS header facts for every `docs/*.md`, markdown link **anchors**, table
+      cell counts, single trailing newline, `/api/*` route parity, public `Store`
+      method parity (both directions), CLI command/alias heading parity, and the
+      session-context inventory.
+- [x] T5 Nine regression tests in `tests/test_docs_consistency.py` (one per new
+      check, some covering both directions); suite 598 → **607**.
+- [x] T6 The new checks were proved by **mutation**: 15 defects were introduced one
+      at a time into the real tree, confirmed to fail the gate, and restored
+      byte-for-byte. Three checks were too lenient on the first attempt (a
+      hyphen-tolerant route regex, a Store check missing the reverse direction,
+      and a `\b`-based CLI name match that accepted `init-DISABLED`) and were
+      tightened until they caught their own defect.
+- [x] T7 All published "current" counts updated 598 → 607 (docs/13 gate table,
+      `SESSION-CONTEXT`, this file, `TODO.md`, the security report); historical
+      per-slice counts left as written.
+- [x] T8 Final ladder: **607 tests OK**, both smokes, `check_docs.py`,
+      `check_complexity.py` (216 functions), `node --check` on both frontend
+      files, CLI help, `check_package_data.py` (`UNAVAILABLE`, standing).

@@ -631,6 +631,25 @@ explanation. An `apm.lock.yaml` is reported as an unavailable signal and is
 never parsed. `hygiene_report()` folds the section under `lockfiles`; no Store
 method, SQLite state, cache, network request, or write is added.
 
+**[SPEC] 2026-11-17 follow-up.** Evaluated locks also expose `name_collisions`
+for different lock keys that sanitize to the same installed folder. Raw lock
+keys choose that folder before display truncation. Each evaluated entry has
+`source_path` syntax evidence with `resolution: unverified`; it does not resolve
+`skillPath` inside the installed folder or claim a unique upstream source.
+Hygiene reports collisions and suspicious/unknown source-path declarations
+through existing findings. See @docs/49-read-only-compatibility-followups-2026-11-17.md.
+
+## `project_config.py`, `discovery_diagnostics.py`
+
+**[SPEC]** The read-only Codex project observer inspects one supplied project's
+skill declarations with bounded no-follow reads, reporting unavailable where
+safe descriptor access is unsupported. The personal Claude observer inspects
+two-level group layouts independently of native discovery, excluding synced
+and plugin roots. Both have explicit unknown/partial outcomes and add no
+inventory instances, effective native settings or listing entries. They feed
+the existing hygiene report and generic CLI/Quality findings; full bounds and
+source distinctions are in @docs/49-read-only-compatibility-followups-2026-11-17.md.
+
 ## `ai.py`, `ai_skills.py`
 
 **[SPEC] Bring-your-own-key AI (2026-11-09).** `ai.py` is a stdlib-only client

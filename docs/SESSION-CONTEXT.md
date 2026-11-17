@@ -320,8 +320,10 @@ advisory eval harness, both shipped by extending existing surfaces only — see
     `tests/test_frontend_seam_contracts.py`.
 
 25. **The progress log is a digest plus a window, not the history.**
-    `docs/06-progress-log.md` carries the current digest and the entries dated
-    **2026-09-23 onward**; everything older is in `docs/archive/`, verbatim.
+    `docs/06-progress-log.md` carries current receipts and a bounded window;
+    older entries and completed task milestones are indexed in
+    @docs/archive/README.md, verbatim. The 2026-11-17 rule replaces the original
+    date cutoff; sections with relative links remain at their original location.
     Append new work at the **top** of the resident file, and keep the digest's
     "Current state" numbers true — or the file regrows into the problem
     @docs/24 §C1 diagnosed. Two properties of the gate are worth knowing:
@@ -461,6 +463,8 @@ skillsmgr/
   registry.py          # bounded registry API, snapshots, cache, provenance
   external_scan.py     # optional advisory SkillSpector hook, BYOK LLM via env
   lockfiles.py         # read-only skills-CLI lockfile evidence (project/global)
+  project_config.py    # bounded supplied-project Codex declarations
+  discovery_diagnostics.py  # grouped personal Claude folders; runtime unknown
   key_support.py       # documented per-consumer frontmatter keys (pure table)
 tests/test_effective_new_consumers.py  # docs/34 consumer rows + home-root redaction
 tests/test_key_support.py              # ignored-frontmatter finding (docs/29 H1)
@@ -497,8 +501,8 @@ browser_harness.py     # dev-only Chrome CDP viewport probe (green, 6 viewports)
 docs/08-web-ui.md      # authoritative web UI doc
 docs/STATIC-ANALYSIS.md  # Ruff/Bandit scope and dated decisions
 docs/12-agent-root-discovery-2026-09-08.md  # discovery inventory v1.2.0 ([?]s closed)
-docs/06-progress-log.md# digest + dated entries 2026-09-23.. (newest top)
-docs/archive/README.md  # archive index + cut-off rule (2026-10-05)
+docs/06-progress-log.md# current receipts + bounded window (newest top)
+docs/archive/README.md  # archive index + lossless resident-window rule
 docs/archive/06-progress-log-2026-09.md  # verbatim entries 2026-09-04..09-22
 docs/archive/06-progress-log-2026-08.md  # verbatim entries 2026-08-13..08-16
 ```

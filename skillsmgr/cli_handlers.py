@@ -701,6 +701,7 @@ def _render_lockfile_text(lockfiles: dict | None) -> None:
         )
     for key in ("global", "project"):
         lock = lockfiles.get(key) or {}
+        _render_lock_collisions_text(lock, key)
         if lock.get("state") and lock.get("state") != "ok":
             print(
                 f"    {_display(str(key))} lock: {_display(str(lock.get('state')))} "
@@ -710,6 +711,13 @@ def _render_lockfile_text(lockfiles: dict | None) -> None:
         print(f"    undeclared installed skills: {len(lockfiles['undeclared']['names'])}")
     for signal in lockfiles.get("unavailable_signals", []):
         print(f"    unavailable {_display(str(signal.get('signal', '')))}: {_home_display(str(signal.get('explanation', '')))}")
+
+
+def _render_lock_collisions_text(lock, kind):
+    for collision in lock.get('name_collisions', [])[:5]:
+        names = ', '.join(_display(str(name)) for name in collision['names'][:5])
+        print(f"    {_display(str(kind))} lock shared folder: {names}; "
+              f"{_home_display(str(collision['installed_path']))}")
 
 
 def _render_claude_listing_text(section: dict | None) -> None:
@@ -812,6 +820,23 @@ def _render_skills_dir_plugins_text(section: dict | None) -> None:
           f"({bare} without a root SKILL.md; copy each as a whole folder)")
 
 
+def _render_grouped_personal_text(section):
+    section = section or {}
+    for group in section.get('groups', [])[:5]:
+        names = ', '.join(_display(str(name)) for name in group['skills'][:5])
+        print(f"  Claude personal group {_display(str(group['name']))}: {names} "
+              '(bounded folder observation; native discovery unknown)')
+
+
+def _render_codex_project_text(section):
+    section = section or {}
+    if section.get('state') == 'observed':
+        value = section.get('include_instructions')
+        declared = 'unobserved' if value is None else str(value).lower()
+        print(f"  Codex project: include_instructions={declared}; "
+              f"{int(section.get('total', 0))} rules declared (session effect unknown)")
+
+
 def _render_hygiene_text(report: dict) -> None:
     """Render report evidence through the terminal sanitization seam."""
     summary = report.get("summary", {})
@@ -831,6 +856,8 @@ def _render_hygiene_text(report: dict) -> None:
     _render_codex_config_text(report.get("codex_config"))
     _render_codex_listing_text(report.get("codex_listing"))
     _render_skills_dir_plugins_text(report.get("skills_dir_plugins"))
+    _render_grouped_personal_text(report.get('claude_grouped_folders'))
+    _render_codex_project_text(report.get('codex_project_config'))
     if summary.get("findings_truncated"):
         print("  findings returned are bounded; inspect the JSON limits/degraded evidence")
     for finding in report.get("findings", []):

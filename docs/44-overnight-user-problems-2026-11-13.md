@@ -213,3 +213,13 @@ round's limitation; current evidence is described in @docs/08-web-ui.md.
   plugin member; needs a decision, because sync is a write path.
 - Lockfile `skillPath` ambiguity and nested skills shadowed by a root
   `SKILL.md` (vercel-labs/skills #2406, #2574).
+
+
+**[NOTE] Rechecked 2026-11-17, second continuation.** The grouped-personal
+observation, project Codex declaration advisory and plugin manual-only intent
+finding are implemented without native-loading verdicts. The upstream lockfile
+bugs #2406 and #2574 are closed; local reports instead identify exact normalized
+name collisions and leave source-path resolution unverified. The sync write-path
+proposal stays deferred. Sources, bounds and the distinction between project
+nesting and personal grouping are recorded in
+@docs/49-read-only-compatibility-followups-2026-11-17.md.

@@ -1,6 +1,6 @@
 # Docs Archive — Skills Manager
 
-**Version 1.0.0**
+**Version 1.1.0**
 
 **AI manifest**: Append-only history moved out of the live docs tree, kept
 verbatim. Nothing in this directory is a current contract: every file here
@@ -57,3 +57,20 @@ that recorded the fixes.
    surface-parity checks, and nothing here should be cited as how the product
    behaves now. If an archived entry disagrees with the owning doc, the owning
    doc wins.
+
+## Second archival pass — 2026-11-17
+
+**[SPEC]** The resident log exceeded its earlier 100,000-character review
+threshold. The current queue and delivery receipts now remain resident;
+completed task milestones and older progress entries move here verbatim.
+This replaces the original date cutoff for new archival passes. Relative-link
+sections stay in place to preserve both their bytes and their link targets.
+The prior two archive files remain unchanged.
+
+- [task-history-through-2026-11-17.md](task-history-through-2026-11-17.md): 3,074 lines, 228,471 bytes.
+- [06-progress-log-through-2026-11-17.md](06-progress-log-through-2026-11-17.md): 3,573 lines, 220,251 bytes.
+
+The source-entry comparison verified all 136 task sections and 99 progress
+sections survive byte-for-byte in either their original file or these new
+archives. The live task tracker retains the original 15 gated/deferred entries,
+including historical overlaps; archived checkboxes are historical copies.

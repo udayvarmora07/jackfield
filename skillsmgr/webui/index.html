@@ -844,6 +844,8 @@
                   <div v-if="qualityFindingIsExpanded(finding.id)" class="quality-finding-detail" :id="'finding-' + finding.id">
                     <p>{{ finding.explanation }}</p>
                     <p v-if="finding.evidence && finding.evidence.reason" class="hint">{{ finding.evidence.reason }}</p>
+                    <ul v-if="finding.evidence && finding.evidence.groups && ['claude-grouped-personal-folders','lockfile-name-collision'].includes(finding.category)" class="quality-finding-instances"><li v-for="(group,idx) in finding.evidence.groups" :key="idx"><code>{{ group.name || group.installed_path }}</code><span>{{ (group.skills || group.names || []).join(', ') }}</span></li></ul>
+                    <p v-if="finding.category === 'codex-project-skill-config'" class="hint">{{ finding.evidence.total }} rules declared; include_instructions: {{ finding.evidence.include_instructions == null ? 'unobserved' : finding.evidence.include_instructions }}. Session effect unknown.</p>
                     <ul class="quality-finding-instances"><li v-for="instance in finding.instances" :key="targetKey(instance)"><button class="text-button" type="button" @click="inspectHygieneInstance(instance, finding)">{{ finding.category === 'broken-reference' ? 'Open Validate: ' : '' }}{{ instance.scope }} / {{ instance.name }}</button><code>{{ instance.physical_path || instance.path || 'path unavailable' }}</code></li></ul>
                     <p class="hint">Follow-up: {{ finding.recommendation }}</p>
                   </div>

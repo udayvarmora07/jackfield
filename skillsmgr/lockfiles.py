@@ -317,7 +317,8 @@ def _lock_kind(version: object, kind: str | None) -> str | None:
 
 
 def _normalized_entry(name: str, value: dict) -> dict:
-    entry = {"name": bounded_text(name, 128)}
+    entry = {"name": bounded_text(name, 128), "installed_name": sanitize_name(name),
+             "source_path": _declared_source_path(value)}
     for key in _ENTRY_FIELDS:
         if key in value:
             entry[key] = bounded_text(value[key])
@@ -460,7 +461,7 @@ def _unverifiable_reason(exc: BaseException) -> str:
 
 
 def _entry_evidence(entry: dict, installed_root: Path, mode: str) -> dict:
-    directory = installed_root / sanitize_name(entry.get("name", ""))
+    directory = installed_root / entry.get('installed_name', sanitize_name(entry.get("name", "")))
     row = {
         "name": bounded_text(entry.get("name", ""), 128),
         "installed_path": bounded_text(str(directory)),
@@ -469,6 +470,7 @@ def _entry_evidence(entry: dict, installed_root: Path, mode: str) -> dict:
         "hash_status": "missing",
         "hash_reason": "",
         "source": _source_label(entry),
+        "source_path": entry.get('source_path', {'state': 'not_recorded', 'resolution': 'unverified'}),
     }
     if not row["present"]:
         row["hash_reason"] = "the declared skill folder is not installed"
@@ -479,6 +481,33 @@ def _entry_evidence(entry: dict, installed_root: Path, mode: str) -> dict:
         return row
     row["hash_status"], row["hash_reason"] = _hash_outcome(directory, entry, mode)
     return row
+
+
+def _declared_source_path(entry: dict) -> dict:
+    """Observe source-path syntax, never resolve it against the installed root."""
+    if 'skillPath' not in entry:
+        return {'state': 'not_recorded', 'resolution': 'unverified'}
+    value = entry['skillPath']
+    if not isinstance(value, str):
+        return {'state': 'unrecognized', 'resolution': 'unverified'}
+    normalized = value.replace('\\', '/')
+    if normalized in ('', '.', './', 'SKILL.md', './SKILL.md'):
+        form = 'repository_root'
+    else:
+        form = 'document' if normalized.endswith('/SKILL.md') else 'directory_or_other'
+    return {'state': 'declared', 'form': form, 'resolution': 'unverified',
+            'parent_segments': '..' in normalized.split('/'),
+            'truncated': len(value) > MAX_STRING}
+
+
+def _installed_name_collisions(rows: list[dict], entries: list[dict]) -> list[dict]:
+    """Different lock keys can normalize to the same local folder name."""
+    groups: dict[str, list[dict]] = {}
+    for row, entry in zip(rows, entries):
+        key = entry.get('installed_name', sanitize_name(entry['name']))
+        groups.setdefault(key, []).append(row)
+    return [{'installed_path': group[0]['installed_path'], 'names': sorted(row['name'] for row in group)}
+            for _key, group in sorted(groups.items()) if len(group) > 1]
 
 
 def _counts(rows: list[dict]) -> dict:
@@ -511,6 +540,7 @@ def _evaluated_lock(lock: dict, installed_root: Path, mode: str) -> dict:
     if lock.get("state") != "ok":
         result["entries"] = []
         result["counts"] = _counts([])
+        result["name_collisions"] = []
         return result
     rows = [
         _entry_evidence(entry, installed_root, mode)
@@ -518,6 +548,7 @@ def _evaluated_lock(lock: dict, installed_root: Path, mode: str) -> dict:
     ]
     result["entries"] = rows
     result["counts"] = _counts(rows)
+    result["name_collisions"] = _installed_name_collisions(rows, lock.get('entries', []))
     return result
 
 
@@ -540,7 +571,7 @@ def _undeclared(installed_root: Path, lock: dict) -> dict:
     result = {"names": [], "total": 0, "truncated": False}
     if lock.get("state") != "ok" or not installed_root.is_dir():
         return result
-    declared = {sanitize_name(entry.get("name", "")) for entry in lock.get("entries", [])}
+    declared = {entry.get('installed_name', sanitize_name(entry.get("name", ""))) for entry in lock.get("entries", [])}
     try:
         names = sorted(
             item.name

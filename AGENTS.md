@@ -1,6 +1,6 @@
 # AGENTS.md — Skills Manager
 
-**Version 0.3.0**
+**Version 0.3.1**
 
 **AI manifest**: Operating manual for coding agents working in this repo. Read fully (it is the hot cache — deliberately small, router-style). For details, follow the `@docs/...` pointers instead of re-reading source. Human developers read this too.
 
@@ -17,6 +17,23 @@
 - Test suite: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests` (stdlib-only regression/contract tests). Smoke tests `python3 smoke_store.py` (Store API) and `python3 smoke_web.py` (web REST API) remain executable end-to-end checks.
 - Docs format: HADS (see @docs/README.md). Markers: `[SPEC]` authoritative, `[NOTE]` context, `[?]` uncertainty.
 - Packaging: build only with the pinned, hash-verified toolchain — `python3 -m pip install --require-hashes -r requirements-build.txt` then `python3 -m build --no-isolation --wheel --sdist --outdir dist` (SEC-8). `check_package_data.py` asserts the vendored Vue sha256 (SEC-9) and rejects an artifact shipping `tests/`, `docs/`, `.env`, a database or bytecode (SEC-13); `MANIFEST.in` prunes the suite from the sdist. `skillsmgr/examples/skills-manager-management/` is the agent-facing management skill, shipped as **package data** so it reaches every install (a repository-only `examples/` directory did not, in either the wheel or the sdist); `check_package_data.py` proves it is present and readable.
+
+## Research, tools, and setup authorization
+
+**[SPEC]** Research first. Before implementation, obtain enough knowledge and
+evidence from the repository, relevant documentation, primary sources and data
+to understand the work. Research suitable GitHub open-source projects when
+useful; use them directly or learn from their implementation as appropriate,
+respecting their licenses and checking suitability before installation.
+
+The maintainer authorizes use of any suitable skills, custom agents, MCP
+servers, CLIs, tools and software already on this laptop. Install and configure
+additional skills, MCP servers, CLIs, software and GitHub open-source projects
+when needed, including necessary administrative setup. Choose what best serves
+the project and continue without requesting generic setup permission again.
+For subagents, use GPT 6.1 Terra or GPT 6 Luna at an effort suited to the task.
+This tooling authorization retains the repository's locked product constraints,
+data-preservation rules and specific human/release approval gates below.
 
 ## Navigation (router)
 

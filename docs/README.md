@@ -46,8 +46,11 @@
 | @docs/ADR-008-source-lock-and-update-preview.md | Read-only source identity, whole-tree candidate comparison, and review gating | Any provenance, source-lock, or update-preview change |
 | @docs/ADR-009-backup-sync-dry-run-planner.md | Bounded manifests, dry-run deltas, three-way conflicts, and recovery evidence | Any backup, Git, or sync-planner change |
 | @docs/ADR-004-team-sharing-signed-bundles.md | Team sharing design plus offline HMAC manifest evidence; crypto/distribution/metadata policy resolved, archive workflow unimplemented | Any bundle-signing, team-distribution, or review-workflow change |
-| @docs/06-progress-log.md | Dated log of changes, decisions, bugs — **digest + entries from 2026-09-23 onward** | Before/after any session; keep updated |
-| @docs/archive/README.md | Index of `docs/archive/`: the cut-off rule, and the archived progress-log slices | When you need history older than 2026-09-23 |
+| @docs/06-progress-log.md | Dated log of changes, decisions, bugs — **current receipts + bounded resident window** | Before/after any session; keep updated |
+| @docs/archive/README.md | Index of `docs/archive/`: the resident-window rule, progress slices and completed task history | When current receipts and the live queue are not enough |
+| @docs/archive/task-history-through-2026-11-17.md | Verbatim historical task milestones; open checkboxes there are not the live queue | Only for earlier task context |
+| @docs/archive/06-progress-log-through-2026-11-17.md | Verbatim progress entries moved in the second archival pass | Only for earlier delivery context |
+| @docs/49-read-only-compatibility-followups-2026-11-17.md | Grouped folders, project declarations, plugin intent and lockfile ambiguity boundaries | Before changing the read-only diagnostics |
 | @docs/archive/06-progress-log-2026-09.md | Verbatim archived entries, 2026-09-04 … 2026-09-22 (160 entries) | Only when the resident log's pointer is not enough |
 | @docs/archive/06-progress-log-2026-08.md | Verbatim archived entries, 2026-08-13 … 2026-08-16 (+2 undated) | Only for the pre-web-UI GTK4 era |
 | @docs/07-context-strategy.md | Hot/warm/cold loading model, compaction anchors | Long sessions, context management |

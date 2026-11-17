@@ -126,3 +126,9 @@ problem on 0.167.0-alpha.4.1.
 - User voice: [HN 50367037](https://news.ycombinator.com/item?id=50367037), [HN 50399447](https://news.ycombinator.com/item?id=50399447), [HN 50450464](https://news.ycombinator.com/item?id=50450464), [claude-code #108554](https://github.com/anthropics/claude-code/issues/108554), [codex #60955](https://github.com/openai/codex/issues/60955).
 - Security and quality: [Snyk threat landscape](https://research.snyk.io/blog/agent-skills-threat-landscape/), [Unit 42](https://unit42.paloaltonetworks.com/openclaw-ai-supply-chain/), [arXiv 2605.11418](https://arxiv.org/abs/2605.11418), [arXiv 2607.01456](https://arxiv.org/abs/2607.01456), [Anthropic authoring guide](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices).
 - Distribution: [pypistats](https://pypistats.org/packages/skill-control-plane), [Python discourse on distribution and import names](https://discuss.python.org/t/any-list-of-well-known-distribution-import-name-mismatches/44733).
+
+
+**[NOTE] Process-weight follow-up, 2026-11-17.** Completed task/progress history
+has moved verbatim to indexed archives while all 15 gated/deferred live entries
+remain in `task.md` (including historical overlaps). Relative-link sections stay
+resident without rewriting their evidence. See @docs/archive/README.md.
