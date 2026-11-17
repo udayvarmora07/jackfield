@@ -120,6 +120,7 @@ THINKING_HEADROOM = 4_096
 _EFFORT_MODEL_RE = re.compile(
     r"^claude-(?:(?:fable|mythos)-|(?:opus|sonnet|haiku)-[5-9]|opus-4-[5-9]|sonnet-4-6)")
 _REASONING_MODEL_RE = re.compile(r"^(?:gpt-5|o[1-9])(?!.*chat)")
+_OBSERVED_REASONING_MODELS = frozenset({"deepseek/deepseek-v4.1-flash", "meta/muse-ember"})
 #: A day-cap reservation older than this belongs to a crashed process.
 RESERVATION_TTL = 900.0
 _MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$")
@@ -715,10 +716,15 @@ _THOUGHT_OUT = ("the model spent its whole output allowance thinking and wrote n
 
 
 def _thinks(config: dict) -> bool:
-    """Models whose thinking shares ``max_tokens`` with the answer and take a low effort."""
+    """Models whose thinking shares the output allowance with the answer."""
     if config["provider"] == "anthropic":
         return bool(_EFFORT_MODEL_RE.match(config["model"]))
-    return config["provider"] == "openai" and bool(_REASONING_MODEL_RE.match(config["model"]))
+    return config["provider"] == "openai" and (
+        bool(_REASONING_MODEL_RE.match(config["model"])) or config["model"] in _OBSERVED_REASONING_MODELS)
+
+
+def _output_allowance(config: dict, max_output: int) -> int:
+    return max_output + (THINKING_HEADROOM if _thinks(config) else 0)
 
 
 def _int(value) -> int:
@@ -747,20 +753,19 @@ def _anthropic_body(config: dict, system: str, user: str, max_output: int, prefi
             "messages": [{"role": "user", "content": _anthropic_content(user, prefix)}]}
     if _thinks(config):
         body["output_config"] = {"effort": "low"}
-        body["max_tokens"] = max_output + THINKING_HEADROOM
+        body["max_tokens"] = _output_allowance(config, max_output)
     return body
 
 
-def _anthropic_text(data: dict) -> tuple[str, bool]:
+def _anthropic_text(data: dict) -> tuple[str, bool, bool]:
     if data.get("stop_reason") == "refusal":
         raise AiError("the model refused this request", "ai-refused", 502)
     blocks = [b for b in (data.get("content") if isinstance(data.get("content"), list) else [])
               if isinstance(b, dict)]
     text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
     truncated = data.get("stop_reason") == "max_tokens"
-    if truncated and not text.strip() and any(b.get("type") == "thinking" for b in blocks):
-        raise AiError(_THOUGHT_OUT, "ai-bad-output", 502)
-    return text, truncated
+    thought_out = truncated and not text.strip() and any(b.get("type") == "thinking" for b in blocks)
+    return text, truncated, thought_out
 
 
 def _call_anthropic(config: dict, system: str, user: str, max_output: int,
@@ -770,8 +775,9 @@ def _call_anthropic(config: dict, system: str, user: str, max_output: int,
         headers["x-api-key"] = config["key"]
     data = _post(config["base_url"] + "/v1/messages", headers,
                  _anthropic_body(config, system, user, max_output, prefix), REQUEST_TIMEOUT)
-    text, truncated = _anthropic_text(data)
-    return text, {**_anthropic_usage(data.get("usage") or {}), "truncated": truncated}
+    text, truncated, thought_out = _anthropic_text(data)
+    return text, {**_anthropic_usage(data.get("usage") or {}), "truncated": truncated,
+                  "thought_out": thought_out}
 
 
 def _openai_usage(usage: dict) -> dict:
@@ -795,14 +801,15 @@ def _openai_body(config: dict, system: str, user: str, max_output: int, prefix: 
                          {"role": "user", "content": _openai_user(config, user, prefix)}],
             config["max_tokens_field"]: max_output}
     if _thinks(config):
-        body["reasoning_effort"] = "low"
-        body[config["max_tokens_field"]] = max_output + THINKING_HEADROOM
+        if _REASONING_MODEL_RE.match(config["model"]):
+            body["reasoning_effort"] = "low"
+        body[config["max_tokens_field"]] = _output_allowance(config, max_output)
     if config["json_mode"]:
         body["response_format"] = {"type": "json_object"}
     return body
 
 
-def _openai_text(data: dict, config: dict) -> tuple[str, bool]:
+def _openai_text(data: dict, config: dict) -> tuple[str, bool, bool]:
     choices = data.get("choices") if isinstance(data.get("choices"), list) else []
     first = choices[0] if choices and isinstance(choices[0], dict) else {}
     message = first.get("message") if isinstance(first.get("message"), dict) else {}
@@ -810,9 +817,7 @@ def _openai_text(data: dict, config: dict) -> tuple[str, bool]:
     if not text and message.get("refusal"):
         raise AiError("the model refused this request", "ai-refused", 502)
     truncated = first.get("finish_reason") == "length"
-    if truncated and not text.strip() and _thinks(config):
-        raise AiError(_THOUGHT_OUT, "ai-bad-output", 502)
-    return text, truncated
+    return text, truncated, bool(truncated and not text.strip() and _thinks(config))
 
 
 def _call_openai(config: dict, system: str, user: str, max_output: int,
@@ -820,14 +825,23 @@ def _call_openai(config: dict, system: str, user: str, max_output: int,
     headers = {"Authorization": "Bearer " + config["key"]} if config["key"] else {}
     data = _post(config["base_url"] + "/chat/completions", headers,
                  _openai_body(config, system, user, max_output, prefix), REQUEST_TIMEOUT)
-    text, truncated = _openai_text(data, config)
-    return text, {**_openai_usage(data.get("usage") or {}), "truncated": truncated}
+    text, truncated, thought_out = _openai_text(data, config)
+    return text, {**_openai_usage(data.get("usage") or {}), "truncated": truncated,
+                  "thought_out": thought_out}
 
 
 def _call(config: dict, system: str, user: str, max_output: int,
           prefix: str = "") -> tuple[str, dict]:
     caller = _call_anthropic if config["kind"] == "anthropic" else _call_openai
     return caller(config, system, user, max_output, prefix)
+
+
+def _check_answer(usage: dict, json_output: bool) -> None:
+    if usage.get("thought_out"):
+        raise AiError(_THOUGHT_OUT, "ai-bad-output", 502)
+    if usage.get("truncated") and json_output:
+        raise AiError("the model's answer was cut off; try fewer items per run",
+                      "ai-bad-output", 502)
 
 
 class AiRun:
@@ -889,7 +903,7 @@ class AiRun:
         self._check_disconnected()
         max_output = max(64, min(int(max_output), MAX_OUTPUT_TOKENS))
         estimate = (count_tokens(system)[0] + count_tokens(prefix)[0] + count_tokens(user)[0]
-                    + max_output)
+                    + _output_allowance(self.config, max_output))
         self._admit(estimate)
         if self.estimate_only:
             self.estimated_input += estimate
@@ -911,9 +925,7 @@ class AiRun:
             _retry_hook.reset(token)
         self._account(usage, estimate, system + prefix + user)
         self.last_truncated = bool(usage.get("truncated"))
-        if self.last_truncated and json_output:
-            raise AiError("the model's answer was cut off; try fewer items per run",
-                          "ai-bad-output", 502)
+        _check_answer(usage, json_output)
         return text
 
     def _account(self, usage: dict, estimate: int, sent: str) -> None:

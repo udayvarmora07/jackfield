@@ -4,6 +4,13 @@
 
 **AI manifest**: Dated evidence and limits for a small synthetic comparison of the trigger simulator with Claude Code Skill events. The preserved fixture and sanitized results are in @tools/ai_fidelity/evidence/2026-11-09/.
 
+**[NOTE] 2026-11-17 follow-up.** A larger synthetic experiment now exercises
+the actual HTTP transport through GOAT and DeepSeek V4.1 Flash: 36/36
+authored-label matches, with native fidelity still unavailable. It also
+reproduced and corrected reasoning-budget/accounting defects. Method,
+sanitized evidence and limits: @docs/48-ai-http-study-2026-11-17.md. The
+two-case results below remain their original dated CLI-adapter observation.
+
 **[NOTE] A two-case smoke study found 2/2 first-skill agreement.** Both cases
 were conclusive; neither had multiple skill calls. This tiny, intentionally
 obvious synthetic sample is not an estimate of general routing fidelity. The

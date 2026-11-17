@@ -1,0 +1,29 @@
+{
+  "base_url": "https://api.commandcode.ai/provider/v1",
+  "entries": [
+    {
+      "body": "Write the requested short haiku. Do not invoke another skill.",
+      "description": "Use when asked to compose a haiku poem, especially about nature or seasons. Do not use for explanations of haiku.",
+      "name": "haiku-poem"
+    },
+    {
+      "body": "Write exactly two rhyming lines. Do not invoke another skill.",
+      "description": "Use when asked to write exactly two rhyming lines, a rhyming couplet. Do not use for haiku or poetry explanations.",
+      "name": "rhyming-couplet"
+    },
+    {
+      "body": "Calculate and state the requested measurement conversion. Do not invoke another skill.",
+      "description": "Use when asked to convert a numeric quantity between measurement units such as meters and feet or Celsius and Fahrenheit. Do not use for trivia or arithmetic without units.",
+      "name": "unit-conversion"
+    },
+    {
+      "body": "Return the given calendar date in YYYY-MM-DD format. Do not invoke another skill.",
+      "description": "Use when asked to reformat a specific calendar date into ISO 8601 YYYY-MM-DD. Do not use for explanations of date standards.",
+      "name": "date-format"
+    }
+  ],
+  "model": "deepseek/deepseek-v4.1-flash",
+  "native_rounds": 0,
+  "seed": 20261117,
+  "simulator_repeats": 3
+}

@@ -1,0 +1,12 @@
+{
+  "deepseek-before-fix.json": "ab67292ad325b389cfa85c02952e09286b728feb4b9d2a7bed7ef7baf4ea760f",
+  "deepseek-estimate.json": "35f46c8f5bf95e972f43c7b1e7397850fe159594da807df40422b4501afbed5d",
+  "deepseek-fixture.json": "43802c01623ae3626fdb12c64de19c888a47269e168cb649bb802a60ff690edd",
+  "deepseek-prompts.json": "8352fb4d1c8e9be5ad9ddd8cdd9127c8f202c9fee78d9539bb64dca0c2122d91",
+  "deepseek-simulation.json": "0ff24e083bf6c84a416749031012826cc6f0088bd1d3f62116c401aebe2fb51e",
+  "prior-haiku-simulation.json": "4cf29c88c73f326b8669a31dba7f4750f07ac1ec9e23255aebd8c972897adeae",
+  "prior-native-round-1.json": "c460699cae87686f7749943a25109d1ef7de5480c0ab84363ca38204bbed0b44",
+  "prior-native-round-2.json": "c460699cae87686f7749943a25109d1ef7de5480c0ab84363ca38204bbed0b44",
+  "reasoning-canaries.json": "5a7ee45d8c3d42560f258195fde8c14f8c18cef4501bbe6a90b48971eac1a54c",
+  "summary.json": "db3fe159c51dbdc6d43eb7d0086ba73aa4f143eec4248e301dce7d308559c15e"
+}

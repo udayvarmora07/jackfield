@@ -1,0 +1,22 @@
+[
+  {
+    "model": "deepseek/deepseek-v4.1-flash",
+    "requested_output_tokens": 510,
+    "reasoning_effort": null,
+    "finish_reason": "length",
+    "content_chars": 0,
+    "reasoning_chars": 2138,
+    "usage": {
+      "completion_tokens": 510,
+      "prompt_tokens": 610,
+      "total_tokens": 1120,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 510,
+        "text_tokens": 0
+      }
+    }
+  }
+]

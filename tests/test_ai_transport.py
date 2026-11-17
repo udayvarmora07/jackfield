@@ -236,6 +236,37 @@ class CachingTests(TransportBase):
 
 
 class ThinkingHeadroomTests(TransportBase):
+    def test_observed_reasoning_models_get_budgeted_headroom(self):
+        for model in ("deepseek/deepseek-v4.1-flash", "meta/muse-ember"):
+            with self.subTest(model=model):
+                self.configure(provider="openai", model=model)
+                Scripted.queue, Scripted.seen = [_ok_openai()], []
+                run = ai.AiRun(self.data, "test")
+                with patch.object(ai, "_reserve_day_tokens", wraps=ai._reserve_day_tokens) as reserve:
+                    run.ask_json("s", "u", max_output=200)
+                estimate = ai.count_tokens("s")[0] + ai.count_tokens("u")[0] + 200 + ai.THINKING_HEADROOM
+                self.assertEqual(run.estimated_input, estimate)
+                self.assertEqual(reserve.call_args.args[1], estimate)
+                self.assertEqual(Scripted.seen[0]["body"]["max_completion_tokens"], 200 + ai.THINKING_HEADROOM)
+                self.assertNotIn("reasoning_effort", Scripted.seen[0]["body"])
+
+    def test_existing_reasoning_headroom_is_admitted_and_estimated(self):
+        estimate = ai.count_tokens("s")[0] + ai.count_tokens("u")[0] + 200 + ai.THINKING_HEADROOM
+        for provider, model in (("openai", "gpt-5-mini"), ("anthropic", "claude-haiku-5-5")):
+            with self.subTest(provider=provider):
+                self.configure(provider=provider, model=model)
+                run = ai.AiRun(self.data, "test", estimate_only=True)
+                run.ask_json("s", "u", max_output=200)
+                self.assertEqual(run.estimated_input, estimate)
+                for cap in ("max_run_tokens", "max_day_tokens"):
+                    run = ai.AiRun(self.data, "test")
+                    run.config[cap] = estimate - 1
+                    with patch.object(ai, "_call") as call:
+                        with self.assertRaises(ai.AiError) as caught:
+                            run.ask_json("s", "u", max_output=200)
+                    self.assertEqual(caught.exception.code, "ai-budget")
+                    call.assert_not_called()
+
     def test_current_claude_models_get_low_effort_and_headroom(self):
         self.configure(provider="anthropic", model="claude-haiku-5-5")
         Scripted.queue = [_ok_anthropic()]
@@ -270,6 +301,35 @@ class ThinkingHeadroomTests(TransportBase):
         with self.assertRaises(ai.AiError) as caught:
             self.run_one()
         self.assertIn("thinking", str(caught.exception))
+
+    def test_thinking_only_failure_accounts_usage_before_day_cap_check(self):
+        cases = (
+            ("openai", "deepseek/deepseek-v4.1-flash",
+             {"choices": [{"message": {"content": "", "reasoning_content": "thought"},
+                           "finish_reason": "length"}],
+              "usage": {"prompt_tokens": 1000, "completion_tokens": 4296}}),
+            ("anthropic", "claude-opus-5-5",
+             {"content": [{"type": "thinking", "thinking": "thought"}], "stop_reason": "max_tokens",
+              "usage": {"input_tokens": 1000, "output_tokens": 4296}}),
+        )
+        for provider, model, response in cases:
+            with self.subTest(provider=provider), tempfile.TemporaryDirectory() as tmp:
+                self.data = Path(tmp).resolve()
+                self.data.chmod(0o700)
+                register_lock_root(self.data)
+                self.configure(provider=provider, model=model, max_day_tokens=5000)
+                Scripted.queue, Scripted.seen = [(200, {}, response)], []
+                with self.assertRaises(ai.AiError) as caught:
+                    ai.AiRun(self.data, "test").ask_text("s", "u", max_output=200)
+                self.assertIn("thinking", str(caught.exception))
+                summary = ai.usage_summary(self.data)
+                self.assertEqual(summary["input_tokens"], 1000)
+                self.assertEqual(summary["output_tokens"], 4296)
+                with self.assertRaises(ai.AiError) as caught:
+                    ai.AiRun(self.data, "test").ask_text("s", "u", max_output=200)
+                self.assertEqual(caught.exception.code, "ai-budget")
+                self.assertEqual(len(Scripted.seen), 1)
+                self.assertEqual(ai._active_reservations(self.data), 0)
 
 
 class DayCapReservationTests(TransportBase):

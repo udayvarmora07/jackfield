@@ -1,0 +1,225 @@
+{
+  "agreement": {
+    "by_expected": [
+      {
+        "compared": 0,
+        "inconclusive": 4,
+        "matched": 0,
+        "rate": null,
+        "requested": 4,
+        "skill": "(none)"
+      },
+      {
+        "compared": 0,
+        "inconclusive": 2,
+        "matched": 0,
+        "rate": null,
+        "requested": 2,
+        "skill": "date-format"
+      },
+      {
+        "compared": 0,
+        "inconclusive": 2,
+        "matched": 0,
+        "rate": null,
+        "requested": 2,
+        "skill": "haiku-poem"
+      },
+      {
+        "compared": 0,
+        "inconclusive": 2,
+        "matched": 0,
+        "rate": null,
+        "requested": 2,
+        "skill": "rhyming-couplet"
+      },
+      {
+        "compared": 0,
+        "inconclusive": 2,
+        "matched": 0,
+        "rate": null,
+        "requested": 2,
+        "skill": "unit-conversion"
+      }
+    ],
+    "compared": 0,
+    "matched": 0,
+    "metric": "first-successful-skill",
+    "rate": null
+  },
+  "cases": [
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "haiku-poem",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "c1952c78349c65bd81f5dcf5561dbd54f90e9a5a344190bbba66dfae2cca0e84",
+      "reason": "agent-failed",
+      "simulated": "haiku-poem",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "haiku-poem",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "fa2ff365b954f8fc72477fd505b94823ca536722900035af8680bd90499fbf7c",
+      "reason": "agent-failed",
+      "simulated": "haiku-poem",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "rhyming-couplet",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "5ba57e7127aa1d18c06138e14bfdc31fe909ee911d33f9d768eeee5d367026bc",
+      "reason": "agent-failed",
+      "simulated": "rhyming-couplet",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "rhyming-couplet",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "ea589779acb7d3854c356a2755a323e0fa67bd186ee55ac88c70b77571b3ad10",
+      "reason": "agent-failed",
+      "simulated": "rhyming-couplet",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "unit-conversion",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "07606cba3202d4aa3a89b0cd6e05418d24a8a3edfc5fbffa0afa4b29c6a71f55",
+      "reason": "agent-failed",
+      "simulated": "unit-conversion",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "unit-conversion",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "f3753e18b7e944005763e7066ce839209bd399d70b98e3c5c83d458301bde9ea",
+      "reason": "agent-failed",
+      "simulated": "unit-conversion",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "date-format",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "229c75d9102a23fed01e1920d004c5dc92ac1f7b499c1557f137a67f213cfc7a",
+      "reason": "agent-failed",
+      "simulated": "date-format",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": "date-format",
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "0bf7b137ff2632326b0935e3f50a56caac0df1d71d0e51b45f92000d40c2d039",
+      "reason": "agent-failed",
+      "simulated": "date-format",
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": null,
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "9d8f59f135c819b4e39581c70b0dbdfa21e00def47ed90704808a0a2ca68f241",
+      "reason": "agent-failed",
+      "simulated": null,
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": null,
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "171fa00faf602eb957e0e79dad7aee533ef773807fe09b7826258dc47cb2a811",
+      "reason": "agent-failed",
+      "simulated": null,
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": null,
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "9f2a6ef62834e464504152551250be55e165dd16a627dd83bfb284b4e4780210",
+      "reason": "agent-failed",
+      "simulated": null,
+      "status": "inconclusive"
+    },
+    {
+      "actual": null,
+      "agree": null,
+      "expected": null,
+      "multiple": false,
+      "observed_model": null,
+      "observed_skills": [],
+      "prompt_sha256": "b39bf4a44d7a6fe59db35e3d3f86e865691e7726c3070ad3c6cd04b41adaeea5",
+      "reason": "agent-failed",
+      "simulated": null,
+      "status": "inconclusive"
+    }
+  ],
+  "coverage": {
+    "available": 12,
+    "conclusive": 0,
+    "inconclusive": 12,
+    "multiple": 0,
+    "requested": 12,
+    "unselected": 0
+  },
+  "policy": {
+    "agent_model_requested": "claude-haiku-5-5",
+    "max_budget_usd_per_call": 0.02,
+    "max_turns": 2,
+    "nominal_total_budget_usd": 0.24,
+    "notice": "Budget is approximate and can be exceeded; this is not a sandbox. Hooks, configuration and dynamic skills may run. Saved listing equivalence and default-agent fidelity are unverified.",
+    "timeout_seconds": 90.0
+  },
+  "schema": 1,
+  "simulation": {
+    "listing_sha256": "4259f2898ed064e1d6c0d7e966ed365214c15c0018195f40663e8bca227daa9c",
+    "listing_snapshot_unavailable": false,
+    "model": "claude-haiku-5-5",
+    "native_listing_snapshot_unavailable": true,
+    "prompt_set_sha256": "8352fb4d1c8e9be5ad9ddd8cdd9127c8f202c9fee78d9539bb64dca0c2122d91",
+    "provider": "anthropic",
+    "run_sha256": "4cf29c88c73f326b8669a31dba7f4750f07ac1ec9e23255aebd8c972897adeae",
+    "scope": "claude-code",
+    "started": "2026-11-17T10:26:47Z"
+  },
+  "status": "complete"
+}

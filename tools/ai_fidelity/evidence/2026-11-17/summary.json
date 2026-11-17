@@ -1,0 +1,41 @@
+{
+  "billing": "Provider token counts are recorded; actual plan-credit charge was not independently checked in Studio.",
+  "day_token_cap": 80000,
+  "endpoint": "https://api.commandcode.ai/provider/v1/chat/completions",
+  "invalid_answers": 0,
+  "limits": [
+    "Four handcrafted skills, eight positive prompts and four near misses; no participant data.",
+    "No general fidelity estimate follows from this convenience sample.",
+    "Earlier Haiku simulation/native attempts predate the DeepSeek/Muse-only instruction; all native attempts were inconclusive."
+  ],
+  "matched": 36,
+  "metric": "agreement-with-authored-synthetic-labels",
+  "missing_answers": 0,
+  "model": "deepseek/deepseek-v4.1-flash",
+  "native_comparison_status": "unavailable-for-current-models-in-existing-Claude-harness",
+  "native_fidelity_rate": null,
+  "observations": 36,
+  "prompt_count": 12,
+  "provider_account": "Command Code GOAT",
+  "repeats": 3,
+  "run_token_cap": 50000,
+  "schema": 1,
+  "scope": "claude-code",
+  "synthetic": true,
+  "usage": {
+    "advisory": "Model output is an estimate, not a fact about your skills; results vary between runs and models.",
+    "cached_input_tokens": 256,
+    "calls": 6,
+    "estimate_only": false,
+    "estimated_input_tokens": 28863,
+    "feature": "trigger-test",
+    "input_tokens": 3087,
+    "local": false,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "output_tokens": 1815,
+    "provider": "openai",
+    "provider_label": "OpenAI",
+    "retries": 0,
+    "started": "2026-11-17T10:44:00Z"
+  }
+}

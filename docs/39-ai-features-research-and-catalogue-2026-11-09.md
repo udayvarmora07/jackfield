@@ -279,6 +279,16 @@ every feature. Each is fixed in `skillsmgr/ai.py` and pinned by
 already finished it, that attempt may be billed. The worst case is three
 120-second attempts.
 
+**[NOTE] 2026-11-17 follow-up.** The live GOAT experiment in
+@docs/48-ai-http-study-2026-11-17.md reproduced reasoning-only truncation in
+DeepSeek V4.1 Flash. The exact `deepseek/deepseek-v4.1-flash` and
+`meta/muse-ember` IDs now receive the same 4,096-token headroom when using the
+`openai` transport provider, without an undocumented effort parameter. The
+full allowance is included in preflight/admission/reservations for all
+supported thinking models. Thinking-only failures record provider usage
+before the error and reservation cleanup. The final DeepSeek HTTP run matched
+36 authored labels out of 36; no native fidelity rate is available.
+
 ## 18. Not yet built
 
 - **A14 CI mode**: approved and shipped; see @docs/42-ai-cli-ci-2026-11-09.md. No automatic paid repository CI step is enabled.

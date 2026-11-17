@@ -1,0 +1,44 @@
+[
+  {
+    "model": "deepseek/deepseek-v4.1-flash",
+    "requested_output_tokens": 256,
+    "reasoning_effort": null,
+    "finish_reason": "stop",
+    "content_chars": 11,
+    "reasoning_chars": 54,
+    "usage": {
+      "completion_tokens": 22,
+      "prompt_tokens": 102,
+      "total_tokens": 124,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 16,
+        "text_tokens": 6
+      }
+    }
+  },
+  {
+    "model": "meta/muse-ember",
+    "requested_output_tokens": 256,
+    "reasoning_effort": null,
+    "finish_reason": "stop",
+    "content_chars": 11,
+    "reasoning_chars": 0,
+    "usage": {
+      "prompt_tokens": 75,
+      "completion_tokens": 188,
+      "total_tokens": 263,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 174,
+        "image_tokens": 0
+      }
+    }
+  }
+]

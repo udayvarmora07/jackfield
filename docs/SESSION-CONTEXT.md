@@ -26,9 +26,14 @@ current-tree verification: @docs/37-codebase-untangling-2026-11-09.md.
 optional complete-evidence CI regression gate. Snapshot inputs/configuration
 once; seed controls listing permutations only. Contract and verification:
 @docs/42-ai-cli-ci-2026-11-09.md. A guarded native CLI smoke study observed
-2/2 conclusive agreements on obvious synthetic prompts; general fidelity and
-the product HTTP path remain unvalidated. Method and sanitized evidence:
-@docs/41-ai-fidelity-study-2026-11-09.md.
+2/2 conclusive agreements on obvious synthetic prompts; general native
+fidelity remains unvalidated. Method and sanitized evidence:
+@docs/41-ai-fidelity-study-2026-11-09.md. The 2026-11-17 GOAT/DeepSeek follow-up
+uses the real HTTP path with four synthetic skills, 12 prompts and three
+repeats: 36 authored-label matches, no native comparison rate. It also fixes
+thinking headroom/admission and thought-only usage accounting; the two exact
+DeepSeek/Muse model IDs are handled under the `openai` transport provider.
+See @docs/48-ai-http-study-2026-11-17.md for inputs, evidence and limits.
 
 **Automation anchor — 2026-11-10.** `python3 tools/verify_ai.py` repeats the
 free AI contracts and saved-study/no-send checks. `--artifact WHEEL` creates an

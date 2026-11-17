@@ -1,0 +1,53 @@
+{
+  "prompts": [
+    {
+      "expected": "haiku-poem",
+      "text": "Write a haiku about autumn leaves."
+    },
+    {
+      "expected": "haiku-poem",
+      "text": "Give me a quiet three-line haiku about snow at dawn."
+    },
+    {
+      "expected": "rhyming-couplet",
+      "text": "Write exactly two rhyming lines about a sleepy cat."
+    },
+    {
+      "expected": "rhyming-couplet",
+      "text": "Make a rhyming couplet about spring rain, rather than a haiku."
+    },
+    {
+      "expected": "unit-conversion",
+      "text": "Convert 12 meters to feet."
+    },
+    {
+      "expected": "unit-conversion",
+      "text": "Convert 32 degrees Fahrenheit to Celsius."
+    },
+    {
+      "expected": "date-format",
+      "text": "Reformat April 5, 2026 as an ISO 8601 calendar date."
+    },
+    {
+      "expected": "date-format",
+      "text": "Put 17 November 2026 into YYYY-MM-DD format."
+    },
+    {
+      "expected": null,
+      "text": "Explain what a haiku is; do not write a poem."
+    },
+    {
+      "expected": null,
+      "text": "How many feet does a spider have?"
+    },
+    {
+      "expected": null,
+      "text": "Explain what ISO 8601 means; there is no date to convert."
+    },
+    {
+      "expected": null,
+      "text": "What is two plus two?"
+    }
+  ],
+  "scope": "claude-code"
+}

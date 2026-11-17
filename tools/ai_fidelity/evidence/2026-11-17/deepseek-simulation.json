@@ -1,0 +1,240 @@
+{
+  "changes": [],
+  "compared_with": null,
+  "egress": [
+    "Names and descriptions of 4 skills in claude-code go to OpenAI (https://api.commandcode.ai/provider/v1).",
+    "12 test prompts go with them."
+  ],
+  "false_trigger_rate": 0.0,
+  "generated_prompts": false,
+  "hidden": 0,
+  "invalid_answers": 0,
+  "kind": "trigger-test",
+  "listed": 4,
+  "listing_snapshot": [
+    {
+      "description": "Use when asked to reformat a specific calendar date into ISO 8601 YYYY-MM-DD. Do not use for explanations of date standards.",
+      "name": "date-format"
+    },
+    {
+      "description": "Use when asked to compose a haiku poem, especially about nature or seasons. Do not use for explanations of haiku.",
+      "name": "haiku-poem"
+    },
+    {
+      "description": "Use when asked to write exactly two rhyming lines, a rhyming couplet. Do not use for haiku or poetry explanations.",
+      "name": "rhyming-couplet"
+    },
+    {
+      "description": "Use when asked to convert a numeric quantity between measurement units such as meters and feet or Celsius and Fahrenheit. Do not use for trivia or arithmetic without units.",
+      "name": "unit-conversion"
+    }
+  ],
+  "missing_answers": 0,
+  "never_chosen": [],
+  "over_cap": [],
+  "prompt_source": "saved",
+  "prompts": [
+    {
+      "answered": 3,
+      "choices": {
+        "haiku-poem": 3
+      },
+      "expected": "haiku-poem",
+      "hit_rate": 1.0,
+      "id": "p1",
+      "split": null,
+      "text": "Write a haiku about autumn leaves.",
+      "top": "haiku-poem"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "haiku-poem": 3
+      },
+      "expected": "haiku-poem",
+      "hit_rate": 1.0,
+      "id": "p2",
+      "split": null,
+      "text": "Give me a quiet three-line haiku about snow at dawn.",
+      "top": "haiku-poem"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "rhyming-couplet": 3
+      },
+      "expected": "rhyming-couplet",
+      "hit_rate": 1.0,
+      "id": "p3",
+      "split": null,
+      "text": "Write exactly two rhyming lines about a sleepy cat.",
+      "top": "rhyming-couplet"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "rhyming-couplet": 3
+      },
+      "expected": "rhyming-couplet",
+      "hit_rate": 1.0,
+      "id": "p4",
+      "split": null,
+      "text": "Make a rhyming couplet about spring rain, rather than a haiku.",
+      "top": "rhyming-couplet"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "unit-conversion": 3
+      },
+      "expected": "unit-conversion",
+      "hit_rate": 1.0,
+      "id": "p5",
+      "split": null,
+      "text": "Convert 12 meters to feet.",
+      "top": "unit-conversion"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "unit-conversion": 3
+      },
+      "expected": "unit-conversion",
+      "hit_rate": 1.0,
+      "id": "p6",
+      "split": null,
+      "text": "Convert 32 degrees Fahrenheit to Celsius.",
+      "top": "unit-conversion"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "date-format": 3
+      },
+      "expected": "date-format",
+      "hit_rate": 1.0,
+      "id": "p7",
+      "split": null,
+      "text": "Reformat April 5, 2026 as an ISO 8601 calendar date.",
+      "top": "date-format"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "date-format": 3
+      },
+      "expected": "date-format",
+      "hit_rate": 1.0,
+      "id": "p8",
+      "split": null,
+      "text": "Put 17 November 2026 into YYYY-MM-DD format.",
+      "top": "date-format"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "(none)": 3
+      },
+      "expected": null,
+      "hit_rate": 1.0,
+      "id": "p9",
+      "split": null,
+      "text": "Explain what a haiku is; do not write a poem.",
+      "top": "(none)"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "(none)": 3
+      },
+      "expected": null,
+      "hit_rate": 1.0,
+      "id": "p10",
+      "split": null,
+      "text": "How many feet does a spider have?",
+      "top": "(none)"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "(none)": 3
+      },
+      "expected": null,
+      "hit_rate": 1.0,
+      "id": "p11",
+      "split": null,
+      "text": "Explain what ISO 8601 means; there is no date to convert.",
+      "top": "(none)"
+    },
+    {
+      "answered": 3,
+      "choices": {
+        "(none)": 3
+      },
+      "expected": null,
+      "hit_rate": 1.0,
+      "id": "p12",
+      "split": null,
+      "text": "What is two plus two?",
+      "top": "(none)"
+    }
+  ],
+  "provenance": {
+    "endpoint_sha256": "f4035a9be462b1e890d289aca69454e2a4899a26ef7f4b9ee6a121852b2333c5",
+    "listing_sha256": "4259f2898ed064e1d6c0d7e966ed365214c15c0018195f40663e8bca227daa9c",
+    "prompt_sha256": "d5f8289d68a0188ac26ff8cdb6e68fce3ad330c8f110ce7fbc81fb854023ff55",
+    "router": "trigger-test-v1",
+    "version": 1
+  },
+  "recall": 1.0,
+  "repeats": 3,
+  "run": {
+    "advisory": "Model output is an estimate, not a fact about your skills; results vary between runs and models.",
+    "cached_input_tokens": 256,
+    "calls": 6,
+    "estimate_only": false,
+    "estimated_input_tokens": 28863,
+    "feature": "trigger-test",
+    "input_tokens": 3087,
+    "local": false,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "output_tokens": 1815,
+    "provider": "openai",
+    "provider_label": "OpenAI",
+    "retries": 0,
+    "started": "2026-11-17T10:44:00Z"
+  },
+  "run_id": "trigger-test-20261117T104422Z-eedf42e2",
+  "scope": "claude-code",
+  "seed": 20261117,
+  "skills": [
+    {
+      "hit_rate": 1.0,
+      "lost_to": [],
+      "name": "date-format",
+      "prompts": 2,
+      "verdict": "fires"
+    },
+    {
+      "hit_rate": 1.0,
+      "lost_to": [],
+      "name": "haiku-poem",
+      "prompts": 2,
+      "verdict": "fires"
+    },
+    {
+      "hit_rate": 1.0,
+      "lost_to": [],
+      "name": "rhyming-couplet",
+      "prompts": 2,
+      "verdict": "fires"
+    },
+    {
+      "hit_rate": 1.0,
+      "lost_to": [],
+      "name": "unit-conversion",
+      "prompts": 2,
+      "verdict": "fires"
+    }
+  ]
+}

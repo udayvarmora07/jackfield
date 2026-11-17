@@ -1,0 +1,57 @@
+{
+  "egress": [
+    "Names and descriptions of 4 skills in claude-code go to OpenAI (https://api.commandcode.ai/provider/v1).",
+    "12 test prompts go with them."
+  ],
+  "generated_prompts": false,
+  "hidden": 0,
+  "kind": "trigger-test",
+  "listed": 4,
+  "listing_snapshot": [
+    {
+      "description": "Use when asked to reformat a specific calendar date into ISO 8601 YYYY-MM-DD. Do not use for explanations of date standards.",
+      "name": "date-format"
+    },
+    {
+      "description": "Use when asked to compose a haiku poem, especially about nature or seasons. Do not use for explanations of haiku.",
+      "name": "haiku-poem"
+    },
+    {
+      "description": "Use when asked to write exactly two rhyming lines, a rhyming couplet. Do not use for haiku or poetry explanations.",
+      "name": "rhyming-couplet"
+    },
+    {
+      "description": "Use when asked to convert a numeric quantity between measurement units such as meters and feet or Celsius and Fahrenheit. Do not use for trivia or arithmetic without units.",
+      "name": "unit-conversion"
+    }
+  ],
+  "over_cap": [],
+  "prompt_count": 12,
+  "prompt_source": "saved",
+  "provenance": {
+    "endpoint_sha256": "f4035a9be462b1e890d289aca69454e2a4899a26ef7f4b9ee6a121852b2333c5",
+    "listing_sha256": "4259f2898ed064e1d6c0d7e966ed365214c15c0018195f40663e8bca227daa9c",
+    "prompt_sha256": "d5f8289d68a0188ac26ff8cdb6e68fce3ad330c8f110ce7fbc81fb854023ff55",
+    "router": "trigger-test-v1",
+    "version": 1
+  },
+  "repeats": 3,
+  "run": {
+    "advisory": "Model output is an estimate, not a fact about your skills; results vary between runs and models.",
+    "cached_input_tokens": 0,
+    "calls": 0,
+    "estimate_only": true,
+    "estimated_input_tokens": 28863,
+    "feature": "trigger-test",
+    "input_tokens": 0,
+    "local": false,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "output_tokens": 0,
+    "provider": "openai",
+    "provider_label": "OpenAI",
+    "retries": 0,
+    "started": "2026-11-17T10:44:00Z"
+  },
+  "scope": "claude-code",
+  "seed": 20261117
+}
