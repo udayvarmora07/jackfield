@@ -8,6 +8,55 @@ dated 2026-09-23 and later; everything older lives verbatim in
 @docs/archive/README.md.** Read the digest below first — it is the part a session
 actually needs. Facts flagged stale here are corrected in the owning doc.
 
+## 2026-11-17 — Document change baseline completed
+
+**[NOTE]** Completed docs/45 N5 as an advisory comparison against an explicitly
+saved browser baseline. Quality reports changed primary-document text for
+matching physical IDs. It stores only context/instance digests, document hashes
+and a timestamp, and retains unobserved entries. Known partial evidence blocks
+updates; corrupt, unavailable or oversized storage is handled without replacing
+the prior value. No server write, new route, command, Store method, SQLite
+schema or runtime dependency was added. Raw skill and project paths are not
+saved in the browser baseline. Full coverage/limitations: @docs/08-web-ui.md.
+
+GPT 6.1 Terra implemented the backend fingerprint section and pure browser
+helpers in separate file-owned tasks. GPT 6 Luna's independent review found a
+cross-tab lost-update race. Save and forget now share an exclusive browser
+Web Lock and recheck the expected storage value and current report after
+waiting; unsupported browsers disable writes. A queued-lock regression fails
+against the earlier implementation and passes after the fix. The backend's
+five new regressions also fail against an isolated copy of the prior backend
+and pass against the current tree. The final follow-up review found no further
+actionable defect; manual/same-origin edits can bypass the app's lock.
+
+**[NOTE] Verification:** 2,094 tests pass on Python 3.12 (three optional skips),
+including 17 new cases across backend fingerprints, baseline validation and
+component behavior. Both smokes, docs/design/complexity (1,329 functions),
+pinned Ruff 0.16.8 and Bandit 1.9.4 (zero findings), compilation and changed JS
+syntax pass. Fresh hash-locked wheel/sdist builds pass package-content checks,
+the installed-wheel AI checks and isolated baseline probes from both exact
+artifacts. All 99 packaged files match the checkout. Artifact hashes, source
+manifests and private evidence are retained at
+`/tmp/skillsmgr-document-baseline-20261117-bbg38r5_`.
+
+Agent-browser verified explicit save, a synthetic external text change,
+refresh/reload persistence, keyboard activation, forgetting and saving with the
+browser lock. No runtime page errors or overflow were observed at 320, 768
+and 1,440 px. Settled light/dark panel audits report zero axe violations and
+incomplete rules. An earlier dark audit sampled the theme transition and
+reported contrast failures; the settled repeat passed. No human visual or
+spoken screen-reader sign-off is claimed. Pure helpers cover 0/1/10,000
+fingerprints and storage limits; no 10,000-file scan measurement is claimed.
+
+Filesystem scans are non-atomic and may silently omit files; absent baseline
+entries therefore remain unknown and are retained, never reported deleted.
+Companion files, activation settings and selected-project-only listing entries
+remain outside this document comparison. Browser-local storage is advisory,
+not trusted history. The fresh current-tree ladder and hostile diff review
+completed before staging. The maintainer authorized a normal push to main;
+protected package publication and the original 15 open human/owner/native
+fidelity/deferred tracker entries remain open.
+
 ## 2026-11-17 — Project context selection and verification
 
 **[NOTE]** Completed docs/45 N7 within the existing diagnostic roots. V2

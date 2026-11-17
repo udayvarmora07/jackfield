@@ -380,9 +380,88 @@
 
   const titleCase = (n) => String(n).split("-").map((w, i) => ACRONYMS[w.toLowerCase()] || (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
 
+  /* Saved browser baselines compare observed primary documents only. Absence
+   * from either scan is not proof of deletion, health, or package contents. */
+  const documentBaseline = (() => {
+    const maxInstances = 10000, maxChars = 2 * 1024 * 1024;
+    const hex = (v) => typeof v === "string" && /^[0-9a-f]{64}$/.test(v);
+    const fail = (message) => { throw new Error(message); };
+    const object = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+    const keys = (v, expected) => object(v) && Object.keys(v).sort().join(",") === expected.slice().sort().join(",");
+    function read(raw) {
+      if (raw == null || raw === "") return null;
+      if (typeof raw !== "string" || raw.length > maxChars) fail("Saved document baseline is invalid or too large.");
+      let value;
+      try { value = JSON.parse(raw); } catch (_) { fail("Saved document baseline is invalid."); }
+      if (!keys(value, ["version", "context_id", "captured_at", "instances"]) || value.version !== 1 || !hex(value.context_id) ||
+          typeof value.captured_at !== "string" || !Array.isArray(value.instances) || value.instances.length > maxInstances) fail("Saved document baseline is invalid.");
+      const date = new Date(value.captured_at);
+      if (!Number.isFinite(date.getTime()) || date.toISOString() !== value.captured_at) fail("Saved document baseline has an invalid date.");
+      const seen = new Set();
+      for (const pair of value.instances) {
+        if (!Array.isArray(pair) || pair.length !== 2 || !hex(pair[0]) || !hex(pair[1]) || seen.has(pair[0])) fail("Saved document baseline has invalid document fingerprints.");
+        seen.add(pair[0]);
+      }
+      return value;
+    }
+    function current(value) {
+      if (!object(value) || !hex(value.context_id) || typeof value.partial !== "boolean" || !Array.isArray(value.instances) || value.instances.length > maxInstances) fail("Document scan is invalid.");
+      const seen = new Set();
+      const instances = value.instances.map((row) => {
+        if (!object(row) || !hex(row.id) || !hex(row.content_hash) || typeof row.name !== "string" || row.name.length > 512 || typeof row.scope !== "string" || row.scope.length > 512 || seen.has(row.id)) fail("Document scan has invalid fingerprints.");
+        seen.add(row.id);
+        return { id: row.id, content_hash: row.content_hash, name: row.name, scope: row.scope };
+      });
+      return { context_id: value.context_id, instances, partial: value.partial };
+    }
+    function snapshot(envelope) {
+      const hygiene = envelope && envelope.hygiene;
+      const section = hygiene && hygiene.document_fingerprints;
+      if (!section) fail("Document fingerprint evidence is unavailable.");
+      if (!object(section) || section.version !== 1 || !["observed", "partial"].includes(section.status) || typeof section.coverage !== "string" || !Number.isSafeInteger(section.omitted) || section.omitted < 0 ||
+          (hygiene.degraded != null && !Array.isArray(hygiene.degraded)) || (envelope.degraded != null && !Array.isArray(envelope.degraded)) ||
+          (hygiene.summary != null && !object(hygiene.summary))) fail("Document fingerprint evidence is invalid.");
+      return current({ context_id: section.context_id, instances: section.instances,
+        partial: section.status !== "observed" || section.omitted > 0 || !!(hygiene.degraded || []).length || !!(hygiene.summary || {}).partial || !!(envelope.degraded || []).length });
+    }
+    function checkedBaseline(value) {
+      if (value == null) return null;
+      let raw;
+      try { raw = JSON.stringify(value); } catch (_) { fail("Saved document baseline is invalid."); }
+      return read(raw);
+    }
+    function compare(scan, baseline) {
+      scan = current(scan); baseline = checkedBaseline(baseline);
+      const result = { status: !baseline ? "missing" : baseline.context_id !== scan.context_id ? "other-context" : "compared", changed: [], changed_count: 0, compared_count: 0, unobserved_count: 0, partial: scan.partial };
+      if (result.status !== "compared") return result;
+      const previous = new Map(baseline.instances), observed = new Set();
+      for (const row of scan.instances) {
+        if (!previous.has(row.id)) continue;
+        observed.add(row.id); result.compared_count++;
+        if (previous.get(row.id) !== row.content_hash) {
+          result.changed_count++;
+          if (result.changed.length < 100) result.changed.push(row);
+        }
+      }
+      result.unobserved_count = previous.size - observed.size;
+      return result;
+    }
+    function merge(scan, baseline, capturedAt) {
+      scan = current(scan); baseline = checkedBaseline(baseline);
+      if (scan.partial) fail("Cannot save a partial document scan.");
+      if (baseline && baseline.context_id !== scan.context_id) fail("Saved document baseline belongs to another context.");
+      const entries = new Map(baseline ? baseline.instances : []);
+      for (const row of scan.instances) entries.set(row.id, row.content_hash);
+      if (entries.size > maxInstances) fail("Saved document baseline has too many documents.");
+      const value = { version: 1, context_id: scan.context_id, captured_at: capturedAt, instances: [...entries].sort((a, b) => a[0].localeCompare(b[0])) };
+      return read(JSON.stringify(value));
+    }
+    return Object.freeze({ maxInstances, maxChars, read, snapshot, compare, merge });
+  })();
+
   window.SkillsV2Model = Object.freeze({
     plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
     toolGroups: Object.freeze(toolGroups), toolItems, toolIds,
-    diffLines, changes, plainLine, renderDoc, stripFrontmatter,
+    diffLines, changes, plainLine, renderDoc, stripFrontmatter, documentBaseline,
   });
 })();

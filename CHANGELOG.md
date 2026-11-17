@@ -6,6 +6,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- Quality can compare primary skill documents with a baseline explicitly saved
+  in browser storage. It stores hashes and opaque identifiers, preserves
+  unobserved entries, and blocks updates when the scan reports missing evidence.
+
 - A shared project selector in v2 Quality and Workspaces, using the server's
   existing allowed folders for read-only lockfile and Claude listing checks.
   Changing the path clears old evidence and ignores stale responses.

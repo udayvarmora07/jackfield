@@ -1501,9 +1501,9 @@
       "lineno": 144
     },
     "skillsmgr/doctor.py::hygiene_evidence": {
-      "complexity": 2,
-      "end_lineno": 141,
-      "lineno": 125
+      "complexity": 6,
+      "end_lineno": 154,
+      "lineno": 127
     },
     "skillsmgr/doctor.py::require_scope": {
       "complexity": 4,

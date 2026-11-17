@@ -16,7 +16,7 @@ const api=async(url,opts={})=>{calls.push({url,opts});return handler(url,opts)};
 class Form { constructor(){this.parts=[]} append(...part){this.parts.push(part)} }
 const ctx={window:{SkillManagerDomain:{api,esc:s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),observeRecord:()=>({linkEscape:false})}},console,
  localStorage:{getItem:()=>null,setItem:()=>{}},matchMedia:()=>({matches:false}),
- FormData:Form,confirm:()=>true,navigator:{clipboard:{writeText:async()=>{}}},location:{hash:''},
+ FormData:Form,confirm:()=>true,navigator:{clipboard:{writeText:async()=>{}},locks:{request:async(name,options,fn)=>fn()}},location:{hash:''},
  Vue:{createApp(def){ctx.appDef=def;return {component(){return this},mount(){}}},markRaw:v=>v}};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(V2+'/model.js','utf8'),ctx);
@@ -41,6 +41,129 @@ def run_node(body):
 
 @unittest.skipUnless(shutil.which("node"), "Node is required for frontend behavior checks")
 class ToolBehaviorTests(unittest.TestCase):
+    def test_document_baseline_requires_explicit_save_and_stores_only_hashes(self):
+        out = run_node(r"""
+          const memory=new Map();let writes=0;
+          ctx.localStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>{writes++;memory.set(k,v)},removeItem:k=>memory.delete(k)};
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});
+          const envelope={data_dir:'/private/store',hygiene:{summary:{},degraded:[],document_fingerprints:{version:1,status:'observed',coverage:'Primary document text only',context_id:'a'.repeat(64),omitted:0,
+            instances:[{id:'b'.repeat(64),content_hash:'c'.repeat(64),name:'private-name',scope:'codex'}]}}};
+          handler=async()=>envelope;await h.loadQuality();const before=writes;
+          await h.saveDocumentBaseline();const raw=[...memory.values()][0];
+          const h2=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});await h2.loadQuality();
+          return {before,writes,raw,status:h2.documentComparison.status,count:h2.documentComparison.compared_count};
+        """)
+        self.assertEqual(out['before'], 0)
+        self.assertEqual(out['writes'], 1)
+        self.assertEqual(out['status'], 'compared')
+        self.assertEqual(out['count'], 1)
+        for forbidden in ('private', 'codex', 'data_dir', 'body', 'description'):
+            self.assertNotIn(forbidden, out['raw'])
+
+    def test_failed_or_stale_scans_cannot_save_or_replace_document_baseline(self):
+        out = run_node(r"""
+          let writes=0;ctx.localStorage={getItem:()=>null,setItem:()=>writes++};
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});
+          let resolve;handler=()=>new Promise(r=>resolve=r);const request=h.loadQuality();
+          h.changeProject('/new-context');
+          resolve({hygiene:{document_fingerprints:{version:1,status:'observed',coverage:'Primary document text only',context_id:'a'.repeat(64),omitted:0,instances:[]}}});await request;
+          await h.saveDocumentBaseline();const stale=writes;
+          handler=async()=>{throw Error('Scan failed')};await h.loadQuality();await h.saveDocumentBaseline();
+          return {stale,writes,quality:h.quality};
+        """)
+        self.assertEqual(out['stale'], 0)
+        self.assertEqual(out['writes'], 0)
+        self.assertIsNone(out['quality'])
+
+    def test_storage_change_and_quota_failure_preserve_existing_baseline(self):
+        out = run_node(r"""
+          const B=ctx.window.SkillsV2Model.documentBaseline;
+          const envelope={hygiene:{summary:{},degraded:[],document_fingerprints:{version:1,status:'observed',coverage:'Primary document text only',context_id:'a'.repeat(64),omitted:0,
+            instances:[{id:'b'.repeat(64),content_hash:'c'.repeat(64),name:'one',scope:'global'}]}}};
+          const original=JSON.stringify(B.merge(B.snapshot(envelope),null,'2026-11-17T12:00:00.000Z'));
+          let raw=original,writes=0,quota=false;
+          ctx.localStorage={getItem:()=>raw,setItem:(k,v)=>{if(quota)throw Error('quota');writes++;raw=v},removeItem:()=>{raw=null}};
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});handler=async()=>envelope;await h.loadQuality();
+          raw=original+' ';await h.saveDocumentBaseline();const concurrent={writes,error:h.baselineError};
+          const external=raw;h.loadDocumentBaseline();quota=true;await h.saveDocumentBaseline();
+          return {concurrent,writes,preserved:raw===external,error:h.baselineError};
+        """)
+        self.assertEqual(out['concurrent']['writes'], 0)
+        self.assertIn('changed', out['concurrent']['error'].lower())
+        self.assertEqual(out['writes'], 0)
+        self.assertTrue(out['preserved'])
+        self.assertTrue(out['error'])
+
+    def test_partial_and_other_context_scans_do_not_overwrite_saved_baseline(self):
+        out = run_node(r"""
+          let raw=null,writes=0;ctx.localStorage={getItem:()=>raw,setItem:(k,v)=>{writes++;raw=v},removeItem:()=>{raw=null}};
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});
+          let envelope={hygiene:{summary:{},degraded:[],document_fingerprints:{version:1,status:'observed',coverage:'Primary document text only',context_id:'a'.repeat(64),omitted:0,instances:[]}}};
+          handler=async()=>envelope;await h.loadQuality();await h.saveDocumentBaseline();const original=raw;
+          envelope.hygiene.degraded=[{section:'scope-scan'}];await h.loadQuality();await h.saveDocumentBaseline();const partialPreserved=raw===original;
+          envelope=JSON.parse(JSON.stringify(envelope));envelope.hygiene.degraded=[];envelope.hygiene.document_fingerprints.context_id='d'.repeat(64);
+          await h.loadQuality();await h.saveDocumentBaseline();const otherPreserved=raw===original;
+          h.loadDocumentBaseline();await h.saveDocumentBaseline(true);return {partialPreserved,otherPreserved,writes,context:JSON.parse(raw).context_id};
+        """)
+        self.assertTrue(out['partialPreserved'])
+        self.assertTrue(out['otherPreserved'])
+        self.assertEqual(out['writes'], 2)
+        self.assertEqual(out['context'], 'd' * 64)
+
+    def test_corrupt_baseline_needs_explicit_forget_and_storage_read_failure_is_clean(self):
+        out = run_node(r"""
+          let raw='{broken',writes=0;
+          ctx.localStorage={getItem:()=>raw,setItem:()=>writes++,removeItem:()=>{raw=null}};
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});
+          handler=async()=>({hygiene:{summary:{},degraded:[],document_fingerprints:{version:1,status:'observed',coverage:'Primary document text only',context_id:'a'.repeat(64),omitted:0,instances:[]}}});
+          await h.loadQuality();await h.saveDocumentBaseline();const invalid={raw,writes,error:h.baselineError};
+          await h.forgetDocumentBaseline();const forgotten=raw;
+          ctx.localStorage.getItem=()=>{throw Error('disabled')};h.loadDocumentBaseline();
+          return {invalid,forgotten,error:h.baselineError};
+        """)
+        self.assertEqual(out['invalid']['raw'], '{broken')
+        self.assertEqual(out['invalid']['writes'], 0)
+        self.assertTrue(out['invalid']['error'])
+        self.assertIsNone(out['forgotten'])
+        self.assertTrue(out['error'])
+
+    def test_baseline_writes_share_a_lock_and_reject_stale_tabs_and_scans(self):
+        out = run_node(r"""
+          let raw=null;ctx.localStorage={getItem:()=>raw,setItem:(k,v)=>{raw=v},removeItem:()=>{raw=null}};
+          const queued=[];ctx.navigator.locks={request:(name,opts,fn)=>new Promise((resolve,reject)=>queued.push({name,run:async()=>{try{resolve(await fn())}catch(e){reject(e)}}}))};
+          const report=i=>({hygiene:{summary:{},degraded:[],document_fingerprints:{version:1,status:'observed',coverage:'Primary text',context_id:'a'.repeat(64),omitted:0,
+            instances:[{id:i.repeat(64),content_hash:'c'.repeat(64),name:'one',scope:'global'}]}}});
+          const a=mount(ctx.window.SkillsV2ToolCenter,{page:'quality',qualityEnvelope:report('b')});
+          const b=mount(ctx.window.SkillsV2ToolCenter,{page:'quality',qualityEnvelope:report('d')});
+          a.loadDocumentBaseline();b.loadDocumentBaseline();
+          const first=a.saveDocumentBaseline(),second=b.saveDocumentBaseline();
+          await queued.shift().run();await first;await queued.shift().run();await second;
+          const refused=b.baselineError,firstIDs=JSON.parse(raw).instances.map(x=>x[0]);
+          b.loadDocumentBaseline();const retry=b.saveDocumentBaseline();await queued.shift().run();await retry;
+          const union=JSON.parse(raw).instances.map(x=>x[0]);
+          const stale=a.saveDocumentBaseline();a.changeProject('/new');await queued.shift().run();await stale;
+          a.loadDocumentBaseline();const forgotten=a.forgetDocumentBaseline();const lockName=queued[0].name;await queued.shift().run();await forgotten;
+          return {refused,firstIDs,union,lockName,raw};
+        """)
+        self.assertIn('changed', out['refused'].lower())
+        self.assertEqual(out['firstIDs'], ['b' * 64])
+        self.assertEqual(out['union'], ['b' * 64, 'd' * 64])
+        self.assertEqual(out['lockName'], 'skillsmgr-document-baseline-v1')
+        self.assertIsNone(out['raw'])
+
+    def test_browser_without_locks_cannot_write_or_forget_the_saved_baseline(self):
+        out = run_node(r"""
+          let writes=0;ctx.localStorage={getItem:()=>null,setItem:()=>writes++,removeItem:()=>writes++};
+          delete ctx.navigator.locks;
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});
+          handler=async()=>({hygiene:{summary:{},degraded:[],document_fingerprints:{version:1,status:'observed',coverage:'Primary text',context_id:'a'.repeat(64),omitted:0,instances:[]}}});
+          await h.loadQuality();await h.saveDocumentBaseline();await h.forgetDocumentBaseline();
+          return {writes,error:h.baselineError,canSave:h.canSaveDocumentBaseline};
+        """)
+        self.assertEqual(out['writes'], 0)
+        self.assertFalse(out['canSave'])
+        self.assertIn('coordinate', out['error'].lower())
+
     def test_tool_catalog_drives_routes_listing_and_command_choices(self):
         out = run_node(r"""
           ctx.Vue={createApp(def){ctx.appDef=def;return {component(){return this},mount(){}}},markRaw:v=>v};

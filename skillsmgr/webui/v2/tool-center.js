@@ -8,6 +8,8 @@
   function stored(key,fallback){try{return localStorage.getItem(key)||fallback}catch(e){return fallback}}
   function remember(key,value){try{localStorage.setItem(key,value);return true}catch(e){return false}}
   const SCAN_MODES=['off','static','llm'];
+  const BASELINE_KEY='skillsmgr-document-baseline-v1';
+  const BASELINES=window.SkillsV2Model.documentBaseline;
   const projectPicker=(action)=>`
         <form class="tp-project card tp-panel" @submit.prevent="${action}">
           <label class="tp-field" for="tp-proj">Project path
@@ -42,6 +44,7 @@
       catalog:null,profile:{name:'',description:'',skills:'',targets:''},profilePreview:null,plan:null,planTargets:[],
       templates:null,templateName:'',templateBody:'',templatePreview:null,creating:false,skill:{name:'',description:'',category:'',version:'',license:'',compatibility:'',allowed_tools:'',body:'',scope:'global'},
       quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',projectRoots:[],projectCatalog:null,workspace:null,consumer:'',
+      documentBaseline:null,baselineRaw:null,baselineError:'',baselineMessage:'',baselineSaving:false,
       systemDark:matchMedia('(prefers-color-scheme: dark)').matches,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches, theme:stored('skillsmgr-theme','system'),size:stored('skillsmgr-text-size','standard'),locale:stored('skillsmgr-locale','system'),
       profileFilter:'',profileExtra:'',chosen:'',sourceReview:null,sourceTarget:null,sourceSuccess:null,snapshots:null,historyName:stored('skillsmgr-history-name',''),externalScan:SCAN_MODES.includes(stored('skillsmgr-external-scan','off'))?stored('skillsmgr-external-scan','off'):'off',historyScope:stored('skillsmgr-history-scope','global'),history:null,textSnapshots:null,textSnapshotTarget:null,
     };
@@ -69,6 +72,10 @@
       },
       unavailableSignals(){const groups=new Map();for(const signal of this.quality?.unavailable_signals||[]){const key=signal.signal+'\0'+signal.explanation;if(!groups.has(key))groups.set(key,{...signal,count:0});groups.get(key).count++;}return [...groups.values()];},
       claudeListing(){const l=this.quality&&this.quality.claude_listing;return l&&Number(l.instances_observed)>0?l:null;},
+      documentScan(){try{return BASELINES.snapshot(this.qualityEnvelope)}catch(e){return null;}},
+      documentComparison(){if(!this.documentScan)return {status:'unavailable',changed:[],partial:true};return BASELINES.compare(this.documentScan,this.documentBaseline);},
+      baselineLocksAvailable(){return !!(navigator.locks&&typeof navigator.locks.request==='function');},
+      canSaveDocumentBaseline(){return !!this.documentScan&&!this.documentScan.partial&&!this.loading.qualityEnvelope&&!this.baselineError&&!this.baselineSaving&&this.baselineLocksAvailable;},
       runnerSignature(){return JSON.stringify([this.source.trim(),this.runner,this.runnerScope,this.agents,this.filter,this.copy,this.listOnly]);
       },
       localePreview(){try{return new Intl.NumberFormat(this.locale==='system'?undefined:this.locale).format(1234567.89)}catch(e){return 'Unavailable'}},
@@ -208,10 +215,28 @@
       this.result=await api('/api/skills?scope='+enc(this.skill.scope),json(p));
       this.$emit('changed')})},
       projectQuery(){return this.project.trim()?'&project='+enc(this.project.trim()):'';},
-      changeProject(value){this.project=value;this.sequence++;this.loading={};this.error='';this.quality=null;this.qualityEnvelope=null;this.workspace=null;this.report=null;},
+      changeProject(value){this.project=value;this.sequence++;this.loading={};this.error='';this.quality=null;this.qualityEnvelope=null;this.workspace=null;this.report=null;this.baselineMessage='';},
       clearProject(){this.changeProject('');return this.page==='quality'?this.loadQuality():this.loadWorkspace();},
       async loadProjectRoots(){const catalog=await this.read('/api/workspaces','projectCatalog');if(catalog)this.projectRoots=catalog.managed_roots||[];},
-      async loadQuality(){this.quality=null;this.qualityEnvelope=null;const envelope=await this.read('/api/doctor?scope=all&hygiene=1'+this.projectQuery(),'qualityEnvelope');if(envelope){this.quality=envelope.hygiene||null;if(!this.quality)this.error='The server returned no hygiene report.';}},
+      async loadQuality(){this.quality=null;this.qualityEnvelope=null;this.baselineMessage='';const envelope=await this.read('/api/doctor?scope=all&hygiene=1'+this.projectQuery(),'qualityEnvelope');if(envelope){this.quality=envelope.hygiene||null;if(!this.quality)this.error='The server returned no hygiene report.';this.loadDocumentBaseline();}},
+      loadDocumentBaseline(){try{const raw=localStorage.getItem(BASELINE_KEY);this.baselineRaw=raw;this.documentBaseline=BASELINES.read(raw);this.baselineError='';}catch(e){this.documentBaseline=null;this.baselineError='The saved browser baseline is unavailable. '+(e.message||'Browser storage could not be read.');}},
+      baselineStorageCurrent(expected){let raw;try{raw=localStorage.getItem(BASELINE_KEY)}catch(e){this.baselineError='Browser storage could not be read; the saved baseline was kept.';return false;}
+        if(raw!==expected){this.loadDocumentBaseline();this.baselineError='The browser baseline changed in another tab. Reload the saved baseline before saving again.';return false;}return true;},
+      async baselineTransaction(fn){if(this.baselineSaving)return;if(!this.baselineLocksAvailable){this.baselineError='This browser cannot coordinate baseline writes. Saving and forgetting are unavailable.';return;}
+        const generation=this.sequence,expected=this.baselineRaw;this.baselineSaving=true;
+        try{await navigator.locks.request(BASELINE_KEY,{mode:'exclusive'},()=>{if(!this.alive||generation!==this.sequence||!this.baselineStorageCurrent(expected))return;fn();});}
+        catch(e){if(this.alive&&generation===this.sequence)this.baselineError='The saved browser baseline was kept. '+(e.message||'Browser storage could not be changed.');}
+        finally{this.baselineSaving=false;}},
+      async saveDocumentBaseline(replace=false){if(!this.baselineLocksAvailable)return this.baselineTransaction(()=>{});if(!this.canSaveDocumentBaseline)return;
+        const scan=this.documentScan,envelope=this.qualityEnvelope;
+        await this.baselineTransaction(()=>{if(envelope!==this.qualityEnvelope||this.loading.qualityEnvelope)return;
+          const previous=BASELINES.read(this.baselineRaw);
+          if(previous&&previous.context_id!==scan.context_id&&replace!==true){this.baselineError='A baseline from another context is saved. Choose Replace baseline to use this context.';return;}
+          const baseline=BASELINES.merge(scan,previous&&previous.context_id===scan.context_id?previous:null,new Date().toISOString());
+          const raw=JSON.stringify(baseline);localStorage.setItem(BASELINE_KEY,raw);
+          this.baselineRaw=raw;this.documentBaseline=baseline;this.baselineError='';this.baselineMessage='Browser baseline saved. Unobserved entries from this context were retained.';
+        });},
+      async forgetDocumentBaseline(){await this.baselineTransaction(()=>{localStorage.removeItem(BASELINE_KEY);this.documentBaseline=null;this.baselineRaw=null;this.baselineError='';this.baselineMessage='Browser baseline forgotten.';});},
       inspectInstance(i){const found=this.records.filter(r=>r.name===i.name&&r.scope===i.scope&&(!(i.physical_path||i.path)||(r.physical_path||r.path)===(i.physical_path||i.path)));
       const r=found.length===1?found[0]:null;
       if(r)this.$emit('inspect',r);
@@ -290,6 +315,8 @@
       this.loadHistory()})},
     },
     mounted(){this.alive=true;
+      this.baselineStorageListener=e=>{if(e.key===BASELINE_KEY||e.key===null){this.loadDocumentBaseline();this.baselineMessage='The saved browser baseline changed in another tab.';}};
+      window.addEventListener('storage',this.baselineStorageListener);
       this.darkMedia=matchMedia('(prefers-color-scheme: dark)');
       this.motionMedia=matchMedia('(prefers-reduced-motion: reduce)');
       this.darkListener=e=>{this.systemDark=e.matches};
@@ -297,6 +324,7 @@
       this.darkMedia.addEventListener('change',this.darkListener);
       this.motionMedia.addEventListener('change',this.motionListener)},
     beforeUnmount(){this.alive=false;
+      window.removeEventListener('storage',this.baselineStorageListener);
       this.darkMedia.removeEventListener('change',this.darkListener);
       this.motionMedia.removeEventListener('change',this.motionListener);
       if(this.sourceReview && this.sourceReview.review_state==='pending'&&!this.sourceSuccess) api('/api/source-updates/reviews/'+enc(this.sourceReview.review_id),{method:'DELETE'}).catch(()=>{});
@@ -561,6 +589,31 @@ ${scanPanel('(review.inspection||{}).external_scan')}
         ${projectPicker('loadQuality')}
         <template v-if="quality">
           <p v-if="qualityEnvelope&&qualityEnvelope.project" class="tp-fine" role="status">Project checked: <span class="tp-mono">{{ qualityEnvelope.project.path }}</span></p>
+          <section class="card tp-panel document-changes" aria-labelledby="tp-document-changes">
+            <header class="tp-panel-h"><div><h2 id="tp-document-changes">Skill document changes</h2><p>Compare observed primary documents with a baseline you save in this browser.</p></div><span v-if="documentComparison.changed_count" class="pill warn">{{fmtN(documentComparison.changed_count)}} changed</span></header>
+            <p class="tp-fine">Covers primary SKILL.md text only. Scripts, references, settings, activation changes and selected-project-only listing entries are outside this comparison. A match does not certify safety.</p>
+            <p v-if="baselineError" class="v2-tool-error" role="alert">{{baselineError}}</p>
+            <p v-if="baselineMessage" class="tp-fine" role="status">{{baselineMessage}}</p>
+            <p v-if="!baselineLocksAvailable" class="tp-fine">This browser cannot coordinate baseline writes. Comparisons remain available; saving and forgetting are unavailable.</p>
+            <p v-if="documentComparison.status==='unavailable'" class="tp-empty">Document fingerprints are unavailable for this scan.</p>
+            <p v-else-if="documentComparison.status==='missing'" class="tp-fine">No baseline is saved in this browser.</p>
+            <p v-else-if="documentComparison.status==='other-context'" class="tp-fine">The saved baseline belongs to another library or project context. It has not been replaced.</p>
+            <template v-else>
+              <p class="tp-fine">Compared {{fmtN(documentComparison.compared_count)}} currently observed {{documentComparison.compared_count===1?'document':'documents'}}. <template v-if="!documentComparison.changed_count">No text changes among these matching observations.</template></p>
+              <p class="tp-fine" v-if="documentBaseline">Last saved {{when(documentBaseline.captured_at)}}.</p>
+              <ul v-if="documentComparison.changed.length" class="tp-rows"><li v-for="item in documentComparison.changed" :key="item.id" class="v2-tool-row"><span class="tp-row-main"><strong class="tp-mono">{{item.name}}</strong><small>{{scopeLabel(item.scope)}} · instance {{item.id.slice(0,12)}}</small></span><span class="pill warn">Document changed</span></li></ul>
+              <p v-if="documentComparison.changed_count>documentComparison.changed.length" class="tp-fine">Only the first {{documentComparison.changed.length}} changed documents are shown.</p>
+              <p v-if="documentComparison.unobserved_count" class="tp-fine">{{fmtN(documentComparison.unobserved_count)}} saved entries were not observed in this scan. Their current state is unknown.</p>
+            </template>
+            <p v-if="documentScan&&documentScan.partial" class="tp-fine">This scan reports missing evidence. The saved baseline cannot be updated.</p>
+            <div class="tp-acts">
+              <button v-if="documentComparison.status==='other-context'" type="button" class="btn btn-line" :disabled="!canSaveDocumentBaseline" @click="saveDocumentBaseline(true)">Replace baseline for this context</button>
+              <button v-else type="button" class="btn btn-line" :disabled="!canSaveDocumentBaseline" @click="saveDocumentBaseline()">{{documentBaseline?'Update baseline with this scan':'Save browser baseline'}}</button>
+              <button type="button" class="btn btn-soft" @click="loadDocumentBaseline">Reload saved baseline</button>
+              <button v-if="baselineRaw!==null" type="button" class="btn btn-soft" :disabled="baselineSaving||!baselineLocksAvailable" @click="forgetDocumentBaseline">Forget browser baseline</button>
+            </div>
+            <p class="tp-fine">Saving keeps only opaque context and instance identifiers, document hashes and a timestamp in this browser's storage for this server address. It retains unobserved entries, sends nothing and changes no skill files. The browser baseline can be edited or cleared and is advisory; scans are not atomic or guaranteed exhaustive.</p>
+          </section>
           <section v-if="claudeListing" class="card tp-panel claude-listing" aria-labelledby="tp-cl-h">
             <header class="tp-panel-h">
               <div><h2 id="tp-cl-h">What Claude Code sees</h2><p>The skill listing Claude Code builds from the copies this report observed.</p></div>

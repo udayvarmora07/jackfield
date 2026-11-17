@@ -4,6 +4,18 @@
 
 **AI manifest**: Single source of truth for remaining work on skills-manager. Update after every step. Notation: `[ ]` unstarted, `[/]` in progress, `[x]` done. Milestones: (1) docs layer, (2) GUI, (3) zero-error iteration loop.
 
+## Document change baseline continuation (2026-11-17)
+
+- [x] Complete docs/45 N5 as an advisory comparison with an explicitly saved
+  browser baseline of primary skill-document hashes. Keep server reads
+  read-only, store no contents or filesystem paths in the browser baseline,
+  preserve unobserved entries and reject updates with known missing evidence.
+  Seventeen new regressions and 2,094 total tests on Python 3.12 pass
+  (three optional skips), with both smokes, browser checks, settled-theme
+  accessibility audits, repository gates and exact wheel/sdist install probes.
+  Cross-tab writes use an exclusive browser lock; unsupported browsers retain
+  comparisons with writes disabled. Main integration and push are authorized.
+
 ## Project context continuation (2026-11-17)
 
 - [x] Complete docs/45 N7: share a read-only project selector between v2

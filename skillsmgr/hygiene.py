@@ -258,6 +258,42 @@ def _read_observation(record: dict, degraded: list[dict], *, reuse: bool = True)
             record[key] = observed[key]
 
 
+def _document_fingerprints(prepared: list[dict], degraded: list[dict]) -> dict:
+    """Expose hashes only for representable, resolved primary documents."""
+    instances = []
+    omitted = sum(item.get("omitted", 0) for item in degraded if item.get("section") == "physical-instances")
+    for record in prepared:
+        digest = record.get("content_hash")
+        value = record.get("physical_path") or record.get("path")
+        if not value and isinstance(record.get("provenance"), dict):
+            value = record["provenance"].get("path")
+        if (not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+                or not value or any(record.get(key) for key in (
+                    "link_escape", "document_missing", "document_conflict", "decode_error",
+                    "encoding_error", "_filesystem_unavailable"))):
+            omitted += 1
+            continue
+        try:
+            identity = str(Path(str(value)).expanduser().resolve(strict=True))
+            instance_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+            name = _bounded(record.get("name", ""), 128)
+            scope = _bounded(record.get("scope", ""), 128)
+            name.encode("utf-8")
+            scope.encode("utf-8")
+        except (OSError, RuntimeError, ValueError, TypeError, UnicodeError):
+            omitted += 1
+            continue
+        instances.append({"id": instance_id, "content_hash": digest, "name": name, "scope": scope})
+    instances.sort(key=lambda item: item["id"])
+    return {
+        "version": 1,
+        "status": "partial" if degraded or omitted else "observed",
+        "coverage": "Observed primary skill documents only; acquisition is not atomic or guaranteed complete.",
+        "instances": instances,
+        "omitted": omitted,
+    }
+
+
 def _issue_dict(issue: object) -> dict:
     if isinstance(issue, dict):
         return {
@@ -306,6 +342,7 @@ def _prepare_records(records: list[dict], max_instances: int) -> tuple[list[dict
             "section": "physical-instances",
             "reason": f"physical-instance limit reached at {max_instances}; omitted {len(omitted)} instances",
             "truncated": True,
+            "omitted": len(omitted),
         })
     # Measured AFTER the truncation above: this is the number of documents
     # actually loaded, not ``len(records)``.  ``hygiene_report`` defaults
@@ -2139,6 +2176,7 @@ def _hygiene_report(
         "scope": _bounded(scope, 128),
         "policy": "read-only evidence; no combined score or automatic cleanup",
         "summary": full_summary,
+        "document_fingerprints": _document_fingerprints(prepared, degraded),
         "category_counts": category_counts,
         "findings": findings[:MAX_FINDINGS],
         "largest_instances": largest,

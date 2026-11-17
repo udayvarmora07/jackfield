@@ -8,6 +8,8 @@ hygiene evidence.  The CLI and ``GET /api/doctor`` render this one report.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from pathlib import Path
 
@@ -138,6 +140,17 @@ def hygiene_evidence(store, scope: str, *, project_root=None) -> dict:
         [*result["degraded"], *degraded],
         key=lambda item: (str(item.get("section", "")), str(item.get("scope", "")), str(item.get("reason", ""))),
     )
+    fingerprints = result["document_fingerprints"]
+    try:
+        context = ["document-fingerprints-v1", str(Path(store.data_dir).expanduser().resolve()), scope,
+                   str(Path(project_root).expanduser().resolve()) if project_root is not None else None]
+        payload = json.dumps(context, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
+        fingerprints["context_id"] = hashlib.sha256(payload).hexdigest()
+    except (OSError, RuntimeError, ValueError, TypeError, UnicodeError) as exc:
+        result["degraded"].append({"section": "fingerprint-context", "reason": str(exc)[:_MAX_REASON]})
+    if result["degraded"] or result["summary"].get("partial"):
+        result["summary"]["partial"] = True
+        fingerprints["status"] = "partial"
     return result
 
 

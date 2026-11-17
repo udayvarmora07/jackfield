@@ -4,6 +4,50 @@
 
 **AI manifest**: The GUI of skills-manager is a **local web UI** (browser frontend + Python stdlib backend). It replaces the former GTK4 GUI. This doc is the single source of truth for the web UI: how it runs, what endpoints exist, and how the frontend is structured. Do not re-read source to answer questions this doc already answers.
 
+## 2026-11-17 document change baseline
+
+**[SPEC]** V2 Quality compares currently observed primary skill documents with
+an explicitly saved browser baseline. It does not automatically save a scan.
+The existing hygiene response adds `document_fingerprints`: format `version: 1`,
+`status` (`observed` or `partial`), a coverage statement, `omitted`, and bounded
+`instances` containing SHA-256 physical-directory `id`, primary-document
+`content_hash`, display `name` and `scope`. Aliases share a physical ID; distinct
+same-name folders remain distinct. Missing, conflicting, refused-link,
+undecodable or unhashable documents are omitted and marked partial. The Doctor
+adapter adds a SHA-256 `context_id` derived from canonical Store path, scope and
+optional selected project. Acquisition failures also mark the fingerprints and
+summary partial. No server file is created or changed by this read.
+
+**[SPEC]** Save browser baseline stores one versioned blob per browser origin,
+under `skillsmgr-document-baseline-v1`. It contains only the opaque context ID,
+an ISO timestamp and pairs of opaque instance IDs and document hashes. It
+stores no skill names, paths, descriptions, bodies, scripts or credentials.
+The project path control is still not persisted; its derived context digest
+partitions the comparison. The browser profile and server address/port must
+match to reuse a saved baseline. Explicit replacement is required for another
+context, and forgetting removes only this browser value.
+
+Only exact IDs present in both observations are compared. The interface shows
+up to 100 changed rows and the total matching change count, with no deletion,
+new-skill, safety or exhaustive-unchanged verdict. Scripts, references,
+activation/settings changes and selected-project-only listing entries are
+outside this inventory comparison. Saving updates current hashes and retains
+unobserved prior IDs. Known degraded/partial/omitted evidence blocks saving;
+invalid, oversized or unavailable storage does not overwrite the old value.
+A stale tab must reload a changed browser value before saving. Saves and
+forget actions take the same exclusive browser Web Lock, then recheck the
+expected stored value. Report changes or navigation while waiting cancel a
+save. Storage events refresh other tabs. If Web Locks are unavailable, reads
+and comparisons remain available while saving and forgetting are disabled.
+Other same-origin code can still edit storage outside this locking protocol.
+
+**[NOTE]** Fingerprints describe observed text, not trusted history. Local
+storage can be edited or cleared. Existing filesystem scanners can omit files,
+and the reads are not an atomic snapshot against concurrent filesystem writes.
+Retaining unobserved entries avoids interpreting an omitted file as a deletion.
+The saved and merged baseline is capped at 10,000 entries and 2 MiB of JSON;
+malformed versions, hashes, duplicate IDs and dates are refused cleanly.
+
 ## 2026-11-17 project context
 
 **[SPEC]** V2 Quality and Workspaces share an optional Project path picker.

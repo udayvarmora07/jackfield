@@ -92,7 +92,7 @@ problem on 0.167.0-alpha.4.1.
 | N2 | Git-backed sync across machines | Repeated ask on Hacker News in November; the desktop leader ships it; `backup_sync.py` exists and nothing calls it | Yes |
 | N3 | "Retire skills" advisor | New since 2026-11-04: experienced users report deleting most of their skills | Depends on usage data, a deferred privacy decision (docs/35) |
 | N4 | Risk checks on prose, not only scripts | Snyk and Unit 42 report that real malicious skills put the lure in `SKILL.md` and `references/` text; `risk_file_listing` reads script files only | No |
-| N5 | "Changed since last scan" alert | Users want a skill that was fine yesterday flagged when it changes; content hashes already exist | No, if it stays inside hygiene |
+| N5 | "Changed since last scan" alert | Users want a skill that was fine yesterday flagged when it changes; content hashes already exist | Implemented 2026-11-17 as an observed primary-document comparison; see [browser baseline](08-web-ui.md#2026-11-17-document-change-baseline) |
 | N6 | Authoring-smell lints, info level | arXiv 2607.01456 found at least one smell in over 99% of the skills it studied; several are static (no example, no validation step, dated content, reference nesting deeper than one level) | No |
 | N7 | Project picker in the v2 UI | Several report sections say "unavailable: no project root"; the desktop competitor shipped project management on 2026-11-12 | Implemented 2026-11-17 within the existing confinement rule; see [project context](08-web-ui.md#2026-11-17-project-context) |
 | N8 | MCP server mode | Lets agents drive the tool and qualifies it for MCP registries | Yes (new surface) |
