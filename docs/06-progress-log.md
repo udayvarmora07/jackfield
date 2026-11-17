@@ -43,6 +43,23 @@ The alternate redesign and historical backup remain outside this recovered
 task implementation. Stale primary parity copies are preserved for recovery;
 they must not overwrite the later implementation already in main.
 
+**[NOTE] Delivery completed:** `b6ed401` was pushed to `origin/main` as a
+normal fast-forward from `85611ba`. The primary checkout was synchronized to
+that exact verified tree, and its focused regressions, smokes and docs check
+passed. Only afterward were the guidance worktree and redundant old main
+worktree removed, using ordinary non-force commands after fresh remote,
+ancestry, path/inode, file/admin-manifest and visible-host-handle checks.
+The guidance/parity local branch pointers were then safely removed.
+Two worktrees remain: primary main and the unmerged alternate redesign.
+
+Original primary residue is preserved in stash `571f2a4`, a separately
+verified recovery bundle, full-byte archives and binary patches. Its 46
+stashed paths were checked against their original hashes; the private launch
+file was kept byte-identical and excluded locally. Other refs, archives and
+remote branches were preserved. Git connectivity passed. This local receipt
+is a documentation-only follow-up; hosted CI for the implementation was still
+running when the cleanup finished. No release publication was performed.
+
 ## 2026-11-13 — Remove completed merged task worktrees
 
 **[NOTE]** The maintainer requested a second checked cleanup. Live GitHub main

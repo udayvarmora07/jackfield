@@ -23,6 +23,13 @@
   remove completed worktrees only after exact remote-commit containment,
   stable file/admin manifests and visible-host-process rechecks.
 
+- [x] Fast-forward and push the verified implementation as `b6ed401`, then
+  recheck exact remote containment, manifests, archives, operations and visible
+  host handles before removing the guidance and old main worktrees. Primary
+  now holds clean main; obsolete guidance/parity branch pointers are removed.
+  The former 46 primary file versions remain byte-verified in recovery stash
+  `571f2a4` and private archives; local launch settings remain unchanged.
+
 ## Merged branch/worktree cleanup (2026-11-13)
 
 - [x] Recheck all 14 local branches, 6 live remote heads and 13 worktrees;
