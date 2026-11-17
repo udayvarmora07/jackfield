@@ -8,6 +8,125 @@ dated 2026-09-23 and later; everything older lives verbatim in
 @docs/archive/README.md.** Read the digest below first — it is the part a session
 actually needs. Facts flagged stale here are corrected in the owning doc.
 
+## 2026-11-17 — Prepare remaining-task fixes for main
+
+**[NOTE]** The maintainer explicitly requested a main-branch push of the
+completed compatibility, AI transport and evidence work. Before edits or
+staging, active-task and visible-process checks found no other writer, all
+32 prior checkpoint file hashes matched, and a fresh fetch showed main and
+origin/main equal at `29da4e6`. The existing private archive and WIP ref remain
+available. Compatibility commit `36571e7` and AI transport/evidence commit
+`a1124dd` preserve the reviewed changes as separate commits; this receipt and
+the changelog/task updates form the final documentation group. The first
+commit's isolated index snapshot passed its docs check and 109 focused tests.
+Current-tree verification passed 2,063 tests on Python 3.12 (three optional
+skips), both smokes, docs/design/complexity, pinned Ruff/Bandit, compilation,
+JS syntax, offline study evidence, a hash-locked fresh wheel/sdist build and
+the exact installed-wheel AI probe. Staged credential/diff checks passed.
+The normal push remains guarded by a fresh remote/main containment check;
+no tag or package publication is part of this delivery.
+
+## 2026-11-17 — Remaining-task verification and vendor compatibility
+
+**[NOTE]** Continued the remaining tracker work. A fresh read of
+[CI run 44023733666](https://github.com/udayvarmora07/skills-manager/actions/runs/44023733666)
+at current main `29da4e6` confirms 15 successful jobs. All six cross-platform
+jobs passed their applicable real installer install/uninstall steps; both
+Windows jobs also passed the Windows PowerShell 5.1 dry run. The two README
+raw installer URLs returned HTTP 200 and matched the local script bytes.
+The two stale installer entries are now closed. No release was published,
+and no local Windows execution is claimed.
+
+Primary-source verification of docs/45 V1–V6 and corrections to confirmed
+read-only compatibility gaps are in progress. Other Codex threads were not
+mid-turn when checked before edits; the research worker owns only its new
+evidence document. Human sign-offs and deferred owner decisions remain open.
+
+Eight new regression tests ran before the source changes: six failed (12
+failing assertions including subtests), reproducing missing Cursor home
+compatibility roots and ignored/invalid Codex listing-cap settings. The narrow
+fix adds the documented Cursor roots without electing a winner, reads the
+bounded Codex user cap with the documented 10,000-token clamp, and reports
+unknown budgets for invalid/unreadable settings. Verification is in progress.
+The focused 107-test compatibility/listing suite passes; additional oversized
+and non-regular-config checks extend the bounded-read coverage. The owning
+root inventory, REST and CLI contracts now describe the corrected observation
+model. All 10 new regressions pass, including oversized settings and a FIFO.
+Final product-tree verification: 2,060 tests on each Python 3.11–3.14, three
+optional skips each; both smokes; docs/design/complexity gates (1,325 tracked
+functions); pinned Ruff/Bandit; Python compilation and classic/v2 JS syntax;
+hash-locked wheel/sdist builds and package-content checks. A default isolated
+sdist-install helper reported missing `setuptools`; a separate fresh venv
+with the hash-locked build requirements installed and probed that exact sdist
+successfully. Clean wheel installation, the installed-wheel AI probe and an
+installed-sdist probe of both new behaviors pass. The reviewer found no
+blocking defect; the report remains a partial, non-atomic observation of
+filesystem/settings state. 0/1/10,000 synthetic metadata rows were checked.
+
+Private verification logs, source manifests and artifacts are retained at
+`/tmp/skillsmgr-remaining-20261117-i2jxvmo_`. Product and test-file hashes still
+matched the tested artifact snapshot at this checkpoint. No new command, flag, Store method,
+schema, dependency, consumer setting or user skill data changed.
+
+**[NOTE]** The maintainer subsequently authorized the live study using their
+Command Code GOAT subscription key from the CLI configuration. Official
+endpoint/eligibility research is in
+@docs/47-commandcode-goat-api-2026-11-17.md. The key is not printed or saved
+in this repository or new settings files; it is used in the temporary study
+process environment. A first request used an extra `/v1` in the Anthropic
+base URL and returned 404; the configuration was corrected to the documented
+provider root. The bounded synthetic HTTP/native comparison is in progress.
+
+**[NOTE] Later study findings and scope.** The initial Haiku HTTP simulator
+completed six requests (12 synthetic cases, three repeats) with no missing
+or invalid choices. The native CLI comparison produced only inconclusive
+runs: GOAT rejects a `system` role inside the CLI's message array. One bounded
+canary with CLI 2.1.319 reproduced the same error as 2.1.325. No fidelity rate
+is claimed. The maintainer then restricted subsequent model testing to
+`deepseek/deepseek-v4.1-flash` or `meta/muse-ember`; both expose OpenAI routes,
+not Anthropic Messages, so no further native Claude model calls are made.
+
+The real DeepSeek trigger batch reproduced `finish_reason: length`, zero
+answer text and 510 reasoning tokens consuming the entire 510-token
+allowance. Small connection canaries also confirmed reasoning tokens for
+both permitted models. A Terra worker added narrowly scoped headroom and
+corrected preflight/admission/day reservations to include it. Hostile review
+then identified a reasoning-only error path that could skip usage accounting;
+that correction and the fresh current-tree ladder are in progress. The
+earlier 2,060-test matrix is evidence for the compatibility checkpoint, not
+for these subsequent transport edits.
+
+The corrected final DeepSeek HTTP experiment completed six calls with
+36/36 authored-label matches (12 prompts, three repeats), zero missing or
+invalid answers, and 3,087 input / 1,815 output tokens reported. This is
+simulation evidence, not native fidelity. Inputs/results/hashes and the
+method's limits are in @docs/48-ai-http-study-2026-11-17.md. The independent
+Luna review found no actionable issue and passed the 28 transport tests;
+the broader AI suite has 154 cases.
+
+**[NOTE] Final current-tree verification:** 2,063 tests pass on Python 3.12
+(three optional skips); all 154 AI tests pass on each Python 3.11–3.14.
+Both smokes, docs/design/complexity (1,327 functions), pinned Ruff/Bandit,
+Python compilation, classic/v2 JS syntax, saved-evidence checks and the new
+study's hashes/prompt/listing joins pass. Hash-locked final wheel/sdist builds,
+strict artifact-content checks, the installed-wheel AI probe and a fresh
+hash-locked sdist install/probe pass. The installed probe exercises the exact
+DeepSeek/Muse output allowance. Final artifact hashes: wheel `dc68a550…`
+(1,050,469 bytes), sdist `8e38717e…` (1,021,209 bytes). Complete hashes,
+source manifests, logs and private reproduction scripts remain at the
+verification path above. No release, commit or push was performed.
+
+Three originally open tracker entries are closed (installer CI, installer
+URLs, vendor verification). The native-fidelity entry remains in progress;
+the 15 remaining raw entries include historical release/review overlaps.
+Human sign-offs, owner decisions and publication approvals are unclaimed.
+
+Development-tool receipt: querying `cmd --version` triggered its own update
+from 1.89.1 to 1.89.2. The older Claude 2.1.319 executable used for the
+canary was installed only under the private verification directory, with
+package lifecycle scripts disabled; the native package binary was invoked
+directly. No project runtime dependency was added.
+
 ## 2026-11-17 — Recover interrupted guidance work for main integration
 
 **[NOTE]** The maintainer requested integration into main followed by checked

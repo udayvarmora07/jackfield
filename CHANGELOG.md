@@ -49,6 +49,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Fixed
 
+- Cursor's read-only diagnostic includes its documented Claude/Codex
+  compatibility folders while retaining unknown same-name precedence.
+- Codex listing estimates honor the user's `skills.max_context_tokens`, capped
+  at 10,000; invalid or unreadable settings report an unknown budget.
+- DeepSeek V4.1 Flash and Muse Ember get reasoning headroom through the OpenAI
+  transport. Run estimates and in-flight reservations include that allowance;
+  thinking-only failures record usage before reporting the error.
+
 - Empty global listings point to populated agent scopes. Fresh empty stores
   pass Doctor without creating an index; unusable existing indexes still
   require repair. Permission remedies quote paths safely, Doctor/scope text

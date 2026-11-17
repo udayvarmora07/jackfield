@@ -1,8 +1,38 @@
 # Task Checklist — Skills Manager
 
-**Version 0.9.2**
+**Version 0.9.3**
 
 **AI manifest**: Single source of truth for remaining work on skills-manager. Update after every step. Notation: `[ ]` unstarted, `[/]` in progress, `[x]` done. Milestones: (1) docs layer, (2) GUI, (3) zero-error iteration loop.
+
+## Remaining-task verification (2026-11-17)
+
+The maintainer requested pushing this verified batch to main. Delivery
+preparation includes a fresh remote/main check, current-tree verification,
+reviewed commit groups, credential scans and the existing recovery checkpoint.
+The compatibility and AI commits are `36571e7` and `a1124dd`; a fresh
+2,063-test suite, both smokes, repository gates and package probes pass.
+Publication and the remaining human/native-fidelity gates stay open.
+
+- [x] Recheck the hosted installer steps and the README download URLs against
+  current main; close the two stale installer entries below with live evidence.
+Vendor verification is complete (docs/45 V1–V6 below). The read-only diagnostic
+now includes Cursor's Claude/Codex compatibility roots and observes Codex's
+user listing cap. At that checkpoint, ten new regressions and 2,060 tests pass on each Python
+3.11–3.14 (three optional skips each), both smokes and static/docs/design/
+complexity gates pass, and exact pinned artifacts pass isolated install probes.
+The live HTTP fidelity study is now in progress with the maintainer-authorized
+Command Code GOAT key held only in the study process environment.
+The later DeepSeek/Muse-only instruction is enforced. Live DeepSeek evidence
+reproduced reasoning-only output truncation; the transport/headroom and cap
+accounting correction is complete.
+The corrected DeepSeek HTTP study completed six calls and matched all 36
+authored labels (12 synthetic prompts, three repeats). Evidence and native
+comparison limits: @docs/48-ai-http-study-2026-11-17.md. Native fidelity remains
+open. Final verification: 2,063 tests on Python 3.12 (three optional skips),
+154 AI tests on each Python 3.11–3.14, both smokes, static/docs/design/
+complexity gates and exact pinned artifact/install probes all pass. No
+runtime surface, schema or dependency changed. There are 15 open tracker
+entries: 12 pending and 3 in progress, including historical overlaps.
 
 ## Main integration and verified cleanup (2026-11-17)
 
@@ -72,8 +102,11 @@ No application behavior, skill data, release or remote branch was changed.
   see the continuation above.
 - [x] Risk checks on prose (N4) and authoring hints (N6): separate file-owned
   worker tasks, followed by the combined current-tree verification above.
-- [ ] Verify vendor changes V1–V6 against primary sources before changing
-  `effective.py`, `native_state.py` or docs/12.
+- [x] Verify vendor changes V1–V6 against primary sources before changing
+  `effective.py`, `native_state.py` or docs/12. Source dispositions:
+  @docs/46-vendor-compatibility-verification-2026-11-17.md. Correct confirmed
+  Cursor compatibility-root and Codex listing-cap gaps; retain unknown
+  precedence and unknown budgets for invalid/unreadable settings.
 
 ## One-command install (2026-11-13)
 
@@ -84,10 +117,13 @@ No application behavior, skill data, release or remote branch was changed.
 - [x] `tests/test_install_script.py`: 18 offline tests with fake uv/pipx/python;
   three guard mutations each caught. Real venv and uv installs from this
   checkout verified on Linux.
-- [ ] Hosted CI run of the new `xplat` installer steps (macOS, Windows,
-  Windows PowerShell 5.1). `install.ps1` has not been executed locally (no
-  pwsh on this machine).
-- [ ] The one-line URLs point at `main`; they work only after this is merged.
+- [x] Hosted installer verification: [CI run 44023733666](https://github.com/udayvarmora07/skills-manager/actions/runs/44023733666)
+  passed all 15 jobs on `29da4e6`. Real install/uninstall steps passed on
+  Linux, macOS and Windows for Python 3.11 and 3.14; both Windows jobs also
+  passed the Windows PowerShell 5.1 dry-run check. No local Windows run claimed.
+- [x] Both README one-line installer URLs return HTTP 200 (2026-11-17) and
+  exactly match the current checkout's `install.sh` and `install.ps1` bytes.
+  This verifies script availability, not publication of the November package.
 
 ## README rewrite (2026-11-13)
 
@@ -176,8 +212,12 @@ No application behavior, skill data, release or remote branch was changed.
 - [x] Run a bounded real-agent smoke comparison through the signed-in Claude
   CLI: two conclusive synthetic cases, 2/2 first-skill agreement. Reproduction
   and sanitized evidence: @docs/41-ai-fidelity-study-2026-11-09.md.
-- [ ] Broader fidelity study with distractors, near misses, repeats and the
+- [/] Broader fidelity study with distractors, near misses, repeats and the
   product's configured HTTP transport; the two-case result does not validate it.
+  HTTP portion completed 2026-11-17: DeepSeek V4.1 Flash via GOAT matched
+  36/36 authored labels, using four skills, 12 prompts and three repeats.
+  Native comparison remains unavailable for the permitted models in the
+  existing harness; see @docs/48-ai-http-study-2026-11-17.md.
 - [x] Prepare developer fidelity harness with dry-run default, explicit
   maintainer execution and fake-executable tests; the bounded native smoke
   measurement is recorded above, with broader fidelity still pending.

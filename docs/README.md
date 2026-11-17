@@ -62,6 +62,11 @@ contract, recipe and verification). Repeatable local/CI checks:
 
 Latest whole-project review and ranked proposals (nothing approved):
 @docs/45-project-review-and-suggestions-2026-11-13.md.
+Primary-source verification of its vendor claims:
+@docs/46-vendor-compatibility-verification-2026-11-17.md.
+GOAT API setup and the real HTTP routing experiment:
+@docs/47-commandcode-goat-api-2026-11-17.md and
+@docs/48-ai-http-study-2026-11-17.md.
 
 1. `AGENTS.md` (root, hot cache — 5 min).
 2. `docs/README.md` (this file).
