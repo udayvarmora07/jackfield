@@ -1,6 +1,7 @@
 # Agent Root Discovery Inventory — 2026-09-08
 
-**Version 1.3.0** (2026-11-07: added Cline, Kiro, Amp, Roo Code, Zed, GitHub
+**Version 1.4.0** (2026-11-17: rechecked vendor claims in docs/46 and included
+Cursor's explicit Claude/Codex compatibility roots. Prior, 2026-11-07: added Cline, Kiro, Amp, Roo Code, Zed, GitHub
 Copilot and Windsurf/Devin rows, and corrected OpenCode's precedence from "not
 documented" to the order its own page states. Every new row cites the vendor
 page read on 2026-11-07 and recorded in
@@ -31,7 +32,7 @@ an official source are marked `[?]` and are not implemented as policy.
 | Consumer | User roots | Project/nested roots | Precedence/reload | Source |
 |---|---|---|---|---|
 | Claude Code | `~/.claude/skills/` | `.claude/skills/` in the starting directory and parents; nested `.claude/skills/` is discovered on demand | Enterprise > personal > project for conflicts; nested skills are directory-qualified; live change detection is documented | Claude Code “Extend Claude with skills” |
-| Cursor | `~/.cursor/skills/` and `~/.agents/skills/` | `.cursor/skills/`, `.agents/skills/`, and nested project skill directories; Claude/Codex compatibility roots also load | Nested skills are scoped to files below the directory; startup discovery is documented | Cursor “Agent Skills” |
+| Cursor | `~/.cursor/skills/`, `~/.agents/skills/`, compatibility `~/.claude/skills/` and `~/.codex/skills/` | `.cursor/skills/`, `.agents/skills/`, compatibility `.claude/skills/` and `.codex/skills/`; nested project skill directories | Nested skills are scoped to files below the directory; startup discovery is documented; same-name priority across roots is undocumented | [Cursor “Agent Skills”](https://cursor.com/docs/skills) |
 | Gemini CLI | `~/.gemini/skills/` and `~/.agents/skills/` alias | `.gemini/skills/` and `.agents/skills/` in the workspace | Built-in < extension < user < workspace; `/skills reload` refreshes discovery | Gemini CLI “Managing Agent Skills” |
 | OpenCode | `~/.config/opencode/skills/`, compatibility `~/.claude/skills/`, `~/.agents/skills/` | `.opencode/skills/`, compatibility `.claude/skills/`, `.agents/skills/`, searched from current directory upward, plus explicit `skills` config | Registered lowest → highest: built-in < `.claude/skills` < `.agents/skills` < `~/.config/opencode/skills` < project `.opencode/skills` < explicit `skills` config; a later source overrides an earlier one with the same ID (**corrected 2026-11-07** — the earlier “no documented order” row was wrong) | OpenCode “Skills” (`https://opencode.ai/docs/skills/`) |
 | Codex | `~/.codex/skills/` is NOT a documented skills root — the compatibility facade id is inferred-only (see note below) | `.agents/skills/` scanned in every directory from CWD up to the repo root (`REPO` scope); `$HOME/.agents/skills` (`USER`), `/etc/codex/skills` (`ADMIN`), bundled (`SYSTEM`) | No winner/precedence: same-`name` skills do NOT merge — both can appear in selectors; `$skill-installer`/plugins for distribution; restart only when auto-detect misses | OpenAI “Build skills” (`https://learn.chatgpt.com/docs/build-skills`, “Where Codex loads local skills”) |
@@ -51,6 +52,19 @@ added to `effective.py`. `docs.windsurf.com` redirected to `docs.devin.ai`, so
 the Windsurf row is the Devin page's own statement.
 
 ## Current repository mapping
+
+**[NOTE]** The 2026-11-17 primary-source audit in
+@docs/46-vendor-compatibility-verification-2026-11-17.md verifies the Cursor
+compatibility roots above, Claude directory-link and claude.ai-sync rules,
+and Codex's optional user listing cap. The read-only Cursor diagnostic now
+includes the compatibility roots without guessing their ordering. Codex's
+`skills.max_context_tokens` replaces the default 2% listing estimate when set
+to a positive integer, capped at 10,000 tokens. Only the bounded user
+`$CODEX_HOME/config.toml` (default `~/.codex/config.toml`) is observed; bad or
+unreadable settings leave the estimate's budget unknown. CLI, managed,
+profile and project overrides, plus bundled skill contents, remain unobserved.
+The verified `[skills.bundled] enabled = false` setting does not affect the
+`~/.agents/skills`-only estimate. No consumer settings are changed.
 
 The compatibility facade currently exposes these ids:
 
@@ -186,7 +200,7 @@ so a lower-tier win stays provisional.
   `https://learn.chatgpt.com/docs/agent-configuration/agents-md`
 - Command Code discovery/precedence/reload (primary, closed 2026-09-09):
   `https://commandcode.ai/docs/skills`
-- Cursor: `https://prod.cursor.com/docs/skills`
+- Cursor: `https://cursor.com/docs/skills`
 - Gemini CLI: `https://geminicli.com/docs/cli/using-agent-skills/`
 - OpenCode: `https://opencode.ai/docs/skills/` (refreshed 2026-11-07; the
   earlier `https://opencode.ai/v2/docs/skills` row said no order was documented,

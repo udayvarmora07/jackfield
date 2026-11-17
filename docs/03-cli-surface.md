@@ -234,9 +234,18 @@ instead of its `SKILL.md`, a missing file, or another file — and the human
 output prints each with the `SKILL.md` path to use. Nothing is changed.
 
 The report's `codex_listing` section estimates Codex's skill listing from
-`~/.agents/skills` against its 2% context-window budget (codex#19679) and
+`~/.agents/skills` against its default 2% context-window budget (codex#19679) and
 prints one line, for example `Codex listing: ~10,600 tokens vs 8,000 budget
-(2% rule, estimate); 40 skills from ~/.agents/skills`. Skills whose
+(2% of the gpt-5 context window, estimate); 40 skills from ~/.agents/skills`.
+A positive `skills.max_context_tokens` in the bounded user Codex config
+(`$CODEX_HOME/config.toml`, otherwise `~/.codex/config.toml`) replaces the
+default budget and is capped at 10,000 tokens. The text states its actual
+basis. Invalid or unreadable settings produce `status: unknown`, null
+`budget.budget_tokens` and `tokens_to_free`, and `budget unknown` in text;
+they do not produce a pass or a budget warning. CLI, profile, managed and
+project settings remain unobserved. Bundled skills are not counted, so
+`skills.bundled.enabled` does not change this user-root estimate. Sources:
+@docs/46-vendor-compatibility-verification-2026-11-17.md. Skills whose
 `agents/openai.yaml` sets `policy.allow_implicit_invocation: false` are left
 out of that estimate, because Codex hides them from the model, and a second
 line names up to five of them (`Codex explicit-only (not shown to the model,

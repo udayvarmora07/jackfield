@@ -770,9 +770,12 @@ def _render_codex_listing_text(section: dict | None) -> None:
     if not section:
         return
     if section.get("status") != "no_instances":
-        budget = int((section.get("budget") or {}).get("budget_tokens") or 0)
+        budget_info = section.get("budget") or {}
+        budget = budget_info.get("budget_tokens")
         used = int(section.get("listing_tokens_estimate", 0) or 0)
-        print(f"  Codex listing: ~{used:,} tokens vs {budget:,} budget (2% rule, estimate); "
+        comparison = "budget unknown" if budget is None else f"vs {int(budget):,} budget"
+        basis = _display(str(budget_info.get("basis") or "2% rule"))
+        print(f"  Codex listing: ~{used:,} tokens {comparison} ({basis}, estimate); "
               f"{int(section.get('listed_skills', 0) or 0)} skills from ~/.agents/skills")
     explicit = section.get("explicit_only") or {}
     if explicit.get("total"):

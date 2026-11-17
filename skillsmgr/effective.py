@@ -151,13 +151,17 @@ CONSUMERS: dict[str, dict] = {
     },
     "cursor": {
         "label": "Cursor",
-        "source": "https://prod.cursor.com/docs/skills",
+        "source": "https://cursor.com/docs/skills",
         "policy": "undocumented",
         "tiers": (
             {"id": "user", "label": "User (~/.cursor/skills)", "roots": ({"scope": "cursor"},)},
             {"id": "user-agents", "label": "User (~/.agents/skills)", "roots": ({"scope": "agents"},)},
             {"id": "project", "label": "Project (.cursor/skills)", "roots": ({"rel": ".cursor/skills"},)},
             {"id": "project-agents", "label": "Project (.agents/skills)", "roots": ({"rel": ".agents/skills"},)},
+            {"id": "user-claude", "label": "Claude compatibility (~/.claude/skills)", "roots": ({"scope": "claude-code"},)},
+            {"id": "user-codex", "label": "Codex compatibility (~/.codex/skills)", "roots": ({"scope": "codex"},)},
+            {"id": "project-claude", "label": "Claude compatibility (.claude/skills)", "roots": ({"rel": ".claude/skills"},)},
+            {"id": "project-codex", "label": "Codex compatibility (.codex/skills)", "roots": ({"rel": ".codex/skills"},)},
             {
                 "id": "nested",
                 "label": "Nested project roots",

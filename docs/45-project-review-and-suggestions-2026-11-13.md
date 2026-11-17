@@ -74,6 +74,16 @@ Suggestions, in order:
 
 **[NOTE]** Suggested feature: generalise `agents_bridge` into one "who can see this skill" table per skill, across every consumer with a cited root list. It is already listed as a candidate in @docs/44-overnight-user-problems-2026-11-13.md §8, and V1 raises its value.
 
+**[NOTE] Rechecked 2026-11-17.** Primary-source dispositions for V1–V7 are in
+@docs/46-vendor-compatibility-verification-2026-11-17.md. The table above is the
+original, preliminary review: its V5 release attribution conflates different
+changes, and does not justify changing plugin discovery. The confirmed Cursor
+compatibility roots and Codex user listing-cap observation are now addressed
+in the existing read-only diagnostics. Verification of a vendor claim does
+not mean every proposed behavior change has been implemented. V6's v0.169.0
+attribution is also unsupported: the cited report reproduces the migration
+problem on 0.167.0-alpha.4.1.
+
 ## 5. New features, ranked
 
 | # | Feature | Evidence | Approval |

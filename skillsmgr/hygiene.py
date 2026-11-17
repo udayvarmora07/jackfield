@@ -1480,9 +1480,10 @@ _CODEX_BYTES_PER_TOKEN = 4
 _CODEX_DEFAULT_WINDOW = "gpt-5.6"
 _CODEX_LISTING_LIMITS = (
     "Codex also lists project .agents/skills, /etc/codex/skills and bundled "
-    "system skills, which this report does not read, and a configured token "
-    "budget (capped at 10,000) replaces the 2% rule; both can only make the "
-    "real listing larger or its budget different."
+    "system skills, which this report does not read. Only the user config's "
+    "skills.max_context_tokens is observed; CLI flags, profiles, managed and "
+    "project settings can change that budget. Bundled-skill settings do not "
+    "change this user-root-only estimate."
 )
 
 
@@ -1496,16 +1497,32 @@ def _codex_line_tokens(name: str, description: str, document: str) -> tuple[int,
     return -(-len(line.encode("utf-8")) // _CODEX_BYTES_PER_TOKEN), truncated
 
 
-def _codex_budget(window: str) -> dict:
-    """2% of the Codex model's window; a non-GPT window is replaced and said so."""
+def _codex_budget(window: str, home=None) -> dict:
+    """The observed user cap, otherwise 2% of a stated Codex model window."""
     basis = f"2% of the {window} context window"
     if not window.startswith("gpt"):
         basis = (f"2% of an assumed {_CODEX_DEFAULT_WINDOW} context window "
                  f"(the report window '{window}' is not a Codex model)")
         window = _CODEX_DEFAULT_WINDOW
     tokens = WINDOWS[window] * _CODEX_LISTING_PERCENT // 100
+    config = native_state.observe_codex_listing(home=home)
+    if config['status'] not in ('ok', 'missing'):
+        tokens = None
+        basis = "Codex listing budget unknown: user settings are unreadable or invalid"
+    elif config['max_context_tokens'] is not None:
+        tokens = config['max_context_tokens']
+        basis = "User skills.max_context_tokens (capped at 10,000 tokens)"
     return {"basis": basis, "window": window, "window_tokens": WINDOWS[window],
-            "budget_tokens": tokens, "unknown_window_fallback_chars": 8000}
+            "budget_tokens": tokens, "unknown_window_fallback_chars": 8000,
+            "config_status": config['status']}
+
+
+def _codex_listing_status(listed: list, total: int, budget_tokens: int | None) -> str:
+    if not listed:
+        return "no_instances"
+    if budget_tokens is None:
+        return "unknown"
+    return "over_budget_estimate" if total > budget_tokens else "within_budget"
 
 
 def _codex_listing_rows(prepared: list[dict], home) -> tuple[list[tuple], dict]:
@@ -1565,7 +1582,7 @@ def _codex_explicit_finding(block: dict) -> list[dict]:
 
 
 def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[dict, list[dict]]:
-    """Estimate Codex's skill-listing cost against its 2% budget (read-only)."""
+    """Estimate Codex's user-root listing against its observed/default budget."""
     listed, excluded, explicit = _codex_listing_rows(prepared, home)
     explicit_block = _codex_explicit_block(explicit)
     total, cut = 0, []
@@ -1576,10 +1593,9 @@ def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[
         total += cost
         if truncated:
             cut.append(name)
-    budget = _codex_budget(window)
-    status = "no_instances"
-    if listed:
-        status = "over_budget_estimate" if total > budget["budget_tokens"] else "within_budget"
+    budget = _codex_budget(window, home)
+    budget_tokens = budget["budget_tokens"]
+    status = _codex_listing_status(listed, total, budget_tokens)
     section = {
         "version": 1, "consumer": "codex", "source": _CODEX_LISTING_SOURCE,
         "effective_state": "unknown", "confidence": "partial", "limits": _CODEX_LISTING_LIMITS,
@@ -1587,7 +1603,7 @@ def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[
         "listed_skills": len(listed), "excluded": excluded,
         "listing_tokens_estimate": total,
         "listing_tokens_method": "ceil(utf-8 bytes / 4) per line, as Codex counts",
-        "budget": budget, "tokens_to_free": max(0, total - budget["budget_tokens"]),
+        "budget": budget, "tokens_to_free": max(0, total - budget_tokens) if budget_tokens is not None else None,
         "truncated_descriptions": {"count": len(cut), "names": sorted(cut)[:MAX_LISTING_OVER_CAP],
                                    "cap_chars": _CODEX_DESCRIPTION_CAP},
         "explicit_only": explicit_block,
@@ -1597,7 +1613,7 @@ def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[
         return section, _codex_explicit_finding(explicit_block)
     finding = _finding(
         "codex-listing-budget", "info", "heuristic",
-        "Codex's skill listing may exceed its 2% context budget",
+        "Codex's skill listing may exceed its context budget",
         (f"The ~/.agents/skills listing costs about {total} tokens against {budget['budget_tokens']} "
          f"({budget['basis']}); Codex then shortens every description (openai/codex#19679)."),
         [], {"listing_tokens_estimate": total, "budget": budget,

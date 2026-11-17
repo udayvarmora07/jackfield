@@ -474,6 +474,28 @@ def _codex_config_path(home: Path) -> Path:
     return (Path(root).expanduser() if root else home / '.codex') / 'config.toml'
 
 
+def observe_codex_listing(*, home: Path | None = None) -> dict:
+    """Read the user's optional listing cap; other Codex settings stay unobserved.
+
+    A positive ``skills.max_context_tokens`` replaces the 2% default and is
+    capped at 10,000 by Codex (docs/46). Bad or unreadable settings leave the
+    budget unknown. No settings or skill files are written.
+    """
+    status, config = _load_toml(_codex_config_path(home_dir() if home is None else Path(home)))
+    result = {'status': status, 'max_context_tokens': None}
+    if config is None:
+        return result
+    skills = config.get('skills', {})
+    if not isinstance(skills, dict):
+        return {**result, 'status': 'invalid'}
+    value = skills.get('max_context_tokens')
+    if 'max_context_tokens' not in skills:
+        return result
+    if type(value) is not int or not 0 < value <= 2 * sys.maxsize + 1:
+        return {**result, 'status': 'invalid'}
+    return {**result, 'max_context_tokens': min(value, 10_000)}
+
+
 def _codex_rule(entry: object) -> tuple | None:
     """One valid ``(selector, value, enabled)`` rule, or ``None`` if invalid."""
     if not isinstance(entry, dict) or not isinstance(entry.get('enabled'), bool):
