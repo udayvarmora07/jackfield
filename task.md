@@ -8,6 +8,30 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## Size, performance and Rust assessment (2026-11-17)
+
+- [x] Research current primary sources and inspect this app using agent-reach,
+  OpenCLI, OpenCLI Browser and Vercel agent-browser, as requested.
+- [x] Measure package/runtime size and representative startup, scan and hygiene
+  workloads; separate application bytes from shared interpreter/browser costs.
+- [x] Keep only verified size/performance improvements with unchanged behavior:
+  deduplicate identical font resources and test one-request Doctor scan reuse.
+- [x] Record a source-backed Rust/native/hybrid/full-rewrite decision, including
+  portability, security, maintenance, rollout and measured limitations.
+
+The maintainer permits a stack/language migration if research justifies it.
+Research does not itself select or ship a replacement. No skill data or native
+consumer configuration may be sacrificed for a timing or package-size claim.
+
+Verified outcome: the clean wheel is 14.32% smaller (1,069,942 → 916,682
+bytes). Three paired synthetic warm-cache CLI samples show median reductions
+of 18.7% at 1,000 skills and 25.6% at 10,000 for single-agent Doctor/hygiene.
+All 2,172 tests pass on each supported Python version, both smokes and artifact
+install probes pass. Rust/full migration remains an evidence-gated future
+option; the assessment recommends the optimized Python/Vue shipping reference.
+No language/framework/schema/runtime dependency changed. Full evidence:
+@docs/50-rust-size-and-performance-assessment-2026-11-17.md.
+
 ## Second five-task continuation (2026-11-17)
 
 - [x] Observe grouped personal Claude skill folders without asserting native discovery.

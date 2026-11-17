@@ -6,6 +6,11 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- Measured Rust/stack assessment and bounded scan/size evidence. Combined
+  single-agent Doctor/hygiene reuses one observation, with compatibility
+  fallback for malformed recursive layouts. Exact-copy font resources are
+  shared while retaining the existing weight/range declarations.
+
 - Read-only grouped personal-folder and Codex project declaration diagnostics,
   plugin invocation-intent caveats, lock-name collisions and source-path
   uncertainty. Native activation remains unknown.

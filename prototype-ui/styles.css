@@ -1,6 +1,6 @@
 @font-face{font-family:Plex Sans;src:url('../skillsmgr/webui/static/fonts/IBMPlexSans-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
-@font-face{font-family:Plex Sans;src:url('../skillsmgr/webui/static/fonts/IBMPlexSans-500-latin.woff2') format('woff2');font-weight:500;font-display:swap}
-@font-face{font-family:Plex Sans;src:url('../skillsmgr/webui/static/fonts/IBMPlexSans-600-latin.woff2') format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:Plex Sans;src:url('../skillsmgr/webui/static/fonts/IBMPlexSans-400-latin.woff2') format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:Plex Sans;src:url('../skillsmgr/webui/static/fonts/IBMPlexSans-400-latin.woff2') format('woff2');font-weight:600;font-display:swap}
 @font-face{font-family:Plex Mono;src:url('../skillsmgr/webui/static/fonts/IBMPlexMono-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:Plex Mono;src:url('../skillsmgr/webui/static/fonts/IBMPlexMono-500-latin.woff2') format('woff2');font-weight:500;font-display:swap}
 :root{--sans:'Plex Sans',system-ui,sans-serif;--mono:'Plex Mono',ui-monospace,monospace;--bg:#f2f3f1;--surface:#fbfbfa;--surface-2:#eceef0;--ink:#1a1c1f;--ink-2:#454a50;--muted:#5f666d;--faint:#6b727a;--line:#e4e6e9;--line-2:#ccd0d6;--accent:#0d6a63;--accent-2:#0a524d;--accent-ink:#fff;--accent-bg:#e2f0ee;--ok:#3f6b3f;--ok-bg:#e9f0e9;--warn:#7d590e;--warn-bg:#f5f0e0;--err:#a33526;--err-bg:#f7e8e5;--ring:#868d95;color-scheme:light}

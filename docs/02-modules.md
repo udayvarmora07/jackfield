@@ -108,6 +108,16 @@ lockfiles retain their separate parsers, limits, error shapes and link policies.
 
 ## `doctor.py`, `batch.py`
 
+**[SPEC] 2026-11-17 performance follow-up.** Combined Doctor/hygiene for a
+single agent scope shares one diagnostic scan within that request. Doctor
+keeps husks; hygiene filters them and refreshes affected duplicate annotations.
+Root-probe failures and recursive document-named directories retain separate
+scan behavior, including genuine errors. Standalone/global/all paths and
+freshness across requests are unchanged. This is not a persistent cache;
+measurements and scope limits are in
+@docs/50-rust-size-and-performance-assessment-2026-11-17.md.
+
+
 `doctor_report()` composes global/index, agent filesystem and optional hygiene
 reports for both frontends. Agent doctor uses the scope scanner's managed-peer
 link policy and reports root scan failures as degraded. Recursive discovery

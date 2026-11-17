@@ -51,6 +51,7 @@
 | @docs/archive/task-history-through-2026-11-17.md | Verbatim historical task milestones; open checkboxes there are not the live queue | Only for earlier task context |
 | @docs/archive/06-progress-log-through-2026-11-17.md | Verbatim progress entries moved in the second archival pass | Only for earlier delivery context |
 | @docs/49-read-only-compatibility-followups-2026-11-17.md | Grouped folders, project declarations, plugin intent and lockfile ambiguity boundaries | Before changing the read-only diagnostics |
+| @docs/50-rust-size-and-performance-assessment-2026-11-17.md | Measured size/performance, Rust/native/hybrid tradeoffs and migration gates | Before changing language, runtime or UI stack |
 | @docs/archive/06-progress-log-2026-09.md | Verbatim archived entries, 2026-09-04 … 2026-09-22 (160 entries) | Only when the resident log's pointer is not enough |
 | @docs/archive/06-progress-log-2026-08.md | Verbatim archived entries, 2026-08-13 … 2026-08-16 (+2 undated) | Only for the pre-web-UI GTK4 era |
 | @docs/07-context-strategy.md | Hot/warm/cold loading model, compaction anchors | Long sessions, context management |

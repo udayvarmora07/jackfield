@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "date": "2026-11-17",
+  "baseline_commit": "d97072efc11c904ce778e9525291edcd870ccf0f",
+  "candidate_source_sha256": {
+    "skillsmgr/doctor.py": "e36907cf61245af949202be28c0a27677b9257a61d01ca7986f8a5027581b4f2",
+    "skillsmgr/loader.py": "b6005b813d19c124b69c0536fbb3fc3e3af5dd1afb65684873fb001919fd8750"
+  },
+  "workload": "doctor --scope agents --hygiene --json",
+  "fixture": {
+    "document_bytes": 126,
+    "data": "synthetic disposable fixture; no personal skills"
+  },
+  "method": {
+    "process": "new CLI process per sample; bytecode compiled consistently in separate before/after source snapshots",
+    "filesystem_cache": "warm; not OS cache flushed",
+    "order": "before/after then after/before, alternating",
+    "output": "JSON serialized to /dev/null",
+    "host_contention": "shared host, including research browser processes",
+    "p95": null
+  },
+  "summary": [
+    {
+      "skills": 1000,
+      "samples_per_variant": 3,
+      "before_median_ms": 829.5,
+      "after_median_ms": 674.6,
+      "before_range_ms": [
+        812.3,
+        873.2
+      ],
+      "after_range_ms": [
+        664.5,
+        674.8
+      ],
+      "median_reduction_percent": 18.7
+    },
+    {
+      "skills": 10000,
+      "samples_per_variant": 3,
+      "before_median_ms": 8127.2,
+      "after_median_ms": 6045.1,
+      "before_range_ms": [
+        7954.7,
+        8160.3
+      ],
+      "after_range_ms": [
+        5824.5,
+        6306.4
+      ],
+      "median_reduction_percent": 25.6
+    }
+  ],
+  "samples": [
+    {
+      "size": 1000,
+      "sample": 1,
+      "variant": "before",
+      "wall_ms": 873.2,
+      "time": "0.87 0.77 0.09 46748",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 1000,
+      "sample": 1,
+      "variant": "after",
+      "wall_ms": 664.5,
+      "time": "0.66 0.59 0.06 46784",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 1000,
+      "sample": 2,
+      "variant": "after",
+      "wall_ms": 674.8,
+      "time": "0.67 0.59 0.07 46800",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 1000,
+      "sample": 2,
+      "variant": "before",
+      "wall_ms": 812.3,
+      "time": "0.81 0.69 0.11 46772",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 1000,
+      "sample": 3,
+      "variant": "before",
+      "wall_ms": 829.5,
+      "time": "0.82 0.73 0.08 46616",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 1000,
+      "sample": 3,
+      "variant": "after",
+      "wall_ms": 674.6,
+      "time": "0.67 0.60 0.06 47100",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 10000,
+      "sample": 1,
+      "variant": "before",
+      "wall_ms": 7954.7,
+      "time": "7.95 7.10 0.84 146636",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 10000,
+      "sample": 1,
+      "variant": "after",
+      "wall_ms": 6045.1,
+      "time": "6.04 5.47 0.56 146792",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 10000,
+      "sample": 2,
+      "variant": "after",
+      "wall_ms": 5824.5,
+      "time": "5.82 5.25 0.55 146736",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 10000,
+      "sample": 2,
+      "variant": "before",
+      "wall_ms": 8160.3,
+      "time": "8.15 7.33 0.80 146980",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 10000,
+      "sample": 3,
+      "variant": "before",
+      "wall_ms": 8127.2,
+      "time": "8.12 7.27 0.84 146936",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "size": 10000,
+      "sample": 3,
+      "variant": "after",
+      "wall_ms": 6306.4,
+      "time": "6.30 5.71 0.58 146908",
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "font_resources": {
+    "removed_exact_copies": 4,
+    "raw_bytes_saved": 153352,
+    "face_descriptors_and_content_hashes_unchanged": true
+  },
+  "artifact_sizes": {
+    "before_wheel_bytes": 1069942,
+    "after_wheel_bytes": 916682,
+    "wheel_bytes_saved": 153260,
+    "wheel_reduction_percent": 14.32,
+    "build": "pinned hash-locked toolchain; clean source snapshot; no Python/browser bundled",
+    "after_wheel_sha256": "c8be2029384a4c3b278d194280e08711b072876b564deff03fbccfc1983d23d8",
+    "package_source_payload_bytes": 2569939,
+    "installed_target_file_bytes_including_generated_bytecode_and_metadata": 4258350,
+    "packaged_source_files": 99,
+    "fresh_machine_python_browser_footprint": "not measured or bundled; depends on existing shared runtimes"
+  },
+  "research_tools": {
+    "agent_reach": [
+      "GitHub uv README",
+      "original Discord CTO Twitter thread via OpenCLI backend"
+    ],
+    "opencli_browser": "Vue performance guide state and main text in an owned background session",
+    "agent_browser": "Cargo profiles public documentation and isolated app font checks"
+  }
+}

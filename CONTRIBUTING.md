@@ -105,3 +105,9 @@ do not weaken the trust checks to accommodate a local PATH layout.
 1. For anything beyond a trivial fix, discuss the scope in an [issue](https://github.com/udayvarmora07/skills-manager/issues) first. If you cannot create an issue, open a draft PR with the proposal; wait for maintainer approval before changing a locked constraint.
 2. Keep PRs focused; include the verification output (compile + unittest + smokes).
 3. Update `CHANGELOG.md` under `Unreleased`.
+
+
+When package-data files are removed, build from a clean checkout or clean source
+snapshot. Ignored incremental build output can retain removed assets; the exact
+package-data gate must reject those artifacts. See
+[the size study](docs/50-rust-size-and-performance-assessment-2026-11-17.md).

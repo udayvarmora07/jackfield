@@ -649,6 +649,7 @@ def _document_dirs(entries) -> set[Path]:
 
 
 _SCAN_EVENT_LIMIT = 100
+DOCTOR_RESCAN_EVENT = "recursive document name is a directory; separate scans required"
 
 
 def _scan_degraded(collector, reason: str) -> None:
@@ -661,13 +662,24 @@ def _scan_degraded(collector, reason: str) -> None:
         collector.append({"section": "scope-scan", "reason": "additional scan failures omitted", "truncated": True})
 
 
-def _diagnostic_document_dirs(root: Path, collector) -> set[Path]:
+def _diagnostic_document_dirs(root: Path, collector, include_husks: bool = False) -> set[Path]:
     """Walk without following directory links, surfacing suppressed walk errors."""
     def onerror(_exc):
         _scan_degraded(collector, "recursive directory enumeration failed")
 
-    return {Path(directory) for directory, _dirs, files in os.walk(root, onerror=onerror, followlinks=False)
-            if any(name in DOCUMENT_NAMES for name in files)}
+    candidates = set()
+    needs_rescan = False
+    for directory, dirs, files in os.walk(root, onerror=onerror, followlinks=False):
+        has_file = any(name in DOCUMENT_NAMES for name in files)
+        if has_file:
+            candidates.add(Path(directory))
+        elif include_husks and any(name in DOCUMENT_NAMES for name in dirs):
+            needs_rescan = True
+    if needs_rescan:
+        # Internal sentinel remains visible even if other collector events hit
+        # their cap, so callers cannot accidentally treat this scan as complete.
+        collector.append({'section': 'scope-scan', 'reason': DOCTOR_RESCAN_EVENT})
+    return candidates
 
 
 def _diagnostic_flat_candidates(root: Path, collector) -> list[Path]:
@@ -777,7 +789,7 @@ def scan_dir(
         return entries
     if recursive:
         try:
-            candidates = sorted(_diagnostic_document_dirs(root, collector) if collector is not None
+            candidates = sorted(_diagnostic_document_dirs(root, collector, include_husks) if collector is not None
                                 else _document_dirs(root.rglob("*")))
         except OSError:
             _scan_degraded(collector, "recursive directory enumeration failed")

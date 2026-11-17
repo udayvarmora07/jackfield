@@ -13,11 +13,11 @@ import json
 import os
 from pathlib import Path
 
-from . import scopes
+from . import root_discovery, scopes
 from .diagnostics import diagnose as _diagnose
 from .errors import StoreError
 from .hygiene import hygiene_report
-from .loader import scan_dir
+from .loader import DOCTOR_RESCAN_EVENT, scan_dir
 
 __all__ = ["doctor_report", "hygiene_evidence", "require_scope", "scope_doctor_report"]
 
@@ -30,13 +30,13 @@ def require_scope(scope: str) -> None:
         raise StoreError(f"unknown scope {scope!r}")
 
 
-def scope_doctor_report(scope_id: str) -> dict:
+def scope_doctor_report(scope_id: str, *, _snapshot=None) -> dict:
     """Audit one agent scope directly from its filesystem tree.
 
     Malformed documents must stay visible here instead of being hidden behind
     ``store.doctor()``, which knows only the global tree.
     """
-    scope, entries, scan_issues = _scope_doctor_scan(scope_id)
+    scope, entries, scan_issues = _scope_snapshot(scope_id, _snapshot)
 
     def names(flag: str) -> list[str]:
         return sorted(str(entry["name"]) for entry in entries if entry.get(flag))
@@ -55,7 +55,7 @@ def scope_doctor_report(scope_id: str) -> dict:
     return report
 
 
-def _scope_doctor_scan(scope_id: str):
+def _scope_doctor_scan(scope_id: str, *, collector=None):
     """Keep managed peer-link reads while distinguishing an unreadable root."""
     scope = scopes.scope_by_id(scope_id)
     if scope is None:
@@ -68,10 +68,20 @@ def _scope_doctor_scan(scope_id: str):
         pass
     except OSError as exc:
         degraded.append({"section": "scope-scan", "reason": str(exc)[:_MAX_REASON]})
-    entries = [] if degraded else scopes.scan_scope(scope_id, include_husks=True)
+    entries = [] if degraded else _scan_scope(scope_id, collector)
 
     issues = {"ok": False, "degraded": degraded} if degraded else {}
     return scope, entries, issues
+
+
+def _scan_scope(scope_id, collector):
+    if collector is None:
+        return scopes.scan_scope(scope_id, include_husks=True)
+    return scopes.scan_scope(scope_id, include_husks=True, collector=collector)
+
+
+def _scope_snapshot(scope_id, snapshot):
+    return _scope_doctor_scan(scope_id) if snapshot is None else snapshot
 
 
 def _add_scope_summary(report: dict) -> None:
@@ -125,9 +135,9 @@ def _hygiene_records(store, scope: str) -> tuple[list[dict], list[dict]]:
     return records, degraded
 
 
-def hygiene_evidence(store, scope: str, *, project_root=None) -> dict:
+def hygiene_evidence(store, scope: str, *, project_root=None, _snapshot=None) -> dict:
     """The read-only hygiene report for one scope (or ``all``)."""
-    records, degraded = _hygiene_records(store, scope)
+    records, degraded = _hygiene_snapshot(store, scope, _snapshot)
     try:
         result = hygiene_report(records, scope=scope, project_root=project_root)
     except Exception as exc:
@@ -155,12 +165,47 @@ def hygiene_evidence(store, scope: str, *, project_root=None) -> dict:
     return result
 
 
+def _hygiene_snapshot(store, scope, snapshot):
+    return _hygiene_records(store, scope) if snapshot is None else snapshot
+
+
+def _agent_report(store, scope, hygiene):
+    if not hygiene:
+        return scope_doctor_report(scope), None
+    events = []
+    snapshot = _scope_doctor_scan(scope, collector=events)
+    if any(event.get('reason') == DOCTOR_RESCAN_EVENT for event in events):
+        return _rescan_agent_report(store, scope, events)
+    report = scope_doctor_report(scope, _snapshot=snapshot)
+    if snapshot[2]:
+        # Preserve the independent hygiene observation when the root probe fails.
+        return report, None
+    records = _without_husks(snapshot[1])
+    return report, (records, [{**event, 'scope': scope} for event in events])
+
+
+def _rescan_agent_report(store, scope, events):
+    """Retain diagnostics while preserving the distinct recursive scan rules."""
+    report = scope_doctor_report(scope)
+    records, degraded = _hygiene_records(store, scope)
+    degraded.extend({**event, 'scope': scope} for event in events
+                    if event.get('reason') != DOCTOR_RESCAN_EVENT)
+    return report, (records, degraded)
+
+
+def _without_husks(entries):
+    records = [row for row in entries if not row.get('document_missing')]
+    if len(records) != len(entries):
+        root_discovery.annotate_instance_states(records)
+    return records
+
+
 def doctor_report(store, scope: str, *, hygiene: bool = False, project_root=None) -> dict:
     """Compose the doctor report for ``global``, one agent scope, or ``all``."""
     require_scope(scope)
-    report = store.doctor() if scope in ("global", "all") else scope_doctor_report(scope)
+    report, snapshot = (store.doctor(), None) if scope in ("global", "all") else _agent_report(store, scope, hygiene)
     if scope == "all":
         _add_scope_summary(report)
     if hygiene:
-        report["hygiene"] = hygiene_evidence(store, scope, project_root=project_root)
+        report["hygiene"] = hygiene_evidence(store, scope, project_root=project_root, _snapshot=snapshot)
     return report
