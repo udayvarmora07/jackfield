@@ -103,5 +103,6 @@ def workspaces_payload(project: str | None = None, allowed_roots: list[Path] | N
     return {
         "adapters": catalog(),
         "project": project_observation(project, allowed_roots),
+        "managed_roots": list(dict.fromkeys(str(Path(root).resolve()) for root in allowed_roots or ())),
         "model": "read-only adapter evidence; effective_state remains unresolved",
     }

@@ -8,6 +8,61 @@ dated 2026-09-23 and later; everything older lives verbatim in
 @docs/archive/README.md.** Read the digest below first — it is the part a session
 actually needs. Facts flagged stale here are corrected in the owning doc.
 
+## 2026-11-17 — Project context selection and verification
+
+**[NOTE]** Completed docs/45 N7 within the existing diagnostic roots. V2
+Quality and Workspaces now share a Project path control, configured-folder
+suggestions and a clear action. The path remains in the current Tools
+component only. The existing Doctor hygiene route accepts contained project
+context for lockfiles and Claude project/local settings and skill listing;
+ordinary inventory scope summaries retain their original meaning.
+
+Ten Python regressions and four Node behavior checks cover accepted/missing/
+outside paths, traversal and invalid path values, escaping project/settings
+links, explicit operator roots, project-listing isolation, repeated no-write
+HTTP reads, URL encoding, stale replies/errors and clearing the selection.
+Tests reproduced the missing context and mixed-working-project listing before
+the fixes. Accepted Workspaces observations now use the success state.
+The two changed complexity baselines are deliberately 5 and 9, both below 15;
+no unrelated ratchet entry changed.
+
+**[NOTE] Verification:** the fresh final tree passes 2,077 tests on Python
+3.12 (three optional skips), both smokes, docs/design/complexity gates (1,328
+functions), pinned Ruff 0.16.8 and Bandit 1.9.4 (zero findings), compilation
+and the changed JS syntax check. Fresh hash-locked wheel/sdist builds pass
+package-content checks, the installed-wheel AI verification and isolated
+project-context probes from both exact artifacts. All 99 packaged source/data
+files in the wheel were compared with the current checkout. Artifact hashes
+and private evidence are retained at
+`/tmp/skillsmgr-project-context-20261117-7cxnimhg`.
+
+Agent-browser exercised project selection across Quality/Workspaces,
+outside-path refusal, clearing and keyboard Tab/Enter submission. Long paths
+fit 320, 768 and 1,440-pixel layouts in observed light/dark states. Both new
+picker forms passed axe-core 4.12.1 audits with zero violations and no
+incomplete rules; no page runtime errors were observed. Synthetic selected
+project metadata lists of 0/1/10,000 rows were checked separately; this is not
+a 10,000-file scan measurement. No human perceptual or spoken-screen-reader
+sign-off is claimed.
+
+**[NOTE] Hostile review and limits:** report context is passed per request,
+without a persistent setting or new mutation path. The picker does not walk
+project directories to suggest choices and cannot widen operator roots.
+Escaping relevant links are refused before hygiene reads. These filesystem
+checks are not atomic against another writer changing links during analysis;
+existing report/scanner limits and unavailable-evidence semantics still apply.
+Active-task and visible-process checks found no other writer before edits.
+No new command, flag, Store method, schema, runtime dependency or live model
+call was added. The maintainer authorized committing and pushing this batch
+to main after a fresh verification pass and remote check. The verified private
+backup and recovery ref `refs/wip/project-context-20261117` remain available.
+Human sign-offs, native fidelity, owner decisions and publication remain open.
+
+**[NOTE] Previous delivery follow-up:** hosted CI run
+[44070237259](https://github.com/udayvarmora07/skills-manager/actions/runs/44070237259)
+completed all 15 jobs successfully on `560c83a`. That hosted result applies to
+the previous main delivery, not this local project-context change.
+
 ## 2026-11-17 — Prepare remaining-task fixes for main
 
 **[NOTE]** The maintainer explicitly requested a main-branch push of the

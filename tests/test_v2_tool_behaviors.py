@@ -112,6 +112,56 @@ class ToolBehaviorTests(unittest.TestCase):
         self.assertIsNone(out["workspace"])
         self.assertEqual(out["error"], "Project unavailable")
 
+    def test_quality_project_query_is_encoded_and_clear_restores_no_project(self):
+        out = run_node(r"""
+          handler=async()=>({hygiene:{findings:[]}});
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality'});
+          h.changeProject('/allowed/project & one');await h.loadQuality();
+          const report=h.quality;
+          h.changeProject('');const cleared=h.quality;await h.loadQuality();
+          return {urls:calls.map(c=>c.url),report,cleared};
+        """)
+        self.assertIn('&project=%2Fallowed%2Fproject%20%26%20one', out['urls'][0])
+        self.assertEqual(out['urls'][1], '/api/doctor?scope=all&hygiene=1')
+        self.assertEqual(out['report'], {'findings': []})
+        self.assertIsNone(out['cleared'])
+
+    def test_project_change_retires_in_flight_reports_and_errors(self):
+        out = run_node(r"""
+          const pending=[];handler=url=>new Promise((resolve,reject)=>pending.push({resolve,reject}));
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'quality',project:'/old',consumer:'codex',
+            quality:{old:true},workspace:{old:true},report:{old:true}});
+          const a=h.loadQuality(),b=h.loadWorkspace(),c=h.explain();
+          h.changeProject('/new');
+          pending[0].resolve({hygiene:{stale:true}});pending[1].resolve({project:{path:'/old'}});pending[2].reject(Error('old error'));
+          await Promise.all([a,b,c]);
+          return {quality:h.quality,workspace:h.workspace,report:h.report,error:h.error,loading:h.loading};
+        """)
+        for field in ('quality', 'workspace', 'report'):
+            self.assertIsNone(out[field])
+        self.assertEqual(out['error'], '')
+        self.assertEqual(out['loading'], {})
+
+    def test_workspace_roots_remain_available_after_a_refused_project(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter);
+          handler=async()=>({managed_roots:['/allowed'],project:{status:'not-requested'}});
+          await h.loadWorkspace();
+          h.changeProject('/outside');handler=async()=>{throw Error('Outside allowed folders')};
+          await h.loadWorkspace();
+          return {roots:h.projectRoots,workspace:h.workspace,error:h.error};
+        """)
+        self.assertEqual(out['roots'], ['/allowed'])
+        self.assertIsNone(out['workspace'])
+        self.assertEqual(out['error'], 'Outside allowed folders')
+
+    def test_accepted_workspace_is_not_shown_as_a_warning(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{workspace:{project:{status:'accepted'}}});
+          return {tone:h.projectTone};
+        """)
+        self.assertEqual(out['tone'], 'ok')
+
     def test_failed_validation_cannot_relabel_old_statistics_as_validation(self):
         out = run_node(r"""
           const h=mount(ctx.window.SkillsV2ToolCenter,{validationName:'one',report:{all_total:4},reportKind:'stats'});

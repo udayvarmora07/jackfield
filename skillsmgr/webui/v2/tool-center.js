@@ -8,6 +8,16 @@
   function stored(key,fallback){try{return localStorage.getItem(key)||fallback}catch(e){return fallback}}
   function remember(key,value){try{localStorage.setItem(key,value);return true}catch(e){return false}}
   const SCAN_MODES=['off','static','llm'];
+  const projectPicker=(action)=>`
+        <form class="tp-project card tp-panel" @submit.prevent="${action}">
+          <label class="tp-field" for="tp-proj">Project path
+            <input id="tp-proj" class="field tp-mono" :value="project" @input="changeProject($event.target.value)" list="tp-project-roots" placeholder="Choose an allowed folder or enter a path" autocomplete="off" spellcheck="false" aria-describedby="tp-project-help">
+          </label>
+          <datalist id="tp-project-roots"><option v-for="root in projectRoots" :key="root" :value="root"></option></datalist>
+          <p id="tp-project-help" class="tp-fine">Optional. Choose an allowed folder or a project inside it. Leave this blank to use the default report context.</p>
+          <details class="tp-more"><summary>Allowed folders</summary><ul v-if="projectRoots.length" class="tp-rows"><li v-for="root in projectRoots" :key="root" class="tp-mono">{{ root }}</li></ul><p v-else class="tp-fine">Allowed folders could not be loaded. <button type="button" class="btn btn-soft btn-sm" @click="loadProjectRoots">Retry folders</button></p><p class="tp-fine">This picker cannot add folders to the server's allowed list.</p></details>
+          <div class="tp-acts"><button class="btn btn-ink" :disabled="loading.qualityEnvelope||loading.workspace">Inspect project</button><button v-if="project" type="button" class="btn btn-soft" @click="clearProject">Clear project</button></div>
+        </form>`;
   // Advisory SkillSpector evidence for one review; every value is rendered as text.
   const scanPanel=(ev)=>`
             <section v-if="${ev}" class="tp-scan" aria-label="SkillSpector scan">
@@ -31,7 +41,7 @@
       runnerPreview:'',runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
       catalog:null,profile:{name:'',description:'',skills:'',targets:''},profilePreview:null,plan:null,planTargets:[],
       templates:null,templateName:'',templateBody:'',templatePreview:null,creating:false,skill:{name:'',description:'',category:'',version:'',license:'',compatibility:'',allowed_tools:'',body:'',scope:'global'},
-      quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',workspace:null,consumer:'',
+      quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',projectRoots:[],projectCatalog:null,workspace:null,consumer:'',
       systemDark:matchMedia('(prefers-color-scheme: dark)').matches,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches, theme:stored('skillsmgr-theme','system'),size:stored('skillsmgr-text-size','standard'),locale:stored('skillsmgr-locale','system'),
       profileFilter:'',profileExtra:'',chosen:'',sourceReview:null,sourceTarget:null,sourceSuccess:null,snapshots:null,historyName:stored('skillsmgr-history-name',''),externalScan:SCAN_MODES.includes(stored('skillsmgr-external-scan','off'))?stored('skillsmgr-external-scan','off'):'off',historyScope:stored('skillsmgr-history-scope','global'),history:null,textSnapshots:null,textSnapshotTarget:null,
     };
@@ -47,7 +57,7 @@
       missingProfileNames(){return this.profileNames.filter(n=>!this.skillNames.includes(n));},
       reviewValid(){const r=this.review;return !!(r&&r.inspection&&r.inspection.validation&&r.inspection.validation.valid);},
       reportTitle(){return {stats:'Context use',validate:'Validation',consumer:'Consumer explanation',doctor:'Doctor report'}[this.reportKind]||'Report';},
-      projectTone(){const s=((this.workspace||{}).project||{}).status||'';return /^(ok|observed|contained|inside)/.test(s)?'ok':s==='not-requested'?'off':'warn';},
+      projectTone(){const s=((this.workspace||{}).project||{}).status||'';return /^(accepted|ok|observed|contained|inside)/.test(s)?'ok':s==='not-requested'?'off':'warn';},
       selected(){return this.target || (this.chosen !== '' ? this.records[Number(this.chosen)] : null) || null;
       },
       selectedWritable(){const t=this.selected;
@@ -69,7 +79,7 @@
        if(p==='source-update'&&this.sourceReviewHandoff)this.$nextTick(()=>this.loadSourceHandoff(this.sourceReviewHandoff));
        if(p==='profiles') this.loadCatalog();
        if(p==='templates') this.loadTemplates();
-       if(p==='quality') this.loadQuality();
+       if(p==='quality'){this.loadProjectRoots();this.loadQuality();}
        if(p==='workspaces') this.loadWorkspace();
        if(p==='recovery-extra') this.loadHistory();
       }}, target(){this.sequence++;this.retireSource();
@@ -197,7 +207,11 @@
       for(const k of Object.keys(p))if(!p[k])delete p[k];
       this.result=await api('/api/skills?scope='+enc(this.skill.scope),json(p));
       this.$emit('changed')})},
-      async loadQuality(){this.quality=null;const envelope=await this.read('/api/doctor?scope=all&hygiene=1','qualityEnvelope');if(envelope){this.quality=envelope.hygiene||null;if(!this.quality)this.error='The server returned no hygiene report.';}},
+      projectQuery(){return this.project.trim()?'&project='+enc(this.project.trim()):'';},
+      changeProject(value){this.project=value;this.sequence++;this.loading={};this.error='';this.quality=null;this.qualityEnvelope=null;this.workspace=null;this.report=null;},
+      clearProject(){this.changeProject('');return this.page==='quality'?this.loadQuality():this.loadWorkspace();},
+      async loadProjectRoots(){const catalog=await this.read('/api/workspaces','projectCatalog');if(catalog)this.projectRoots=catalog.managed_roots||[];},
+      async loadQuality(){this.quality=null;this.qualityEnvelope=null;const envelope=await this.read('/api/doctor?scope=all&hygiene=1'+this.projectQuery(),'qualityEnvelope');if(envelope){this.quality=envelope.hygiene||null;if(!this.quality)this.error='The server returned no hygiene report.';}},
       inspectInstance(i){const found=this.records.filter(r=>r.name===i.name&&r.scope===i.scope&&(!(i.physical_path||i.path)||(r.physical_path||r.path)===(i.physical_path||i.path)));
       const r=found.length===1?found[0]:null;
       if(r)this.$emit('inspect',r);
@@ -211,7 +225,7 @@
       await this.task(async()=>{this.reportKind='validate';this.report=null;
       await this.read('/api/validate','report',json({name:r.name,scope:r.scope}))})},
       async validateNamed(){if(!this.validationName.trim())return;await this.task(async()=>{this.reportKind='validate';this.report=null;await this.read('/api/validate','report',json({name:this.validationName.trim(),scope:this.validationScope}));});},
-      loadWorkspace(){this.workspace=null;this.read('/api/workspaces'+(this.project.trim()?'?project='+enc(this.project.trim()):''),'workspace')},
+      async loadWorkspace(){this.workspace=null;this.report=null;const workspace=await this.read('/api/workspaces'+(this.project.trim()?'?project='+enc(this.project.trim()):''),'workspace');if(workspace)this.projectRoots=workspace.managed_roots||[];},
       async explain(){this.reportKind='consumer';
       this.report=null;
       await this.read('/api/doctor?explain='+enc(this.consumer)+(this.project.trim()?'&project='+enc(this.project.trim()):''),'report')},
@@ -544,7 +558,9 @@ ${scanPanel('(review.inspection||{}).external_scan')}
       <template v-else-if="page==='quality'">
         <h1 class="h1" id="h1" tabindex="-1">Quality</h1>
         <p class="lede">What the files say about your skills: broken documents, weak descriptions, copies that drifted apart. It does not certify safety or which copy an agent loads.</p>
+        ${projectPicker('loadQuality')}
         <template v-if="quality">
+          <p v-if="qualityEnvelope&&qualityEnvelope.project" class="tp-fine" role="status">Project checked: <span class="tp-mono">{{ qualityEnvelope.project.path }}</span></p>
           <section v-if="claudeListing" class="card tp-panel claude-listing" aria-labelledby="tp-cl-h">
             <header class="tp-panel-h">
               <div><h2 id="tp-cl-h">What Claude Code sees</h2><p>The skill listing Claude Code builds from the copies this report observed.</p></div>
@@ -656,11 +672,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
       <template v-else-if="page==='workspaces'">
         <h1 class="h1" id="h1" tabindex="-1">Workspaces</h1>
         <p class="lede">Where each agent looks for skills, and what a given project folder adds. This is declared evidence — which copy an agent actually loads stays unknown.</p>
-        <form class="tp-search" @submit.prevent="loadWorkspace">
-          <label class="sr-only" for="tp-proj">Project path</label>
-          <input id="tp-proj" class="field tp-mono" v-model="project" placeholder="/absolute/path/to/a/project" aria-label="Project path">
-          <button class="btn btn-ink">Inspect project</button>
-        </form>
+        ${projectPicker('loadWorkspace')}
         <template v-if="workspace">
           <section v-if="(workspace.project||{}).path || (workspace.project||{}).status!=='not-requested'" class="card tp-panel" aria-labelledby="tp-po-h">
             <header class="tp-panel-h"><div><h2 id="tp-po-h">Project</h2><p class="tp-mono">{{(workspace.project||{}).path||'No path requested'}}</p></div><span :class="['pill', projectTone]">Status: {{human((workspace.project||{}).status)}}</span></header>

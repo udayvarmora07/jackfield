@@ -6,6 +6,9 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- A shared project selector in v2 Quality and Workspaces, using the server's
+  existing allowed folders for read-only lockfile and Claude listing checks.
+  Changing the path clears old evidence and ignores stale responses.
 - Home listing-budget estimates for Claude Code and Codex, with independent
   loading, partial-evidence labels and retry.
 - Informational authoring hints for examples, validation language and nested

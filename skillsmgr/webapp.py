@@ -31,7 +31,7 @@ from .diagnostics import diagnose as _diagnose
 from .launcher_security import trusted_executable
 from .web_security import RequestError, validate_request
 from .web_serialization import json_bytes, parse_json_object
-from .adapters import workspaces_payload
+from .adapters import project_observation, workspaces_payload
 from .catalog import delete_profile, enrich_rows, load_catalog, profile_preview, save_profile, update_tags
 from .external_scan import scan_options
 from .path_safety import contained_path
@@ -225,6 +225,31 @@ def _doctor_explain(report: dict, qs: dict, consumer: str, diagnostics_roots) ->
     )
 
 
+def _doctor_project(qs: dict, roots) -> dict | None:
+    """Validate project context before any hygiene read; never expand HTTP roots.
+
+    Project settings and the two inspected skill roots must resolve inside the
+    selected project. Like other filesystem observations this is not an atomic
+    snapshot against an unrelated process changing links during the read.
+    """
+    raw = (qs.get("project", [""])[0] or "").strip()
+    if not raw:
+        return None
+    observed = project_observation(raw, roots)
+    if observed["status"] != "accepted":
+        raise StoreError("project must be an existing folder inside the server's allowed folders")
+    project = Path(observed["path"])
+    relatives = (".claude", ".claude/skills", ".claude/settings.json", ".claude/settings.local.json",
+                 ".agents", ".agents/skills", "skills-lock.json", "apm.yml")
+    try:
+        for relative in relatives:
+            if not (project / relative).resolve().is_relative_to(project):
+                raise StoreError("project context contains a link outside the selected folder")
+    except (OSError, RuntimeError, ValueError):
+        raise StoreError("project context paths could not be checked") from None
+    return observed
+
+
 def _doctor_payload(store: Store, qs: dict, diagnostics_roots=None) -> dict:
     """Build the ``/api/doctor`` payload, optionally with the #12 explain block.
 
@@ -239,7 +264,11 @@ def _doctor_payload(store: Store, qs: dict, diagnostics_roots=None) -> dict:
     passes no boundary (it already runs as the user); HTTP always does.
     """
     scope, hygiene_requested, consumer = _validated_doctor_query(qs)
-    report = doctor.doctor_report(store, scope, hygiene=hygiene_requested)
+    project = _doctor_project(qs, diagnostics_roots or [store.data_dir]) if hygiene_requested else None
+    options = {"project_root": project["path"]} if project else {}
+    report = doctor.doctor_report(store, scope, hygiene=hygiene_requested, **options)
+    if project:
+        report["project"] = project
     _doctor_explain(report, qs, consumer, diagnostics_roots)
     return report
 

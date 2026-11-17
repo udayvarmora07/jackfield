@@ -4,6 +4,18 @@
 
 **AI manifest**: Single source of truth for remaining work on skills-manager. Update after every step. Notation: `[ ]` unstarted, `[/]` in progress, `[x]` done. Milestones: (1) docs layer, (2) GUI, (3) zero-error iteration loop.
 
+## Project context continuation (2026-11-17)
+
+- [x] Complete docs/45 N7: share a read-only project selector between v2
+  Quality and Workspaces; pass contained project context to the existing
+  hygiene report, refuse escaping project links, and verify stale responses.
+  Existing server roots remain the boundary; no new CLI command or Store method.
+  Verified with 14 new regressions and 2,077 total tests on Python 3.12
+  (three optional skips), both smokes, browser keyboard/narrow-layout checks,
+  picker accessibility audits, static/docs/design/complexity gates and fresh
+  pinned wheel/sdist installation probes. Main integration is authorized; the original 15
+  approval, human-study, native-fidelity and deferred tracker entries remain open.
+
 ## Remaining-task verification (2026-11-17)
 
 The maintainer requested pushing this verified batch to main. Delivery

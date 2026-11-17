@@ -94,7 +94,7 @@ problem on 0.167.0-alpha.4.1.
 | N4 | Risk checks on prose, not only scripts | Snyk and Unit 42 report that real malicious skills put the lure in `SKILL.md` and `references/` text; `risk_file_listing` reads script files only | No |
 | N5 | "Changed since last scan" alert | Users want a skill that was fine yesterday flagged when it changes; content hashes already exist | No, if it stays inside hygiene |
 | N6 | Authoring-smell lints, info level | arXiv 2607.01456 found at least one smell in over 99% of the skills it studied; several are static (no example, no validation step, dated content, reference nesting deeper than one level) | No |
-| N7 | Project picker in the v2 UI | Several report sections say "unavailable: no project root"; the desktop competitor shipped project management on 2026-11-12 | No, within the existing confinement rule |
+| N7 | Project picker in the v2 UI | Several report sections say "unavailable: no project root"; the desktop competitor shipped project management on 2026-11-12 | Implemented 2026-11-17 within the existing confinement rule; see [project context](08-web-ui.md#2026-11-17-project-context) |
 | N8 | MCP server mode | Lets agents drive the tool and qualifies it for MCP registries | Yes (new surface) |
 | N9 | Manage MCP servers and AGENTS.md beside skills | The most repeated ask on the desktop competitor's tracker; MON-Q2 in docs/27 | Yes (scope change, needs an ADR) |
 

@@ -122,13 +122,13 @@ def _hygiene_records(store, scope: str) -> tuple[list[dict], list[dict]]:
     return records, degraded
 
 
-def hygiene_evidence(store, scope: str) -> dict:
+def hygiene_evidence(store, scope: str, *, project_root=None) -> dict:
     """The read-only hygiene report for one scope (or ``all``)."""
     records, degraded = _hygiene_records(store, scope)
     try:
-        result = hygiene_report(records, scope=scope)
+        result = hygiene_report(records, scope=scope, project_root=project_root)
     except Exception as exc:
-        result = hygiene_report([], scope=scope)
+        result = hygiene_report([], scope=scope, project_root=project_root)
         degraded.append({
             "section": "hygiene-report",
             "reason": "complete hygiene analysis was unavailable",
@@ -141,12 +141,12 @@ def hygiene_evidence(store, scope: str) -> dict:
     return result
 
 
-def doctor_report(store, scope: str, *, hygiene: bool = False) -> dict:
+def doctor_report(store, scope: str, *, hygiene: bool = False, project_root=None) -> dict:
     """Compose the doctor report for ``global``, one agent scope, or ``all``."""
     require_scope(scope)
     report = store.doctor() if scope in ("global", "all") else scope_doctor_report(scope)
     if scope == "all":
         _add_scope_summary(report)
     if hygiene:
-        report["hygiene"] = hygiene_evidence(store, scope)
+        report["hygiene"] = hygiene_evidence(store, scope, project_root=project_root)
     return report

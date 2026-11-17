@@ -1019,14 +1019,14 @@ def _scan_project_claude_listing(project_root, degraded: list[dict]) -> list[dic
 def _claude_listing_records(prepared: list[dict], project_root,
                             degraded: list[dict]) -> tuple[list[dict], list[dict]]:
     """Split observed instances into Claude Code's personal and project roots."""
-    personal, project, seen = [], [], set()
+    personal, project = [], []
     for record in prepared:
         scopes = _record_scopes(record)
         if _CLAUDE_PERSONAL_SCOPE in scopes:
             personal.append(record)
-        elif _CLAUDE_PROJECT_SCOPE in scopes:
+        elif _CLAUDE_PROJECT_SCOPE in scopes and project_root is None:
             project.append(record)
-        seen.add(_identity(record))
+    seen = {_identity(record) for record in personal + project}
     if project_root is not None:
         for row in _scan_project_claude_listing(project_root, degraded):
             if _identity(row) not in seen:

@@ -2381,9 +2381,9 @@
       "lineno": 1220
     },
     "skillsmgr/hygiene.py::_claude_listing_records": {
-      "complexity": 7,
-      "end_lineno": 1003,
-      "lineno": 987
+      "complexity": 9,
+      "end_lineno": 1035,
+      "lineno": 1019
     },
     "skillsmgr/hygiene.py::_claude_listing_section": {
       "complexity": 12,
@@ -5486,9 +5486,9 @@
       "lineno": 204
     },
     "skillsmgr/webapp.py::_doctor_payload": {
-      "complexity": 1,
-      "end_lineno": 231,
-      "lineno": 215
+      "complexity": 5,
+      "end_lineno": 273,
+      "lineno": 253
     },
     "skillsmgr/webapp.py::_doctor_query": {
       "complexity": 2,
