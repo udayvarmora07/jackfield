@@ -1486,9 +1486,9 @@
       "lineno": 95
     },
     "skillsmgr/doctor.py::_hygiene_records": {
-      "complexity": 8,
-      "end_lineno": 122,
-      "lineno": 110
+      "complexity": 7,
+      "end_lineno": 125,
+      "lineno": 112
     },
     "skillsmgr/doctor.py::_scope_doctor_scan": {
       "complexity": 7,
@@ -3986,8 +3986,8 @@
       "lineno": 74
     },
     "skillsmgr/scopes.py::scan_scope": {
-      "complexity": 4,
-      "end_lineno": 533,
+      "complexity": 6,
+      "end_lineno": 535,
       "lineno": 509
     },
     "skillsmgr/scopes.py::scope_by_id": {

@@ -1554,16 +1554,17 @@ def _codex_budget(window: str, home=None) -> dict:
             "config_status": config['status']}
 
 
-def _codex_listing_status(listed: list, total: int, budget_tokens: int | None) -> str:
+def _codex_listing_status(listed: list, total: int, budget_tokens: int | None,
+                         unknown_metadata: int = 0) -> str:
+    if unknown_metadata or budget_tokens is None:
+        return "unknown"
     if not listed:
         return "no_instances"
-    if budget_tokens is None:
-        return "unknown"
     return "over_budget_estimate" if total > budget_tokens else "within_budget"
 
 
-def _codex_listing_rows(prepared: list[dict], home) -> tuple[list[tuple], dict]:
-    """Listed ``(record, document)`` pairs plus counts of excluded instances."""
+def _codex_listing_candidates(prepared: list[dict]) -> tuple[list[tuple], dict]:
+    """Collect readable user-root documents and earlier exclusion counts."""
     excluded = {"disabled": 0, "unreadable": 0, "config_disabled": 0, "explicit_only": 0}
     candidates = []
     for record in prepared:
@@ -1575,18 +1576,74 @@ def _codex_listing_rows(prepared: list[dict], home) -> tuple[list[tuple], dict]:
             excluded["unreadable"] += 1
         else:
             candidates.append((record, Path(str(record.get("path") or "")) / "SKILL.md"))
-    states = native_state.observe_codex_states(
-        [(str(r.get("name", "")), doc) for r, doc in candidates], home=home)
-    listed, explicit = [], []
+    return candidates, excluded
+
+
+def _codex_partition_candidates(candidates: list[tuple], states: list[dict]) -> tuple:
+    """Separate definite listing, explicit-only and unread metadata states."""
+    listed, explicit, unknown = [], [], []
+    excluded_config, missing_metadata = 0, 0
     for (record, document), state in zip(candidates, states):
         if state.get("observed_setting") == "disabled":
-            excluded["config_disabled"] += 1
-        elif native_state.codex_implicit_invocation(document.parent)["state"] == "explicit_only":
+            excluded_config += 1
+            continue
+        invocation = native_state.codex_implicit_invocation(document.parent)
+        if invocation["state"] == "unread":
+            unknown.append((record, invocation.get("reason", "unreadable")))
+        elif invocation["state"] == "explicit_only":
             explicit.append(str(record.get("name", "")))
         else:
             listed.append((record, document))
+            if not os.path.lexists(document.parent / "agents" / "openai.yaml"):
+                missing_metadata += 1
+    return listed, explicit, unknown, excluded_config, missing_metadata
+
+
+def _codex_unknown_reason(reason: object) -> str:
+    """Map native metadata read failures to a bounded reason category."""
+    reason_text = str(reason).lower()
+    if "link" in reason_text or "symlink" in reason_text:
+        return "linked"
+    if "regular" in reason_text or "fifo" in reason_text:
+        return "non_regular"
+    if "large" in reason_text:
+        return "oversized"
+    if "unicode" in reason_text or "decode" in reason_text:
+        return "undecodable"
+    if "unrecognised" in reason_text or "unrecognized" in reason_text:
+        return "unrecognized_value"
+    return "unreadable"
+
+
+def _codex_unknown_metadata_block(unknown: list[tuple], missing_metadata: int) -> dict:
+    """Build bounded counts and identifiers without returning metadata text."""
+    reason_counts = {"linked": 0, "non_regular": 0, "oversized": 0,
+                     "undecodable": 0, "unrecognized_value": 0, "unreadable": 0}
+    unknown_names = []
+    for record, reason in unknown:
+        reason_counts[_codex_unknown_reason(reason)] += 1
+        if len(unknown_names) < MAX_BRIDGE_NAMES:
+            unknown_names.append(_bounded(str(record.get("name", "")), 128))
+    return {
+        "total": len(unknown), "names": sorted(unknown_names),
+        "omitted": max(0, len(unknown) - len(unknown_names)),
+        "reasons": reason_counts,
+        "missing_metadata_default_listed": missing_metadata,
+    }
+
+
+def _codex_listing_rows(prepared: list[dict], home) -> tuple[list[tuple], dict, list[str], dict]:
+    """Known listing rows, exclusions, and bounded unread-metadata evidence."""
+    candidates, excluded = _codex_listing_candidates(prepared)
+    states = native_state.observe_codex_states(
+        [(str(r.get("name", "")), doc) for r, doc in candidates], home=home)
+    listed, explicit, unknown, config_disabled, missing_metadata = _codex_partition_candidates(
+        candidates, states)
+    excluded["config_disabled"] += config_disabled
     excluded["explicit_only"] = len(explicit)
-    return listed, excluded, sorted(explicit)
+    excluded["unknown_metadata"] = len(unknown)
+    unknown_block = _codex_unknown_metadata_block(unknown, missing_metadata)
+    return listed, excluded, sorted(explicit), unknown_block
 
 
 _CODEX_EXPLICIT_EXPLANATION = (
@@ -1620,7 +1677,7 @@ def _codex_explicit_finding(block: dict) -> list[dict]:
 
 def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[dict, list[dict]]:
     """Estimate Codex's user-root listing against its observed/default budget."""
-    listed, excluded, explicit = _codex_listing_rows(prepared, home)
+    listed, excluded, explicit, unknown_metadata = _codex_listing_rows(prepared, home)
     explicit_block = _codex_explicit_block(explicit)
     total, cut = 0, []
     for record, document in listed:
@@ -1632,15 +1689,18 @@ def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[
             cut.append(name)
     budget = _codex_budget(window, home)
     budget_tokens = budget["budget_tokens"]
-    status = _codex_listing_status(listed, total, budget_tokens)
+    status = _codex_listing_status(listed, total, budget_tokens, unknown_metadata["total"])
     section = {
         "version": 1, "consumer": "codex", "source": _CODEX_LISTING_SOURCE,
         "effective_state": "unknown", "confidence": "partial", "limits": _CODEX_LISTING_LIMITS,
         "status": status, "instances_observed": len(listed) + sum(excluded.values()),
         "listed_skills": len(listed), "excluded": excluded,
+        "unknown_metadata": unknown_metadata,
         "listing_tokens_estimate": total,
+        "listing_estimate_scope": "known metadata only",
         "listing_tokens_method": "ceil(utf-8 bytes / 4) per line, as Codex counts",
-        "budget": budget, "tokens_to_free": max(0, total - budget_tokens) if budget_tokens is not None else None,
+        "budget": budget, "tokens_to_free": (max(0, total - budget_tokens)
+            if budget_tokens is not None and not unknown_metadata["total"] else None),
         "truncated_descriptions": {"count": len(cut), "names": sorted(cut)[:MAX_LISTING_OVER_CAP],
                                    "cap_chars": _CODEX_DESCRIPTION_CAP},
         "explicit_only": explicit_block,

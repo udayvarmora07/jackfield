@@ -94,9 +94,9 @@ def _add_scope_summary(report: dict) -> None:
         })
 
 
-def _global_records(store) -> list[dict]:
+def _global_records(store, *, collector=None) -> list[dict]:
     """Scan the global tree directly so unindexed husks remain evidence."""
-    rows = scan_dir(store.skills_dir, include_husks=True)
+    rows = scan_dir(store.skills_dir, include_husks=True, collector=collector)
     physical_root = str(store.skills_dir.resolve())
     for row in rows:
         row.update({"scope": "global", "scope_label": "Global", "consumer": "skills-manager"})
@@ -115,12 +115,13 @@ def _hygiene_records(store, scope: str) -> tuple[list[dict], list[dict]]:
     degraded: list[dict] = []
     descriptors = [item for item in scopes.known_scopes() if scope == "all" or item.id == scope]
     for descriptor in descriptors:
-        if descriptor.id != "global" and not descriptor.base.is_dir():
-            continue
+        events: list[dict] = []
         try:
-            records.extend(_global_records(store) if descriptor.id == "global" else scopes.scan_scope(descriptor.id))
-        except Exception as exc:
-            degraded.append({"section": "scope-scan", "scope": descriptor.id, "reason": str(exc)[:_MAX_REASON]})
+            records.extend(_global_records(store, collector=events) if descriptor.id == "global"
+                           else scopes.scan_scope(descriptor.id, collector=events))
+        except Exception:
+            events.append({"section": "scope-scan", "reason": "scope scan failed"})
+        degraded.extend({**event, "scope": descriptor.id} for event in events)
     return records, degraded
 
 

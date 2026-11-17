@@ -1,0 +1,82 @@
+# Static parser grammar; tests/test_shell_completion.py checks it against argparse.
+_skills_mgr_table() {
+    candidates='' value_options=''
+    case "$grammar_path" in
+        '') candidates='ai init list ls create add view edit open remove rm disable enable validate search import export backup restore doctor stats trash templates history db sync scopes tokens install update webui gui -h --help --version --data-dir --color --no-color'; value_options='--data-dir' ;;
+        'ai') candidates='trigger-test -h --help'; value_options='' ;;
+        'ai/trigger-test') candidates='-h --help --scope --saved --repeats --seed --run --baseline --fail-on-regression --json'; value_options='--scope --repeats --seed --baseline' ;;
+        'init') candidates='-h --help --json'; value_options='' ;;
+        'list') candidates='-h --help --json --disabled --category --scope'; value_options='--category --scope' ;;
+        'ls') candidates='-h --help --json --disabled --category --scope'; value_options='--category --scope' ;;
+        'create') candidates='-h --help -d --description --license --category --compatibility --version --allowed-tools --metadata --body --body-file --json'; value_options='-d --description --license --category --compatibility --version --allowed-tools --metadata --body --body-file' ;;
+        'add') candidates='-h --help --name --json'; value_options='--name' ;;
+        'view') candidates='-h --help --raw --json --scope'; value_options='--scope' ;;
+        'edit') candidates='-h --help -d --description --license --category --compatibility --version --allowed-tools --metadata --body --body-file --json'; value_options='-d --description --license --category --compatibility --version --allowed-tools --metadata --body --body-file' ;;
+        'open') candidates='-h --help'; value_options='' ;;
+        'remove') candidates='-h --help --purge --trash --json'; value_options='' ;;
+        'rm') candidates='-h --help --purge --trash --json'; value_options='' ;;
+        'disable') candidates='-h --help --json'; value_options='' ;;
+        'enable') candidates='-h --help --json'; value_options='' ;;
+        'validate') candidates='-h --help --all --path --evals --evals-run --workspace --json'; value_options='--path --evals-run --workspace' ;;
+        'search') candidates='-h --help --limit --json --scope'; value_options='--limit --scope' ;;
+        'import') candidates='-h --help --force --full --json'; value_options='' ;;
+        'export') candidates='-h --help --dest --full --json'; value_options='--dest' ;;
+        'backup') candidates='-h --help --dest --full --json'; value_options='--dest' ;;
+        'restore') candidates='-h --help --snapshot --scope --json'; value_options='--snapshot --scope' ;;
+        'doctor') candidates='-h --help --json --explain --hygiene --project --skill --scope'; value_options='--explain --project --skill --scope' ;;
+        'stats') candidates='-h --help --json --scope'; value_options='--scope' ;;
+        'trash') candidates='list restore purge -h --help'; value_options='' ;;
+        'trash/list') candidates='-h --help --json'; value_options='' ;;
+        'trash/restore') candidates='-h --help --snapshot --scope --json'; value_options='--snapshot --scope' ;;
+        'trash/purge') candidates='-h --help --json'; value_options='' ;;
+        'templates') candidates='list new -h --help'; value_options='' ;;
+        'templates/list') candidates='-h --help --json'; value_options='' ;;
+        'templates/new') candidates='-h --help --body --json'; value_options='--body' ;;
+        'history') candidates='-h --help --limit --json'; value_options='--limit' ;;
+        'db') candidates='rebuild resync -h --help'; value_options='' ;;
+        'db/rebuild') candidates='-h --help --json'; value_options='' ;;
+        'db/resync') candidates='-h --help --json'; value_options='' ;;
+        'sync') candidates='-h --help --from --to --force --json'; value_options='--from --to' ;;
+        'scopes') candidates='-h --help --json --no-tokens'; value_options='' ;;
+        'tokens') candidates='-h --help --scope --text --window --json'; value_options='--scope --text --window' ;;
+        'install') candidates='-h --help --runner --scope --agent --skill --copy --list-only --dry-run --preview --trust-confirmed --registry-hash --review --browse --search --curated --fetch --page --per-page --view --allow-stale --external-scan --external-scan-llm --json'; value_options='--runner --scope --agent --skill --registry-hash --review --search --page --per-page --view' ;;
+        'update') candidates='preview apply snapshots -h --help'; value_options='' ;;
+        'update/preview') candidates='-h --help --from --snapshot --scope --target-path --external-scan --external-scan-llm --json'; value_options='--from --snapshot --scope --target-path' ;;
+        'update/apply') candidates='-h --help --scope --target-path --yes --json'; value_options='--scope --target-path' ;;
+        'update/snapshots') candidates='-h --help --scope --target-path --json'; value_options='--scope --target-path' ;;
+        'webui') candidates='-h --help --host --port --no-browser'; value_options='--host --port' ;;
+        'gui') candidates='-h --help --host --port --no-browser'; value_options='--host --port' ;;
+    esac
+}
+_skills_mgr_complete() {
+    local grammar_path='' candidates='' value_options='' word prev='' i skip=0
+    local -a values
+    for ((i=2; i<CURRENT; i++)); do
+        word=$words[i]
+        if ((skip)); then skip=0; continue; fi
+        _skills_mgr_table
+        case " $value_options " in *" $word "*) skip=1; continue ;; esac
+        case " $candidates " in
+            *" $word "*) case "$word" in -*) ;; *) grammar_path=${grammar_path:+$grammar_path/}$word ;; esac ;;
+        esac
+    done
+    ((CURRENT > 1)) && prev=$words[CURRENT-1]
+    case "$prev" in
+        --scope)
+            case "$grammar_path" in
+                install) candidates='global project' ;;
+                list|ls|search|doctor|stats|tokens) candidates='all global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-skills' ;;
+                *) candidates='global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-skills' ;;
+            esac ;;
+        --to) candidates='global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-skills' ;;
+        --runner) candidates='npx pnpm yarn bunx' ;;
+        --view) candidates='all-time trending hot' ;;
+        --window) candidates='claude claude-haiku gpt-4o gpt-5 gpt-5.6 gemini gemini-2m' ;;
+        --from) if [[ $grammar_path == sync ]]; then candidates='global claude-code codex cursor opencode gemini commandcode agents'; else _files; return; fi ;;
+        --data-dir|--path|--project|--body-file|--dest|--workspace|--evals-run|--target-path) _files; return ;;
+        *) _skills_mgr_table ;;
+    esac
+    values=(${=candidates})
+    compadd -- "$values[@]"
+}
+compdef _skills_mgr_complete skills-mgr

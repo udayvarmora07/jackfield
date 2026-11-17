@@ -44,7 +44,7 @@
       catalog:null,profile:{name:'',description:'',skills:'',targets:''},profilePreview:null,plan:null,planTargets:[],
       templates:null,templateName:'',templateBody:'',templatePreview:null,creating:false,skill:{name:'',description:'',category:'',version:'',license:'',compatibility:'',allowed_tools:'',body:'',scope:'global'},
       quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',projectRoots:[],projectCatalog:null,workspace:null,consumer:'',
-      documentBaseline:null,baselineRaw:null,baselineError:'',baselineMessage:'',baselineSaving:false,
+      documentBaseline:null,baselineRaw:null,baselineError:'',baselineMessage:'',baselineSaving:false,discoveryName:'',
       systemDark:matchMedia('(prefers-color-scheme: dark)').matches,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches, theme:stored('skillsmgr-theme','system'),size:stored('skillsmgr-text-size','standard'),locale:stored('skillsmgr-locale','system'),
       profileFilter:'',profileExtra:'',chosen:'',sourceReview:null,sourceTarget:null,sourceSuccess:null,snapshots:null,historyName:stored('skillsmgr-history-name',''),externalScan:SCAN_MODES.includes(stored('skillsmgr-external-scan','off'))?stored('skillsmgr-external-scan','off'):'off',historyScope:stored('skillsmgr-history-scope','global'),history:null,textSnapshots:null,textSnapshotTarget:null,
     };
@@ -55,6 +55,8 @@
       severityNames(){return {all:'All',error:'Errors',warning:'Warnings',info:'Info'};},
       severityCounts(){const c={all:0};for(const f of (this.quality&&this.quality.findings)||[]){c.all++;c[f.severity]=(c[f.severity]||0)+1;}return c;},
       skillNames(){return [...new Set(this.records.map(r=>r.name).filter(Boolean))].sort();},
+      discoveryOptions(){const q=this.discoveryName.toLowerCase();return this.skillNames.filter(name=>name.toLowerCase().includes(q)).slice(0,200);},
+      discoveryEvidence(){return window.SkillsV2Model.consumerDiscovery(this.discoveryName,this.records,this.scopes,(this.workspace||{}).adapters);},
       profileNames(){return this.profile.skills.split(',').map(x=>x.trim()).filter(Boolean);},
       pickableNames(){const q=this.profileFilter.trim().toLowerCase();return this.skillNames.filter(n=>!q||n.includes(q));},
       missingProfileNames(){return this.profileNames.filter(n=>!this.skillNames.includes(n));},
@@ -727,6 +729,20 @@ ${scanPanel('(review.inspection||{}).external_scan')}
         <p class="lede">Where each agent looks for skills, and what a given project folder adds. This is declared evidence — which copy an agent actually loads stays unknown.</p>
         ${projectPicker('loadWorkspace')}
         <template v-if="workspace">
+          <section class="card tp-panel discovery-evidence" aria-labelledby="tp-discovery-h">
+            <header><h2 id="tp-discovery-h">Skill discovery evidence</h2><p class="tp-fine">Compare an inventoried skill with each consumer's recorded folder rules. Matching a root does not prove the consumer loads it.</p></header>
+            <label class="tp-field" for="tp-discovery-name">Skill name<input id="tp-discovery-name" class="field tp-mono" v-model.trim="discoveryName" list="tp-discovery-names" autocomplete="off" spellcheck="false" placeholder="Choose an inventoried skill"></label>
+            <datalist id="tp-discovery-names"><option v-for="name in discoveryOptions" :key="name" :value="name"></option></datalist>
+            <p class="tp-fine">Uses the current inventory. Selecting a project above does not add that project's skills to this table. Settings not observed for a consumer remain unknown; no precedence winner is chosen.</p>
+            <p v-if="discoveryName&&discoveryEvidence.partial" class="tp-fine">Some root mappings are absent from this inventory, or an evidence limit was reached. Root aliases may share an inventory scope.</p>
+            <p v-if="discoveryName&&!discoveryEvidence.instances_observed" class="tp-empty">No copy of this skill was observed in the inspected inventory rows.</p>
+            <template v-else-if="discoveryName">
+              <ul class="tp-rows"><li v-for="consumer in discoveryEvidence.rows" :key="consumer.id" class="v2-tool-row">
+                <span class="tp-row-main"><strong>{{consumer.label}}</strong><small>{{consumer.observed?consumer.observed+' observed '+(consumer.observed===1?'copy':'copies')+' in matching roots':consumer.scope_mapping_unknown?'Root match unverified; scope not represented':'No matching copy observed'}}<template v-if="consumer.disabled"> · {{consumer.disabled}} disabled on disk</template><template v-if="consumer.unreadable"> · {{consumer.unreadable}} unreadable</template></small><small>Native declarations: {{consumer.declarations.length?consumer.declarations.join(', '):'unknown'}} · {{consumer.order==='documented'?'Load order documented':'No documented winner'}}</small></span>
+                <a v-if="consumer.source" class="btn btn-line btn-sm" :href="consumer.source" target="_blank" rel="noopener noreferrer" :aria-label="consumer.label+' discovery source'">Source</a>
+              </li></ul>
+            </template>
+          </section>
           <section v-if="(workspace.project||{}).path || (workspace.project||{}).status!=='not-requested'" class="card tp-panel" aria-labelledby="tp-po-h">
             <header class="tp-panel-h"><div><h2 id="tp-po-h">Project</h2><p class="tp-mono">{{(workspace.project||{}).path||'No path requested'}}</p></div><span :class="['pill', projectTone]">Status: {{human((workspace.project||{}).status)}}</span></header>
             <ul class="tp-rows"><li v-for="root in ((workspace.project||{}).skills_roots||[])" :key="root.path" class="v2-tool-row"><span class="tp-mono">{{root.path}}</span><span :class="['pill', root.exists?'ok':'off']">{{root.exists?'Found':'Not present'}}</span></li></ul>

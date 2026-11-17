@@ -4,6 +4,49 @@
 
 **AI manifest**: The GUI of skills-manager is a **local web UI** (browser frontend + Python stdlib backend). It replaces the former GTK4 GUI. This doc is the single source of truth for the web UI: how it runs, what endpoints exist, and how the frontend is structured. Do not re-read source to answer questions this doc already answers.
 
+## 2026-11-17 discovery evidence and simulation labels
+
+**[SPEC]** Workspaces includes Skill discovery evidence for a typed inventoried
+skill name. The browser matches the existing adapter catalog's scope, user,
+absolute and project root rules to currently observed scope paths and copies;
+it does not scan extra directories or change consumer rules. Physical aliases represented in the inventory count once per consumer.
+A documented scope missing from the inventory leaves the root match unverified,
+because the scope may be absent or suppressed as a physical alias. The table separates observed copies, disabled or
+unreadable documents, consumer-specific native declarations, source links and
+recorded ordering. No matching observation is not a claim that a skill is
+invisible; unobserved roots/settings, plugins, managed locations and effective
+runtime loading remain unknown. Selecting a project for the separate diagnostic
+does not add that project's skills to the current inventory table.
+
+The view bounds processing to 10,000 inventory rows, 128 scope rows,
+32 consumers and 64 root rules per consumer; reaching a limit labels it partial.
+Name suggestions are capped at 200. Vendor facts remain those in the existing
+catalog and @docs/12-agent-root-discovery-2026-09-08.md; the table is a derived
+view, not a new verification of vendor behavior.
+
+**[SPEC]** Trigger and listing-budget AI pages label routing as a configured
+model simulation before sending and beside results. Selection rates, shorter
+versions and verdict labels do not assert native skill activation or safety.
+The HTTP routing study and native-fidelity boundary remain as documented in
+@docs/48-ai-http-study-2026-11-17.md. These wording changes send no request.
+
+**[SPEC]** Hygiene's filesystem acquisition passes a bounded error collector
+through existing loader/scope reads. Unreadable roots, failed enumeration,
+recursive walk errors and observed candidates that fail loading add fixed-text
+`scope-scan` degradation with scope attribution. Events are capped at 100 plus
+one truncation marker per scope. Missing roots and ordinary non-skill folders
+are not errors. Diagnostic recursion does not follow directory links; existing
+contained managed peer-link behavior remains. Known failures mark fingerprints
+and summary partial, blocking browser baseline updates. Reads remain non-atomic;
+a document gone before observation can still be indistinguishable from absence.
+
+**[SPEC]** Codex listing metadata that cannot be safely interpreted is reported
+under `unknown_metadata` (bounded names, omitted count and reason counts),
+not as definitely listed or explicit-only. It produces `status: unknown` and
+null `tokens_to_free`, while the known-only token subtotal and independently
+observed budget remain available. Missing metadata keeps the documented default
+listed behavior. Home and CLI identify the subtotal and unknown inclusion.
+
 ## 2026-11-17 document change baseline
 
 **[SPEC]** V2 Quality compares currently observed primary skill documents with

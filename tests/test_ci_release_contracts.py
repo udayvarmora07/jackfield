@@ -265,6 +265,10 @@ class CrossPlatformContractTests(unittest.TestCase):
             name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset")
             for name in check_package_data.expected_webui_members()
         }
+        members.update({
+            f"skillsmgr/completions/{name}": (ROOT / "skillsmgr" / "completions" / name).read_bytes()
+            for name in ("skills-mgr.bash", "_skills-mgr")
+        })
         # A valid artifact also ships the packaged example (audit A8).
         members.update(
             {name: (ROOT / name).read_bytes() for name in check_package_data.expected_example_members()}
@@ -306,6 +310,10 @@ class CrossPlatformContractTests(unittest.TestCase):
             name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset")
             for name in check_package_data.expected_webui_members()
         }
+        members.update({
+            f"skillsmgr/completions/{name}": (ROOT / "skillsmgr" / "completions" / name).read_bytes()
+            for name in ("skills-mgr.bash", "_skills-mgr")
+        })
         # A valid artifact also ships the packaged example (audit A8).
         members.update(
             {name: (ROOT / name).read_bytes() for name in check_package_data.expected_example_members()}

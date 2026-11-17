@@ -53,6 +53,15 @@ the Windsurf row is the Devin page's own statement.
 
 ## Current repository mapping
 
+**[NOTE] 2026-11-17 read-only presentation.** Workspaces now compares an
+inventoried skill's observed scope roots with this existing catalog. It reports
+root matches and consumer-specific declarations without asserting effective
+loading or a winner. Unknown Codex `agents/openai.yaml` invocation metadata is
+kept outside the known-only listing subtotal and makes listing status unknown;
+absent metadata keeps the default behavior. These observations change no
+consumer settings or discovery roots. UI/API limits: @docs/08-web-ui.md.
+
+
 **[NOTE]** The 2026-11-17 primary-source audit in
 @docs/46-vendor-compatibility-verification-2026-11-17.md verifies the Cursor
 compatibility roots above, Claude directory-link and claude.ai-sync rules,

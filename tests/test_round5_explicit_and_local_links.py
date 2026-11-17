@@ -187,6 +187,42 @@ class MachineLocalLinkTests(unittest.TestCase):
 
 
 class CodexExplicitCliTextTests(unittest.TestCase):
+    def test_listing_text_separates_unknown_metadata_from_known_budget(self):
+        import contextlib
+        import io
+
+        from skillsmgr import cli_handlers
+
+        section = {
+            "status": "unknown", "listed_skills": 3, "listing_tokens_estimate": 123,
+            "unknown_metadata": {"total": 2, "names": ["untrusted-name", "other"]},
+            "budget": {"budget_tokens": 800, "basis": "observed user cap"},
+        }
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            cli_handlers._render_codex_listing_text(section)
+        out = buffer.getvalue()
+        self.assertIn("Codex listing: unknown (2 unread metadata)", out)
+        self.assertIn("known subtotal ~123 tokens vs 800 budget", out)
+        self.assertIn("3 known skills", out)
+        self.assertNotIn("untrusted-name", out)
+
+    def test_listing_text_keeps_known_listing_summary_unchanged(self):
+        import contextlib
+        import io
+
+        from skillsmgr import cli_handlers
+
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            cli_handlers._render_codex_listing_text({
+                "status": "within_budget", "listed_skills": 1,
+                "listing_tokens_estimate": 10, "unknown_metadata": {"total": 0},
+                "budget": {"budget_tokens": 800, "basis": "observed user cap"},
+            })
+        self.assertIn("Codex listing: ~10 tokens vs 800 budget", buffer.getvalue())
+        self.assertNotIn("known subtotal", buffer.getvalue())
+
     def test_text_names_explicit_only_skills_even_when_nothing_is_listed(self):
         import contextlib
         import io

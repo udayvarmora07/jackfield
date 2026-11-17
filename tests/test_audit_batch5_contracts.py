@@ -350,6 +350,10 @@ class VendoredBundleIntegrityTests(unittest.TestCase):
             name: (b"/* compromised bundle */" if name == check_package_data.VUE_MEMBER else b"asset")
             for name in check_package_data.expected_webui_members()
         }
+        members.update({
+            f"skillsmgr/completions/{name}": (ROOT / "skillsmgr" / "completions" / name).read_bytes()
+            for name in ("skills-mgr.bash", "_skills-mgr")
+        })
         with tempfile.TemporaryDirectory() as directory:
             wheel = Path(directory) / "skill_control_plane-1.0.1-py3-none-any.whl"
             with zipfile.ZipFile(wheel, "w", compression=zipfile.ZIP_STORED) as archive:
@@ -410,6 +414,10 @@ class SdistMemberVisibilityTests(unittest.TestCase):
             name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset")
             for name in check_package_data.expected_webui_members()
         }
+        members.update({
+            f"skillsmgr/completions/{name}": (ROOT / "skillsmgr" / "completions" / name).read_bytes()
+            for name in ("skills-mgr.bash", "_skills-mgr")
+        })
         members["skill_control_plane-1.0.1/tests/test_store.py"] = b"# test"
         with tempfile.TemporaryDirectory() as directory:
             sdist = self._sdist(Path(directory), members)
@@ -425,6 +433,10 @@ class SdistMemberVisibilityTests(unittest.TestCase):
             name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset")
             for name in check_package_data.expected_webui_members()
         }
+        members.update({
+            f"skillsmgr/completions/{name}": (ROOT / "skillsmgr" / "completions" / name).read_bytes()
+            for name in ("skills-mgr.bash", "_skills-mgr")
+        })
         # A valid artifact also ships the packaged example (audit A8).
         members.update(
             {name: (ROOT / name).read_bytes() for name in check_package_data.expected_example_members()}

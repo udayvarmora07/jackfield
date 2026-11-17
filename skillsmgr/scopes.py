@@ -506,11 +506,12 @@ def _enrich_global_row(r: dict, store: Store, physical_root: str) -> None:
     r["consumer"] = "skills-manager"
 
 
-def scan_scope(scope_id: str, *, include_husks: bool = False) -> list[dict]:
+def scan_scope(scope_id: str, *, include_husks: bool = False, collector: list[dict] | None = None) -> list[dict]:
     """List skills in one scope, annotated with scope fields."""
     if scope_id == "global":
         store = _global_store()
-        rows = store.list()
+        rows = (store.list() if collector is None else
+                scan_dir(store.skills_dir, include_husks=include_husks, collector=collector))
         physical_root = str(store.skills_dir.resolve())
         for r in rows:
             _enrich_global_row(r, store, physical_root)
@@ -528,6 +529,7 @@ def scan_scope(scope_id: str, *, include_husks: bool = False) -> list[dict]:
         include_husks=include_husks,
         annotate_paths=True,
         link_roots=_peer_link_roots(scope),
+        **({"collector": collector} if collector is not None else {}),
     )
     _annotate_scope_entries(entries, scope, str(_resolved_scope_root(scope)))
     return _annotate_instance_states(sorted(entries, key=lambda r: (r["name"].lower(), r.get("path", ""))))

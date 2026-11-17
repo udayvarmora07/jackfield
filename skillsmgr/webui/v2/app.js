@@ -964,9 +964,11 @@ app.component("listing-budgets", {
         const budget = section.budget || {};
         const statuses = { within_budget: "Within estimate", over_budget_estimate: "Over estimated budget", no_instances: "No model-visible entries" };
         const unknown = !Object.prototype.hasOwnProperty.call(statuses, section.status);
-        const status = unknown ? "Budget unknown" : statuses[section.status];
+        const metadataUnknown = Number((section.unknown_metadata || {}).total || 0) > 0;
+        const status = unknown ? (metadataUnknown ? "Listing unknown: invocation metadata unreadable" : "Budget unknown") : statuses[section.status];
         return [{ key, label, unit, used: unit === "chars" ? section.listing_chars : section.listing_tokens_estimate,
-          budget: unknown ? null : unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens,
+          budget: unknown && !metadataUnknown ? null : unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens,
+          subtotal: metadataUnknown,
           basis: budget.basis || "Budget basis unavailable",
           status: status + (section.confidence === "partial" ? " · partial evidence" : "") }];
       });
@@ -1001,7 +1003,7 @@ app.component("listing-budgets", {
     <template v-else>
       <div class="listing-budget" v-for="section in sections" :key="section.key">
         <h3>{{ section.label }}</h3>
-        <p class="num">~{{ fmtN(section.used) }} {{ section.unit }}<template v-if="section.budget != null"> of ~{{ fmtN(section.budget) }}</template></p>
+        <p class="num"><template v-if="section.subtotal">Known subtotal: </template>~{{ fmtN(section.used) }} {{ section.unit }}<template v-if="section.budget != null"> of ~{{ fmtN(section.budget) }}</template></p>
         <p class="sub">{{ section.status }}</p><p class="sub">{{ section.basis }}</p>
       </div>
       <p class="sub" v-if="!sections.length">No Claude Code or Codex listing instances observed.</p>

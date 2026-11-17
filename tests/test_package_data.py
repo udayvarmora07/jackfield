@@ -49,7 +49,11 @@ class PackageDataArchiveTests(unittest.TestCase):
 
     def _members(self) -> dict[str, bytes]:
         expected = check_package_data.expected_webui_members()
-        return {name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset") for name in expected}
+        members = {name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset") for name in expected}
+        for name in ("skills-mgr.bash", "_skills-mgr"):
+            path = _REPO_ROOT / "skillsmgr" / "completions" / name
+            members[f"skillsmgr/completions/{name}"] = path.read_bytes()
+        return members
 
     @staticmethod
     def _example_members() -> dict[str, bytes]:
@@ -81,6 +85,18 @@ class PackageDataArchiveTests(unittest.TestCase):
             members.update({root + name: data for name, data in self._example_members().items()})
         members.update({root + "PKG-INFO": _METADATA, root + "LICENSE": _LICENSE})
         return members
+
+    def test_completion_data_missing_or_modified_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            for member in ("skillsmgr/completions/skills-mgr.bash", "skillsmgr/completions/_skills-mgr"):
+                for payload in (None, b"altered"):
+                    members = self._wheel_members()
+                    if payload is None:
+                        del members[member]
+                    else:
+                        members[member] = payload
+                    with self.subTest(member=member, payload=payload), self.assertRaisesRegex(AssertionError, "completion package"):
+                        check_package_data.inspect_archive(self._write_wheel(Path(temp), members))
 
     def test_expected_webui_members_are_sorted_and_include_vendored_vue(self):
         members = check_package_data.expected_webui_members()

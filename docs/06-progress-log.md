@@ -8,6 +8,64 @@ dated 2026-09-23 and later; everything older lives verbatim in
 @docs/archive/README.md.** Read the digest below first — it is the part a session
 actually needs. Facts flagged stale here are corrected in the owning doc.
 
+## 2026-11-17 — Five-task batch verified for main
+
+**[NOTE]** Completed the five selected unlocked tasks: F8 packaged static
+Bash/Zsh completion and optional Python 3.14 suggestions; per-skill discovery
+evidence in Workspaces; filesystem acquisition degradation for hygiene;
+accurate model-simulation wording; and conservative unknown Codex invocation
+metadata. History archival was replaced by the last concrete estimate fix.
+No new command, flag, Store method, schema or runtime dependency was added.
+
+GPT 6.1 Terra handled completion/packaging and scanner changes in separate
+file-owned tasks; GPT 6 Luna handled Codex metadata and independent review.
+Root integration added the UI/evidence work and owning docs. Actual Python
+3.14 root and nested command typos exit 2 with a suggestion; unsupported Python
+versions keep their existing error behavior. Completion scripts are static and
+never scan skills, contact a service or change shell startup files. Final
+shell review also replaced the Zsh-special `path` variable with a private
+grammar variable; its path-preservation regression fails with the original
+script and passes with the correction.
+
+The scanner regressions were red before their fixes. Review also corrected
+ordinary-folder and file-link false degradation, classified wrong-type roots,
+and preserved managed peer links. Discovery matching now enforces flat versus
+recursive roots and lexical boundaries, deduplicates represented physical
+copies, and labels missing/suppressed scope mappings unverified. A bounded empty
+result keeps its partial-evidence notice. These views do not assert runtime
+activation or elect precedence winners. Unknown Codex metadata produces a
+known-only token subtotal and unknown inclusion, independently of the budget.
+
+**[NOTE] Verification:** 2,130 tests pass on Python 3.12 (five optional skips),
+including 36 added tests. Sixty-six focused cases pass on each Python 3.11,
+3.13 and 3.14 (two optional skips on 3.11/3.13, one on 3.14). The ordinary host
+PATH has no Zsh and skips its case; a separate run using a temporary extracted
+Ubuntu Zsh 5.9 passes, including shell-path preservation. Bash execution/syntax,
+static grammar parity and exact packaged script bytes are checked. Both smokes,
+docs/design/complexity (1,336 functions), pinned Ruff 0.16.8/Bandit 1.9.4 (zero
+findings), compilation and changed JS syntax pass. Initial full runs exposed
+synthetic archive fixtures missing the new package data; the fixtures were
+updated without changing their security assertions. The final full run is green.
+
+Fresh hash-locked wheel/sdist builds pass package-data checks, installed-wheel
+AI verification, and isolated five-task probes from each exact artifact. All
+101 packaged files match current source. Private logs, artifact hashes,
+source manifests and recovery data are retained at
+`/tmp/skillsmgr-five-20261117-42g781b1`.
+
+Agent-browser observed the shared-skill discovery rows and Home's unknown
+Codex listing/known budget, plus simulation notices on configured synthetic
+Trigger/Budget pages. The fixture used a no-key localhost provider setting
+without a provider request. New discovery-panel axe audits passed in settled
+light/dark themes with zero violations or incomplete rules. Checks at 320,
+768 and 1,440 px found no overflow; no page runtime errors were observed.
+No real native-agent comparison, Windows/macOS execution or human visual/
+spoken-screen-reader sign-off is claimed. Existing scans remain non-atomic;
+files removed before observation can still look absent. Vendor root rules
+were reused, not newly re-verified. The maintainer authorized a normal main
+push after current-tree verification and hostile diff review. The original
+15 release/owner/human/native-fidelity/deferred entries remain open.
+
 ## 2026-11-17 — Document change baseline completed
 
 **[NOTE]** Completed docs/45 N5 as an advisory comparison against an explicitly

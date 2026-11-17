@@ -6,6 +6,23 @@
 
 **[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **29 top-level commands + 11 subcommands (7 trash/templates/db actions, 3 update actions and 1 AI action) + 3 aliases (`ls`, `rm`, `gui`) = 43 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
 
+## Shell completion
+
+**[SPEC]** The installed package includes static Bash and Zsh completion scripts.
+For the current shell, source the matching file (after `compinit` in Zsh):
+
+```bash
+# Bash
+source "$(python3 -c 'import pathlib, skillsmgr; print(pathlib.Path(skillsmgr.__file__).parent / "completions/skills-mgr.bash")')"
+# Zsh
+source "$(python3 -c 'import pathlib, skillsmgr; print(pathlib.Path(skillsmgr.__file__).parent / "completions/_skills-mgr")')"
+```
+
+Completion offers command names, options and common scope values from a static
+snapshot; it does not inspect installed skills or contact the network. It does
+not change shell startup files. Python 3.14 also suggests close matches for
+invalid commands when argparse supports it; invalid input still exits with code 2.
+
 ## Exit codes
 
 **[SPEC]**

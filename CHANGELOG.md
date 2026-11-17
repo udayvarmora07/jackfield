@@ -6,6 +6,11 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- Packaged Bash/Zsh completion scripts and optional Python 3.14 command typo
+  suggestions, without shell configuration changes or a new command.
+- Per-skill discovery evidence in Workspaces, matching current inventory with
+  the existing consumer root catalog and keeping runtime loading unknown.
+
 - Quality can compare primary skill documents with a baseline explicitly saved
   in browser storage. It stores hashes and opaque identifiers, preserves
   unobserved entries, and blocks updates when the scan reports missing evidence.
@@ -55,6 +60,14 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
   block or allow an install or update. SkillSpector is not a dependency.
 
 ### Fixed
+
+- Hygiene now reports bounded filesystem acquisition failures instead of
+  treating failed reads as an empty scan; known partial evidence blocks baseline
+  updates while ordinary non-skill folders remain normal.
+- Unreadable Codex invocation metadata leaves listing inclusion unknown; known
+  token subtotals and budget evidence stay separate in JSON, CLI and Home.
+- AI routing and budget pages consistently describe model simulations rather
+  than native skill activation or safety guarantees.
 
 - Cursor's read-only diagnostic includes its documented Claude/Codex
   compatibility folders while retaining unknown same-name precedence.

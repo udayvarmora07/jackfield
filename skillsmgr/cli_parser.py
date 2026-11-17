@@ -60,6 +60,15 @@ def _add_ai_parser(sub, commands) -> None:
     p.set_defaults(func=commands["cmd_ai"])
 
 
+class _SuggestingParser(argparse.ArgumentParser):
+    """Enable argparse's optional typo suggestions on every parser."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self, "suggest_on_error"):
+            self.suggest_on_error = True
+
+
 def build_parser(commands) -> argparse.ArgumentParser:
     """Build the ``skills-mgr`` parser, wiring ``commands`` handlers.
 
@@ -67,7 +76,7 @@ def build_parser(commands) -> argparse.ArgumentParser:
     handler module stays the single owner of command behavior. Only the
     registration names used below are required.
     """
-    parser = argparse.ArgumentParser(
+    parser = _SuggestingParser(
         prog="skills-mgr",
         description="Manage agentic AI skills (SKILL.md) from the command line.",
     )

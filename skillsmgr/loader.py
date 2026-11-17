@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import os
+import stat
 import threading
 from collections import OrderedDict
 from pathlib import Path
@@ -647,6 +648,69 @@ def _document_dirs(entries) -> set[Path]:
     return {path.parent for path in entries if path.name in DOCUMENT_NAMES}
 
 
+_SCAN_EVENT_LIMIT = 100
+
+
+def _scan_degraded(collector, reason: str) -> None:
+    """Record bounded, fixed-text scan failures without exposing filesystem data."""
+    if collector is None:
+        return
+    if len(collector) < _SCAN_EVENT_LIMIT:
+        collector.append({"section": "scope-scan", "reason": reason})
+    elif len(collector) == _SCAN_EVENT_LIMIT:
+        collector.append({"section": "scope-scan", "reason": "additional scan failures omitted", "truncated": True})
+
+
+def _diagnostic_document_dirs(root: Path, collector) -> set[Path]:
+    """Walk without following directory links, surfacing suppressed walk errors."""
+    def onerror(_exc):
+        _scan_degraded(collector, "recursive directory enumeration failed")
+
+    return {Path(directory) for directory, _dirs, files in os.walk(root, onerror=onerror, followlinks=False)
+            if any(name in DOCUMENT_NAMES for name in files)}
+
+
+def _diagnostic_flat_candidates(root: Path, collector) -> list[Path]:
+    """Enumerate directories explicitly, leaving symlink validation to the caller."""
+    candidates = []
+    for child in root.iterdir():
+        try:
+            mode = child.lstat().st_mode
+        except OSError:
+            _scan_degraded(collector, "candidate could not be inspected")
+            continue
+        if stat.S_ISLNK(mode):
+            try:
+                mode = child.stat().st_mode
+            except FileNotFoundError:
+                continue
+            except OSError:
+                _scan_degraded(collector, "candidate could not be inspected")
+                continue
+        if stat.S_ISDIR(mode):
+            candidates.append(child)
+    return sorted(candidates)
+
+
+def _diagnostic_has_document(child: Path, collector) -> bool | None:
+    """Observe names after containment validation; None means inspection failed."""
+    found = False
+    try:
+        for name in DOCUMENT_NAMES:
+            try:
+                (child / name).lstat()
+                found = True
+            except FileNotFoundError:
+                pass
+        # Distinguish a missing candidate from an ordinary empty directory.
+        if not found:
+            child.lstat()
+    except OSError:
+        _scan_degraded(collector, "skill candidate could not be inspected")
+        return None
+    return found
+
+
 def scan_dir(
     root: Path,
     *,
@@ -654,6 +718,7 @@ def scan_dir(
     include_husks: bool = False,
     annotate_paths: bool = False,
     link_roots: tuple[Path, ...] = (),
+    collector: list[dict] | None = None,
 ) -> list[dict]:
     """Scan a skill root, optionally walking nested skill directories.
 
@@ -694,24 +759,38 @@ def scan_dir(
     """
     entries: list[dict] = []
     try:
-        is_dir = root.is_dir()
+        is_dir = stat.S_ISDIR(root.stat().st_mode) if collector is not None else root.is_dir()
+    except FileNotFoundError:
+        return entries
     except OSError:
+        _scan_degraded(collector, "scope root could not be inspected")
         return entries
     if not is_dir:
+        _scan_degraded(collector, "scope root is not a directory")
         return entries
     # SEC-10: resolve the root once for the whole scan.  Doing it per candidate
     # re-resolved the same path for every skill on every request.
-    resolved_root = Path(root).expanduser().resolve()
+    try:
+        resolved_root = Path(root).expanduser().resolve()
+    except (OSError, RuntimeError):
+        _scan_degraded(collector, "scope root could not be resolved")
+        return entries
     if recursive:
         try:
-            candidates = sorted(_document_dirs(root.rglob("*")))
+            candidates = sorted(_diagnostic_document_dirs(root, collector) if collector is not None
+                                else _document_dirs(root.rglob("*")))
         except OSError:
-            # One unsearchable directory in the tree must not abort the scan.
-            candidates = sorted(_document_dirs(root.glob("*")))
+            _scan_degraded(collector, "recursive directory enumeration failed")
+            try:
+                candidates = sorted(_document_dirs(root.glob("*")))
+            except OSError:
+                return entries
     else:
         try:
-            candidates = sorted(path for path in root.iterdir() if path.is_dir())
+            candidates = (_diagnostic_flat_candidates(root, collector) if collector is not None else
+                          sorted(path for path in root.iterdir() if path.is_dir()))
         except OSError:
+            _scan_degraded(collector, "scope directory enumeration failed")
             return entries
     reuse = document_reuse_worthwhile(len(candidates))
     for child in candidates:
@@ -726,6 +805,7 @@ def scan_dir(
             try:
                 relative_parts = child.relative_to(root).parts
             except (ValueError, OSError):
+                _scan_degraded(collector, "candidate path could not be inspected")
                 continue
         try:
             named = path_safety.contained_entry_under(resolved_root, *relative_parts)
@@ -751,6 +831,19 @@ def scan_dir(
             entry["path"] = str(child)
             entries.append(entry)
             continue
+        observed_document = True
+        if collector is not None and not recursive:
+            try:
+                if not stat.S_ISDIR(named.stat().st_mode):
+                    continue
+            except OSError:
+                _scan_degraded(collector, "skill candidate could not be inspected")
+                continue
+            observed_document = _diagnostic_has_document(named, collector)
+            if observed_document is None:
+                continue
+            if not observed_document and not include_husks:
+                continue
         try:
             entry = load_skill(
                 named, include_husks=include_husks, reuse=reuse
@@ -760,6 +853,11 @@ def scan_dir(
             elif annotate_paths:
                 entry["path"] = str(named)
             entries.append(entry)
-        except (SkillNotFound, OSError):
+        except SkillNotFound:
+            if observed_document:
+                _scan_degraded(collector, "skill candidate could not be loaded")
+            continue
+        except OSError:
+            _scan_degraded(collector, "skill candidate could not be loaded")
             continue
     return sorted(entries, key=lambda item: (item["name"].lower(), item.get("path", "")))

@@ -4,6 +4,31 @@
 
 **AI manifest**: Single source of truth for remaining work on skills-manager. Update after every step. Notation: `[ ]` unstarted, `[/]` in progress, `[x]` done. Milestones: (1) docs layer, (2) GUI, (3) zero-error iteration loop.
 
+## Five-task continuation (2026-11-17)
+
+- [x] F8: ship static Bash/Zsh completion and optional Python 3.14 typo
+  suggestions through the existing parser, without a new command. Completion
+  uses a private grammar variable to preserve the shell search path.
+- [x] Docs/44 §8: add per-skill, per-consumer discovery evidence to Workspaces,
+  using existing root definitions and inventory with explicit unknown loading.
+- [x] Surface filesystem acquisition failures in hygiene so a failed scan
+  cannot silently look empty or replace a saved browser baseline.
+- [x] Correct AI routing and budget UI claims to describe model simulations,
+  with the native runtime boundary visible before and after a run.
+- [x] Treat unobserved Codex invocation metadata as unknown listing content,
+  retaining known budget evidence without asserting a full listing size.
+
+The maintainer authorized verification, commit and a normal main push after
+this verified five-item batch. Human sign-offs, native study, product decisions and
+protected publication remain open. History archival is deferred for this batch.
+
+Verification: 2,130 tests pass on Python 3.12 (five optional skips), plus
+66 focused cases on each Python 3.11, 3.13 and 3.14. Both smokes,
+repository/static gates, browser discovery/notice checks, accessibility audits
+and exact wheel/sdist install probes pass. Zsh also passes using a temporary
+extracted Ubuntu 5.9 executable, including shell search-path preservation.
+The original 15 gated/deferred tracker entries remain open.
+
 ## Document change baseline continuation (2026-11-17)
 
 - [x] Complete docs/45 N5 as an advisory comparison with an explicitly saved

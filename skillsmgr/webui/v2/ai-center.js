@@ -7,6 +7,7 @@
   const post = (url, body) => api(url, { method: "POST", body: JSON.stringify(body || {}) });
   const pct = (v) => (v == null ? "–" : Math.round(v * 100) + "%");
   const HANDOFF = "skillsmgr-ai-target";
+  const ROUTING_NOTICE = "Model simulation only. This does not run the consumer's native skill-selection system or establish which skill it would actually load.";
 
   window.SkillsV2AiCenter = {
     props: { page: String, records: { type: Array, default: () => [] }, scopes: { type: Array, default: () => [] }, target: Object },
@@ -33,6 +34,7 @@
       };
     },
     computed: {
+      routingNotice() { return ROUTING_NOTICE; },
       provider() { return ((this.settings && this.settings.providers) || []).find((p) => p.id === this.form.provider) || null; },
       configured() { return !!(this.settings && this.settings.configured); },
       agentScopes() {
@@ -138,7 +140,7 @@
       async estimateOverlap() { this.overlap = null; this.overlapEstimate = await this.guard(() => post("/api/ai/overlap-judge", this.overlapBody(true))); },
       async runOverlap() { const r = await this.guard(() => post("/api/ai/overlap-judge", this.overlapBody(false))); if (r) { this.overlap = r; this.overlapEstimate = null; this.load(); } },
       verdictTone(v) { return v === "fires" ? "ok" : v === "never-fires" ? "bad" : "warn"; },
-      verdictLabel(v) { return { fires: "Fires", "never-fires": "Never fires", unreliable: "Unreliable", unknown: "Unknown" }[v] || v; },
+      verdictLabel(v) { return { fires: "Selected in simulation", "never-fires": "Not selected in simulation", unreliable: "Mixed simulation results", unknown: "Unknown" }[v] || v; },
       skillLabel(n) { return n === "(none)" ? "no skill" : n; },
       choiceList(choices) { return Object.entries(choices || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => this.skillLabel(k) + (n > 1 ? " ×" + n : "")).join(", "); },
       draftInputKey() { return JSON.stringify([this.draftScope, this.draftName.trim(), this.draftBrief.trim()]); },
@@ -427,7 +429,8 @@
 
       <template v-else-if="page==='ai-trigger'">
         <h1 class="h1" id="h1" tabindex="-1">Trigger test</h1>
-        <p class="lede">Will an agent actually pick your skills? Your model plays the agent, reading the same list of names and descriptions it sees, with all your other skills as competition.</p>
+        <p class="lede">Simulate which skill your configured model selects for a request, using an observed list of skill names and descriptions.</p>
+        <p class="tp-fine ai-routing-note">{{routingNotice}}</p>
         <section class="card tp-panel" aria-labelledby="ai-tt-h">
           <h2 id="ai-tt-h">Set up</h2>
           <div class="tp-set">
@@ -475,10 +478,11 @@
         </section>
 
         <section v-if="result" class="card tp-panel" aria-labelledby="ai-res-h" aria-live="polite">
+          <p class="tp-fine ai-routing-note">{{routingNotice}}</p>
           <header class="tp-panel-h"><div><h2 id="ai-res-h">Result</h2><p>{{ result.listed }} skills listed · {{ result.prompts.length }} prompts × {{ result.repeats }} · {{ result.run.model }}</p></div>
-            <span :class="['pill', troubled.length ? 'warn' : 'ok']">{{ troubled.length ? troubled.length + ' need work' : 'All fire' }}</span></header>
+            <span :class="['pill', troubled.length ? 'warn' : 'ok']">{{ troubled.length ? troubled.length + ' need review' : 'All selected in simulation' }}</span></header>
           <div class="ai-stats"><div><b class="num">{{ pct(result.recall) }}</b><small>of prompts picked the right skill</small></div>
-            <div v-if="result.false_trigger_rate!=null"><b class="num">{{ pct(result.false_trigger_rate) }}</b><small>of near-misses loaded a skill anyway</small></div>
+            <div v-if="result.false_trigger_rate!=null"><b class="num">{{ pct(result.false_trigger_rate) }}</b><small>of near-misses selected a skill in simulation</small></div>
             <div><b class="num">{{ fmt(result.run.input_tokens) }}</b><small>input tokens used<template v-if="result.run.cached_input_tokens">, {{ fmt(result.run.cached_input_tokens) }} read from the provider's cache</template><template v-if="result.run.retries"> · {{ fmt(result.run.retries) }} busy-provider {{ result.run.retries === 1 ? 'retry' : 'retries' }}</template></small></div></div>
           <div v-if="result.prompt_source==='saved'" class="ai-confirm">
             <p v-if="!result.compared_with" class="tp-fine">First saved-test run for this agent; the next one will be compared with it.</p>
@@ -733,7 +737,8 @@
 
       <template v-else-if="page==='ai-budget'">
         <h1 class="h1" id="h1" tabindex="-1">Fit the listing budget</h1>
-        <p class="lede">Agents only show the model so many characters of skill descriptions; past that, descriptions are dropped and those skills stop firing. This shortens the largest descriptions, then re-tests them, and marks a shorter version safe only if its skill still wins as often.</p>
+        <p class="lede">Propose shorter descriptions to fit an estimated listing budget, then compare their simulated selection rates with the original descriptions.</p>
+        <p class="tp-fine ai-routing-note">{{routingNotice}}</p>
         <section class="card tp-panel" aria-labelledby="ai-bu-h">
           <h2 id="ai-bu-h">Set up</h2>
           <div class="tp-set">
@@ -755,10 +760,11 @@
           </div>
         </section>
         <section v-if="budget && budget.proposals" class="card tp-panel" aria-labelledby="ai-bur-h" aria-live="polite">
-          <header class="tp-panel-h"><div><h2 id="ai-bur-h">Shorter descriptions</h2><p>Safe versions free {{ fmt(budget.safe_savings) }} of {{ fmt(budget.chars_to_free) }} characters needed.</p></div>
+          <p class="tp-fine ai-routing-note">{{routingNotice}}</p>
+          <header class="tp-panel-h"><div><h2 id="ai-bur-h">Shorter descriptions</h2><p>Versions that passed the simulation free {{ fmt(budget.safe_savings) }} of {{ fmt(budget.chars_to_free) }} characters needed.</p></div>
             <span :class="['pill', budget.fits ? 'ok' : 'warn']">{{ budget.fits ? 'Would fit' : 'Still over' }}</span></header>
           <div v-for="p in budget.proposals" :key="p.name" class="ai-cand">
-            <h3><span class="tp-mono">{{ p.name }}</span> <span :class="['pill', p.safe ? 'ok' : 'bad']">{{ p.safe ? 'Still triggers' : 'Triggers less' }}</span></h3>
+            <h3><span class="tp-mono">{{ p.name }}</span> <span :class="['pill', p.safe ? 'ok' : 'bad']">{{ p.safe ? 'Simulation retained' : 'Lower simulated selection' }}</span></h3>
             <p>{{ p.proposed }}</p>
             <p class="tp-fine">Saves {{ fmt(p.saves_chars) }} characters. Won {{ pct(p.recall_before) }} of its prompts before, {{ pct(p.recall_after) }} after.</p>
             <details class="tp-more"><summary>Current description</summary><p>{{ p.current }}</p></details>

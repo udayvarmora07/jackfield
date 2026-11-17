@@ -190,9 +190,17 @@ metadata file it cannot parse was not checked. Claude Code
 completed, but no comment or doc states that nested discovery shipped, so
 this tool's non-recursive Claude Code scan was left unchanged.
 
+**[NOTE] 2026-11-17 follow-up.** Codex invocation metadata that cannot be
+safely interpreted now has a bounded unknown bucket and leaves listing status
+unknown, rather than being counted as definitely listed. Missing metadata
+still follows the default. The preceding paragraph records the original
+round's limitation; current evidence is described in @docs/08-web-ui.md.
+
 ## 8. Candidates for later rounds
 
-- A per-agent visibility table generalising `agents_bridge` (problem 6).
+- Implemented 2026-11-17: per-skill discovery evidence in Workspaces, using
+  recorded root rules and current observations without a native-loading verdict
+  (problem 6; @docs/08-web-ui.md).
 - Whether Claude Code now discovers nested `~/.claude/skills/<group>/<skill>/`
   folders (claude-code #18192 and #10238 closed as completed, 2026-10/11);
   needs a primary source before this tool's scan changes.

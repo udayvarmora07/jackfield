@@ -51,6 +51,8 @@ INSTALL_PROBE = (
     "skill=root/'examples/skills-manager-management/SKILL.md'; "
     "assert vue.is_file() and vue.stat().st_size > 0, vue; "
     "assert skill.is_file() and skill.read_bytes().startswith(b'---'), skill; "
+    "completion=root/'completions'; "
+    "assert all((completion/name).is_file() and (completion/name).stat().st_size for name in ('skills-mgr.bash', '_skills-mgr')), completion; "
     # The typeface must reach an installed copy too. A stylesheet that names a
     # face it does not ship is the 'declared but never shipped' failure: the
     # app runs, every visitor sees the fallback, and nothing reports an error.
@@ -433,6 +435,14 @@ def inspect_archive(path: Path, project_root: Path = ROOT) -> ArchiveReport:
         if unexpected:
             details.append(f"unexpected={unexpected}")
         raise AssertionError(f"{path.name} web UI package-data mismatch: " + "; ".join(details))
+    completion_members = {"skillsmgr/completions/skills-mgr.bash", "skillsmgr/completions/_skills-mgr"}
+    if {name for name in files if name.startswith("skillsmgr/completions/")} != completion_members:
+        raise AssertionError(f"{path.name} completion package-data members differ from expected")
+    for name in ("skills-mgr.bash", "_skills-mgr"):
+        member = f"skillsmgr/completions/{name}"
+        source = project_root / member
+        if not source.is_file() or files.get(member) != source.read_bytes():
+            raise AssertionError(f"{path.name} missing or altered completion package data: {member}")
     vue = files.get(VUE_MEMBER, b"")
     if not vue:
         raise AssertionError(f"{path.name} contains no vendored Vue payload: {VUE_MEMBER}")

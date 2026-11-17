@@ -40,6 +40,8 @@ The manager validates environment-selected roots before use. Keep
 `mktemp -d` example is appropriate); shared or group/world-writable roots are
 rejected.
 
+Static shell completion is documented in [the CLI surface](docs/03-cli-surface.md#shell-completion). Update both completion scripts when parser commands or options change; `tests/test_shell_completion.py` checks for drift.
+
 ## Checks (all must pass)
 
 ```bash

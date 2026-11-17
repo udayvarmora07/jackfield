@@ -2,7 +2,7 @@
 
 **Version 0.1.0**
 
-**AI manifest**: Ranked suggestions from a whole-project review on 2026-11-13: a read of the docs, a first-time-user run of the CLI and web UI in an isolated home, and five research passes (competitors, agent-vendor changes, user voice, security and quality research, distribution). Proposals only. Nothing here is approved or implemented, and every item that touches a locked constraint is flagged. It extends @docs/28-project-review-and-recommendations-2026-11-06.md and @docs/29-user-demand-and-competitor-analysis-2026-11-06.md; where it repeats them, the newer measurement stands.
+**AI manifest**: Ranked suggestions from a whole-project review on 2026-11-13: a read of the docs, a first-time-user run of the CLI and web UI in an isolated home, and five research passes (competitors, agent-vendor changes, user voice, security and quality research, distribution). The original review contains proposals; later dated implementation notes record completed items. Every item that touches a locked constraint is flagged. It extends @docs/28-project-review-and-recommendations-2026-11-06.md and @docs/29-user-demand-and-competitor-analysis-2026-11-06.md; where it repeats them, the newer measurement stands.
 
 ## 1. Method and limits
 
@@ -54,7 +54,7 @@ Suggestions, in order:
 | F5 | "1 name-only candidates" is printed when the listing uses 42 of about 40,000 characters | Print candidates only when the estimate is over, or near, the budget | No |
 | F6 | Long absolute paths are printed in full in `scopes`, `doctor` and hygiene text | Shorten paths under the home directory to `~/…` in text output (not in `--json`) | No |
 | F7 | v2 Home shows "If read in full N%" per agent, but not the listing budget | Show the listing-budget estimate on Home for Claude Code and Codex, since that is the reported pain | No |
-| F8 | No shell completion and no "did you mean" for a mistyped command | A static completion script shipped as package data; argparse `suggest_on_error` on Python 3.14 | Completion command: yes |
+| F8 | No shell completion and no "did you mean" for a mistyped command | A static completion script shipped as package data; argparse `suggest_on_error` on Python 3.14 | Implemented 2026-11-17 as static package data and optional suggestions; no new command |
 
 **[NOTE]** The v2 Home page itself read well on first run: the drifting copy was the one thing flagged, with a plain explanation and a fix button.
 

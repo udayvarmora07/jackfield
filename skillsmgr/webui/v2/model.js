@@ -348,6 +348,60 @@
   const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
   const validName = (n) => typeof n === "string" && n.length <= 64 && NAME_RE.test(n);
 
+  /* Match observed facade copies to the existing documented root inventory.
+   * No filesystem walk, precedence winner, or runtime invocation is inferred. */
+  function consumerDiscovery(name, records, scopes, adapters) {
+    const normalize = (value) => String(value || "").replace(/\\/g, "/").replace(/\/+$/, "");
+    const scopeRows = Array.isArray(scopes) ? scopes : [];
+    const input = Array.isArray(records) ? records : [];
+    const consumers = Array.isArray(adapters) ? adapters : [];
+    const copies = input.slice(0, 10000).filter((r) => r && r.name === name);
+    const partial = input.length > 10000 || scopeRows.length > 128 || consumers.length > 32;
+    const rows = consumers.slice(0, 32).map((adapter) => {
+      const roots = Array.isArray(adapter.candidate_roots) ? adapter.candidate_roots.slice(0, 64) : [];
+      const match = (s, root) => {
+        const path = normalize(s.path), rel = normalize(root.home_path || root.relative_path);
+        if (root.scope) return s.id === root.scope;
+        if (root.absolute_path) return path === normalize(root.absolute_path);
+        if (root.home_path) return s.kind === "agent" && !!rel && path.endsWith("/" + rel);
+        return !!root.relative_path && s.kind === "project" && !!rel && path.endsWith("/" + rel);
+      };
+      const scopeMappingUnknown = roots.some((root) => root.scope && !scopeRows.slice(0, 128).some((scope) => scope.id === root.scope));
+      const within = (copy, scope, root) => {
+        const base = normalize(scope.path), path = normalize(copy.path || copy.physical_path);
+        if (!base || !path.startsWith(base + "/")) return false;
+        const relative = path.slice(base.length + 1).split("/");
+        if (relative.some((part) => !part || part === "." || part === "..")) return false;
+        return relative.length === 1 || !!root.recursive || !!root.nested;
+      };
+      const held = copies.filter((copy) => scopeRows.slice(0, 128).some((scope) =>
+        scope.id === copy.scope && roots.some((root) => match(scope, root) && within(copy, scope, root))));
+      const unique = new Map();
+      for (const copy of held) {
+        const key = String(copy.physical_path || copy.path || copy.scope);
+        if (!unique.has(key)) unique.set(key, copy);
+      }
+      const observed = [...unique.values()];
+      const declarations = new Set();
+      for (const copy of held) {
+        if (copy.consumer !== adapter.id) continue;
+        const sources = copy.native_state && copy.native_state.sources;
+        for (const source of Array.isArray(sources) ? sources.slice(0, 32) : []) {
+          if (typeof source.declared === "string") declarations.add(source.declared.slice(0, 128));
+        }
+      }
+      return { id: String(adapter.id || "").slice(0, 128), label: String(adapter.label || adapter.id || "").slice(0, 128),
+        observed: observed.length, disabled: observed.filter((copy) => copy.disabled).length,
+        unreadable: observed.filter((copy) => copy.malformed || copy.document_missing || copy.link_escape || copy.decode_error).length,
+        declarations: [...declarations].sort(), source: typeof (adapter.precedence || {}).evidence === "string" && /^https:\/\//.test(adapter.precedence.evidence) ? adapter.precedence.evidence : "",
+        order: String((adapter.precedence || {}).status || "unknown"),
+        scope_mapping_unknown: scopeMappingUnknown,
+        partial: partial || scopeMappingUnknown || (Array.isArray(adapter.candidate_roots) && adapter.candidate_roots.length > 64),
+      };
+    });
+    return { rows, partial: partial || rows.some((row) => row.partial), instances_observed: copies.length };
+  }
+
   const toolGroups = [
     { key: "add", label: "Add and organize", items: [
       { id: "install", name: "Install", text: "Bring skills in from the skills.sh registry, a package command or a local folder.", commandLabel: "Install" },
@@ -365,9 +419,9 @@
       { id: "ai-draft", name: "Draft a skill", text: "Turn a brief into a skill, then validate and test it against the skills already in a scope.", commandLabel: "Draft a skill" },
       { id: "ai-concise", name: "Shorten a skill", text: "Propose a concise primary document and new references, then review the exact folder update.", commandLabel: "Shorten a skill" },
       { id: "ai-profile", name: "Suggest a profile", text: "Use project metadata to suggest an editable profile from existing skills.", commandLabel: "Suggest a profile" },
-      { id: "ai-trigger", name: "Trigger test", text: "Check whether an agent actually picks each skill for realistic requests.", commandLabel: "AI trigger test" },
+      { id: "ai-trigger", name: "Trigger test", text: "Simulate which skill your configured model selects from names and descriptions.", commandLabel: "AI trigger test" },
       { id: "ai-improve", name: "Improve a description", text: "Get rewrites that are re-tested and recommended only when they measurably help.", commandLabel: "AI improve description" },
-      { id: "ai-budget", name: "Fit the listing budget", text: "Shorten the largest descriptions so every skill stays visible, keeping only versions that still trigger.", commandLabel: "AI fit listing budget" },
+      { id: "ai-budget", name: "Fit the listing budget", text: "Propose shorter descriptions and compare their simulated selection rates.", commandLabel: "AI fit listing budget" },
       { id: "ai-evals", name: "Does it help?", text: "Run a skill's eval cases with and without it, graded by its own assertions.", commandLabel: "AI eval runner" },
       { id: "ai-overlap", name: "Overlap check", text: "Find skills that compete for the same requests or give conflicting instructions.", commandLabel: "AI overlap check" },
       { id: "ai-explain", name: "Explain risk findings", text: "Scan an installed skill for risky patterns, then get a second opinion that can only demote a finding.", commandLabel: "AI explain risk findings" },
@@ -462,6 +516,6 @@
   window.SkillsV2Model = Object.freeze({
     plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
     toolGroups: Object.freeze(toolGroups), toolItems, toolIds,
-    diffLines, changes, plainLine, renderDoc, stripFrontmatter, documentBaseline,
+    diffLines, changes, plainLine, renderDoc, stripFrontmatter, documentBaseline, consumerDiscovery,
   });
 })();

@@ -765,24 +765,40 @@ def _render_codex_config_text(section: dict | None) -> None:
         print(f"    {_display(str(entry.get('problem', '')))}: {_home_display(str(entry.get('path', '')))}{hint}")
 
 
-def _render_codex_listing_text(section: dict | None) -> None:
-    """One summary line for the Codex listing-budget estimate (codex#19679)."""
-    if not section:
-        return
-    if section.get("status") != "no_instances":
-        budget_info = section.get("budget") or {}
-        budget = budget_info.get("budget_tokens")
-        used = int(section.get("listing_tokens_estimate", 0) or 0)
-        comparison = "budget unknown" if budget is None else f"vs {int(budget):,} budget"
-        basis = _display(str(budget_info.get("basis") or "2% rule"))
-        print(f"  Codex listing: ~{used:,} tokens {comparison} ({basis}, estimate); "
-              f"{int(section.get('listed_skills', 0) or 0)} skills from ~/.agents/skills")
+def _codex_listing_summary_line(section: dict) -> str:
+    """Format the known subtotal and its separate observed budget."""
+    budget_info = section.get("budget") or {}
+    budget = budget_info.get("budget_tokens")
+    used = int(section.get("listing_tokens_estimate", 0) or 0)
+    comparison = "budget unknown" if budget is None else f"vs {int(budget):,} budget"
+    basis = _display(str(budget_info.get("basis") or "2% rule"))
+    skills = int(section.get("listed_skills", 0) or 0)
+    unknown = int((section.get("unknown_metadata") or {}).get("total", 0) or 0)
+    if unknown:
+        return (f"  Codex listing: unknown ({unknown} unread metadata); known subtotal "
+                f"~{used:,} tokens {comparison} ({basis}, estimate); "
+                f"{skills} known skills from ~/.agents/skills")
+    return (f"  Codex listing: ~{used:,} tokens {comparison} ({basis}, estimate); "
+            f"{skills} skills from ~/.agents/skills")
+
+
+def _render_codex_explicit_only_text(section: dict) -> None:
+    """Print sanitized explicit-only identifiers, bounded to five names."""
     explicit = section.get("explicit_only") or {}
     if explicit.get("total"):
         names = ", ".join(_display(str(name)) for name in explicit.get("names", [])[:5])
         more = int(explicit["total"]) - min(5, len(explicit.get("names", [])))
         print(f"  Codex explicit-only (not shown to the model, invoke with $name): "
               f"{names}{f' and {more} more' if more > 0 else ''}")
+
+
+def _render_codex_listing_text(section: dict | None) -> None:
+    """One summary line for the Codex listing-budget estimate (codex#19679)."""
+    if not section:
+        return
+    if section.get("status") != "no_instances":
+        print(_codex_listing_summary_line(section))
+    _render_codex_explicit_only_text(section)
 
 
 def _render_skills_dir_plugins_text(section: dict | None) -> None:
