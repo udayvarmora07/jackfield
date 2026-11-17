@@ -6,6 +6,13 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- Home listing-budget estimates for Claude Code and Codex, with independent
+  loading, partial-evidence labels and retry.
+- Informational authoring hints for examples, validation language and nested
+  references; grouped counts retain bounded exact-instance links.
+- Advisory prose and bundled-file risk signals with redacted credential and
+  endpoint evidence, bounded inspection and incomplete-scan notices.
+
 - **One-command install.** `curl -fsSL …/install.sh | sh` on Linux/macOS and
   `irm …/install.ps1 | iex` on Windows install `skills-mgr` with uv, pipx or a
   private virtual environment, whichever is available. Options cover tiktoken,
@@ -41,6 +48,11 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
   block or allow an install or update. SkillSpector is not a dependency.
 
 ### Fixed
+
+- Empty global listings point to populated agent scopes. Fresh empty stores
+  pass Doctor without creating an index; unusable existing indexes still
+  require repair. Permission remedies quote paths safely, Doctor/scope text
+  abbreviates home paths, and candidate advice appears only near a known budget.
 
 - Bound native settings, eval and lockfile reads to checked regular-file
   descriptors, preserving each reader's size and symlink policy. Scope doctor

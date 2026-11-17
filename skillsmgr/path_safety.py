@@ -106,9 +106,9 @@ def trusted_root(root: Path, *, label: str = "data root") -> Path:
                 break
             existing = parent
         if not existing.is_dir():
-            raise ValueError(f"unsafe {label}: {existing} is not a directory")
+            raise ValueError(f"unsafe {label}: {_root_path_display(existing)} is not a directory")
         if not os.access(existing, os.W_OK | os.X_OK):
-            raise ValueError(f"unsafe {label}: {existing} is not writable")
+            raise ValueError(f"unsafe {label}: {_root_path_display(existing)} is not writable")
 
         if os.name == "posix":
             uid = os.getuid()
@@ -117,14 +117,15 @@ def trusted_root(root: Path, *, label: str = "data root") -> Path:
                 info = component.stat()
                 if info.st_uid not in (0, uid):
                     raise ValueError(
-                        f"unsafe {label}: {component} is owned by another user"
+                        f"unsafe {label}: {_root_path_display(component)} is owned by another user"
                     )
                 writable = info.st_mode & (stat.S_IWGRP | stat.S_IWOTH)
                 if writable and not (
                     info.st_mode & stat.S_ISVTX and component != existing
                 ):
                     raise ValueError(
-                        f"unsafe {label}: {component} is writable by another user"
+                        f"unsafe {label}: {_root_path_display(component)} is writable by another user"
+                        + _private_root_remedy(component, info, uid)
                     )
                 if component.parent == component:
                     break
@@ -135,6 +136,23 @@ def trusted_root(root: Path, *, label: str = "data root") -> Path:
         raise ValueError(f"unsafe {label}: could not inspect the path") from exc
 
     return candidate
+
+
+def _root_path_display(path: Path) -> str:
+    """Keep printable paths readable and escape terminal controls in errors."""
+    text = str(path)
+    return text if text.isprintable() else ascii(text)
+
+
+def _private_root_remedy(path: Path, info, uid: int) -> str:
+    """Offer a shell-quoted remedy only for an owned, non-sticky directory."""
+    if info.st_uid != uid or info.st_mode & stat.S_ISVTX:
+        return "; choose a private directory owned by your user"
+    if not str(path).isprintable():
+        return "; choose a private directory with a printable path"
+    import shlex
+
+    return f"; run: chmod 700 {shlex.quote(str(path))}"
 
 
 def _reject_windows_separators(parts: tuple[Path, ...]) -> None:

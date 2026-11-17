@@ -7,10 +7,12 @@ small, reusable output policy so formatting changes have one tested seam.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import unicodedata
 
 from .colors import COLORS
+from .paths import home_dir
 
 #: C0 controls, DEL, and C1 controls -- the range a terminal interprets as
 #: commands (ESC is 0x1B, so ``\x1b[2K\x1b[32m`` is covered by the C0 group).
@@ -67,6 +69,15 @@ def truncate(text: str, limit: int) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 3] + "..."
+
+
+def home_display(text: str) -> str:
+    """Abbreviate home-prefixed paths in terminal prose, then sanitize it."""
+    home = str(home_dir()).rstrip("/\\")
+    if home:
+        text = re.sub(r"(?<![\w/\\])" + re.escape(home) + r"(?=$|[/\\\s'\"`,;)])",
+                      "~", str(text))
+    return sanitize_text(text)
 
 
 def render_table(rows: list[list[str]]) -> str:

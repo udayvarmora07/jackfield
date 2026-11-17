@@ -28,6 +28,7 @@ from .cli_output import (
     print_json as _print_json,
     render_table as _render_table,
     sanitize_text as _display,
+    home_display as _home_display,
     truncate as _truncate,
 )
 from .store import Store, StoreError
@@ -270,6 +271,7 @@ def cmd_list(args, store: Store) -> int:
         return EXIT_OK
     if not rows:
         print("no skills installed")
+        _empty_global_hint(args, scope)
         return EXIT_OK
     header = ["SCOPE", "NAME", "STATUS", "CATEGORY", "DESCRIPTION"] if show_scope else ["NAME", "STATUS", "CATEGORY", "DESCRIPTION"]
     table = []
@@ -285,6 +287,20 @@ def cmd_list(args, store: Store) -> int:
         table.append(base)
     print(_render_table([header] + table))
     return EXIT_OK
+
+
+def _empty_global_hint(args, scope: str) -> None:
+    """Point an empty global-store reader at observed agent scopes."""
+    if scope != "global" or args.disabled or args.category:
+        return
+    try:
+        populated = [s for s in scopes.list_scopes() if s["id"] != "global" and s["count"]]
+    except (OSError, StoreError, ValueError):
+        print("hint: agent folders could not be checked; use `skills-mgr scopes` for details")
+        return
+    if populated:
+        counts = ", ".join(f"{s['id']}: {s['count']}" for s in populated)
+        print(f"hint: agent folders contain skills ({_display(counts)}); use `skills-mgr list --scope all`")
 
 
 def cmd_create(args, store: Store) -> int:
@@ -688,12 +704,12 @@ def _render_lockfile_text(lockfiles: dict | None) -> None:
         if lock.get("state") and lock.get("state") != "ok":
             print(
                 f"    {_display(str(key))} lock: {_display(str(lock.get('state')))} "
-                f"({_display(str(lock.get('reason', '')))})"
+                f"({_home_display(str(lock.get('reason', '')))})"
             )
     if lockfiles.get("undeclared", {}).get("names"):
         print(f"    undeclared installed skills: {len(lockfiles['undeclared']['names'])}")
     for signal in lockfiles.get("unavailable_signals", []):
-        print(f"    unavailable {_display(str(signal.get('signal', '')))}: {_display(str(signal.get('explanation', '')))}")
+        print(f"    unavailable {_display(str(signal.get('signal', '')))}: {_home_display(str(signal.get('explanation', '')))}")
 
 
 def _render_claude_listing_text(section: dict | None) -> None:
@@ -706,13 +722,20 @@ def _render_claude_listing_text(section: dict | None) -> None:
     if section.get("status") == "unknown":
         print(
             f"  Claude Code listing: {chars:,} chars; budget unknown "
-            f"(partial settings evidence); {candidates} name-only candidates"
+            "(partial settings evidence)"
         )
         return
+    advice = _claude_candidate_advice(chars, budget, candidates)
     print(
-        f"  Claude Code listing: {chars:,} chars vs ~{budget:,} budget (estimate); "
-        f"{candidates} name-only candidates"
+        f"  Claude Code listing: {chars:,} chars vs ~{budget:,} budget (estimate){advice}"
     )
+
+
+def _claude_candidate_advice(chars: int, budget: int, candidates: int) -> str:
+    if budget <= 0 or chars < budget * 0.9 or not candidates:
+        return ""
+    noun = "candidate" if candidates == 1 else "candidates"
+    return f"; {candidates} name-only {noun} (by size only)"
 
 
 def _render_agents_bridge_text(section: dict | None) -> None:
@@ -738,8 +761,8 @@ def _render_codex_config_text(section: dict | None) -> None:
     verb = "entry matches" if total == 1 else "entries match"
     print(f"  Codex config: {total} path {verb} no skill, so the on/off setting never applies")
     for entry in section.get("entries", []):
-        hint = f" -> use {_display(str(entry['suggested_path']))}" if entry.get("suggested_path") else ""
-        print(f"    {_display(str(entry.get('problem', '')))}: {_display(str(entry.get('path', '')))}{hint}")
+        hint = f" -> use {_home_display(str(entry['suggested_path']))}" if entry.get("suggested_path") else ""
+        print(f"    {_display(str(entry.get('problem', '')))}: {_home_display(str(entry.get('path', '')))}{hint}")
 
 
 def _render_codex_listing_text(section: dict | None) -> None:
@@ -797,32 +820,32 @@ def _render_hygiene_text(report: dict) -> None:
             f"{_display(str(finding.get('category', '')))}: "
             f"{_display(str(finding.get('title', '')))}"
         )
-        print(f"    {_display(str(finding.get('explanation', '')))}")
+        print(f"    {_home_display(str(finding.get('explanation', '')))}")
         for instance in finding.get("instances", []):
             location = instance.get("physical_path") or instance.get("path") or "path unavailable"
             print(
                 f"    - {_display(str(instance.get('scope', '')))} / "
-                f"{_display(str(instance.get('name', '')))}: {_display(str(location))}"
+                f"{_display(str(instance.get('name', '')))}: {_home_display(str(location))}"
             )
-        print(f"    follow-up: {_display(str(finding.get('recommendation', '')))}")
+        print(f"    follow-up: {_home_display(str(finding.get('recommendation', '')))}")
     if report.get("largest_instances"):
         print("  context hotspots:")
         for item in report["largest_instances"]:
             location = item.get("physical_path") or item.get("path") or "path unavailable"
             print(
                 f"    {_display(str(item.get('name', '')))}: {item.get('tokens', 0)} tokens "
-                f"({_display(str(location))})"
+                f"({_home_display(str(location))})"
             )
     if report.get("degraded"):
         print("  degraded evidence:")
         for item in report["degraded"]:
-            print(f"    {_display(str(item.get('section', 'scan')))}: {_display(str(item.get('reason', '')))}")
+            print(f"    {_display(str(item.get('section', 'scan')))}: {_home_display(str(item.get('reason', '')))}")
     if report.get("unavailable_signals"):
         print("  unavailable evidence:")
         for item in report["unavailable_signals"]:
             print(
                 f"    {_display(str(item.get('signal', 'signal')))}: "
-                f"{_display(str(item.get('explanation', 'not observed')))}"
+                f"{_home_display(str(item.get('explanation', 'not observed')))}"
             )
 
 
@@ -834,7 +857,7 @@ def _print_doctor_index_report(report: dict) -> None:
     built.
     """
     for line in report.get("repair") or []:
-        print(f"  repair: {line}")
+        print(f"  repair: {_home_display(line)}")
     integrity = report.get("db_integrity")
     if integrity and integrity not in ("ok", "unindexed"):
         print(f"  database integrity check failed: {integrity}")
@@ -855,7 +878,7 @@ def cmd_doctor(args, store: Store) -> int:
         if scope != "global":
             print(f"{colors.COLORS.green('ok:')} {scope} filesystem is healthy")
         else:
-            print(f"{colors.COLORS.green('ok:')} filesystem and database are consistent")
+            _print_global_doctor_ok(report)
     else:
         print(f"{colors.COLORS.yellow('issues found:')}" + (f" ({scope})" if scope != "global" else ""))
     if report.get("orphan_dirs"):
@@ -867,7 +890,7 @@ def cmd_doctor(args, store: Store) -> int:
     # Also show scope summary when --scope all.
     if scope == "all":
         for s in report["scopes"]:
-            print(f"  {s['label']} ({s['id']}): {s['count']} skills at {s['path']}")
+            print(f"  {_display(s['label'])} ({_display(s['id'])}): {s['count']} skills at {_home_display(s['path'])}")
         if report["duplicates"]:
             print(f"  {len(report['duplicates'])} skill name(s) present in multiple scopes:")
             for d in report["duplicates"]:
@@ -879,6 +902,13 @@ def cmd_doctor(args, store: Store) -> int:
         _render_hygiene_text(report["hygiene"])
         return EXIT_OK
     return EXIT_OK if report.get("ok") else EXIT_ERROR
+
+
+def _print_global_doctor_ok(report: dict) -> None:
+    message = "filesystem and database are consistent"
+    if report.get("db_integrity") == "unindexed":
+        message = "no skills installed; the index will be created on the first write"
+    print(f"{colors.COLORS.green('ok:')} {message}")
 
 
 def _print_doctor_document_issues(report: dict) -> None:
@@ -897,13 +927,13 @@ def _print_doctor_document_issues(report: dict) -> None:
         )
     for issue in report.get("degraded", []):
         if issue.get("section") == "scope-scan":
-            print(f"  scope scan unavailable: {_display(issue['reason'])}")
+            print(f"  scope scan unavailable: {_home_display(issue['reason'])}")
 
 def _print_explain(report: dict) -> None:
     """Human-readable effective-resolution report (read-only)."""
     print(
         f"effective resolution for consumer {colors.COLORS.green(report['label'])} "
-        f"({report['consumer']}) in {report['project'] or '-'}"
+        f"({report['consumer']}) in {_home_display(report['project'] or '-')}"
     )
     print(f"  policy: {report['policy']}  resolution: {report['resolution']}")
     print(f"  source: {report['source']}")
@@ -912,21 +942,21 @@ def _print_explain(report: dict) -> None:
         if winner:
             print(
                 f"  {name}: {entry['resolution']} -> {winner['tier']} "
-                f"({winner['path']})"
+                f"({_home_display(winner['path'])})"
             )
         else:
-            print(f"  {name}: {entry['resolution']} - {entry['reason']}")
+            print(f"  {name}: {entry['resolution']} - {_home_display(entry['reason'])}")
         for shadowed in entry.get("shadowed", []):
-            print(f"      shadowed by {entry['winner_tier']}: {shadowed['path']}")
+            print(f"      shadowed by {entry['winner_tier']}: {_home_display(shadowed['path'])}")
         for loaded in entry.get("also_loads", []):
             print(
                 f"      also loads ({entry.get('also_loads_reason')}): "
-                f"{loaded['path']}"
+                f"{_home_display(loaded['path'])}"
             )
     for note in report.get("notes", []):
-        print(f"  note: {note}")
+        print(f"  note: {_home_display(note)}")
     for warning in report.get("warnings", []):
-        print(f"  {colors.COLORS.yellow('warning:')} {warning}")
+        print(f"  {colors.COLORS.yellow('warning:')} {_home_display(warning)}")
 
 
 def _cmd_doctor_explain(args, consumer: str) -> int:
@@ -940,7 +970,7 @@ def _cmd_doctor_explain(args, consumer: str) -> int:
     if getattr(args, "json", False):
         _print_json(report)
     elif report["resolution"] in ("unknown-consumer", "missing-project"):
-        print(f"error: {report['reason']}", file=sys.stderr)
+        print(f"error: {_home_display(report['reason'])}", file=sys.stderr)
         if report.get("known_consumers"):
             print(
                 "known consumers: " + ", ".join(report["known_consumers"]),
@@ -1115,10 +1145,10 @@ def cmd_scopes(args, store: Store) -> int:
     show_tokens = not getattr(args, "no_tokens", False)
     if show_tokens:
         header = ["ID", "LABEL", "COUNT", "TOKENS", "PATH"]
-        table = [[s["id"], s["label"], str(s["count"]), str(s.get("tokens", 0)), s["path"]] for s in summary]
+        table = [[s["id"], s["label"], str(s["count"]), str(s.get("tokens", 0)), _home_display(s["path"])] for s in summary]
     else:
         header = ["ID", "LABEL", "COUNT", "PATH"]
-        table = [[s["id"], s["label"], str(s["count"]), s["path"]] for s in summary]
+        table = [[s["id"], s["label"], str(s["count"]), _home_display(s["path"])] for s in summary]
     print(_render_table([header] + table))
     return EXIT_OK
 

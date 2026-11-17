@@ -4,14 +4,67 @@
 
 **AI manifest**: Single source of truth for remaining work on skills-manager. Update after every step. Notation: `[ ]` unstarted, `[/]` in progress, `[x]` done. Milestones: (1) docs layer, (2) GUI, (3) zero-error iteration loop.
 
+## Main integration and verified cleanup (2026-11-17)
+
+- [x] Recover interrupted `codex/first-run-guidance` work and independently
+  compare the dirty primary parity copies against main; the parity behavior
+  is already integrated, so retain later main code and port only unique receipts.
+- [x] Verify private backups of both dirty states and an independently loaded
+  all-ref/reflog bundle before integration. Preserve the alternate redesign,
+  its backup, historical remote refs and the open publishing-action PR.
+- [x] Fix review-discovered duplicate bundled-prose scans; regressions fail
+  before the correction and retain distinct package-script evidence afterward.
+- [x] Complete combined verification: 2,050 tests on each Python 3.11–3.14
+  (three optional skips each), both smokes, 37 v2 scenarios, 38 classic
+  scenarios / 342 assertions, viewport/static/docs/design/complexity gates,
+  pinned artifacts and the installed-wheel AI probe.
+- [x] Prepare guarded main integration and cleanup: preserve stale primary
+  copies in a verified recovery stash, retain private launch settings, and
+  remove completed worktrees only after exact remote-commit containment,
+  stable file/admin manifests and visible-host-process rechecks.
+
+## Merged branch/worktree cleanup (2026-11-13)
+
+- [x] Recheck all 14 local branches, 6 live remote heads and 13 worktrees;
+  prove the 10 completed Claude/Codex task tips are exact ancestors of GitHub
+  main `85611ba`, with clean ordinary status and no ongoing Git operation.
+- [x] Preserve complete checkout/admin archives, ignored evidence, raw shared
+  reflogs/configuration and a verified all-ref/recovery bundle. Independent
+  recovery resolved 103 ref/recovery objects; stale rebase product patches
+  match their final commits. Luna/Terra reviewed the checks.
+- [x] Remove only those 10 inactive merged worktrees and their local branches,
+  with fresh path/state/hash/ancestry/visible-host-handle guards; use no force.
+- [x] Verify all other refs and the primary checkout's original file bytes;
+  Git connectivity passes. Retain primary dirty parity work, local main,
+  alternate redesign, backup history, all remote branches, stashes and WIP refs.
+
+Recovery: `/home/uday-varmora/skillsmgr-cleanup-20261113-hlvp1yl1`.
+The original task/progress files are saved there before this local receipt.
+Other-UID and protected infrastructure process handles were not all readable;
+activity checks are point-in-time, not a guarantee against future writers.
+No application behavior, skill data, release or remote branch was changed.
+
+## First-run guidance continuation (2026-11-13)
+
+- [x] Complete docs/45 F1 (hint only), F2 and F4–F7, plus F3's wording-only
+  option, on `codex/first-run-guidance` from current main. Preserve the dirty
+  primary parity checkout; add no command, flag, Store method or dependency.
+- [x] Verify empty/filtered/JSON listings, fresh versus missing/corrupt indexes,
+  permission remedies, terminal path rendering, candidate thresholds, and
+  independent Home listing reads including stale results and retry.
+- [x] Finish current-tree tests, both smokes, browser checks, static/docs/design
+  and complexity gates; evidence and remaining limits are recorded above.
+
 ## Project review and suggestions (2026-11-13)
 
 - [x] Whole-project review recorded in
   `docs/45-project-review-and-suggestions-2026-11-13.md`. Proposals only.
 - [ ] Owner's call: release 1.1.0 (PyPI still serves 1.0.1) and questions
   Q1–Q4 in docs/45 §7.
-- [ ] No approval needed, not started: first-run fixes F1 (hint only), F2,
-  F4–F7; risk checks on prose (N4); authoring-smell lints (N6).
+- [x] First-run fixes F1 (hint only), F2, F4–F7 and F3's wording-only option:
+  see the continuation above.
+- [x] Risk checks on prose (N4) and authoring hints (N6): separate file-owned
+  worker tasks, followed by the combined current-tree verification above.
 - [ ] Verify vendor changes V1–V6 against primary sources before changing
   `effective.py`, `native_state.py` or docs/12.
 

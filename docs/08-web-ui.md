@@ -558,6 +558,14 @@ and the existing measured dark palette. Its primary navigation is **Home**,
 reader, copy comparison and the Inbox retain their established compositions.
 Tools provides secondary navigation and contextual links from exact instances.
 
+Home also shows Claude Code and Codex listing-budget estimates in a side card.
+The card reads the existing `GET /api/doctor?scope=all&hygiene=1` report after
+the inventory renders, independently of inventory loading. It states the
+report's budget basis and partial/unknown status, offers retry on failure and
+links to Quality for the underlying evidence. Refreshing inventory reloads the
+estimates; late results and results after leaving Home are discarded. It does
+not infer agent loading or replace the separate full-document reading meter.
+
 **[SPEC] Tools pages share one composition (2026-11-06 design pass).** Tools is a
 real primary tab at every width (the former floating "Tools & settings" link was
 hidden below 1200px and is gone, as is the header's second search button; the

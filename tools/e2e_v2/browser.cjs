@@ -20,6 +20,39 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   async function theme(t) { for (let i=0;i<3 && await page.locator('html').getAttribute('data-theme')!==t;i++) await page.locator('.themebtn').first().click(); assert.equal(await page.locator('html').getAttribute('data-theme'),t); }
   const file=(scope,name='same-everywhere')=>path.join(home,scope,'skills',name,'SKILL.md');
   await test('Default entry preserves query and hash and opens v2',async()=>{await page.goto(base+'/?window=claude#/skills');await page.waitForLoadState('networkidle');assert.equal(page.url(),base+'/v2/?window=claude#/skills');assert(await page.locator('.sk').count()>0);});
+  await test('Home listing budgets use real evidence and recover from a failed read', async () => {
+    await go('home');
+    let card = page.getByRole('region', {name:'Skill listing budgets', exact:true});
+    assert.equal(await card.locator('.listing-budget').count(), 2);
+    assert.match(await card.innerText(), /Claude Code[\s\S]*chars[\s\S]*Codex[\s\S]*tokens/);
+    assert.match(await card.innerText(), /partial evidence/);
+    const report = await (await context.request.get(base+'/api/doctor?scope=all&hygiene=1')).json();
+    assert((await card.innerText()).includes('~'+new Intl.NumberFormat().format(report.hygiene.claude_listing.listing_chars)));
+    for (const width of [1280, 320]) for (const mode of ['dark', 'light']) {
+      await page.setViewportSize({width,height:900});
+      await theme(mode);
+      await card.scrollIntoViewIfNeeded();
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      await card.screenshot({path:path.join(root,`listing-budget-${mode}-${width}.png`)});
+    }
+    await page.setViewportSize({width:1280,height:900});
+    const matches = url => url.pathname==='/api/doctor' && url.searchParams.get('hygiene')==='1';
+    let attempts = 0;
+    const handler = route => attempts++===0 ? route.fulfill({status:503,contentType:'application/json',body:'{"error":"fixture unavailable"}'}) : route.continue();
+    await page.route(matches, handler);
+    try {
+      await go('home');
+      card = page.getByRole('region', {name:'Skill listing budgets', exact:true});
+      assert.match(await card.getByRole('alert').innerText(), /Couldn't read listing estimates/);
+      assert(await page.locator('.room').count()>0, 'inventory remains usable');
+      await card.getByRole('button', {name:'Retry listing estimates', exact:true}).focus();
+      await page.keyboard.press('Enter');
+      await card.getByRole('heading', {name:'Claude Code', exact:true}).waitFor();
+      assert.equal(await card.getByRole('alert').count(), 0);
+      await card.getByRole('link', {name:'Review listing evidence'}).click();
+      assert(page.url().endsWith('#/tools/quality'));
+    } finally { await page.unroute(matches, handler); }
+  });
   await test('Slashless v2 entry keeps query and hash and loads its own app', async () => {
     await page.goto(base + '/v2?window=claude#/skills');
     await page.locator('.shelf').first().waitFor();

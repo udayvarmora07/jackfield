@@ -560,6 +560,13 @@ def _doctor_record_differs(scanned: dict, indexed: dict) -> bool:
     )
 
 
+def _doctor_health_integrity(integrity: str, scanned: dict, trash_count: int, db_path: Path) -> str:
+    """An empty tree without any index file needs no consistency repair."""
+    if integrity == "unindexed" and not (scanned or trash_count or os.path.lexists(db_path)):
+        return "ok"
+    return integrity
+
+
 def _doctor_is_clean(
     integrity: str,
     orphan_dirs: list[str],
@@ -2342,6 +2349,8 @@ class Store:
         either.  A store with no index is precisely the drift a user runs
         ``doctor`` to find: it is reported here (``db_rows == 0``, every scanned
         directory an orphan) rather than quietly repaired behind their back.
+        An empty tree without an index is a healthy first run; an existing
+        unusable index or surviving skill/trash data still needs repair.
         """
         self._check_store_layout()
         scanned = {e["name"]: e for e in self._scan_dir(self.skills_dir)}
@@ -2363,9 +2372,10 @@ class Store:
         stale_snapshots = artifacts["stale_snapshots"]
         trash_count = artifacts["trash_count"]
         templates_count = artifacts["templates_count"]
-        index_missing = integrity == "unindexed"
+        health_integrity = _doctor_health_integrity(integrity, scanned, trash_count, self.db_path)
+        index_missing = health_integrity == "unindexed"
         ok = _doctor_is_clean(
-            integrity,
+            health_integrity,
             orphan_dirs,
             stale_rows,
             filesystem_index_drift,

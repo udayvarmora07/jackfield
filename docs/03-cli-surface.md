@@ -73,6 +73,10 @@ Create the data directory layout and initialize the SQLite index.
 ### `list` / `ls [--json] [--disabled] [--category CAT] [--scope SCOPE]`
 List skills in the scope (default global) with a STATUS column (`active`/`disabled`); disabled skills are shown marked and `--disabled` narrows the list to disabled skills only. `--category` filters; `--scope all` merges every scope and adds a SCOPE column. DESCRIPTION/CATEGORY cells are sanitized before printing (see *Untrusted display text*).
 
+An empty, unfiltered global text listing also checks agent scopes and prints
+their populated counts with a `list --scope all` hint. JSON, named-scope and
+filtered listings keep their existing output and avoid this extra scan.
+
 ### `create NAME [-d/--description TEXT] [--license LIC] [--category CAT] [--compatibility SPEC] [--version VER] [--allowed-tools TOOLS] [--body TEXT] [--body-file PATH] [--json]`
 Create a skill in the global store. Name must match `NAME_RE`; description required. `--body` and `--body-file` are mutually exclusive.
 
@@ -156,6 +160,12 @@ headline reflects the global Store report only; it is not an aggregate
 validation of every agent document. Use named-scope doctor or hygiene for
 those findings. `--project` is evaluated only with `--explain`.
 
+An empty filesystem tree with no index is a healthy first run; Doctor creates
+nothing. A missing index with surviving skills/trash, or an existing unusable
+index even with no skills, still reports repair guidance. In text output,
+`scopes`, Doctor and hygiene abbreviate paths under the current home as `~/…`;
+JSON retains absolute paths.
+
 `--explain CONSUMER` switches to the read-only effective-resolution diagnostic
 (issue #12): it derives, at read time, which instance of a skill that consumer
 would load for `--project DIR` (default: the current directory), reporting the
@@ -214,6 +224,9 @@ least-invoked skills, which this tool cannot observe, so it never claims which
 descriptions are dropped. The human output prints one summary line, for example
 `Claude Code listing: 41,200 chars vs ~40,000 budget (estimate); 25 name-only
 candidates`. Every number is read-only evidence; no listing is edited.
+The text summary shows candidate counts only at 90% or more of a known
+estimated budget. Unknown budgets and smaller listings omit that advice;
+the JSON candidate evidence remains available at every size.
 
 The report's `codex_config` section (`--scope codex` or `all`) names Codex
 `[[skills.config]]` `path` entries that can never match a skill — a folder

@@ -953,6 +953,63 @@ app.component("logo", {
   template: '<span :class="[\'logo\', size]" :style="{ background: agent.color }" aria-hidden="true">{{ agent.initials }}</span>',
 });
 
+app.component("listing-budgets", {
+  props: { records: Array, locale: { type: String, default: "system" } },
+  data() { return { report: null, loading: false, error: "", generation: 0 }; },
+  computed: {
+    sections() {
+      return [["claude_listing", "Claude Code", "chars"], ["codex_listing", "Codex", "tokens"]].flatMap(([key, label, unit]) => {
+        const section = this.report && this.report[key];
+        if (!section || !section.instances_observed) return [];
+        const budget = section.budget || {};
+        const statuses = { within_budget: "Within estimate", over_budget_estimate: "Over estimated budget", no_instances: "No model-visible entries" };
+        const unknown = !Object.prototype.hasOwnProperty.call(statuses, section.status);
+        const status = unknown ? "Budget unknown" : statuses[section.status];
+        return [{ key, label, unit, used: unit === "chars" ? section.listing_chars : section.listing_tokens_estimate,
+          budget: unknown ? null : unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens,
+          basis: budget.basis || "Budget basis unavailable",
+          status: status + (section.confidence === "partial" ? " · partial evidence" : "") }];
+      });
+    },
+  },
+  watch: { records: { immediate: true, handler() { this.load(); } } },
+  beforeUnmount() { this.generation++; },
+  methods: {
+    fmtN(value) { return Domain.numberFormatter(this.locale === "system" ? undefined : this.locale).format(Number(value || 0)); },
+    async load() {
+      const generation = ++this.generation;
+      this.loading = true; this.error = ""; this.report = null;
+      try {
+        const envelope = await api("/api/doctor?scope=all&hygiene=1");
+        if (generation !== this.generation) return;
+        if (!envelope || !envelope.hygiene) throw new Error("No listing evidence returned");
+        const { claude_listing, codex_listing } = envelope.hygiene;
+        if (!claude_listing || !codex_listing) throw new Error("Incomplete listing evidence");
+        this.report = markRaw({ claude_listing, codex_listing });
+      } catch (e) {
+        if (generation === this.generation) this.error = "Couldn't read listing estimates. Retry, or open Tools → Quality.";
+      } finally {
+        if (generation === this.generation) this.loading = false;
+      }
+    },
+  },
+  template: `<section class="card" aria-label="Skill listing budgets" :aria-busy="loading">
+    <h2>Skill listing budgets</h2>
+    <p class="sub">Names and descriptions shown to the model. Estimates; agent loading is not verified.</p>
+    <p class="sub" v-if="loading" role="status">Reading listing estimates…</p>
+    <p class="state-note err" v-else-if="error" role="alert">{{ error }} <button type="button" class="btn btn-line btn-sm" @click="load()">Retry listing estimates</button></p>
+    <template v-else>
+      <div class="listing-budget" v-for="section in sections" :key="section.key">
+        <h3>{{ section.label }}</h3>
+        <p class="num">~{{ fmtN(section.used) }} {{ section.unit }}<template v-if="section.budget != null"> of ~{{ fmtN(section.budget) }}</template></p>
+        <p class="sub">{{ section.status }}</p><p class="sub">{{ section.basis }}</p>
+      </div>
+      <p class="sub" v-if="!sections.length">No Claude Code or Codex listing instances observed.</p>
+      <a class="see-all" href="#/tools/quality">Review listing evidence <ic name="arrow" cls="i-s"></ic></a>
+    </template>
+  </section>`,
+});
+
 app.component("library-tools", window.SkillsV2LibraryTools);
 app.component("tool-center", window.SkillsV2ToolCenter);
 app.component("ai-center", window.SkillsV2AiCenter);

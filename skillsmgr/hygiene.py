@@ -17,7 +17,7 @@ import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
-from . import file_reads, key_support, loader, lockfiles, native_state, paths, source_lock, validator
+from . import authoring, file_reads, key_support, loader, lockfiles, native_state, paths, source_lock, validator
 from .lockfiles import MAX_STRING, bounded_text as _bounded
 from .tokens import DEFAULT_WINDOW, WINDOWS, count_tokens, estimate, window_name
 
@@ -84,6 +84,7 @@ _CATEGORY_ORDER = (
     "source-lock-inaccessible",
     "source-lock-unbound",
     "source-lock-evidence",
+    "authoring-smell",
 )
 _CATEGORY_RANK = {value: index for index, value in enumerate(_CATEGORY_ORDER)}
 _SEVERITY_RANK = {"error": 0, "warning": 1, "info": 2, "unavailable": 3}
@@ -532,7 +533,9 @@ def _duplicate_findings(records: list[dict]) -> list[dict]:
                     "tokens": sorted({int(item.get("tokens", 0) or 0) for item in group}),
                     "effective_load": "not inferred",
                 },
-                "Inspect both exact instances and use the existing diff/update or sync workflow deliberately.",
+                "Compare the exact copies in the web UI Sync map, or run "
+                "`skills-mgr update preview NAME --scope SCOPE --from DIR` "
+                "with one copy as the candidate. Review before applying or syncing.",
             ))
     by_hash = _groups(records, "content_hash")
     for content_hash in sorted(by_hash):
@@ -2055,6 +2058,7 @@ def _hygiene_report(
     prepared, degraded = _prepare_records(records, max_instances)
     unavailable = _unavailable_signals()
     findings = _validation_findings(prepared)
+    findings.extend(authoring._authoring_hint_findings(prepared))
     findings.extend(_parse_risk_findings(prepared))
     findings.extend(_duplicate_findings(prepared))
     near = near_duplicate_candidates(prepared)

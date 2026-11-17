@@ -149,6 +149,8 @@ a { color: inherit; }
 .plus { width: 52px; height: 52px; border-radius: var(--r-md); background: var(--sunken); display: grid; place-items: center; margin: 0 auto 10px; color: var(--ink); }
 .side { display: flex; flex-direction: column; gap: 18px; }
 .side .card { padding: 22px; }
+.listing-budget { margin-top: 16px; overflow-wrap: anywhere; }
+.listing-budget h3 { font-size: 14px; margin-bottom: 4px; }
 .side h2 { font-size: 18px; font-weight: 800; }
 .look { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 16px 0; border-top: 1px solid var(--sunken); }
 .look:first-of-type { border-top: 0; margin-top: 8px; }

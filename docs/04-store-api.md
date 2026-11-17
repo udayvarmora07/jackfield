@@ -49,8 +49,10 @@ deliberately do not: they open the index without creating the data layout, the
 database file, or the schema, and a store with no index reads exactly like a
 store with no skills.  `doctor()` is where a missing index is *reported*
 (`db_integrity: "unindexed"`, `ok: false`, and a `repair` line naming
-`skills-mgr db rebuild`) rather than quietly repaired — repairing it there would
-defeat the tool.  A damaged layout raises `StoreLayoutError` from both read and
+`skills-mgr db rebuild`) rather than quietly repaired when skill/trash data
+survives or an existing index is unusable. An empty tree with no index is a
+healthy first run (`db_integrity: "unindexed"`, `ok: true`, `repair: []`);
+other filesystem problems still make the report unhealthy. A damaged layout raises `StoreLayoutError` from both read and
 write paths, so the condition has one name wherever a user meets it.
 
 ## Public methods

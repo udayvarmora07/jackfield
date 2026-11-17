@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check complexity budgets for the four Python hotspot modules.
+"""Check complexity budgets for the selected Python modules.
 
 This is a repository check, not a product CLI command.  It parses source with
 only the standard-library :mod:`ast` module, reports the largest functions in
@@ -43,6 +43,7 @@ TARGET_FILES = (
     "skillsmgr/validator.py",
     "skillsmgr/effective.py",
     "skillsmgr/hygiene.py",
+    "skillsmgr/authoring.py",
     "skillsmgr/source_lock.py",
     "skillsmgr/source_update.py",
     "skillsmgr/backup_sync.py",

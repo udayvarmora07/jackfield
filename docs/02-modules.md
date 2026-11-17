@@ -199,6 +199,10 @@ one finding per key, naming which consumers document it and which do not, and
 never claiming the key is rejected. Scopes without a documented key list
 (`global`, `commandcode`, `cursor`, project scopes) produce a
 `frontmatter-key-support` unavailable signal instead.
+
+Authoring hints are grouped informational evidence from the internal
+`authoring.py` helper: example-like content, validation language and local
+reference depth. These heuristics never change validation validity.
 `normalize_instruction_body()` owns the
 narrow exact-instruction comparison normalization; `near_duplicate_candidates()`
 uses bounded inverted-index features and weighted Jaccard scores. The module
@@ -529,6 +533,15 @@ writes provenance into the installed copy or purges it. The HTTP adapter
 preserves its timeout response (HTTP 500 with command and execution evidence);
 the CLI keeps its 4,000-character JSON stream tails and 8,000-character text tails.
 
+## `authoring.py`
+
+Internal, filesystem-free authoring hints over supplied record bodies. At most
+three grouped `authoring-smell` findings identify missing example-like content,
+missing validation language or links deeper than `references/file.md`. Each
+group retains at most 100 supplied instance identities and reports total and
+omitted counts. Empty, malformed, non-text and bodies over 200,000 characters
+are skipped. Date-based staleness is not inferred.
+
 ## `risk.py`
 
 `risk_scan()` returns explainable, advisory-only findings (script/link/tool/
@@ -540,6 +553,22 @@ parsing (`registry_reference()`, `owner/repo`, `owner/repo/slug`,
 `https://skills.sh/{source}/{slug}`, `https://github.com/owner/repo`; segments
 capped at `MAX_REGISTRY_SEGMENT = 96`, other hosts refused) lives in
 `registry.py`.
+
+The prose checks also inspect eligible bundled Markdown/configuration text for
+remote-instruction wording, credential requests, common token shapes, webhook
+and paste endpoints. Recognized secret values and endpoint paths are redacted
+before evidence truncation, including older URL/script findings. Hook/MCP
+configuration, package lifecycle scripts, archive suffixes, NUL/invalid-UTF-8
+text files and files over 1 MiB produce advisory signals. No bundled code or
+remote URL is executed or fetched.
+
+Tree inspection caps entries at 256 files, 256 directories and 4,096 visited
+directory entries. Eligible text is limited to 50 decoded files, 256 KiB per
+file and 2 MiB of actual bounded reads, including rejected growth probes.
+Limit omissions and failed text reads produce incomplete-evidence markers.
+Supported POSIX systems pin directory/file reads to no-follow descriptors;
+fallback platforms retain a concurrent parent-directory replacement window.
+This is heuristic evidence, not exhaustive secret or binary detection.
 
 ## `context.py`
 

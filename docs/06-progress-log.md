@@ -8,6 +8,137 @@ dated 2026-09-23 and later; everything older lives verbatim in
 @docs/archive/README.md.** Read the digest below first — it is the part a session
 actually needs. Facts flagged stale here are corrected in the owning doc.
 
+## 2026-11-17 — Recover interrupted guidance work for main integration
+
+**[NOTE]** The maintainer requested integration into main followed by checked
+worktree removal. The interrupted first-run guidance worktree also contains
+advisory prose-risk and authoring checks. The existing primary checkout is
+older and dirty: its parity implementation is already in main, and replacing
+current files with those older copies would undo later work. Independent
+source/history review identified only its two additive cleanup receipts for
+porting. Both original dirty states have verified private file archives and
+binary patches; an all-ref/reflog bundle was independently loaded before edits.
+
+Independent diff review found the bundled prose and endpoint/token passes
+scanned supplied file text twice. Two regressions reproduced duplicate findings
+and a displaced package-install-script signal at the 200-finding bound. Both
+passes now consume the combined text list once; all 23 prose-risk tests pass.
+
+No new command, flag, Store method, schema or runtime dependency was added.
+Final combined verification: 2,050 tests on each Python 3.11–3.14, three
+optional skips each; both smokes; 37 v2 scenarios; 38 classic scenarios /
+342 assertions; the six-viewport harness; docs, complexity (1,324 functions),
+design and JS syntax; pinned Ruff/Bandit; hash-locked wheel/sdist builds,
+package inspection and an installed-wheel AI probe. `agent-browser` checked
+Home listing estimates and navigation to Quality in a synthetic fixture.
+No live AI provider, external runner, published release or human screen-reader
+sign-off is claimed. An earlier parallel matrix hit a process-exit timing
+assertion; it passed in isolation and the final four-version matrix passed.
+
+Delivery is authorized as a normal fast-forward to main followed by guarded
+cleanup. Exact operation receipts, original file archives, manifests and
+recovery data are retained privately at
+`/home/uday-varmora/skillsmgr-integration-20261117-6zdqtrxt`.
+The alternate redesign and historical backup remain outside this recovered
+task implementation. Stale primary parity copies are preserved for recovery;
+they must not overwrite the later implementation already in main.
+
+## 2026-11-13 — Remove completed merged task worktrees
+
+**[NOTE]** The maintainer requested a second checked cleanup. Live GitHub main
+was `85611ba`; all 10 completed Claude/Codex task tips were exact ancestors,
+with zero unique commits and clean ordinary status. Complete worktree and Git
+administrative archives were byte/link/mode verified, including ignored files,
+stale rebase heads and Codex verification evidence. An all-ref/reflog/recovery
+bundle was independently loaded and 103 ref/recovery objects resolved. Raw
+shared reflogs, branch refs and Git configuration were also preserved.
+
+Luna compared old/final rebase patches; Terra reviewed the inventory and
+cleanup guards. Each deletion rechecked identity, status, manifests, ancestry,
+live main and inspectable host handles. Ordinary `git worktree remove` and
+safe `git branch -d` removed 10 checkouts and 10 local branches; no force or
+remote deletion was used. Branch deletion compared against verified
+`origin/main`, because the primary HEAD and local main remain older.
+
+Three worktrees remain: the dirty primary parity checkout, local main in the
+untangle checkout, and the unmerged alternate redesign. Four local branches
+remain, including the redesign backup. All remote heads, stashes, WIP refs,
+and other refs were preserved; Git connectivity and original primary file
+hashes passed before this local tracking receipt. Original task/progress bytes
+and recovery data are in
+`/home/uday-varmora/skillsmgr-cleanup-20261113-hlvp1yl1`.
+
+**[?]** Other-UID and protected infrastructure process handles were not all
+readable. The host checks exclude observed use, not future concurrent writers.
+No application code, personal skill data, release or remote history changed.
+
+## 2026-11-13 — Advisory-check continuation and development tools
+
+**[NOTE]** The maintainer requested continued work plus skills, custom agents,
+MCP servers and `agent-browser` CLI. N4 prose-risk and N6 informational
+authoring checks were assigned to separate file-owned workers; combined
+verification remains in progress. N6 now groups at most three info findings
+with total/omitted instance counts and bounded supplied-path identities.
+Date-relative staleness remains deferred because no deterministic useful
+policy was established. The interrupted daemon restart
+left those worker files untouched; work resumed after inspecting the tree.
+
+Installed the official `security-best-practices` skill and a personal
+`skillsmgr_reviewer` custom agent in the active Codex profile. Installed the
+official Sequential Thinking MCP package at pinned version 2.1.1 outside the
+application, with lifecycle scripts disabled and a package lock; registered
+its stdio command and verified initialization, tool discovery and a checklist
+call with thought logging disabled. These are local development tools, not
+application/runtime dependencies.
+
+`agent-browser` 0.43.0 CLI used its version-matched core guide and a dedicated
+worktree session. A private HOME/data loopback fixture verified Home listing
+evidence, navigation to Quality, and 320px light/dark layouts with no page
+errors or horizontal overflow. Localhost binding is the unauthenticated
+fixture service's only security boundary; no port was forwarded or published.
+
+N4 now covers supplied and eligible bundled prose, recognized token values,
+webhook/paste destinations and integration/artifact metadata. The listing has
+file/directory/entry/read caps, pinned POSIX directory reads and explicit
+incomplete markers. Review found raw endpoint credentials still present in
+older URL evidence, malformed URL parsing, an unbounded repeated-URL match,
+and a zero-byte growth probe after budget exhaustion; red-first regressions
+cover the fixes. Fallback platforms retain a parent-directory race window,
+and token/binary detection remains heuristic. N6 review fixed cross-line
+regex backtracking and normalized lexical reference paths. Combined final
+verification follows below once all gates finish.
+
+## 2026-11-13 — First-run guidance continuation (verification in progress)
+
+**[NOTE]** Continued the eligible first-run items from docs/45 on a fresh
+`origin/main` worktree, preserving the dirty primary parity checkout. Empty
+unfiltered global listings now name populated agent scopes and `--scope all`;
+JSON and filtered lists do not trigger that extra scan. An empty tree without
+an index is healthy, while surviving skills/trash or an existing unusable
+index still require repair. Reads create no index.
+
+Owned non-sticky writable data directories receive a shell-quoted `chmod 700`
+remedy without changing permissions. Scope/Doctor/hygiene text abbreviates
+home paths and retains terminal sanitization; JSON remains absolute. Claude
+name-only candidate counts appear only at 90% of a known estimated budget or
+higher, with singular/plural wording. Divergence guidance names the existing
+Sync map and `update preview` instead of implying a CLI diff command.
+
+Home has a separate listing-budget card using the existing hygiene report.
+Its reads do not block inventory display; stale results are ignored, errors
+offer retry, and partial/unknown evidence remains explicit. No command, flag,
+Store method, schema, runtime dependency or provider call was added.
+Focused regressions were observed failing before the corresponding fixes.
+The first verification passed 2,011 cases each on Python 3.11–3.14 (three
+optional skips each), both smokes, 37 v2 scenarios, 38 classic scenarios /
+342 assertions, viewport/static/docs/design/complexity gates, pinned artifacts
+and an isolated installed-wheel CLI probe. Python 3.13's first process returned
+SIGTERM after reporting success; the isolated repeat exited zero. A later
+read-only review found a dangling index link wrongly treated as absent,
+unshortened Doctor error paths and control characters in permission advice;
+red-first regressions and fixes cover all three. The final combined ladder
+after those review fixes and N4/N6 remains pending.
+
 ## 2026-11-13 — Whole-project review and ranked suggestions
 
 **[NOTE]** Research and documentation only; no source changed. Recorded in

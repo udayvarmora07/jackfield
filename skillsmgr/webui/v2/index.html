@@ -82,6 +82,7 @@
             </template>
             <div class="look" v-else><span class="look-ic" style="background:var(--ok-bg);color:var(--ok)"><ic name="check"></ic></span><div><b>All clear</b><p>No remaining Inbox items. Hidden notes return after reload.</p></div></div>
           </div>
+          <listing-budgets :records="records" :locale="formatLocale"></listing-budgets>
           <div class="card" v-if="sharedSkills.length">
             <h2>Shared by most agents</h2><p class="sub">Skills that live in the most places</p>
             <a class="shared-row" v-for="s in sharedSkills" :key="s.name" :href="'#/skill/' + enc(s.name)"><span>{{ s.name }}</span><span class="faces"><logo v-for="c in s.tools.slice(0, 6)" :key="c.scope" :agent="agentOf(c.scope)" size="xs"></logo></span></a>
