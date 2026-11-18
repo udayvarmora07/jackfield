@@ -111,14 +111,15 @@ queue; the other fourteen entries follow.
 
 - [/] Publish 1.0.2. TestPyPI has the wheel and sdist. The GitHub run for
   `v1.0.2` (`ef9bfd6`) ended with the PyPI job failed on 2026-11-05 and has
-  zero pending deployments. The owner must choose whether to recover that
-  candidate or supersede it. See the dated release recheck in
-  @docs/06-progress-log.md.
+  zero pending deployments. The maintainer selected recovery of that exact
+  candidate. GitHub rejected a retry because the run was too old. The
+  original attested files passed the TestPyPI hash comparison, and a
+  one-time dispatch is ready to publish them.
 
 - [/] T2: The original metadata-corrected 1.0.2 candidate artifacts were
   independently verified. Publication requires an exact selected candidate,
-  the TestPyPI stage, and maintainer approval. This tracks the same release
-  gate as the preceding entry.
+  a matching release tag and a successful TestPyPI stage. The required
+  reviewer rule on GitHub's `release` environment was removed on 2026-11-18.
 
 - [ ] Capture dated external screenshots and run real consented participant sessions; this repository records the protocol only.
 
