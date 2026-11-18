@@ -7,6 +7,26 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-18 — Published and verified v1.0.2
+
+**[NOTE]** GitHub rejected a retry of the original run because it was
+more than 30 days old. Recovery verified the original tag and retained
+artifact against both TestPyPI hashes and the original GitHub build
+attestations. The run used the existing `release.yml` Trusted Publisher
+to publish both files to PyPI with publish attestations. It then created
+the GitHub release on the existing tag and passed the published install
+and CRUD smoke job.
+[Recovery run](https://github.com/udayvarmora07/skills-manager/actions/runs/44252837346)
+[PyPI release](https://pypi.org/project/skill-control-plane/1.0.2/)
+[GitHub release](https://github.com/udayvarmora07/skills-manager/releases/tag/v1.0.2)
+
+**[NOTE]** Both PyPI file digests and both downloaded GitHub release assets
+matched the original artifact. A separate fresh install with the pinned
+wheel hash confirmed the version, vendored Vue and CLI create/list. The
+original tag still resolves to `ef9bfd6`. The one-time dispatch was removed
+from `main` after verification. Future tagged releases use the automatic
+TestPyPI-to-PyPI workflow.
+
 ## 2026-11-18 — Automatic PyPI release after TestPyPI
 
 **[NOTE]** The maintainer removed the GitHub deployment approval requirement
@@ -17,13 +37,6 @@ environment named in the publish job. The completed `v1.0.2` run remains
 failed. A retry or a new release tag would start a separate publishing action.
 [Release environment](https://github.com/udayvarmora07/skills-manager/settings/environments/21667496623/edit)
 [Failed job](https://github.com/udayvarmora07/skills-manager/actions/runs/37442412642/job/112279779295)
-
-**[NOTE] Recovery preparation.** GitHub rejected a failed-job retry because
-the original run was more than 30 days old. The retained artifact contains
-the exact TestPyPI wheel and sdist. Both hashes, original tag and build
-attestations were verified. A one-time dispatch uses the same publishing
-identity and verifies that evidence again before the PyPI job can start.
-[Original artifact](https://github.com/udayvarmora07/skills-manager/actions/runs/37442412642/artifacts/11402210412)
 
 ## 2026-11-18 — Browser coverage, APM evidence, and offline fidelity probe
 

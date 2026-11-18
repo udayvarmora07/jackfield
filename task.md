@@ -63,19 +63,22 @@ authorized. The original 15 gated/deferred entries remain open.
 - [x] Verify OpenCode skill-load evidence with a synthetic local provider.
 - [x] Capture dated local screenshots for the design-partner pilot review.
 - [x] Stabilize the subprocess cleanup and browser sync/Undo assertions.
+- [x] Recover and publish the original attested `v1.0.2` wheel and sdist.
+- [x] Verify both public artifacts and a clean PyPI install, then remove the
+  one-time recovery workflow.
 
 Evidence and remaining decisions are recorded in @docs/06-progress-log.md.
 
 ## Remaining gated and deferred entries
 
-The 15 open entries include 12 pending and three in progress, with
+The 13 open entries include 12 pending and one in progress, with
 historical overlaps. The full dated context remains in the archive.
 One human visual sign-off
 entry is retained verbatim in the parity section below and remains part of this
-queue; the other fourteen entries follow.
+queue; the other twelve entries follow.
 
-- [ ] Owner's call: choose the next release version and candidate. PyPI still
-  serves 1.0.1. Product questions Q1–Q4 remain in docs/45 §7.
+- [ ] Owner's call: choose the next release version and candidate after 1.0.2.
+  Product questions Q1–Q4 remain in docs/45 §7.
 
 - [/] Broader fidelity study with distractors, near misses, repeats and the
   product's configured HTTP transport; the two-case result does not validate it.
@@ -108,18 +111,6 @@ queue; the other fourteen entries follow.
   The automated browser checks and Orca diagnostic evidence are recorded in
   @docs/06-progress-log.md and @docs/32-continuation-verification-2026-11-06.md.
   Human visual and spoken screen-reader sign-off remain open.
-
-- [/] Publish 1.0.2. TestPyPI has the wheel and sdist. The GitHub run for
-  `v1.0.2` (`ef9bfd6`) ended with the PyPI job failed on 2026-11-05 and has
-  zero pending deployments. The maintainer selected recovery of that exact
-  candidate. GitHub rejected a retry because the run was too old. The
-  original attested files passed the TestPyPI hash comparison, and a
-  one-time dispatch is ready to publish them.
-
-- [/] T2: The original metadata-corrected 1.0.2 candidate artifacts were
-  independently verified. Publication requires an exact selected candidate,
-  a matching release tag and a successful TestPyPI stage. The required
-  reviewer rule on GitHub's `release` environment was removed on 2026-11-18.
 
 - [ ] Capture dated external screenshots and run real consented participant sessions; this repository records the protocol only.
 

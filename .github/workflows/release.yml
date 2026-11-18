@@ -12,9 +12,9 @@ name: Release
 # 9000827ccba6bdab643e8b6fd33ac0654aef8333, and
 # attest-build-provenance@v4.2.2 = 4d101475d8b20a2381f78447822ac1eab6504dd8 —
 # reviewed 2026-11-07 (all node24; SHAs cross-checked with git ls-remote);
-# re-verify SHAs before changing them. `push: tags: v*` plus a protected `release` environment gate who can
-# publish. No long-lived PyPI token is stored: publishing uses PyPI Trusted
-# Publishing (OIDC) via the release environment.
+# re-verify SHAs before changing them. A version tag starts publication.
+# TestPyPI must succeed before PyPI Trusted Publishing (OIDC) runs in the
+# `release` environment.
 
 permissions:
   contents: read
@@ -23,26 +23,10 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      recover_v1_0_2:
-        description: "Publish the original v1.0.2 artifacts from run 37442412642"
-        type: boolean
-        required: true
-        default: false
-
-env:
-  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && 'v1.0.2' || github.ref_name }}
-  RELEASE_COMMIT: ${{ github.event_name == 'workflow_dispatch' && 'ef9bfd6f8023ca9de2e9106b0281baec7047137e' || github.sha }}
-
-concurrency:
-  group: release-${{ github.event_name == 'workflow_dispatch' && 'v1.0.2' || github.ref_name }}
-  cancel-in-progress: false
 
 jobs:
   build:
     name: build release artifacts
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -152,87 +136,10 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           attestations: true
 
-  recover-v1-0-2:
-    name: verify original v1.0.2 artifacts against TestPyPI
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'udayvarmora07/skills-manager' && inputs.recover_v1_0_2
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      attestations: read
-      contents: read
-    steps:
-      - name: Confirm the original tag and workflow run
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = 55d8e3c9c72d08fa16507b8b0e1e9b472a5d3b58
-          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/37442412642" --jq '.head_sha')" = "$RELEASE_COMMIT"
-      - name: Download the exact original run artifact
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2 — 2026-11-07 reviewed
-        with:
-          github-token: ${{ github.token }}
-          run-id: 37442412642
-          artifact-ids: 11402210412
-          path: dist
-      - name: Verify file identities and TestPyPI publication
-        run: |
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import urllib.error
-          import urllib.request
-          from pathlib import Path
-
-          expected = {
-              "skill_control_plane-1.0.2-py3-none-any.whl": "db2c07bb51a98e9993228ac551376a590a68eaedb478789c087674246e188a83",
-              "skill_control_plane-1.0.2.tar.gz": "a2962d4a2d8fdc12a1b1170653ceaab127c49c9d78d6830726593c84e1b63bcc",
-          }
-          files = {path.name: path for path in Path("dist").iterdir()}
-          if files.keys() != expected.keys():
-              raise SystemExit("Unexpected files in original release artifact")
-          for name, path in files.items():
-              if path.is_symlink() or not path.is_file():
-                  raise SystemExit(f"Expected a regular file at {name}")
-              with path.open("rb") as stream:
-                  if hashlib.file_digest(stream, "sha256").hexdigest() != expected[name]:
-                      raise SystemExit(f"Original artifact digest mismatch for {name}")
-          route = "/pypi/skill-control-plane/1.0.2/json"
-          with urllib.request.urlopen("https://test.pypi.org" + route, timeout=15) as response:
-              test_files = json.load(response)["urls"]
-          test_digests = {row["filename"]: row["digests"]["sha256"] for row in test_files if not row["yanked"]}
-          if len(test_files) != len(expected) or test_digests != expected:
-              raise SystemExit("TestPyPI publication does not match the original artifacts")
-          try:
-              with urllib.request.urlopen("https://pypi.org" + route, timeout=15):
-                  raise SystemExit("PyPI already has v1.0.2; inspect its files before attempting recovery")
-          except urllib.error.HTTPError as exc:
-              if exc.code != 404:
-                  raise
-          PY
-      - name: Verify original build attestations
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for file in dist/*; do
-            gh attestation verify "$file" --repo "$GITHUB_REPOSITORY" \
-              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
-              --source-ref "refs/tags/$RELEASE_TAG" --source-digest "$RELEASE_COMMIT"
-          done
-      - name: Upload verified recovery artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 — 2026-11-07 reviewed
-        with:
-          name: dist
-          path: dist/*
-          if-no-files-found: error
-
   publish-pypi:
     name: publish to PyPI
     runs-on: ubuntu-latest
-    needs: [publish-testpypi, recover-v1-0-2]
-    if: >-
-      !cancelled() &&
-      ((github.event_name == 'push' && needs.publish-testpypi.result == 'success') ||
-       (github.event_name == 'workflow_dispatch' && needs.recover-v1-0-2.result == 'success'))
+    needs: publish-testpypi
     environment: release
     permissions:
       contents: read
@@ -252,15 +159,11 @@ jobs:
     name: github release + local artifact verification
     runs-on: ubuntu-latest
     needs: publish-pypi
-    if: ${{ !cancelled() && needs.publish-pypi.result == 'success' }}
     environment: release
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 — 2026-11-07 reviewed
-        with:
-          ref: ${{ env.RELEASE_COMMIT }}
-          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 — 2026-11-07 reviewed
         with:
           python-version: "3.12"
@@ -269,16 +172,9 @@ jobs:
         with:
           name: dist
           path: dist
-      - name: Confirm the existing recovery tag before creating its release
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = 55d8e3c9c72d08fa16507b8b0e1e9b472a5d3b58
       - name: Create GitHub Release with the exact artifacts
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4 — 2026-11-07 reviewed
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
           files: dist/*
       - name: Verify tag, package version, web assets, and hermetic CRUD
         # SEC-7: this job holds `contents: write` (it can push refs and create
@@ -288,8 +184,8 @@ jobs:
         # of the PyPI distribution lives in `postpublish-verify`, which has no
         # write token.
         run: |
-          test "${RELEASE_TAG#v}" = "$(python3 -c 'import skillsmgr; print(skillsmgr.__version__)')"
-          test "${RELEASE_TAG#v}" = "$(python3 -c 'import re; print(re.search(r"(?m)^version\s*=\s*\"([^\"]+)\"", open("pyproject.toml").read()).group(1))')"
+          test "${GITHUB_REF_NAME#v}" = "$(python3 -c 'import skillsmgr; print(skillsmgr.__version__)')"
+          test "${GITHUB_REF_NAME#v}" = "$(python3 -c 'import re; print(re.search(r"(?m)^version\s*=\s*\"([^\"]+)\"", open("pyproject.toml").read()).group(1))')"
           test -s skillsmgr/webui/static/vendor/vue.global.prod.js
           python3 -m venv /tmp/postpublish-venv
           /tmp/postpublish-venv/bin/python -m pip install --no-index --no-deps dist/*.whl
@@ -300,7 +196,6 @@ jobs:
     name: verify the published PyPI distribution
     runs-on: ubuntu-latest
     needs: github-release
-    if: ${{ !cancelled() && needs.github-release.result == 'success' }}
     permissions:
       contents: read
     steps:
@@ -313,7 +208,7 @@ jobs:
         # longer reach a credential that can write repository contents.
         run: |
           python3 -m venv /tmp/pypi-verify-venv
-          /tmp/pypi-verify-venv/bin/python -m pip install --no-deps "skill-control-plane==${RELEASE_TAG#v}"
+          /tmp/pypi-verify-venv/bin/python -m pip install --no-deps "skill-control-plane==${GITHUB_REF_NAME#v}"
           /tmp/pypi-verify-venv/bin/python -m skillsmgr --help
           /tmp/pypi-verify-venv/bin/python -c "from pathlib import Path; import skillsmgr; p = Path(skillsmgr.__file__).parent / 'webui' / 'static' / 'vendor' / 'vue.global.prod.js'; assert p.is_file() and p.stat().st_size > 0, p"
           SKILLS_MANAGER_DATA=$(mktemp -d) /tmp/pypi-verify-venv/bin/python -m skillsmgr create demo -d "Post-publish smoke check"
