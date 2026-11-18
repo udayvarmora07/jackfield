@@ -1,8 +1,8 @@
 # Session Context — Skills Manager
 
-**Version 1.17.0**
+**Version 1.18.0**
 
-**AI manifest**: Fast-load context for agents working on skills-manager. One compact doc replaces re-reading source for the most common questions. For anything this doc does not answer, follow `@docs/...` pointers. This doc is a cache, not a spec — `docs/` files and source remain authoritative.
+**AI manifest**: On-demand routing and dated checkpoints. Start with the section relevant to the request. Verify current behavior in source and tests, and use `task.md` and the owning spec for intended work.
 
 **Continuation anchor — 2026-11-07.** Python >=3.11 is required; Codex native
 skill declarations use stdlib `tomllib`. Open-decision dispositions live in
@@ -231,21 +231,16 @@ advisory eval harness, both shipped by extending existing surfaces only — see
   canonical-manifest evidence. Archive, key transport, distribution,
   approval-state, CLI, and Store integration remain unimplemented, but ADR-004
   §6 is resolved.
-- **Install and risk (2026-11-09)**: `skillsmgr/install.py` owns the runner allowlist, value guard, argv renderer, offline bridge plan and the two-step registry fetch/commit for both front-ends; `skillsmgr/risk.py` owns advisory `risk_scan` and its bounded file listing. The former `insights.py` is gone: ten of its helpers had no production caller.
+- **Install and risk (2026-11-09)**: `skillsmgr/install.py` owns the runner allowlist, value guard, argv renderer, offline bridge plan and the two-step registry fetch/commit for both front-ends. `skillsmgr/risk.py` owns advisory `risk_scan` and its bounded file listing. `skillsmgr/insights.py` serves the compatibility API.
 - **Source/update evidence (2026-09-20)**: `skillsmgr/source_lock.py` compares bounded complete candidate trees against an explicit physical target with validation and advisory risk evidence, persists bounded `.skillsmgr-source-lock.json` evidence, and provides explicit review-id/apply/rollback operations with complete-tree snapshots. `skillsmgr/backup_sync.py` adds safe Git remote metadata/fetch delegation, private expiring sync reviews, candidate revalidation, and snapshot-backed apply through that source-lock seam. Neither module adds a CLI command, Store method, SQLite schema, runtime dependency, or credential persistence path.
 - **Safe local source updates (2026-09-22)**: `skillsmgr/source_update.py` now binds the existing source-lock seam to one observed physical instance, private expiring review artifacts, activation-preserving staged candidates, exact-target apply, global-only resync, five-snapshot retention, and previewed rollback. The `update` CLI/REST/UI surfaces expose evidence and require explicit approval; browser uploads use a non-path source identity. No network update, Store method, SQLite schema, or background job was added.
 - **Skill Hygiene Report (2026-09-22)**: `skillsmgr/hygiene.py` provides deterministic read-only evidence for malformed/unreadable documents, validator references and descriptions, exact duplicates, same-name drift, bounded heuristic near duplicates, context limits/hotspots, and source-lock state. `doctor --hygiene` and `GET /api/doctor?scope=SCOPE&hygiene=1` reuse the same report, while Quality loads it on entry/scope changes and keeps retry, filters, exact-instance navigation, degraded evidence, and unavailable signals separate from Library observations. No new command, Store method, schema, cache, network, or mutation was added.
 - **Registry bridge (network/provenance, 2026-09-19)**: `skillsmgr/registry.py` backs the existing `install`/`POST /api/install` surfaces with bounded skills.sh browse/search/fetch, explicit trust confirmation, auth-isolated cache, stale-cache opt-in, response/path/resource limits, upstream-compatible hash comparison, atomic materialization, credential-free provenance sidecars, and pre-Store validation plus advisory risk evidence. See @docs/ADR-005-registry-network-and-provenance.md.
 - **Eval harness (file-based, advisory, 2026-09-10)**: `skillsmgr/evals.py` reads `evals/evals.json` from a skill dir and records `iteration-N/eval-<slug>/{with_skill,without_skill}/{outputs/output.txt,grading.json,timing.json}` plus a per-iteration `benchmark.json` (per-variant case pass rate and the `with_skill` − `without_skill` delta). Surfaces: `validate --evals`, `validate --evals-run FILE [--workspace DIR]`, `POST /api/validate {evals|runs}`. Workspaces default to `<data>/evals/<name>-workspace` (outside `skills/`; `--path` uses beside-the-skill only outside the store's `skills/` tree). Scores never change `valid`, never gate installs/edits, never enter SQLite (#4).
-- **Milestone 11 queue (current)**: L1/L2/L3/L4 are done; L2 ZIP import is
-  shipped as an `import`-only extension with bounded preflight and guarded
-  extraction; L5's offline/file-based halves are shipped while provider-backed
-  registry/eval work stays deferred; and L6's `skill-control-plane` 1.0.1
-  release is published and verified. The **1.0.2** candidate was rebuilt from
-  `522b81f` and independently verified on 2026-10-06 (wheel `efee22f3…`, sdist
-  `817c46f5…`), superseding the `6733da9` hashes; **it is not published** —
-  tagging, upload, and any external communication all require maintainer approval.
-  External screenshots and consented participant sessions remain human-gated.
+- **Release and remaining work**: `v1.0.2` was published and verified on
+  2026-11-18. Refer to @docs/06-progress-log.md for the release receipt and
+  `task.md` for open work, including external screenshots and consented
+  participant sessions.
 - **CLI bugs fixed 2026-08-14** (were crashing): `export`, `backup`, `db rebuild` (all treated Path/dict wrong), `doctor` (printed "integrity check failed" when ok).
 
 ## Common tasks (router)
@@ -255,11 +250,12 @@ advisory eval harness, both shipped by extending existing surfaces only — see
 | Run the UI | `python3 -m skillsmgr webui` |
 | Run UI without browser | `--no-browser` |
 | Track Command Code's skills (CLI) | `python3 -m skillsmgr list --scope agents` (also create/edit/remove/toggle) |
-| Track Command Code's skills (UI) | web UI → scope switcher → **Agents** |
+| Track Command Code's skills (UI) | v2 Skills → agent filter → **Agents** |
 | Copy a skill between scopes | `python3 -m skillsmgr sync NAME --from global --to agents` (or UI Sync modal) |
 | Change an API endpoint | `skillsmgr/webapp.py` route methods + `smoke_web.py` + re-run both smokes |
-| Change a screen/behavior | `skillsmgr/webui/app.js` (Vue methods) / `index.html` (templates) / `styles.css` (design tokens in `:root`) |
-| Add a field to create/edit form | app.js `_SKILL_FIELDS`-equivalent list in saveSkill payload + form in index.html + webapp.py `_SKILL_FIELDS` |
+| Change a v2 screen or behavior | `skillsmgr/webui/v2/` (`app.js`, `index.html`, `styles.css` and the tool modules listed in @docs/08-web-ui.md) |
+| Change a classic screen or behavior | `skillsmgr/webui/` (`app.js`, `index.html` and `styles.css`) |
+| Add a field to a skill form | Trace the create or edit handler in the selected front end to the field policy in `skillsmgr/webapp.py` |
 | Anything touching store.py | @docs/04-store-api.md + `python3 smoke_store.py` |
 | Open the UI as a desktop window | `python3 desktop_launcher.py` (`--plain` for the browser, `--print-only` to preview) |
 | Integrate a local client (editor/extension) | @docs/08-web-ui.md → "Local client integration contract" + `tests/test_web_client_contracts.py` |

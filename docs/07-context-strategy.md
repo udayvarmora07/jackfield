@@ -1,8 +1,8 @@
 # Context Strategy — Session Loading Model
 
-**Version 0.2.0**
+**Version 0.3.0**
 
-**AI manifest**: How sessions (human or agent) should load context for skills-manager. The goal: full situational awareness at minimum tokens, no staleness, no duplicated facts. This file is the cold-tier spec; `AGENTS.md` is the hot tier that summarizes it.
+**AI manifest**: How to scope repository context, hand off active work, and verify stale guidance. `AGENTS.md` summarizes the rules agents need at session start.
 
 ## The model
 
@@ -10,16 +10,23 @@
 
 | Tier | Contents | Loaded |
 |---|---|---|
-| Hot | `AGENTS.md` (root): repo map, router table, judgment boundaries, toolchain | Always, fully |
-| Warm | Docs physically near the code they describe (`@docs/...`); `task.md` checklist | Just-in-time per task |
-| Cold | Everything else: source modules, history, old logs | On demand, then discarded |
+| Hot | `AGENTS.md` (root), imported by `CLAUDE.md` | At the start of a session |
+| Warm | The active task, its owning spec, and the relevant entry points and tests | As needed for the requested work |
+| Cold | Archived docs, completed plans and older Git history | For a specific evidence question |
 
 **[SPEC]** Rules:
 - Read `AGENTS.md` fully (it is deliberately small — the hot cache).
-- Use the router table in `AGENTS.md` to pick the one or two `@docs/...` files for the current task. Never load all docs at once.
+- Use the router table in `AGENTS.md` to pick the one or two `@docs/...` files for the current task. Backticks keep those pointers literal in Claude Code's import syntax.
 - Prefer explicit pointers (`@docs/04-store-api.md`) over inlining content in this doc or in answers. For source citations use **symbol names** (`Store.edit`, `webapp.MAX_BODY_BYTES`, `archive.commit_staged_skill`) rather than `file:line`: by 2026-09-11 most line numbers in the security docs and `docs/04-store-api.md` had drifted onto unrelated code, while a symbol name fails loudly when it is renamed.
-- `task.md` is the live checklist; update it after every change, before ending a session.
-- Flag stale facts in `docs/06-progress-log.md`, then fix the owning doc — never silently reuse a stale fact.
+- In the live section of `task.md`, `[ ]` means pending, `[/]` means in progress,
+  and `[x]` means completed. Deferred items carry their decision or blocker.
+  Update the status and its evidence after each change. Historical
+  checkboxes can document prior work and decisions.
+- Verify actual behavior through the normal entry point and relevant tests.
+  Establish intended behavior from the current request and active project
+  decisions. When intent changes, link or update the affected spec and
+  task before marking implementation complete. Label retired guidance as
+  superseded and name its replacement.
 
 ## What to load when
 
@@ -35,7 +42,23 @@
 
 ## Compaction anchors
 
-**[NOTE]** After a context compaction, re-anchor on: `AGENTS.md` (rules and router), `task.md` (what is done/pending), `docs/06-progress-log.md` (recent facts). Do not re-read the full docs tree; load cold files lazily again only if the task touches them.
+**[SPEC]** Start a fresh session for an independent task when practical.
+When handing off planning or recovering from compaction, check the latest
+request, active status, relevant spec, verification already performed and
+the next unfinished step. Load the newest applicable receipt in
+`docs/06-progress-log.md` as needed. Keep unrelated work in the ledger.
+
+## Context sweep
+
+**[SPEC]** For a read-only audit of stale guidance, use `/context-sweep` in
+Claude Code or ask Codex to run the
+[context sweep](../tools/context-sweep/SKILL.md) by path. The procedure
+lives under developer tools so it stays outside the product's managed skill
+roots. Pass a topic or paths to narrow the review. Findings cite current
+evidence and the history or decision behind it. The report distinguishes
+confirmed factual drift, unresolved intent and insufficient evidence.
+The same evidence applies when separately reviewing a proposed archive move.
+See `@docs/51-agent-context-sweep-2026-11-18.md` for source findings and limits.
 
 ## Budget guidance
 

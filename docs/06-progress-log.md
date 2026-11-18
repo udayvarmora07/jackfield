@@ -7,6 +7,34 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-18 — Evidence-based context sweep
+
+**[NOTE]** Applied the supplied video's context-management practices to
+the development workflow. `AGENTS.md` now distinguishes verified behavior
+from intended change, uses the active task status and routes historical
+lookups explicitly. `CLAUDE.md` imports the shared entry point with literal
+router pointers. The developer-only context sweep asks for present evidence
+and history, gives independent reviewers the claims without the proposed
+verdict, and reports before any authorized correction.
+
+The first sweep corrected current guidance for the v1.0.2 release, default
+v2 paths, the insights compatibility module, and the data root. It also
+updated the historical task label and retired manual release approval claim.
+The research and file evidence are in @docs/51-agent-context-sweep-2026-11-18.md.
+
+Initial verification exposed a collision between the skill trial and
+the product's project-root discovery. Its test-generated files were
+relocated to a private evidence directory. The final procedure lives
+under `tools/` with a manual Claude command and an explicit Codex route.
+
+**[NOTE] Verification.** Claude Code 2.1.325 listed `/context-sweep` in an
+offline startup probe. Skills Manager's validator accepted the procedure,
+and scope discovery found no project skill roots from this change. The
+2,175-case test suite passed on Python 3.11–3.14 with 5/5/5/4 optional skips.
+Both smokes, docs, complexity, design-token and static gates passed.
+The pinned wheel and sdist passed package-data checks and excluded the
+developer tooling. The installed-wheel AI probe also passed.
+
 ## 2026-11-18 — Published and verified v1.0.2
 
 **[NOTE]** GitHub rejected a retry of the original run because it was

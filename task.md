@@ -69,6 +69,13 @@ authorized. The original 15 gated/deferred entries remain open.
 
 Evidence and remaining decisions are recorded in @docs/06-progress-log.md.
 
+## Agent context hygiene (2026-11-18)
+
+- [x] Verify the research behind the video and record its limits.
+- [x] Share task-scoping and context rules between Codex and Claude Code.
+- [x] Add an evidence-only context sweep with explicit invocation.
+- [x] Verify and correct stale guidance in the current session entry points.
+
 ## Remaining gated and deferred entries
 
 The 13 open entries include 12 pending and one in progress, with
@@ -117,7 +124,7 @@ queue; the other twelve entries follow.
 - [ ] Run five consent-safe human usability sessions; automated work does not
   fabricate participant evidence.
 
-## Last delivered batch
+## Earlier completed batch (2026-11-17)
 
 Commit `5ada04a` completed static completion/typo suggestions, per-consumer
 discovery evidence, scan degradation, AI simulation wording and unknown Codex

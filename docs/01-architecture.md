@@ -93,7 +93,9 @@ skills-manager/
 **[SPEC]** The filesystem is the source of truth.
 
 - Skill: `<data>/skills/<name>/SKILL.md`. Disabled: `<data>/skills/<name>/SKILL.md.disabled`.
-- SQLite at `<data>/skills-manager/skills-manager.db` is an index only — rebuilt by `db rebuild`/`db resync`; `SCHEMA_VERSION = "1"`. Never hand-edit the DB; never trust SQLite over the filesystem.
+- SQLite at `<data>/skills-manager.db` is a rebuildable index maintained by
+  `db rebuild` and `db resync`. Its `SCHEMA_VERSION` is `"1"`. Use those
+  commands to repair the index from the filesystem.
 - AI assist (optional, docs/39): `<data>/ai/settings.json` (0600; may hold a user-typed key), `<data>/ai/usage.jsonl` (counts and hashes only), `<data>/ai/reservations.json` (in-flight day-cap reservations, expiring) and `<data>/ai/runs/*.json`. Never exported, never SQLite.
 - Trash: `<data>/trash/` (removed skills move here). Backups: `<data>/backups/` (timestamped tarballs). Templates: `<data>/templates/*.md`.
 - Registry cache: `<data>/registry-cache/` (private, auth-scope-isolated JSON

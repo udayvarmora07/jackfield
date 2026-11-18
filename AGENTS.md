@@ -1,21 +1,21 @@
 # AGENTS.md — Skills Manager
 
-**Version 0.3.1**
+**Version 0.4.0**
 
-**AI manifest**: Operating manual for coding agents working in this repo. Read fully (it is the hot cache — deliberately small, router-style). For details, follow the `@docs/...` pointers instead of re-reading source. Human developers read this too.
+**AI manifest**: Start here for repository rules, toolchain and navigation. Follow the `@docs/...` pointers and verify the current entry points relevant to the task.
 
 ## What this is
 
-- `skills-mgr`: a Python CLI plus a **local web UI** for managing AI coding-agent skills: list, create, view, edit, search, validate, enable/disable, trash/restore, import/export, backup/restore, templates, history, db rebuild/resync. Tracks skills across **agent scopes** (claude-code, codex, cursor, opencode, gemini, commandcode, agents, project-local) — see @docs/08-web-ui.md.
-- **Data model**: filesystem is the source of truth; SQLite at `<data>/skills-manager/skills-manager.db` is a rebuildable index only (`SCHEMA_VERSION = "1"`). Never trust SQLite over the filesystem; never hand-edit the DB.
-- Skills live at `<data>/skills/<name>/SKILL.md`; disabled skills are `SKILL.md.disabled`. Data dir: `$SKILLS_MANAGER_DATA` -> `$XDG_DATA_HOME` -> `~/.local/share`, then `/skills-manager`.
+- `skills-mgr`: a Python CLI plus a **local web UI** for managing AI coding-agent skills: list, create, view, edit, search, validate, enable/disable, trash/restore, import/export, backup/restore, templates, history, db rebuild/resync. Tracks skills across **agent scopes** (claude-code, codex, cursor, opencode, gemini, commandcode, agents, project-local) — see `@docs/08-web-ui.md`.
+- **Data model**: filesystem is the source of truth; SQLite at `<data>/skills-manager.db` is a rebuildable index only (`SCHEMA_VERSION = "1"`). Never trust SQLite over the filesystem; never hand-edit the DB.
+- Skills live at `<data>/skills/<name>/SKILL.md`; disabled skills are `SKILL.md.disabled`. The manager root `<data>` is the selected base (`$SKILLS_MANAGER_DATA` -> `$XDG_DATA_HOME` -> `~/.local/share`) plus `/skills-manager`.
 - Agent scopes (e.g. `agents` = `~/.agents/skills`, the Command Code skills dir) are read/written directly on disk — no DB. `--scope agents` lists/creates/edits/removes/toggles the exact skills the `commandcode` CLI loads.
 
 ## Toolchain
 
 - CLI: `python3 -m skillsmgr` (stdlib only). Parser/handlers are split behind the stable `skillsmgr.cli` adapter (`cli_parser.py`, `cli_handlers.py`). Web UI: `python3 -m skillsmgr webui` (alias `gui`) — stdlib backend, Vue 3 frontend (vendored, no build step); `domain.js` loads before `app.js`.
 - Test suite: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests` (stdlib-only regression/contract tests). Smoke tests `python3 smoke_store.py` (Store API) and `python3 smoke_web.py` (web REST API) remain executable end-to-end checks.
-- Docs format: HADS (see @docs/README.md). Markers: `[SPEC]` authoritative, `[NOTE]` context, `[?]` uncertainty.
+- Docs format: HADS (see `@docs/README.md`). Markers: `[SPEC]` authoritative, `[NOTE]` context, `[?]` uncertainty.
 - Packaging: build only with the pinned, hash-verified toolchain — `python3 -m pip install --require-hashes -r requirements-build.txt` then `python3 -m build --no-isolation --wheel --sdist --outdir dist` (SEC-8). `check_package_data.py` asserts the vendored Vue sha256 (SEC-9) and rejects an artifact shipping `tests/`, `docs/`, `.env`, a database or bytecode (SEC-13); `MANIFEST.in` prunes the suite from the sdist. `skillsmgr/examples/skills-manager-management/` is the agent-facing management skill, shipped as **package data** so it reaches every install (a repository-only `examples/` directory did not, in either the wheel or the sdist); `check_package_data.py` proves it is present and readable.
 
 ## Research, tools, and setup authorization
@@ -39,14 +39,30 @@ data-preservation rules and specific human/release approval gates below.
 
 | Need | Go to |
 |---|---|
-| Where things live / repo map | @docs/01-architecture.md |
-| Module-by-module inventory | @docs/02-modules.md |
-| Exact CLI commands/flags/exit codes | @docs/03-cli-surface.md |
-| Store public API + SQLite schema | @docs/04-store-api.md |
-| Web UI architecture, REST API, frontend map | @docs/08-web-ui.md |
-| What changed and when | @docs/06-progress-log.md |
-| How sessions should load context | @docs/07-context-strategy.md |
-| Fast session re-anchor (common tasks, gotchas) | @docs/SESSION-CONTEXT.md |
+| Where things live / repo map | `@docs/01-architecture.md` |
+| Module-by-module inventory | `@docs/02-modules.md` |
+| Exact CLI commands/flags/exit codes | `@docs/03-cli-surface.md` |
+| Store public API + SQLite schema | `@docs/04-store-api.md` |
+| Web UI architecture, REST API, frontend map | `@docs/08-web-ui.md` |
+| What changed and when | `@docs/06-progress-log.md` |
+| How sessions should load context | `@docs/07-context-strategy.md` |
+| Fast session re-anchor (common tasks, gotchas) | `@docs/SESSION-CONTEXT.md` |
+| Review stale guidance on request | `tools/context-sweep/SKILL.md` |
+
+## Current behavior and task scope
+
+**[SPEC]** Use current entry points and relevant tests to establish how the
+product behaves. Use the latest request, the active spec and `task.md` to
+establish what should change. Check related active tickets before adding a
+workflow. An in-progress plan can describe behavior the code has yet to
+implement. If a discrepancy affects the requested work, verify
+it and update the owning spec and task status in the same change once intent
+is clear. Surface material unresolved conflicts before changing that behavior.
+
+Keep work within the requested outcome. Treat unrelated TODOs, old plans and
+archived checkboxes as evidence only. Read archives for a specific historical
+question. After compaction or handoff, recheck the latest user request and
+current task state before resuming.
 
 ## Judgment boundaries
 
@@ -119,4 +135,4 @@ reverting the other's.
 
 ## Context strategy (short version)
 
-Hot cache = this file. Warm = docs near the code they describe (incl. `docs/SESSION-CONTEXT.md` for fast re-anchor). Cold = anything else, loaded just-in-time. Explicit pointers beat dumping content inline. Full model: @docs/07-context-strategy.md.
+Hot cache = this file. Warm = docs near the code they describe (incl. `docs/SESSION-CONTEXT.md` for fast re-anchor). Cold = anything else, loaded just-in-time. Router pointers stay literal in both agents. Full model in `@docs/07-context-strategy.md`.

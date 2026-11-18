@@ -48,9 +48,11 @@
 | Microsoft APM `apm.yml` interop, project skill lockfile | Deferred. The R11 reader covers the `skills` CLI lockfiles. As of 2026-11-18, a supplied project's regular APM manifest and lockfile each have an unavailable signal, based on file metadata alone. |
 | Stale → archive (Curator-style) | Deferred. It needs usage evidence (D-8) to define "stale" honestly. |
 
-## Human-only, unchanged
+## Human review
 
-**[NOTE]** Visual sign-off, a spoken screen-reader check, consented usability sessions, and approving the 1.0.2 PyPI publish in the GitHub `release` environment remain with a person.
+**[NOTE]** Visual sign-off, a spoken screen-reader check and consented
+usability sessions remain with a person. The GitHub release reviewer rule
+was removed and v1.0.2 was published on 2026-11-18. See @docs/06-progress-log.md.
 
 ## Continuation review notes
 
