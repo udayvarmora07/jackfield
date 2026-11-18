@@ -1,5 +1,5 @@
 /* Optional developer-only browser checks; launched by run.py with isolated HOME/data. */
-const {chromium} = require('playwright');
+const {chromium, firefox} = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -7,11 +7,22 @@ const root = process.env.BROWSER_TEST_ROOT, base = process.env.BROWSER_TEST_BASE
 if (!root || !base) throw Error('Use run.py to create a safe isolated fixture');
 if (new URL(base).hostname!=='127.0.0.1' || new URL(base).protocol!=='http:' || fs.readFileSync(path.join(root,'server-url.txt'),'utf8')!==base) throw Error('Use only the isolated loopback server started by run.py');
 const home = process.env.BROWSER_TEST_HOME, results = [], exceptions = [];
+const engine = process.env.BROWSER_TEST_ENGINE;
+const headed = process.env.BROWSER_TEST_HEADED === '1';
 let failed = 0, browser;
 function record(name, status, detail='') { results.push({name, status, detail}); console.log(`${status} ${name}${detail ? ': '+detail : ''}`); }
 async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.includes(process.env.BROWSER_TEST_FILTER)) return; try { await fn(); record(name, 'PASS'); } catch (e) { failed++; record(name, 'FAIL', String(e.message)); } }
 (async () => {
-  browser = await chromium.launch({executablePath:process.env.CHROME_BIN || undefined, headless:process.env.BROWSER_TEST_HEADED!=='1', args:process.env.BROWSER_TEST_HEADED==='1'?['--ozone-platform=x11']:[], chromiumSandbox:true});
+  if (engine === 'firefox') {
+    browser = await firefox.launch({headless: !headed});
+  } else if (engine === 'chromium') {
+    browser = await chromium.launch({executablePath: process.env.CHROME_BIN, headless: !headed,
+      args: headed ? ['--ozone-platform=x11'] : [], chromiumSandbox: true});
+  } else {
+    throw Error('Use run.py to select a browser engine');
+  }
+  const browserVersion = browser.version();
+  console.log(`Browser: ${engine} ${browserVersion}`);
   const context = await browser.newContext({viewport:{width:1280,height:900}});
   const page = await context.newPage(); page.setDefaultTimeout(5000);
   page.on('pageerror', e => exceptions.push(e.message));
@@ -67,7 +78,31 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Skip link keeps the current page and focuses its heading (SR-2)',async()=>{await go('skill/same-everywhere');await page.locator('a.skip').focus();await page.keyboard.press('Enter');await page.waitForTimeout(200);assert(page.url().endsWith('#/skill/same-everywhere'),page.url());assert.equal(await page.evaluate(()=>document.activeElement&&document.activeElement.id),'h1');});
   await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.locator('.node').filter({hasText:'Codex'}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
-  await test('Delayed double click issues one sync and Undo restores bytes and queue',async()=>{await go('inbox');await page.locator('.qi').filter({hasText:'majority-minor'}).click();let f=file('.codex','majority-minor'),before=fs.readFileSync(f),count=0;await page.route('**/api/sync',async r=>{count++;await new Promise(resolve=>setTimeout(resolve,400));await r.continue();});try{await page.locator('[data-primary]').dblclick({delay:25}).catch(()=>{});await page.waitForTimeout(900);assert.equal(count,1);assert.notDeepEqual(fs.readFileSync(f),before);await page.locator('.toast button').filter({hasText:'Undo'}).last().click();await page.waitForTimeout(700);assert.deepEqual(fs.readFileSync(f),before);assert.match(await page.locator('main').innerText(),/majority-minor/);assert.match(await page.locator('.prog').innerText(),/^0 fixed/);}finally{await page.unrouteAll({behavior:'wait'});}});
+  await test('Delayed double click issues one sync and Undo restores bytes and queue',async()=>{
+    await go('inbox');
+    await page.locator('.qi').filter({hasText:'majority-minor'}).click();
+    const target=file('.codex','majority-minor'), before=fs.readFileSync(target);
+    let count=0;
+    await page.route('**/api/sync',async route=>{
+      count++;
+      await new Promise(resolve=>setTimeout(resolve,400));
+      await route.continue();
+    });
+    try{
+      const [response]=await Promise.all([
+        page.waitForResponse(r=>r.url()===base+'/api/sync', {timeout:15000}),
+        page.locator('[data-primary]').dblclick({delay:25}),
+      ]);
+      assert.equal(response.status(),200);
+      assert.notDeepEqual(fs.readFileSync(target),before);
+      await page.locator('.toast button').filter({hasText:'Undo'}).last().click();
+      await page.locator('.toast').filter({hasText:'Undone'}).waitFor();
+      assert.equal(count,1);
+      assert.deepEqual(fs.readFileSync(target),before);
+      assert.match(await page.locator('main').innerText(),/majority-minor/);
+      assert.match(await page.locator('.prog').innerText(),/^0 fixed/);
+    }finally{await page.unrouteAll({behavior:'wait'});}
+  });
   await test('Stale file toggle reports error without resurrecting fixture',async()=>{await go('skill/same-everywhere');const f=file('.codex'),old=fs.readFileSync(f);fs.unlinkSync(f);try{await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();await page.waitForTimeout(600);assert(!fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));assert.match((await page.locator('.toast').allInnerTexts()).join(' '),/not installed|not found/i);}finally{fs.writeFileSync(f,old);}});
   await test('Native setting evidence is partial and file switch Undo preserves files',async()=>{await go('skill/same-everywhere');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/partial/i);assert.match(t,/loading is unknown/i);assert.match(t,/Declared setting: off/);assert.match(t,/Declared setting: deny/);const f=file('.codex');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();await page.waitForTimeout(500);assert(fs.existsSync(f+'.disabled'));await page.locator('.toast button').filter({hasText:'Undo'}).last().click();await page.waitForTimeout(600);assert(fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));});
   await test('Native invalid and unavailable settings render without exposing values',async()=>{let config=path.join(home,'.config/opencode/opencode.json'),saved=fs.readFileSync(config),claude=path.join(home,'.claude/settings.json'),oldClaude=fs.readFileSync(claude);fs.writeFileSync(config,'{"private":"fixture-secret",');fs.writeFileSync(claude,JSON.stringify({skillOverrides:{'majority-minor':'invalid-fixture-value'}}));try{await go('skill/majority-minor');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/invalid/);assert.match(t,/unavailable/);assert.doesNotMatch(t,/fixture-secret|invalid-fixture-value/);}finally{fs.writeFileSync(config,saved);fs.writeFileSync(claude,oldClaude);}});
@@ -184,7 +219,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     }
   });
   await test('Forced colors focus indicator',async()=>{await page.emulateMedia({forcedColors:'active'});await go('skills');await page.keyboard.press('Tab');assert(await page.evaluate(()=>matchMedia('(forced-colors: active)').matches && document.activeElement!==document.body && getComputedStyle(document.activeElement).outlineStyle!=='none'));await page.screenshot({path:path.join(root,'forced-colors.png')});await page.emulateMedia({forcedColors:'none'});});
-  if(process.env.BROWSER_TEST_HEADED==='1') await test('Actual Chrome zoom at 200 and 400 percent',async()=>{
+  if(engine==='chromium' && headed) await test('Actual Chrome zoom at 200 and 400 percent',async()=>{
     const {execFileSync}=require('node:child_process');
     await page.setViewportSize({width:1280,height:900});await go('home');
     const windows=execFileSync('xwininfo',['-root','-tree'],{encoding:'utf8'});
@@ -328,6 +363,23 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     finally{await page.unroute('**/api/catalog');}
     await page.getByRole('button',{name:'Retry profiles',exact:true}).click();await page.getByText('v2-browser-profile',{exact:true}).waitFor();
   });
+  await test('V2 Quality labels APM evidence for the selected project',async()=>{
+    const project=path.join(root,'data','skills-manager','apm-fixture');
+    fs.mkdirSync(project);
+    fs.writeFileSync(path.join(project,'apm.yml'),'name: browser-fixture\nversion: 1.0.0\n');
+    await go('tools/quality');
+    await page.getByLabel('Project path',{exact:true}).fill(project);
+    await page.getByRole('button',{name:'Inspect project',exact:true}).click();
+    const evidence=page.locator('.evidence-limits');
+    const manifest=evidence.getByText(/apm\.yml is present/);
+    await manifest.waitFor({state:'attached'});
+    await evidence.locator('summary').click();
+    await manifest.waitFor();
+    assert.equal(await evidence.getByText(/apm\.lock\.yaml is present/).count(),0);
+    await page.getByRole('button',{name:'Clear project',exact:true}).click();
+    await evidence.locator('summary').waitFor();
+    assert.equal(await manifest.count(),0);
+  });
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
     for(const width of [320,768,1280])for(const mode of ['light','dark']){
       await page.setViewportSize({width,height:900});await go('tools/settings');await page.getByLabel('Theme',{exact:true}).selectOption(mode);
@@ -338,6 +390,6 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.setViewportSize({width:1280,height:900});await go('tools');await page.screenshot({path:path.join(root,'final-tools-desktop.png')});
   });
   await test('No uncaught page errors',async()=>assert.deepEqual(exceptions,[]));
-  record('Coverage limit','NOTE','No screen-reader validation; real browser zoom is checked only in isolated headed mode. CSS magnification is not browser zoom. Screenshots and overflow checks do not constitute a complete accessibility audit.');
-  fs.writeFileSync(path.join(root,'results.json'),JSON.stringify({results,failures:failed},null,2)+'\n');await browser.close();process.exitCode=failed?1:0;
+  record('Coverage limit','NOTE','Actual browser zoom is checked only in headed Chrome. Screen-reader and perceptual review require a person.');
+  fs.writeFileSync(path.join(root,'results.json'),JSON.stringify({engine,browserVersion,results,failures:failed},null,2)+'\n');await browser.close();process.exitCode=failed?1:0;
 })().catch(e=>{console.error(e);process.exitCode=2}).finally(async()=>{if(browser)await browser.close();});

@@ -72,7 +72,16 @@
       folderConflicts(){const names=this.files.filter(f=>/(?:^|\/)SKILL\.md(?:\.disabled)?$/.test(f.webkitRelativePath||f.name)).map(f=>(f.webkitRelativePath||f.name).split('/').slice(-2,-1)[0]);return this.records.filter(r=>r.scope==='global'&&names.includes(r.name));},
       findings(){return ((this.quality && this.quality.findings)||[]).filter(f => (this.severity==='all'||f.severity===this.severity) && JSON.stringify(f).toLowerCase().includes(this.search.toLowerCase()));
       },
-      unavailableSignals(){const groups=new Map();for(const signal of this.quality?.unavailable_signals||[]){const key=signal.signal+'\0'+signal.explanation;if(!groups.has(key))groups.set(key,{...signal,count:0});groups.get(key).count++;}return [...groups.values()];},
+      unavailableSignals(){
+        const groups=new Map();
+        const signals=[...(this.quality?.unavailable_signals||[]), ...(this.quality?.lockfiles?.unavailable_signals||[])];
+        for(const signal of signals){
+          const key=signal.signal+'\0'+signal.explanation;
+          if(!groups.has(key))groups.set(key,{...signal,count:0});
+          groups.get(key).count++;
+        }
+        return [...groups.values()];
+      },
       claudeListing(){const l=this.quality&&this.quality.claude_listing;return l&&Number(l.instances_observed)>0?l:null;},
       documentScan(){try{return BASELINES.snapshot(this.qualityEnvelope)}catch(e){return null;}},
       documentComparison(){if(!this.documentScan)return {status:'unavailable',changed:[],partial:true};return BASELINES.compare(this.documentScan,this.documentBaseline);},

@@ -45,7 +45,7 @@
 | docs/29 D-4, D-5/MON-Q2, D-6/MON-Q3, D-9/MON-Q4, D-10/MON-Q1, MON-Q5 | Owner's call: target user, scope widening to MCP/AGENTS.md, a public data report, zh-CN, services-first year, pricing tiers. |
 | docs/29 D-8, transcript usage counts | Deferred. This needs a privacy decision: it reads conversation transcripts. |
 | Per-project profiles (native toggles) | Deferred. It writes to other tools' settings files, which is a step past the read-only native observations shipped so far (R4, D-1). Do the read side for every agent first. |
-| Microsoft APM `apm.yml` interop, project skill lockfile | Deferred. The R11 reader already covers the `skills` CLI lockfiles; the APM file is detected and reported as an unavailable signal. |
+| Microsoft APM `apm.yml` interop, project skill lockfile | Deferred. The R11 reader covers the `skills` CLI lockfiles. As of 2026-11-18, a supplied project's regular APM manifest and lockfile each have an unavailable signal, based on file metadata alone. |
 | Stale → archive (Curator-style) | Deferred. It needs usage evidence (D-8) to define "stale" honestly. |
 
 ## Human-only, unchanged

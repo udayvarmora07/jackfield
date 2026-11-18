@@ -1,6 +1,6 @@
 # GOAT HTTP Routing Study — 2026-11-17
 
-**Version 0.1.0**
+**Version 0.2.0**
 
 **AI manifest**: Dated synthetic experiment using the product's actual provider
 HTTP transport, with a reproduced reasoning-budget defect and its correction.
@@ -91,3 +91,34 @@ interactive sessions, real libraries, other models, larger distractor sets,
 body compliance or participant outcomes. Native listing/configuration equality
 was not established. The broader fidelity task remains open for a supported,
 observable native comparison; the product HTTP simulation portion is complete.
+
+## 2026-11-18 — OpenCode observation feasibility
+
+**[NOTE]** OpenCode 2.3.2 emitted a completed `tool_use` record with
+`part.tool=skill` and `part.state.input.id=unit-fixture` when a fake
+Chat Completions provider deliberately requested a synthetic skill. The next
+request to the stub contained the skill's synthetic instruction marker.
+There were three stub requests in total, including an initial request without
+tools or a skill listing. The probe used `--standalone --format json`, a
+private project and home, and a Linux network namespace with only loopback.
+The script and sanitized summary are in
+`/tmp/skillsmgr-remaining-20261118/opencode-probe.py` and
+`/tmp/skillsmgr-remaining-20261118/opencode.vq650vre/summary.json`.
+
+**[SPEC]** The tagged source shows that `run --format json` emits terminal
+tool status for ordinary tool calls. The separate `session.skill.activated`
+event belongs to explicit session activation and carries the skill body.
+The model-facing listing filters denied, undescribed and manual-only skills.
+The generic skill-list API provides registered skills. A future attended
+comparison must capture the listing actually sent to the model, count and
+bound all provider requests, and keep full bodies and raw streams out of its
+retained evidence.
+[Run event mapping](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/cli/src/run/noninteractive.ts#L479-L594)
+[Skill execution](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/core/src/tool/plugin/skill.ts#L31-L64)
+[Session activation](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/core/src/session/session.ts#L233-L254)
+[Model-facing listing](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/core/src/skill/instructions.ts#L48-L72)
+
+**[?]** GOAT interoperability and native routing agreement remain unmeasured.
+The stub chose the tool call. An attended OpenCode study would measure
+OpenCode's routing for the permitted model and listing, with Claude Code and
+Command Code fidelity still unknown.

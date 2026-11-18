@@ -1,11 +1,79 @@
 # Progress Log — Skills Manager
 
-**Version 0.7.0**
+**Version 0.8.0**
 
 **AI manifest**: Current delivery receipts and a bounded resident window.
 Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-17.md;
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
+
+## 2026-11-18 — Browser coverage, APM evidence, and offline fidelity probe
+
+**[NOTE]** The v2 browser runner can replay the regression suite in
+Playwright-managed Firefox. It records the engine and version and redirects
+Codex and Gemini settings reads to fixture paths. Firefox 151 passed all
+38 scenarios and headed Chrome 157 passed all 39, including real zoom at
+200% and 400%. Both passed the forced-colors focus check. Browser results
+are under `/tmp/skillsmgr-remaining-20261118/final-firefox` and
+`/tmp/skillsmgr-remaining-20261118/final-chrome`. The classic harness passed
+six viewports and four first-scan scenarios. Its six dated screenshots are under
+`/tmp/skillsmgr-remaining-20261118/pilot-screenshots-final`. External
+screenshot review, human visual and spoken sign-off, and consented
+participant sessions remain pending. The protocol is in
+@docs/25-design-partner-pilot-kit.md.
+[Playwright Firefox setup](https://playwright.dev/docs/browsers#firefox)
+
+**[NOTE]** Selected projects in v2 Quality now report `apm.yml` and
+`apm.lock.yaml` as separate unavailable signals. Microsoft defines the first
+as the project declaration and the second as a resolved lock. The check uses
+two metadata probes, ignores leaf symlinks and non-regular files, and keeps an
+inspection error local to the affected signal. APM YAML parsing, installation,
+export and project-lock ownership remain deferred. Native profile writes
+still need a per-agent write policy. Transcript usage needs a privacy
+decision before collection, and stale-archive policy depends on that evidence.
+[APM manifest schema](https://github.com/microsoft/apm/blob/main/docs/src/content/docs/reference/manifest-schema.md)
+[APM install and lockfile documentation](https://github.com/microsoft/apm/blob/main/docs/src/content/docs/consumer/install-packages.md)
+
+**[NOTE]** An OpenCode 2.3.2 offline probe confirmed that the JSON CLI emits a
+completed `skill` tool call and the next model request receives the synthetic
+skill instructions. The fake provider directed the call. An attended run
+using an approved model and the real transport remains required for native
+routing agreement. Source paths, protocol and observed limits are recorded
+in @docs/48-ai-http-study-2026-11-17.md.
+
+**[NOTE]** The first parallel matrix run exposed an existing cleanup-test
+race on Python 3.12. The process-group kill was pending for the child when
+the test inspected `/proc`. The test now polls for an exited or reaped child
+with a three-second deadline. The v2 double-click test likewise waits for
+the sync response and the completed Undo message before checking filesystem
+state. Fresh hash-locked wheel and source artifacts
+passed inspection and offline install probes with the pinned backend. The
+installed-wheel AI probe passed. The artifacts identify as 1.0.2 and were
+built for local verification. The complete Linux matrix passed 2,175 tests
+on each of Python 3.11–3.14 with 5/5/5/4 optional skips. Both smokes, the AI
+suite, compilation, the docs gate, the complexity ratchet, design tokens,
+Ruff and Bandit passed. Current macOS and Windows execution was unavailable.
+
+## 2026-11-18 — Release state recheck
+
+**[NOTE]** The `v1.0.2` release run completed with failure on November 5.
+Attempt 3 shows the TestPyPI publish succeeded, the PyPI publish job failed,
+and the GitHub Release and published-distribution verification jobs were
+skipped. The run reports zero pending deployments. The job has no listed
+steps and its log is unavailable, so the cause of the PyPI failure remains
+unknown. TestPyPI lists the non-yanked 1.0.2 wheel and sdist; PyPI lists
+1.0.1. The repository still declares 1.0.2, so a future 1.1.0 candidate
+requires an owner-selected version and a matching reviewed tag. The
+workflow builds and verifies once, attests the bytes, then requires the
+TestPyPI stage and protected release environment.
+[Release run](https://github.com/udayvarmora07/skills-manager/actions/runs/37442412642)
+[TestPyPI](https://test.pypi.org/pypi/skill-control-plane/json)
+[PyPI](https://pypi.org/pypi/skill-control-plane/json)
+
+**[NOTE]** Public CI for `9aafb94` shows successful jobs except the cancelled
+macOS Python 3.14 leg. GitHub's annotations say the hosted runner never
+acquired that job and cite macOS ARM64 capacity constraints.
+[CI run](https://github.com/udayvarmora07/skills-manager/actions/runs/44135509064)
 
 ## 2026-11-17 — Measured size/performance improvement and Rust assessment
 

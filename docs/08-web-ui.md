@@ -766,6 +766,12 @@ with Ctrl/Cmd K and from the desktop header.
   contrast (text ≥ 4.5:1, control boundary ≥ 3:1), assets present, and served
   routes including traversal refusal.
 
+**[SPEC]** In Quality, a contained project context can show whether regular
+`apm.yml` and `apm.lock.yaml` files are present. The API reports them
+separately under `unavailable_signals` in the hygiene report's `lockfiles`
+section. Quality displays them under its unavailable-evidence disclosure.
+The check reads file metadata only.
+
 ## Classic frontend map (`/classic/`, app.js)
 
 ### Overview-first shell

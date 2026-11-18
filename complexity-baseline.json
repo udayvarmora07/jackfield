@@ -2975,6 +2975,11 @@
       "end_lineno": 87,
       "lineno": 82
     },
+    "skillsmgr/lockfiles.py::_apm_project_signals": {
+      "complexity": 5,
+      "end_lineno": 652,
+      "lineno": 633
+    },
     "skillsmgr/lockfiles.py::_computed_outcome": {
       "complexity": 3,
       "end_lineno": 426,
@@ -3036,9 +3041,9 @@
       "lineno": 311
     },
     "skillsmgr/lockfiles.py::_lockfile_evidence": {
-      "complexity": 6,
-      "end_lineno": 651,
-      "lineno": 601
+      "complexity": 4,
+      "end_lineno": 697,
+      "lineno": 655
     },
     "skillsmgr/lockfiles.py::_missing_lock": {
       "complexity": 1,

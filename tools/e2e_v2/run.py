@@ -18,6 +18,8 @@ from skillsmgr.launcher_security import trusted_executable
 def main():
     parser = argparse.ArgumentParser(description='Create isolated fixtures and run the optional Playwright browser suite.')
     parser.add_argument('--output-dir', required=True, type=Path, help='Existing or new directory for a fresh private run folder and evidence')
+    parser.add_argument('--browser', choices=('chromium', 'firefox'), default='chromium',
+                        help='Use trusted system Chrome (default) or Playwright-managed Firefox')
     args = parser.parse_args()
     args.output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     root = Path(tempfile.mkdtemp(prefix='skillsmgr-e2e-', dir=args.output_dir.resolve()))
@@ -50,15 +52,22 @@ def main():
     (home/'.claude/settings.json').write_text(json.dumps({'skillOverrides': {'same-everywhere': 'off'}}))
     (home/'.config/opencode/opencode.json').write_text(json.dumps({'permission': {'skill': {'same-everywhere': 'deny'}}}))
     env = dict(os.environ, HOME=str(home), SKILLS_MANAGER_DATA=str(data), PYTHONDONTWRITEBYTECODE='1')
+    env.pop('XDG_STATE_HOME', None)
+    env.pop('SLASH_COMMAND_TOOL_CHAR_BUDGET', None)
+    env['CODEX_HOME'] = str(home / '.codex')
+    env['GEMINI_CLI_SYSTEM_DEFAULTS_PATH'] = str(home / 'gemini-system-defaults.json')
+    env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'] = str(home / 'gemini-system-settings.json')
     env['BROWSER_TEST_ROOT'] = str(root)
     env['BROWSER_TEST_HOME'] = str(home)
+    env['BROWSER_TEST_ENGINE'] = args.browser
     subprocess.run([sys.executable, '-m', 'skillsmgr', 'create', 'library-fixture', '-d', 'Use this for browser recovery checks.', '--body', 'Fixture body.'], cwd=REPO, env=env, check=True, stdout=subprocess.DEVNULL)
     node = _node()
-    requested_chrome = env.get('CHROME_BIN')
-    chrome = trusted_executable('chrome', which=lambda _: requested_chrome) if requested_chrome else _chrome()
-    if not chrome:
-        raise RuntimeError('CHROME_BIN must identify a trusted Chrome executable')
-    env['CHROME_BIN'] = chrome
+    if args.browser == 'chromium':
+        requested_chrome = env.get('CHROME_BIN')
+        chrome = trusted_executable('chrome', which=lambda _: requested_chrome) if requested_chrome else _chrome()
+        if not chrome:
+            raise RuntimeError('CHROME_BIN must identify a trusted Chrome executable')
+        env['CHROME_BIN'] = chrome
     server_code = (
         'import os; from pathlib import Path; '
         'from skillsmgr.store import Store; from skillsmgr.webapp import WebAppServer; '
@@ -68,7 +77,7 @@ def main():
         '"http://127.0.0.1:"+str(server.port)); server.serve_forever()'
     )
     print(f'Fixture and evidence directory: {root}', flush=True)
-    print('The unauthenticated service is bound to localhost only; do not forward or tunnel it.', flush=True)
+    print('The localhost binding is the unauthenticated test server\'s only security boundary.', flush=True)
     with (root/'server.log').open('w') as log:
         server = subprocess.Popen([sys.executable, '-c', server_code], cwd=REPO, env=env, stdout=log, stderr=subprocess.STDOUT)
         try:

@@ -34,6 +34,7 @@ GLOBAL_LOCK_VERSION = 3
 PROJECT_LOCK_FILENAME = "skills-lock.json"
 GLOBAL_LOCK_FILENAME = ".skill-lock.json"
 APM_LOCK_FILENAME = "apm.lock.yaml"
+_APM_PROJECT_FILES = (("apm.yml", "apm-manifest"), (APM_LOCK_FILENAME, "apm-lock"))
 
 _SKIP_DIRS = frozenset({".git", "node_modules"})
 _SANITIZE_RE = re.compile(r"[^a-z0-9._]+")
@@ -629,6 +630,28 @@ def lockfile_evidence(
         _REQUEST_BUDGET.reset(token)
 
 
+def _apm_project_signals(project_path: Path) -> list[dict]:
+    signals = []
+    for filename, signal in _APM_PROJECT_FILES:
+        path = project_path / filename
+        try:
+            mode = path.lstat().st_mode
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        except OSError:
+            explanation = f"{filename} could not be inspected"
+        else:
+            if not stat.S_ISREG(mode):
+                continue
+            explanation = f"{filename} is present; YAML parsing is not available in the standard library"
+        signals.append({
+            "signal": signal,
+            "explanation": explanation,
+            "path": bounded_text(str(path)),
+        })
+    return signals
+
+
 def _lockfile_evidence(home, project_root, xdg_state_home) -> dict:
     if home is None:
         return unavailable_evidence("home directory is not resolvable")
@@ -643,11 +666,11 @@ def _lockfile_evidence(home, project_root, xdg_state_home) -> dict:
         home_path / ".agents" / "skills",
         "tree",
     )
+    signals = []
     if project_root is None:
         project_lock = _unavailable_lock(
             "project", "no project root context is available to this report"
         )
-        project_installed = None
     else:
         project_path = Path(project_root).expanduser()
         project_installed = project_path / ".agents" / "skills"
@@ -656,15 +679,7 @@ def _lockfile_evidence(home, project_root, xdg_state_home) -> dict:
             project_installed,
             "computed",
         )
-    signals = []
-    if project_root is not None:
-        apm = Path(project_root).expanduser() / APM_LOCK_FILENAME
-        if apm.is_file():
-            signals.append({
-                "signal": "apm-lock",
-                "explanation": "YAML parsing is not available in the standard library",
-                "path": bounded_text(str(apm)),
-            })
+        signals = _apm_project_signals(project_path)
     return {
         "policy": "read-only evidence; a hash mismatch is not a tampering verdict",
         "global": global_lock,

@@ -228,9 +228,10 @@ lists degraded and unavailable signals. The report's `lockfiles` section reads
 the `skills` CLI's global `.skill-lock.json` (version 3) and, when a project
 root context exists, its project `skills-lock.json` (version 1), then reports
 declared/present/disabled state, `computedHash` and `skillFolderHash` comparison
-status, undeclared installed skills, and an unavailable signal for an
-`apm.lock.yaml` it will not parse. The human output adds one bounded lockfile
-summary line. It never mutates files or makes a combined quality claim;
+status, and undeclared installed skills. v2 Quality can provide a contained
+project context for the same report, which then shows presence-only APM
+evidence. The CLI's human output adds one bounded lockfile summary line.
+The report leaves files untouched and offers individual findings;
 findings return exit 0 once the scan completes, while a total acquisition
 failure returns exit 1. `--hygiene` and `--explain` are incompatible and
 produce a clean exit-1 error.

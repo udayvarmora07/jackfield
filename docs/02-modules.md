@@ -637,8 +637,10 @@ installs (bounded), and returns the project lock as `unavailable` when no
 project root context exists. A global `skillFolderHash` mismatch is
 `differs_from_recorded_tree`; a project `computedHash` outcome that matches
 neither ordering is `mismatch_or_unverifiable` with the ICU-collation
-explanation. An `apm.lock.yaml` is reported as an unavailable signal and is
-never parsed. `hygiene_report()` folds the section under `lockfiles`; no Store
+explanation. For a supplied project, regular `apm.yml` and `apm.lock.yaml`
+files produce separate unavailable signals. The check uses file metadata
+only and skips leaf symlinks and directories. `hygiene_report()` folds the
+section under `lockfiles`; no Store
 method, SQLite state, cache, network request, or write is added.
 
 **[SPEC] 2026-11-17 follow-up.** Evaluated locks also expose `name_collisions`

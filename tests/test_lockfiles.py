@@ -309,6 +309,68 @@ class EvidenceTests(unittest.TestCase):
             self.assertIn("apm-lock", signals)
             self.assertIn("standard library", signals["apm-lock"]["explanation"])
 
+    def test_apm_manifest_presence_is_independent_of_the_lock(self):
+        cases = (
+            ((), []),
+            (("apm.yml",), ["apm-manifest"]),
+            (("apm.lock.yaml",), ["apm-lock"]),
+            (("apm.yml", "apm.lock.yaml"), ["apm-manifest", "apm-lock"]),
+        )
+        for files, expected in cases:
+            with self.subTest(files=files), tempfile.TemporaryDirectory() as tmp:
+                home = Path(tmp)
+                project = home / "project"
+                project.mkdir()
+                for filename in files:
+                    _write(project / filename, b"\xff")
+
+                evidence = lockfiles.lockfile_evidence(home, project_root=project)
+
+                self.assertEqual(evidence["project"]["state"], "missing")
+                self.assertEqual(evidence["summary"]["declared"], 0)
+                signals = evidence["unavailable_signals"]
+                self.assertEqual([item["signal"] for item in signals], expected)
+                self.assertEqual([item["path"] for item in signals],
+                                 [str(project / filename) for filename in files])
+                self.assertEqual(sorted(p.name for p in project.iterdir()), sorted(files))
+
+    def test_apm_presence_does_not_follow_links_or_report_directories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            project = home / "project"
+            project.mkdir()
+            (project / "apm.lock.yaml").mkdir()
+            outside = home / "outside.yaml"
+            _write(outside, "name: outside")
+            try:
+                (project / "apm.yml").symlink_to(outside)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks are unavailable")
+            evidence = lockfiles.lockfile_evidence(home, project_root=project)
+            self.assertEqual(evidence["unavailable_signals"], [])
+
+    def test_apm_inspection_error_leaves_other_lock_evidence_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            project = home / "project"
+            _write(project / "skills-lock.json", '{"version": 1, "skills": {}}')
+            original = Path.lstat
+
+            def lstat(path):
+                if path == project / "apm.yml":
+                    raise PermissionError("private path detail")
+                return original(path)
+
+            with mock.patch.object(Path, "lstat", lstat):
+                evidence = lockfiles.lockfile_evidence(home, project_root=project)
+
+            self.assertEqual(evidence["project"]["state"], "ok")
+            self.assertEqual(evidence["unavailable_signals"], [{
+                "signal": "apm-manifest",
+                "explanation": "apm.yml could not be inspected",
+                "path": str(project / "apm.yml"),
+            }])
+
     def test_a_folder_over_the_hash_budget_is_too_large(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = self._home(Path(tmp))

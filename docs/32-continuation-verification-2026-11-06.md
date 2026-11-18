@@ -144,3 +144,22 @@ exhaustive contrast and touch coverage; Ctrl-C exit codes; DNS-rebinding
 browser experiments; disconnected multi-step mutations and arbitrary external
 writers. Native settings evidence stays partial (Codex TOML is decision D-1).
 v2 remains at `/v2/` and classic at `/`.
+
+## 2026-11-18 — Repeating the v2 suite in Firefox
+
+**[SPEC]** Install the Firefox binary for the same Playwright version
+resolved by the runner. The default suite uses trusted system Chrome.
+`--browser firefox` selects Playwright-managed Firefox and records the engine
+and version in `results.json`. Real 200% and 400% zoom checks require a
+separate headed Chrome run under X11.
+
+```sh
+export PLAYWRIGHT_BROWSERS_PATH=/private/playwright-browsers
+node /path/to/node_modules/playwright/cli.js install firefox
+NODE_PATH=/path/to/node_modules python3 tools/e2e_v2/run.py \
+  --browser firefox --output-dir /private/evidence-directory
+```
+
+The regression suites and captures exercise synthetic fixtures. The human
+walkthrough above remains the procedure for spoken sign-off.
+[Playwright browser installation](https://playwright.dev/docs/browsers#firefox)

@@ -8,6 +8,7 @@ import os
 import sys
 import shutil
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -76,11 +77,19 @@ class AiAutomationTests(unittest.TestCase):
                  mock.patch.object(verify, 'TEST_TIMEOUT', 0.5), contextlib.redirect_stderr(io.StringIO()):
                 self.assertFalse(verify.run_tests())
             status = Path('/proc') / pidfile.read_text() / 'status'
-            try:
-                child_status = status.read_text()
-            except (FileNotFoundError, ProcessLookupError):
-                return
-            self.assertIn('State:\tZ', child_status)
+            # The runner waits for the parent. The kernel can still be
+            # delivering SIGKILL to its descendants when that wait returns.
+            deadline = time.monotonic() + 3
+            while True:
+                try:
+                    child_status = status.read_text()
+                except (FileNotFoundError, ProcessLookupError):
+                    return
+                if 'State:\tZ' in child_status:
+                    return
+                if time.monotonic() >= deadline:
+                    self.fail(f'descendant is still live after timeout cleanup: {child_status}')
+                time.sleep(0.02)
 
     @unittest.skipUnless(os.name == 'posix', 'process groups require POSIX')
     def test_test_runner_propagates_failing_exit_and_diagnostics(self):

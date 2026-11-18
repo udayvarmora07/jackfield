@@ -1,6 +1,6 @@
 # Task Checklist — Skills Manager
 
-**Version 0.10.0**
+**Version 0.11.0**
 
 **AI manifest**: Live work and the remaining gated/deferred queue. `[ ]` means
 pending, `[/]` in progress, `[x]` completed. Historical milestones, including
@@ -55,23 +55,35 @@ authorized. The original 15 gated/deferred entries remain open.
 - [x] Record research-first tool/setup authorization and Terra/Luna subagent
   preferences in `AGENTS.md`, preserving specific product and release gates.
 
+## Continuation (2026-11-18)
+
+- [x] Recheck the public release status and the cancelled macOS CI leg.
+- [x] Exercise v2 in Firefox and retain a repeatable browser runner.
+- [x] Report the presence of regular APM project manifests and locks in v2 Quality.
+- [x] Verify OpenCode skill-load evidence with a synthetic local provider.
+- [x] Capture dated local screenshots for the design-partner pilot review.
+- [x] Stabilize the subprocess cleanup and browser sync/Undo assertions.
+
+Evidence and remaining decisions are recorded in @docs/06-progress-log.md.
+
 ## Remaining gated and deferred entries
 
-These are the original 15 live entries: 12 pending and 3 in progress, with
-historical overlaps. This continuation does not turn them into approved scope.
-The full dated context remains in the archive. One human visual sign-off
+The 15 open entries include 12 pending and three in progress, with
+historical overlaps. The full dated context remains in the archive.
+One human visual sign-off
 entry is retained verbatim in the parity section below and remains part of this
 queue; the other fourteen entries follow.
 
-- [ ] Owner's call: release 1.1.0 (PyPI still serves 1.0.1) and questions
-  Q1–Q4 in docs/45 §7.
+- [ ] Owner's call: choose the next release version and candidate. PyPI still
+  serves 1.0.1. Product questions Q1–Q4 remain in docs/45 §7.
 
 - [/] Broader fidelity study with distractors, near misses, repeats and the
   product's configured HTTP transport; the two-case result does not validate it.
   HTTP portion completed 2026-11-17: DeepSeek V4.1 Flash via GOAT matched
   36/36 authored labels, using four skills, 12 prompts and three repeats.
-  Native comparison remains unavailable for the permitted models in the
-  existing harness; see @docs/48-ai-http-study-2026-11-17.md.
+  An offline OpenCode probe confirmed how to observe a successful skill load.
+  An attended same-model comparison remains open for the permitted models.
+  See @docs/48-ai-http-study-2026-11-17.md.
 
 - [ ] Human spoken screen-reader sign-off using the docs/32 walkthrough.
 
@@ -81,7 +93,10 @@ queue; the other fourteen entries follow.
 - [ ] Deferred (docs/35): per-project profiles that translate one toggle into each agent's
   native setting (⚠); Codex's switch is user-level only and must say so.
 
-- [ ] Deferred (docs/35): interoperate with Microsoft APM `apm.yml` instead of a new lockfile.
+- [ ] Deferred (docs/35): interoperate with Microsoft APM `apm.yml` instead of
+  a new lockfile. Presence checks for the manifest and resolved lock are
+  implemented in the existing hygiene report. Interoperability still needs
+  decisions about supported fields, validation and export.
 
 - [ ] Deferred (docs/35): Hermes-Curator-style stale → archive with pin/restore/dry-run (⚠).
 
@@ -90,27 +105,20 @@ queue; the other fourteen entries follow.
 - [ ] Owner's call, deferred (docs/35): docs/27 monetization questions MON-Q1…MON-Q5 (services-first year; widen scope to MCP + AGENTS.md; public top-skills report; zh-CN UI; which docs/14 tiers stay). Proposals only, nothing approved.
 
 - [ ] **Human perceptual review of the redesign. Not an agent's to do.**
-  The harness renders and measures; it does not sign off. Still unexercised:
-  a non-Chromium engine, forced-colors mode, 200%/400% zoom, and a screen
-  reader. This is the same open gate G8 carried, carried forward honestly.
+  The automated browser checks and Orca diagnostic evidence are recorded in
+  @docs/06-progress-log.md and @docs/32-continuation-verification-2026-11-06.md.
+  Human visual and spoken screen-reader sign-off remain open.
 
-- [/] Publish 1.0.2 — **TestPyPI SHIPPED; PyPI is `waiting` on the maintainer's
-  `release`-environment approval.** `v1.0.2` is pushed at `ef9bfd6`; CI is
-  16/16 green. The external outage that blocked this has cleared: the failing
-  call was `audience retrieval` against
-  `https://test.pypi.org/_/oidc/audience`, which answered 503 on 2026-10-06
-  morning and answers **200** now (three samples, with `/simple/`, `/legacy/`
-  and `/pypi/<name>/json` all 200). Re-running the failed job was the whole fix,
-  exactly as recorded. `publish to TestPyPI` **succeeded**; `publish to PyPI` is
-  `waiting` on the `release` environment, whose required reviewer is
-  `udayvarmora07` — it cannot and did not proceed unattended. Not worked around
-  by publishing straight to PyPI: the TestPyPI stage is the gate, and skipping it
-  is the failure mode SEC-7 exists to prevent.
+- [/] Publish 1.0.2. TestPyPI has the wheel and sdist. The GitHub run for
+  `v1.0.2` (`ef9bfd6`) ended with the PyPI job failed on 2026-11-05 and has
+  zero pending deployments. The owner must choose whether to recover that
+  candidate or supersede it. See the dated release recheck in
+  @docs/06-progress-log.md.
 
-- [/] T2: Prepare the metadata-corrected package release; publish only after
-  exact candidate review and maintainer approval. **Preparation is complete** —
-  the 1.0.2 artifacts are built from `522b81f` and independently verified (see the
-  artifact item above). Only the publish step remains, and it is human-gated.
+- [/] T2: The original metadata-corrected 1.0.2 candidate artifacts were
+  independently verified. Publication requires an exact selected candidate,
+  the TestPyPI stage, and maintainer approval. This tracks the same release
+  gate as the preceding entry.
 
 - [ ] Capture dated external screenshots and run real consented participant sessions; this repository records the protocol only.
 
