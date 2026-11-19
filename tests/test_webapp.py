@@ -33,6 +33,7 @@ class BrowserOpenerTests(unittest.TestCase):
         self.assertEqual(args[0], ["/safe/xdg-open", "http://127.0.0.1:8765/?q=one two"])
         self.assertFalse(kwargs["shell"])
 
+    @unittest.skipIf(os.name == "nt", "the opener search uses POSIX PATH (:) and mode bits, and xdg-open is not a Windows opener")
     def test_unsafe_first_path_match_is_skipped_for_a_safe_later_match(self):
         from skillsmgr import webapp
 

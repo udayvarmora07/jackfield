@@ -66,11 +66,13 @@ class DeadEntryTests(unittest.TestCase):
 
     def test_tilde_paths_resolve_and_are_judged(self):
         self.write_config('[[skills.config]]\npath = "~/.codex/skills/demo"\nenabled = false\n')
-        with patch.dict(os.environ, {"HOME": str(self.home)}):
+        # Windows ``expanduser`` reads USERPROFILE and ignores HOME.
+        with patch.dict(os.environ, {"HOME": str(self.home), "USERPROFILE": str(self.home)}):
             report = self.entries()
         self.assertEqual(report["entries"][0]["problem"], "folder")
 
-    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root reads every directory")
+    @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+                     "needs POSIX permission bits and a non-root user")
     def test_an_entry_behind_an_unreadable_directory_is_not_called_missing(self):
         locked = self.home / "locked"
         (locked / "demo").mkdir(parents=True)
@@ -98,8 +100,8 @@ class DeadEntryTests(unittest.TestCase):
         report = hygiene.hygiene_report([], scope="codex", home=self.home)
         section = report["codex_config"]
         self.assertEqual(section["state"], "observed")
-        self.assertTrue(section["entries"][0]["path"].startswith("~/"))
-        self.assertTrue(section["entries"][0]["suggested_path"].endswith("/SKILL.md"))
+        self.assertTrue(section["entries"][0]["path"].startswith("~" + os.sep))
+        self.assertTrue(section["entries"][0]["suggested_path"].endswith(os.sep + "SKILL.md"))
         findings = [f for f in report["findings"] if f["category"] == "codex-config-dead-entry"]
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0]["severity"], "warning")

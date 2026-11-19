@@ -162,16 +162,43 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("*.py", xplat)
         self.assertIn("run: python -m unittest", xplat)
 
+    def test_ci_xplat_job_runs_the_whole_suite_on_every_supported_os(self):
+        # 2026-11-20: this job used to run a four-module path/archive subset on
+        # macOS and Windows, so the rest of the suite had never run there and
+        # real portability bugs (macOS temp-dir symlinks, Windows os.fchmod)
+        # shipped unseen. It now runs the same discovery command as `unit`.
+        text = _workflow_text("ci.yml")
+        xplat = text.split("\n  xplat:", 1)[1].split("\n  browser:", 1)[0]
+        self.assertIn("run: python -m unittest discover -s tests", xplat)
+        for runner in ("ubuntu-latest", "macos-latest", "windows-latest"):
+            self.assertIn(runner, xplat)
+        self.assertNotIn("tests.test_path_safety", xplat)
+
+    def test_ci_runs_the_browser_e2e_suites_that_unittest_cannot_discover(self):
+        text = _workflow_text("ci.yml")
+        e2e = text.split("\n  e2e:", 1)[1]
+        self.assertIn("tools/e2e_v2/run.py", e2e)
+        self.assertIn("tools/e2e_classic/run.py", e2e)
+        # Playwright comes from a hash-verified lockfile with no install
+        # scripts and no browser download; the runner's own Chrome is used.
+        self.assertIn("npm ci --ignore-scripts", e2e)
+        self.assertNotIn("npm install", e2e)
+        lock = (ROOT / "tools" / "e2e_deps" / "package-lock.json").read_text(encoding="utf-8")
+        self.assertIn('"integrity": "sha512-', lock)
+        package = (ROOT / "tools" / "e2e_deps" / "package.json").read_text(encoding="utf-8")
+        self.assertIn('"private": true', package)
+        self.assertRegex(package, r'"playwright": "\d+\.\d+\.\d+"')  # exact, not a range
+
     def test_ci_browser_job_runs_harness_and_both_frontend_syntax_checks(self):
         text = _workflow_text("ci.yml")
-        browser = text.split("\n  browser:", 1)[1]
+        browser = text.split("\n  browser:", 1)[1].split("\n  e2e:", 1)[0]
         self.assertIn("python3 browser_harness.py", browser)
         self.assertIn("node --check skillsmgr/webui/app.js", browser)
         self.assertIn("node --check skillsmgr/webui/domain.js", browser)
 
     def test_ci_has_separate_named_jobs(self):
         ids = set(_job_ids(_workflow_text("ci.yml")))
-        for expected in ("unit", "adversarial", "package", "docs", "browser", "xplat"):
+        for expected in ("unit", "adversarial", "package", "docs", "browser", "xplat", "e2e"):
             self.assertIn(expected, ids, f"CI is missing the {expected!r} job")
 
     def test_third_party_actions_are_pinned_to_shas(self):

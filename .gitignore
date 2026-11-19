@@ -34,3 +34,4 @@ Thumbs.db
 
 # Local tooling marker; the progress log records it as untracked by policy.
 .autogit
+node_modules/

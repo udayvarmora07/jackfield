@@ -1155,7 +1155,14 @@ def _local_file_manifest(root: Path) -> tuple[list[dict], str]:
     files: list[dict] = []
     total = 0
     try:
-        paths = sorted(path for path in root.rglob("*") if path.is_file())
+        # Sort by the POSIX relative string, the order the snapshot and its hash
+        # use.  Sorting ``Path`` objects is case-insensitive on Windows, which
+        # put ``references/x`` before ``SKILL.md`` and made every provenance
+        # sidecar for a mixed-case tree look like drift.
+        paths = sorted(
+            (path for path in root.rglob("*") if path.is_file()),
+            key=lambda path: path.relative_to(root).as_posix(),
+        )
     except OSError as exc:
         raise RegistryError(f"could not inspect skill files: {exc}") from exc
     for path in paths:

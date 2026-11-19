@@ -230,3 +230,74 @@ jobs:
           node --check skillsmgr/webui/app.js
           node --check skillsmgr/webui/domain.js
           python3 browser_harness.py
+
+  e2e:
+    name: browser e2e (v2 + classic UI, headless Chrome)
+    # tools/e2e_v2 and tools/e2e_classic drive the real web UI in a real browser
+    # against a throwaway fixture HOME and data directory (loopback-only server,
+    # Chrome sandbox ON). They are not unittest modules, so `unittest discover`
+    # never reaches them and, until this job existed, nothing ran them.
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: unit
+    env:
+      # Playwright is a developer/CI-only client: it is installed from the
+      # hash-verified lockfile in tools/e2e_deps and drives the runner's own
+      # Chrome. It is never a runtime or packaging dependency.
+      NODE_PATH: ${{ github.workspace }}/tools/e2e_deps/node_modules
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 — 2026-11-07 reviewed
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 — 2026-11-07 reviewed
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0 — 2026-11-07 reviewed
+        with:
+          node-version: "22"
+      - name: Allow Chrome's user-namespace sandbox on the runner
+        # Same reason and same scope as the `browser` job: the runner's AppArmor
+        # policy would otherwise make Chrome abort with "No usable sandbox!",
+        # and the renderer sandbox stays on by design (SEC-15).
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          else
+            echo "unprivileged user namespaces are not AppArmor-restricted here"
+          fi
+      - name: Tighten the Node tool cache permissions
+        # setup-node extracts with mode 0777, so launcher_security's ownership
+        # check rejects the binary and every parent directory up to /. Tighten
+        # the runner's extraction rather than weaken the policy; stop at a
+        # sticky directory, which the trust check already permits.
+        run: |
+          target="$(command -v node)"
+          while [ -n "$target" ] && [ "$target" != "/" ] && [ -e "$target" ]; do
+            if [ -k "$target" ]; then
+              echo "$target is sticky; the trust check already permits it"
+              break
+            fi
+            sudo chmod go-w "$target" || true
+            target="$(dirname "$target")"
+          done
+      - name: Install the locked Playwright client (no install scripts, no browser download)
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix tools/e2e_deps
+      - name: Confirm the runners can resolve Node, Chrome and Playwright
+        run: |
+          python3 -c "import browser_harness as b; print(b._node()); print(b._chrome())"
+          node -e "console.log('playwright', require('playwright/package.json').version)"
+      - name: V2 UI end-to-end suite
+        run: python3 tools/e2e_v2/run.py --output-dir "$RUNNER_TEMP/e2e-v2"
+      - name: Classic UI end-to-end suite
+        # Run even when the v2 suite failed, so one run reports both.
+        if: ${{ !cancelled() }}
+        run: python3 tools/e2e_classic/run.py --output-dir "$RUNNER_TEMP/e2e-classic"
+      - name: Upload e2e evidence (screenshots, results.json, server.log)
+        # Synthetic fixtures only; no user data is ever in these folders.
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 — 2026-11-07 reviewed
+        with:
+          name: e2e-evidence
+          path: |
+            ${{ runner.temp }}/e2e-v2
+            ${{ runner.temp }}/e2e-classic
+          if-no-files-found: ignore
+          retention-days: 7
