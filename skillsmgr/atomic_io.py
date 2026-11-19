@@ -323,6 +323,31 @@ def mutation_lock(path: Path) -> _CrossProcessLock:
         return lock
 
 
+#: Windows only: how long ``os.replace`` keeps retrying a destination that
+#: another thread or process has open.  Python opens files without
+#: ``FILE_SHARE_DELETE``, so replacing a document a reader holds open fails with
+#: ``PermissionError`` (WinError 5/32) until that reader closes it -- normally
+#: well under a millisecond.  POSIX replaces an open file atomically and never
+#: takes this path.
+_WINDOWS_REPLACE_ATTEMPTS = 100
+_WINDOWS_REPLACE_DELAY = 0.01
+
+
+def _replace(source: Path, destination: Path) -> None:
+    """``os.replace`` that rides out a momentary reader on Windows."""
+    if os.name != "nt":
+        os.replace(source, destination)
+        return
+    for attempt in range(_WINDOWS_REPLACE_ATTEMPTS):
+        try:
+            os.replace(source, destination)
+            return
+        except PermissionError:
+            if attempt == _WINDOWS_REPLACE_ATTEMPTS - 1:
+                raise
+            time.sleep(_WINDOWS_REPLACE_DELAY)
+
+
 def atomic_write_text(
     path: Path,
     text: str,
@@ -341,7 +366,7 @@ def atomic_write_text(
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temp_path, path)
+        _replace(temp_path, path)
         try:
             directory_fd = os.open(path.parent, os.O_RDONLY)
         except OSError:
