@@ -105,6 +105,11 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Changed
 
+- `GET /api/skills?scope=all&body=0` is 29-49% faster on synthetic 1,000- and
+  10,000-record libraries with an unchanged response: containment checks and
+  `physical_path` no longer re-walk every path component per row, and list
+  pages use compact JSON separators. Measured in
+  `docs/52-list-request-performance-2026-11-19.md`.
 - Share install, document, doctor, batch, eval and token workflows between CLI
   and HTTP, with dedicated context, timestamp and read modules. Preserve the
   documented Python compatibility APIs, and derive v2 tool navigation from one
