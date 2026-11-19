@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "date": "2026-11-19",
+  "baseline_commit": "8806ee0",
+  "workload": "GET /api/skills?scope=all&body=0 (real HTTP, in-process server, full response read)",
+  "tool": "benchmarks/list_perf.py",
+  "method": {
+    "fixture": "deterministic synthetic library (global + 7 agent scopes, ~1/3 of names mirrored); disposable HOME and SKILLS_MANAGER_DATA; no personal skills",
+    "pairing": "identical fixture bytes; before = git archive of the baseline commit, after = working tree; variants alternate order each round",
+    "per_round": "1 warm-up request then N timed requests; round statistic = median",
+    "summary": "median of round medians",
+    "caveats": [
+      "warm filesystem and Python caches; shared host (load average 3-8)",
+      "loopback, so wire size is not a cost here",
+      "fixture root depth matters: realpath cost scales with path components"
+    ]
+  },
+  "results": [
+    {
+      "fixture": "1000 records, scratchpad root (10 components to a skill)",
+      "rounds": 7,
+      "requests_per_round": 9,
+      "records": 1000,
+      "before": {
+        "median_of_round_medians_ms": 270.4,
+        "round_medians_ms": [
+          273.3,
+          280.8,
+          257.8,
+          254.7,
+          270.4,
+          278.5,
+          249.2
+        ],
+        "min_ms": 220.6,
+        "wire_bytes": 2481933
+      },
+      "after": {
+        "median_of_round_medians_ms": 138.0,
+        "round_medians_ms": [
+          129.5,
+          125.4,
+          141.0,
+          162.8,
+          138.0,
+          131.9,
+          144.1
+        ],
+        "min_ms": 120.5,
+        "wire_bytes": 2375141
+      },
+      "median_reduction_percent": 49.0
+    },
+    {
+      "fixture": "1000 records, shallow root (6 components to a skill)",
+      "rounds": 7,
+      "requests_per_round": 9,
+      "records": 1000,
+      "before": {
+        "median_of_round_medians_ms": 212.3,
+        "round_medians_ms": [
+          206.6,
+          235.7,
+          215.5,
+          208.4,
+          208.9,
+          212.3,
+          250.1
+        ],
+        "min_ms": 197.0,
+        "wire_bytes": 1981933
+      },
+      "after": {
+        "median_of_round_medians_ms": 128.4,
+        "round_medians_ms": [
+          133.5,
+          142.7,
+          124.5,
+          123.5,
+          128.4,
+          128.1,
+          140.8
+        ],
+        "min_ms": 116.3,
+        "wire_bytes": 1875141
+      },
+      "median_reduction_percent": 39.5
+    },
+    {
+      "fixture": "10000 records, scratchpad root (10 components)",
+      "rounds": 3,
+      "requests_per_round": 3,
+      "records": 10000,
+      "before": {
+        "median_of_round_medians_ms": 3947.8,
+        "round_medians_ms": [
+          6719.2,
+          3795.1,
+          3947.8
+        ],
+        "min_ms": 3607.5,
+        "wire_bytes": 24879058
+      },
+      "after": {
+        "median_of_round_medians_ms": 2790.3,
+        "round_medians_ms": [
+          2790.3,
+          2916.2,
+          2638.5
+        ],
+        "min_ms": 2594.8,
+        "wire_bytes": 23811141
+      },
+      "median_reduction_percent": 29.3
+    }
+  ],
+  "parsed_equality": "parsed JSON identical before/after at 1,000 and 10,000 records (observed_at stamp normalised)",
+  "rejected": {
+    "gzip": "level 1: 10.6 ms server CPU + 3.7 ms client to save 2.2 MB on a loopback-only server; net loss, not shipped",
+    "ensure_ascii_false": "a lone surrogate would raise on encode; contract risk, not shipped"
+  }
+}

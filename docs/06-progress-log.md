@@ -1,11 +1,26 @@
 # Progress Log — Skills Manager
 
-**Version 0.8.0**
+**Version 0.8.1**
 
 **AI manifest**: Current delivery receipts and a bounded resident window.
 Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-17.md;
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
+
+## 2026-11-19 — Faster all-scope list request (v2 Home first paint)
+
+**[NOTE]** `GET /api/skills?scope=all&body=0` is 29–49% faster on a synthetic
+fixture with an unchanged response: paired medians 212 → 128 ms (1,000 records,
+root 6 components deep), 270 → 138 ms (10 deep) and 3.95 → 2.79 s (10,000).
+Profile: about 30% of the request was `os.path.realpath` re-walking every path
+component per row. Changes: one-`lstat` containment below a resolved root
+(deferring to `realpath` for links and anything odd), a per-scan memo of resolved
+parents for `physical_path`, the global scan's resolved root reused per row, the
+reserved-name set hoisted, `os.path.isfile` and a string sidecar probe, and
+compact JSON for list pages only. Parsed output identical at 1,000 and 10,000
+records. gzip was measured and rejected (loopback-only). No field, schema, CLI or
+Store change. Evidence: @docs/52-list-request-performance-2026-11-19.md,
+@benchmarks/list-request-2026-11-19.json; tool `benchmarks/list_perf.py`.
 
 ## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
 

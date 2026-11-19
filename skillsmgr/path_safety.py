@@ -171,6 +171,38 @@ def _reject_windows_separators(parts: tuple[Path, ...]) -> None:
             raise ValueError("absolute paths are not valid below a managed root")
 
 
+def _lexical_below(resolved_root: str, parts: tuple[str, ...]) -> str | None:
+    """The resolved spelling of ``resolved_root/parts``, or ``None`` to defer.
+
+    **[SPEC]** ``os.path.realpath`` walks *every* component of an absolute path
+    with one ``lstat`` each.  A tree scan resolves its root once and then asks
+    the same question about hundreds of children whose only unresolved part is
+    the last component -- at 1,000 skills that walk was about a third of the
+    ``GET /api/skills?scope=all`` request.  Below an *already-resolved* root a
+    path with no symlink in it resolves to itself, so one ``lstat`` per part is
+    the whole answer.
+
+    The shortcut answers only when it is certain it equals ``realpath``: POSIX,
+    every part a plain single component (no ``.``, ``..``, separator or empty
+    part), and every component present and not a symlink.  Anything else --
+    a link, a missing or unreadable component, a non-POSIX host -- returns
+    ``None`` and the caller uses :func:`os.path.realpath` exactly as before.
+    """
+    if os.name != "posix":
+        return None
+    current = resolved_root
+    for part in parts:
+        if not part or part in (".", "..") or os.sep in part or "\0" in part:
+            return None
+        current = current + part if current.endswith(os.sep) else current + os.sep + part
+        try:
+            if stat.S_ISLNK(os.lstat(current).st_mode):
+                return None
+        except (OSError, ValueError):
+            return None
+    return current
+
+
 def contained_path(root: Path, *parts: str | Path) -> Path:
     """Return a resolved path only when it remains below ``root``."""
     return contained_path_under(Path(root).expanduser().resolve(), *parts)
@@ -200,6 +232,11 @@ def contained_path_under(resolved_root: Path, *parts: str | Path) -> Path:
     # links; the former reaches the kernel without pathlib rebuilding every
     # component of the path first, which matters when a scan does this once
     # per row.  ``contained_entry_under`` already resolves this way.
+    below = _lexical_below(str(resolved_root), tuple(str(part) for part in path_parts))
+    if below is not None:
+        # No link anywhere below the (already-resolved) root, so the resolved
+        # path is the joined path and cannot have left the root.
+        return Path(below)
     candidate = Path(os.path.realpath(Path(resolved_root).joinpath(*path_parts)))
     try:
         inside = candidate == resolved_root or candidate.is_relative_to(resolved_root)
@@ -264,6 +301,10 @@ def contained_entry_under(resolved_root: Path, *parts: str | Path) -> Path:
     if len(path_parts) == 1:
         validate_skill_name(str(path_parts[0]))
     candidate = resolved_root.joinpath(*path_parts)
+    if _lexical_below(str(resolved_root), tuple(str(part) for part in path_parts)) is not None:
+        # The named entry and everything above it is a plain directory entry
+        # below the resolved root: its target is itself, so it is contained.
+        return candidate
     target = Path(os.path.realpath(candidate))
     try:
         inside = target == resolved_root or target.is_relative_to(resolved_root)

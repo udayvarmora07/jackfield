@@ -1257,6 +1257,24 @@ def _with_install_binding(value: dict, root: Path, raw: bytes) -> dict:
     return result
 
 
+def _locate_sidecar(skill_dir: str | Path) -> tuple[Path, Path] | None:
+    """``(directory, sidecar path)`` when a sidecar exists there, else ``None``.
+
+    The common answer -- no sidecar -- needs no ``Path``: building two of them
+    (``expanduser`` and ``/``) cost more than the ``lstat`` they fed, once per
+    skill on every list.  A leading ``~`` is the only spelling ``expanduser``
+    rewrites, so it keeps the original path.
+    """
+    raw_dir = os.fspath(skill_dir)
+    if raw_dir and not raw_dir.startswith("~") and not os.path.lexists(
+        os.path.join(raw_dir, PROVENANCE_FILENAME)
+    ):
+        return None
+    root = Path(skill_dir).expanduser()
+    path = root / PROVENANCE_FILENAME
+    return (root, path) if os.path.lexists(path) else None
+
+
 def read_provenance(skill_dir: str | Path) -> dict | None:
     """Read and validate a registry provenance sidecar, if present.
 
@@ -1268,10 +1286,10 @@ def read_provenance(skill_dir: str | Path) -> dict | None:
     (docs/24 §D1).  When the sidecar is present the guard still runs first,
     unchanged.
     """
-    root = Path(skill_dir).expanduser()
-    path = root / PROVENANCE_FILENAME
-    if not os.path.lexists(path):
+    located = _locate_sidecar(skill_dir)
+    if located is None:
         return None
+    root, path = located
     _reject_symlink_ancestors(root)
     if path.is_symlink():
         raise RegistryError("registry provenance sidecar cannot be a symlink")

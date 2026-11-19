@@ -5086,9 +5086,9 @@
       "lineno": 572
     },
     "skillsmgr/validator.py::validate_skill_name": {
-      "complexity": 7,
-      "end_lineno": 111,
-      "lineno": 88
+      "complexity": 5,
+      "end_lineno": 128,
+      "lineno": 112
     },
     "skillsmgr/validator.py::validate_text": {
       "complexity": 32,

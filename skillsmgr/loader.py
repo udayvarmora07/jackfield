@@ -90,7 +90,12 @@ def _probe_document(skill_dir: Path) -> tuple[str | None, int, str | None, bool]
         except OSError as exc:
             return None, disabled, f"{candidate} cannot be read ({exc.strerror or exc})", False
         other = DISABLED_DOCUMENT if not disabled else ACTIVE_DOCUMENT
-        return text, disabled, decode_error, (skill_dir / other).is_file()
+        # ``os.path.isfile`` answers the same "is the other document a regular
+        # file" with one ``stat``; ``Path.is_file`` built a second ``Path`` and
+        # paid pathlib's exception handling for the common *absent* case, once
+        # per loaded skill.  Unlike ``Path.is_file`` before 3.14 it never raises
+        # for an unreadable path -- consistent on every supported version.
+        return text, disabled, decode_error, os.path.isfile(os.path.join(os.fspath(skill_dir), other))
     return None, 0, None, False
 
 
