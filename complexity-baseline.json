@@ -1781,7 +1781,7 @@
       "lineno": 110
     },
     "skillsmgr/evals.py::_regex_deadline": {
-      "complexity": 2,
+      "complexity": 1,
       "end_lineno": 353,
       "lineno": 334
     },
