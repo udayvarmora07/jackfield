@@ -9,6 +9,13 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
 
 ## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
 
+**[NOTE] CLI typo hints.** A first-time-user pass found clear errors and exit
+codes but no help for typos: `skills-mgr lst` listed 32 commands with no hint on
+3.11–3.13 (argparse's `suggest_on_error` exists only on 3.14), and `view
+pdf-tool` did not mention `pdf-tools`. Both now suggest the closest match;
+skill suggestions come only from library folder names that pass the name rule,
+so a hostile directory name cannot reach the terminal. Exit codes are unchanged.
+
 **[NOTE] Tablet help.** The header hid the "?" keyboard-shortcut button from
 601 to 900 px although it fits there (checked at 900/820/700/640/601 px with no
 overflow and unclipped tabs); it now hides only below 600 px.

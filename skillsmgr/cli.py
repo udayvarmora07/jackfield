@@ -7,6 +7,9 @@ command behavior in :mod:`skillsmgr.cli_handlers`.
 
 from __future__ import annotations
 
+import difflib
+import re
+
 from .cli_handlers import (
     COMMANDS,
     cmd_ai,
@@ -51,7 +54,7 @@ from .cli_handlers import (
 )
 from .cli_output import err as _err
 from .cli_parser import build_parser as _build_parser
-from .errors import StoreError
+from .errors import SkillNotFound, StoreError
 from .context import bound_store
 from .cli_ai import validate_args as _validate_ai_args
 
@@ -103,13 +106,46 @@ def build_parser():
     return _build_parser(COMMANDS)
 
 
+_SKILL_NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+
+
+def _did_you_mean(args, store) -> str:
+    """Suggest close library skill names for a missing one, or return ``""``.
+
+    Only the manager's own library is consulted (agent scopes keep their own
+    error), and only folder names that pass the skill-name rule are printed,
+    so a hostile directory name can never reach the terminal.
+    """
+    name = getattr(args, "name", None)
+    if not isinstance(name, str) or getattr(args, "scope", None) not in (None, "global"):
+        return ""
+    try:
+        names = [p.name for p in store.skills_dir.iterdir()
+                 if _SKILL_NAME.fullmatch(p.name) and p.is_dir()]
+    except OSError:
+        return ""
+    close = difflib.get_close_matches(name, names, n=3)
+    return f"; did you mean {', '.join(repr(c) for c in close)}?" if close else ""
+
+
+def _call_with_hint(args, store) -> int:
+    """Run the handler, adding a close-name hint to a missing-skill error."""
+    try:
+        return args.func(args, store) or EXIT_OK
+    except SkillNotFound as exc:
+        hint = _did_you_mean(args, store)
+        if not hint:
+            raise
+        raise SkillNotFound(f"{exc}{hint}") from exc
+
+
 def _run(args) -> int:
     validate_cli_names(args)
     validate_cli_combinations(args)
     store = make_store(args)
     # ``global`` resolves through this invocation's Store, not a stale one.
     with bound_store(store):
-        return args.func(args, store) or EXIT_OK
+        return _call_with_hint(args, store)
 
 
 def main(argv: list[str] | None = None) -> int:

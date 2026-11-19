@@ -45,6 +45,13 @@ invalid commands when argparse supports it; invalid input still exits with code 
 
 `__main__.py` wraps `cli.main()` in `sys.exit(...)`, so exit codes propagate to the shell.
 
+**[SPEC] Typo hints (2026-11-19).** An invalid command or other choice ends its
+usage error with `-- did you mean '<choice>'?` when one is close (argparse's own
+`suggest_on_error` on 3.14, a `difflib` fallback before it). A missing library
+skill (`scope` unset or `global`) appends `; did you mean '<name>'?` with up to
+three close folder names that pass the skill-name rule. Exit codes are unchanged
+(2 and 1); agent-scope errors keep their exact text.
+
 Before Store construction and command dispatch, skill-name arguments are checked
 against the canonical `NAME_RE` contract. Invalid names, path fragments, and
 encoded traversal-style values therefore fail with exit code 1 without creating

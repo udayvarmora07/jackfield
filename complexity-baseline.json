@@ -1126,9 +1126,9 @@
       "lineno": 134
     },
     "skillsmgr/cli.py::_run": {
-      "complexity": 3,
-      "end_lineno": 109,
-      "lineno": 103
+      "complexity": 2,
+      "end_lineno": 148,
+      "lineno": 142
     },
     "skillsmgr/cli.py::build_parser": {
       "complexity": 1,

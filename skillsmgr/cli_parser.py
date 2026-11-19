@@ -8,6 +8,7 @@ be reviewed without reading every command handler.
 from __future__ import annotations
 
 import argparse
+import difflib
 
 from . import __version__
 from .tokens import WINDOWS
@@ -67,6 +68,23 @@ class _SuggestingParser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
         if hasattr(self, "suggest_on_error"):
             self.suggest_on_error = True
+
+    def _check_value(self, action, value):
+        """Before Python 3.14, add the closest choice to an invalid-choice error.
+
+        3.14's ``suggest_on_error`` does this itself; older interpreters
+        printed every command and no hint, so ``skills-mgr lst`` gave nothing.
+        """
+        try:
+            super()._check_value(action, value)
+        except argparse.ArgumentError as exc:
+            choices = action.choices
+            if hasattr(self, "suggest_on_error") or not choices or not isinstance(value, str):
+                raise
+            close = difflib.get_close_matches(value, [str(c) for c in choices], n=1)
+            if not close:
+                raise
+            raise argparse.ArgumentError(action, f"{exc.message} -- did you mean '{close[0]}'?") from None
 
 
 def build_parser(commands) -> argparse.ArgumentParser:
