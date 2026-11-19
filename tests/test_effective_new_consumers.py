@@ -235,7 +235,7 @@ class TestUndocumentedConsumers(NewConsumerCase):
         self.assertEqual(report["resolution"], "undocumented-precedence")
         self.assertIsNone(self.entry(report)["winner"])
         roots = [root for tier in report["tiers"] for root in tier["roots"]]
-        self.assertTrue(any(root.endswith(".windsurf/skills") for root in roots))
+        self.assertTrue(any(root.replace(os.sep, "/").endswith(".windsurf/skills") for root in roots))
 
     def test_known_consumers_include_the_new_rows(self):
         for consumer in ("amp", "cline", "copilot", "devin", "kiro", "roo", "zed"):

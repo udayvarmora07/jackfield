@@ -69,7 +69,7 @@ class PluginMemberTests(_Fixture):
         self.assertEqual(found[0]["severity"], "info")
         self.assertEqual(found[0]["instances"][0]["name"], "my-skill")
         self.assertEqual(found[0]["evidence"]["plugin_name"], "my-plugin")
-        self.assertEqual(found[0]["evidence"]["plugin_dir"], "~/.agents/skills/my-plugin")
+        self.assertEqual(found[0]["evidence"]["plugin_dir"], os.path.join("~", ".agents", "skills", "my-plugin"))
         self.assertIn("vercel-labs/skills#2609", found[0]["explanation"])
 
     def test_a_manifest_that_is_not_the_documented_layout_is_ignored(self):

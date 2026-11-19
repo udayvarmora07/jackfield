@@ -439,7 +439,8 @@ class DisabledAndUnreadableTests(unittest.TestCase):
             row = lockfiles.lockfile_evidence(home)["global"]["entries"][0]
             self.assertEqual(row["hash_status"], "differs_from_recorded_tree")
 
-    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root reads everything")
+    @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+                     "needs POSIX permission bits and a non-root user")
     def test_an_unreadable_file_is_unverifiable_not_differs(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = self._home(Path(tmp))

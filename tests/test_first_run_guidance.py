@@ -122,27 +122,28 @@ class FirstRunGuidanceTests(unittest.TestCase):
     def test_scope_paths_are_shortened_in_text_and_absolute_in_json(self):
         scopes.create_skill("agents", "one", "Use this for testing")
         _, text, _ = self.invoke(["scopes"])
-        self.assertIn("~/.agents/skills", text)
+        self.assertIn(os.path.join("~", ".agents", "skills"), text)
         self.assertNotIn(str(self.home), text)
         _, raw, _ = self.invoke(["scopes", "--json"])
         agent = next(row for row in json.loads(raw) if row["id"] == "agents")
         self.assertEqual(agent["path"], str(self.home / ".agents/skills"))
         _, text, _ = self.invoke(["doctor", "--scope", "all"])
-        self.assertIn("~/.agents/skills", text)
+        self.assertIn(os.path.join("~", ".agents", "skills"), text)
         self.assertNotIn(str(self.home), text)
         code, text, err = self.invoke(["doctor", "--explain", "codex", "--project", str(self.home)])
         self.assertEqual((code, err), (0, ""))
         self.assertNotIn(str(self.home), text)
         _, raw, _ = self.invoke(["doctor", "--explain", "codex", "--project", str(self.home), "--json"])
-        self.assertIn(str(self.home), raw)
+        self.assertIn(json.dumps(str(self.home))[1:-1], raw)
 
     def test_hygiene_paths_are_shortened_without_changing_the_report(self):
         scopes.create_skill("agents", "one", "Use this for testing")
         _, text, _ = self.invoke(["doctor", "--scope", "all", "--hygiene"])
         self.assertNotIn(str(self.home), text)
         _, raw, _ = self.invoke(["doctor", "--scope", "all", "--hygiene", "--json"])
-        self.assertIn(str(self.home), raw)
+        self.assertIn(json.dumps(str(self.home))[1:-1], raw)
 
+    @unittest.skipIf(os.name == "nt", "the fixture is a POSIX home (/home/alice) written with forward slashes")
     def test_path_shortening_preserves_sibling_prefixes_and_terminal_safety(self):
         with patch.object(cli_output, "home_dir", return_value=Path("/home/alice")):
             text = cli_output.home_display(
@@ -156,7 +157,7 @@ class FirstRunGuidanceTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertNotIn(str(self.home), text + err)
         self.assertNotIn("\x1b", text + err)
-        self.assertIn("~/missing?[31m", err)
+        self.assertIn(os.path.join("~", "missing?[31m"), err)
         _, raw, _ = self.invoke(["doctor", "--explain", "codex", "--project", str(project), "--json"])
         self.assertIn(str(project), json.loads(raw)["reason"])
 
@@ -205,7 +206,7 @@ class FirstRunGuidanceTests(unittest.TestCase):
             code, text, err = self.invoke(["doctor", "--scope", "claude-code"])
         self.assertEqual((code, err), (1, ""))
         self.assertNotIn(str(self.home), text)
-        self.assertIn("~/.claude/skills", text)
+        self.assertIn(os.path.join("~", ".claude", "skills"), text)
 
     def test_name_only_candidates_are_only_shown_near_a_known_budget(self):
         for chars, budget, expected in ((42, 40000, ""), (35999, 40000, ""),

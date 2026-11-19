@@ -7,6 +7,7 @@ they do not mock the Store implementation or depend on a user's data directory.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 import io
 import json
 import os
@@ -27,6 +28,12 @@ from skillsmgr.store import (
     read_snapshot,
     write_snapshot,
 )
+
+
+def _query_one(db_path, sql):
+    """Run one read and close the connection (Windows cannot delete an open database)."""
+    with closing(sqlite3.connect(db_path)) as conn:
+        return conn.execute(sql).fetchone()
 
 
 
@@ -89,7 +96,7 @@ class TestStoreConstructionAndCrud(StoreContractCase):
         self.assertTrue(self.store.trash_dir.is_dir())
         self.assertTrue(self.store.templates_dir.is_dir())
         self.assertTrue(self.store.backups_dir.is_dir())
-        with sqlite3.connect(self.store.db_path) as conn:
+        with closing(sqlite3.connect(self.store.db_path)) as conn:
             tables = {
                 row[0]
                 for row in conn.execute(
@@ -206,7 +213,7 @@ class TestStoreConstructionAndCrud(StoreContractCase):
 
     def test_db_rebuild_drops_stale_rows_but_not_files(self):
         self.store.create("demo", "Demo")
-        with sqlite3.connect(self.store.db_path) as conn:
+        with closing(sqlite3.connect(self.store.db_path)) as conn:
             conn.execute("INSERT INTO skills(name, status) VALUES('stale', 'active')")
             conn.commit()
         result = self.store.db_rebuild()
@@ -399,18 +406,18 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         self.store.create("demo", "Replacement", body="new")
         self.assertEqual([r["name"] for r in self.store.list()], ["demo"])
         self.assertEqual(self.store.get("demo")["description"], "Replacement")
-        row = sqlite3.connect(self.store.db_path).execute(
+        row = _query_one(self.store.db_path,
             "SELECT status FROM skills WHERE name = 'demo'"
-        ).fetchone()
+        )
         self.assertEqual(row[0], "active")
         self.assertEqual(self.store.stats()["active"], 1)
         self.assertEqual(self.store.stats()["trashed"], 0)
         self.assertTrue(self.store.doctor()["ok"])
         # resync must not flip a healthy row back to 'trashed'
         self.store.resync()
-        row = sqlite3.connect(self.store.db_path).execute(
+        row = _query_one(self.store.db_path,
             "SELECT status FROM skills WHERE name = 'demo'"
-        ).fetchone()
+        )
         self.assertEqual(row[0], "active")
 
     def test_add_over_trashed_name_reactivates_index_row(self):
@@ -419,9 +426,9 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         self.write_external(name="demo")
         self.store.add(Path(self.tmp.name) / "external" / "demo")
         self.assertEqual([r["name"] for r in self.store.list()], ["demo"])
-        row = sqlite3.connect(self.store.db_path).execute(
+        row = _query_one(self.store.db_path,
             "SELECT status FROM skills WHERE name = 'demo'"
-        ).fetchone()
+        )
         self.assertEqual(row[0], "active")
         self.assertTrue(self.store.doctor()["ok"])
 
@@ -467,9 +474,9 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(document("demo", "Back", "new"), encoding="utf-8")
         result = self.store.resync()
-        row = sqlite3.connect(self.store.db_path).execute(
+        row = _query_one(self.store.db_path,
             "SELECT status FROM skills WHERE name = 'demo'"
-        ).fetchone()
+        )
         self.assertEqual(row[0], "active")
         self.assertEqual(result["updated"], 1)
         self.assertIn("demo", [r["name"] for r in self.store.list()])
