@@ -3,10 +3,36 @@
 from __future__ import annotations
 
 import os
+import shutil
 import stat
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 from .validator import validate_skill_name
+
+
+def canonical_mkdtemp(prefix: str) -> Path:
+    """``tempfile.mkdtemp`` returning the symlink-free (canonical) path.
+
+    macOS keeps ``$TMPDIR`` under ``/var/folders`` and ``/var`` is a symlink to
+    ``/private/var``.  Staging code here refuses a symlink anywhere in a path's
+    ancestry and compares resolved paths against their root, so a staging
+    directory must be handed out already resolved or every upload and registry
+    fetch would be rejected on macOS.
+    """
+    return Path(tempfile.mkdtemp(prefix=prefix)).resolve()
+
+
+@contextmanager
+def canonical_temporary_directory(prefix: str) -> Iterator[Path]:
+    """Context-managed :func:`canonical_mkdtemp`, removed on exit."""
+    path = canonical_mkdtemp(prefix)
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def mkdir_private(path: Path) -> Path:

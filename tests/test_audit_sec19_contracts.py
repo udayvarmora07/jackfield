@@ -126,7 +126,14 @@ class TrustRootSelectionTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "posix", "POSIX permission contract")
     def test_rejects_a_new_root_directly_below_shared_tmp(self):
-        selected = Path(tempfile.gettempdir()) / "skillsmgr-sec19-untrusted-root"
+        shared = Path(tempfile.gettempdir())
+        mode = shared.stat().st_mode
+        # The contract is about a directory every local user may write to. On
+        # macOS ``$TMPDIR`` is a private per-user directory (mode 0700), so a
+        # root directly below it is legitimately trusted.
+        if not (mode & stat.S_IWOTH and mode & stat.S_ISVTX):
+            self.skipTest(f"{shared} is not a shared sticky temp directory")
+        selected = shared / "skillsmgr-sec19-untrusted-root"
         if selected.exists():
             self.skipTest(f"test path already exists: {selected}")
         os.environ["SKILLS_MANAGER_DATA"] = str(selected)
