@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import stat
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -397,21 +398,51 @@ def list_scopes(
     return out
 
 
-def _global_row_path(store: Store, name: str, paths_module):
+def _global_row_path(name: str, resolved_root: Path):
     """Return the on-disk path of a global row, or ``None`` when unaddressable.
 
     SCOPE-15: resolving a row name through the name guard raised a raw
     ``ValueError`` for any row whose name fails the canonical rule, and one such
     row aborted ``scan_scope("global")``, ``list_all()`` and ``search_all()``
     together.  A row the tool cannot address simply has no path.
+
+    *resolved_root* is the scan's already-resolved skills root: resolving it
+    again for every row (``safe_skill_path``) repeated that walk per skill.
     """
     try:
-        return str(path_safety.safe_skill_path(store.skills_dir, name))
+        return str(path_safety.safe_skill_path_under(resolved_root, name))
     except ValueError:
         return None
 
 
-def _physical_path(path: str) -> str:
+def _memoized_realpath(path: str, parents: dict[str, str] | None) -> str:
+    """``os.path.realpath(path)``, answered from a scan's memo of its parents.
+
+    The rows of one scope share their parent directory, and ``realpath`` pays
+    one ``lstat`` per component to answer a question whose answer for the
+    parent is already known; with the memo each row costs one ``lstat`` of its
+    own last component.  The shortcut applies only when that component is a
+    plain, present, non-link entry on a POSIX host; a link, a missing entry, an
+    odd component or no memo takes the unchanged ``realpath`` path.  The memo
+    lives for one scan and is never shared, so it cannot serve a resolution
+    from an earlier request.
+    """
+    if parents is not None and os.name == "posix":
+        head, _, tail = path.rpartition(os.sep)
+        if head and tail and tail not in (".", ".."):
+            try:
+                resolved_head = parents.get(head)
+                if resolved_head is None:
+                    resolved_head = parents[head] = os.path.realpath(head)
+                candidate = os.path.join(resolved_head, tail)
+                if not stat.S_ISLNK(os.lstat(candidate).st_mode):
+                    return candidate
+            except (OSError, ValueError):
+                pass
+    return os.path.realpath(path)
+
+
+def _physical_path(path: str, parents: dict[str, str] | None = None) -> str:
     """The resolved physical spelling of *path*.
 
     ``Path(path).resolve()`` and ``os.path.realpath(path)`` answer the same
@@ -419,10 +450,11 @@ def _physical_path(path: str) -> str:
     ``Path`` reparsed every component of every row, which was the largest
     single cost left in the per-row annotation loop (docs/24 §D1).  The
     best-effort fallback the old expression had is kept: a row whose path
-    cannot be resolved is still a row the user has to see.
+    cannot be resolved is still a row the user has to see.  *parents* is the
+    scan's memo, see :func:`_memoized_realpath`.
     """
     try:
-        return os.path.realpath(path)
+        return _memoized_realpath(path, parents)
     except OSError:
         return str(path)
 
@@ -436,6 +468,7 @@ def _annotate_scope_entries(entries: list[dict], scope: Scope, physical_root: st
     physical root is resolved once for the whole scan.
     """
     availability = _availability(scope)
+    parents: dict[str, str] = {}
     for e in entries:
         e["scope"] = scope.id
         e["scope_label"] = scope.label
@@ -446,7 +479,7 @@ def _annotate_scope_entries(entries: list[dict], scope: Scope, physical_root: st
         except (ValueError, OSError):
             continue
         e["physical_root"] = physical_root
-        e["physical_path"] = _physical_path(e["path"])
+        e["physical_path"] = _physical_path(e["path"], parents)
         e["status"] = "disabled" if e.get("disabled") else "active"
         e.setdefault("tokens_pct", 0)
         e.setdefault("chars", 0)
@@ -472,15 +505,17 @@ def _annotate_native_entries(entries: list[dict], scope: Scope) -> list[dict]:
     return entries
 
 
-def _enrich_global_row(r: dict, store: Store, physical_root: str) -> None:
+def _enrich_global_row(
+    r: dict, store: Store, physical_root: str, parents: dict[str, str] | None = None
+) -> None:
     """Stamp the global-scope fields on one row from ``Store.list()``."""
     r["scope"] = "global"
     r["scope_label"] = "Global"
     if not r.get("path"):
-        r["path"] = _global_row_path(store, r["name"], paths)
+        r["path"] = _global_row_path(r["name"], Path(physical_root))
     r["physical_root"] = physical_root
     if r.get("path"):
-        r["physical_path"] = _physical_path(r["path"])
+        r["physical_path"] = _physical_path(r["path"], parents)
     # Enrich global rows with tokens if missing.  ``Store.list()`` already
     # estimated them from the same bytes while observing the row, so this
     # fallback only runs for a row whose loader pass did not produce them --
@@ -513,8 +548,9 @@ def scan_scope(scope_id: str, *, include_husks: bool = False, collector: list[di
         rows = (store.list() if collector is None else
                 scan_dir(store.skills_dir, include_husks=include_husks, collector=collector))
         physical_root = str(store.skills_dir.resolve())
+        parents: dict[str, str] = {}
         for r in rows:
-            _enrich_global_row(r, store, physical_root)
+            _enrich_global_row(r, store, physical_root, parents)
         return _annotate_instance_states(rows)
     scope = scope_by_id(scope_id)
     if scope is None:

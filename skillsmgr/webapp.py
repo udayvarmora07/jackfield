@@ -735,7 +735,8 @@ class WebAppHandler(BaseHTTPRequestHandler):
         page a ``GET`` would have returned.
         """
         page, total = _list_page(rows, qs)
-        self._send_json(page, extra_headers={"X-Total-Count": str(total)})
+        self._send(200, json_bytes(page, compact=True),
+                   extra_headers={"X-Total-Count": str(total)})
 
     def _send_error(self, status: int, message: str, code: str | None = None) -> None:
         """Send the one error shape every route uses.

@@ -1,6 +1,6 @@
 # Web UI — Skills Manager
 
-**Version 0.12.0**
+**Version 0.12.1**
 
 **AI manifest**: The GUI of skills-manager is a **local web UI** (browser frontend + Python stdlib backend). It replaces the former GTK4 GUI. This doc is the single source of truth for the web UI: how it runs, what endpoints exist, and how the frontend is structured. Do not re-read source to answer questions this doc already answers.
 
@@ -471,7 +471,7 @@ new persistence or authority.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| GET | `/api/skills[?scope=SCOPE][&q=TERM][&limit=N][&offset=N][&body=FLAG]` | — | list of skills (scope-aware; default global), including root availability, consumer, discovery recursion, `addressable`, observed instance state, and unresolved effective-state metadata. `body=0` omits bodies; absent or `body=1` preserves existing fields. Invalid, blank or repeated body flags are 400s before scanning. Search remains body-aware. **Opt-in paging:** `limit`/`offset` bound the page and every response carries `X-Total-Count` (the unpaged total). An unpaged request still returns every row, because the web UI depends on it. Paging parameters this API does not implement (`page`, `per_page`, `cursor`, `before`, `after`, `start`, `skip`, `first`) are a `400` naming `limit`/`offset`, not silently ignored; `limit` is capped at 500 (docs/24 §D3-9) |
+| GET | `/api/skills[?scope=SCOPE][&q=TERM][&limit=N][&offset=N][&body=FLAG]` | — | list of skills (scope-aware; default global), including root availability, consumer, discovery recursion, `addressable`, observed instance state, and unresolved effective-state metadata. `body=0` omits bodies; absent or `body=1` preserves existing fields. Invalid, blank or repeated body flags are 400s before scanning. Search remains body-aware. **Opt-in paging:** `limit`/`offset` bound the page and every response carries `X-Total-Count` (the unpaged total). An unpaged request still returns every row, because the web UI depends on it. List pages are serialized with compact separators (`,` `:`); the parsed value is unchanged. Paging parameters this API does not implement (`page`, `per_page`, `cursor`, `before`, `after`, `start`, `skip`, `first`) are a `400` naming `limit`/`offset`, not silently ignored; `limit` is capped at 500 (docs/24 §D3-9) |
 | GET | `/api/skills/<name>[?scope=SCOPE]` | — | full record incl. body + path. A row whose directory is gone answers `404 skill_not_found` rather than `200` with the stored body — `list()` already omits it and `doctor()` still reports it as a stale row, so serving it here was the one route returning content the filesystem does not have (docs/24 §D3-6) |
 | GET | `/api/skills/<name>/raw[?scope=SCOPE]` | — | raw SKILL.md text (text/plain) |
 | POST | `/api/skills[?scope=SCOPE]` | `{name, description, category?, version?, license?, compatibility?, allowed_tools?, body?}` | created record (201) |

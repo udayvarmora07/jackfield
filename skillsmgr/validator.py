@@ -94,6 +94,21 @@ _UNQUOTED_COLON_MESSAGE = (
 SILENT_FAILURE_MESSAGES = (_BOM_MESSAGE, _EMPTY_FRONTMATTER_MESSAGE, _UNQUOTED_COLON_MESSAGE)
 
 
+#: Windows device names that are never valid skill names.  A module constant:
+#: the set used to be rebuilt (19 members, two generator passes) on every call,
+#: and a merged list validates a name once per row.
+_RESERVED_DEVICE_NAMES = frozenset(
+    {
+        "con",
+        "nul",
+        "aux",
+        "prn",
+        *(f"com{number}" for number in range(1, 10)),
+        *(f"lpt{number}" for number in range(1, 10)),
+    }
+)
+
+
 def validate_skill_name(name: str) -> str:
     """Validate and return a canonical skill name.
 
@@ -108,14 +123,7 @@ def validate_skill_name(name: str) -> str:
             f"invalid skill name {name!r}: must match {NAME_RE.pattern} "
             f"(1-{MAX_NAME} chars)"
         )
-    if name.casefold() in {
-        "con",
-        "nul",
-        "aux",
-        "prn",
-        *(f"com{number}" for number in range(1, 10)),
-        *(f"lpt{number}" for number in range(1, 10)),
-    }:
+    if name.casefold() in _RESERVED_DEVICE_NAMES:
         raise ValueError(f"invalid skill name {name!r}: reserved Windows device name")
     return name
 

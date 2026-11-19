@@ -1,12 +1,19 @@
 # Task Checklist — Skills Manager
 
-**Version 0.11.0**
+**Version 0.11.1**
 
 **AI manifest**: Live work and the remaining gated/deferred queue. `[ ]` means
 pending, `[/]` in progress, `[x]` completed. Historical milestones, including
 older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
+
+## All-scope list request speed (2026-11-19)
+
+- [x] Profile `GET /api/skills?scope=all&body=0` on 1,000 and 10,000-record
+  synthetic fixtures; land only measured, behavior-preserving changes with a
+  pinned equivalence test; reject gzip with evidence
+  (@docs/52-list-request-performance-2026-11-19.md).
 
 ## Size, performance and Rust assessment (2026-11-17)
 
