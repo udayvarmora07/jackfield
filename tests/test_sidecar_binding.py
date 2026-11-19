@@ -399,8 +399,10 @@ class SidecarBindingTests(unittest.TestCase):
         skill = self._skill()
         record = sidecar_binding.record_binding(skill, PROVENANCE, b"payload")
         directory = self.data / sidecar_binding.BINDING_DIRNAME
-        self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
-        self.assertEqual(record.stat().st_mode & 0o777, 0o600)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(record.stat().st_mode & 0o777, 0o600)
         stored = json.loads(record.read_text(encoding="utf-8"))
         self.assertEqual(stored["sidecar"], PROVENANCE)
         self.assertEqual(stored["path"], os.path.realpath(skill))

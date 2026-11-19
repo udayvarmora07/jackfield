@@ -181,7 +181,7 @@ class TestCodexNoMerge(ExplainCase):
 
     def test_documented_admin_root_is_reported(self):
         tiers = {tier["id"]: tier for tier in self.explain("codex")["tiers"]}
-        self.assertEqual(tiers["admin"]["roots"], ["/etc/codex/skills"])
+        self.assertEqual(tiers["admin"]["roots"], [str(Path("/etc/codex/skills"))])
         self.assertEqual(tiers["system"]["path_known"], False)
 
 

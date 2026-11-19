@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import json
 import tempfile
 import unittest
@@ -201,9 +202,11 @@ class RegistryClientTests(unittest.TestCase):
         self.responses.append(Response({"data": []}))
         self.client.browse()
         cache_dir = Path(self.tmp.name) / registry.REGISTRY_CACHE_DIRNAME
-        self.assertEqual(cache_dir.stat().st_mode & 0o777, 0o700)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(cache_dir.stat().st_mode & 0o777, 0o700)
         cache = next(cache_dir.glob("*.json"))
-        self.assertEqual(cache.stat().st_mode & 0o777, 0o600)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(cache.stat().st_mode & 0o777, 0o600)
         self.assertNotIn("secret", cache.read_text(encoding="utf-8"))
 
     def test_cache_isolated_by_auth_scope(self):
@@ -249,7 +252,8 @@ class RegistryClientTests(unittest.TestCase):
             root = registry.materialize_snapshot(result, staging)
             self.assertEqual((root / "SKILL.md").read_text(encoding="utf-8"), _files()[0]["contents"])
             self.assertEqual((root / "references/readme.txt").read_text(encoding="utf-8"), "reference\n")
-            self.assertEqual((root / "SKILL.md").stat().st_mode & 0o777, 0o600)
+            if os.name == "posix":  # Windows has no owner/group/other mode bits
+                self.assertEqual((root / "SKILL.md").stat().st_mode & 0o777, 0o600)
         with self.assertRaisesRegex(registry.RegistryError, "expected_hash"):
             self.client.fetch("owner/repo/demo", expected_hash="a" * 64)
 
@@ -282,7 +286,8 @@ class RegistryClientTests(unittest.TestCase):
             loaded = registry.read_provenance(skill_dir)
             self.assertEqual(loaded["local_snapshot_hash"], snapshot["snapshot_hash"])
             self.assertNotIn("secret", path.read_text(encoding="utf-8"))
-            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            if os.name == "posix":  # Windows has no owner/group/other mode bits
+                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
     def test_registry_review_is_private_expiring_and_single_use(self):
         snapshot = registry.validate_snapshot(_snapshot())
@@ -299,9 +304,11 @@ class RegistryClientTests(unittest.TestCase):
             {"validation": {"valid": True}, "risk": {"findings": []}},
         )
         review_dir = Path(self.tmp.name) / registry.REGISTRY_REVIEW_DIRNAME
-        self.assertEqual(review_dir.stat().st_mode & 0o777, 0o700)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(review_dir.stat().st_mode & 0o777, 0o700)
         review_path = review_dir / f"{review['review_id']}.json"
-        self.assertEqual(review_path.stat().st_mode & 0o777, 0o600)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(review_path.stat().st_mode & 0o777, 0o600)
         loaded = registry.read_registry_review(self.tmp.name, review["review_id"])
         self.assertEqual(loaded["snapshot"]["slug"], "demo")
         self.assertNotIn("contents", str(registry.registry_review_public(loaded)))

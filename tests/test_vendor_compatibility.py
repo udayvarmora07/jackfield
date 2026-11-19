@@ -35,8 +35,8 @@ class CursorCompatibilityTests(ExplainCase):
         project = self.project_skill(".codex/skills")
         report = effective.explain("cursor", self.project, allowed_root=self.project)
         self.assertTrue(report["paths_redacted"])
-        self.assertNotIn(str(self.home), json.dumps(report))
-        self.assertIn(str(project), json.dumps(report))
+        self.assertNotIn(json.dumps(str(self.home))[1:-1], json.dumps(report))
+        self.assertIn(json.dumps(str(project))[1:-1], json.dumps(report))
         self.assertEqual(len(report["skills"]["deploy"]["candidates"]), 3)
 
     def test_missing_compatibility_folders_are_not_created(self):

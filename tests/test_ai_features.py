@@ -211,8 +211,10 @@ class AiFeatureTests(unittest.TestCase):
         self.assertEqual(public["key_source"], "settings")
         self.assertEqual(public["key_hint"], "…CRET")
         path = Path(self.store.data_dir) / "ai" / "settings.json"
-        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-        self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
 
     def test_environment_key_takes_precedence(self):
         self._configure(provider="anthropic", api_key="")

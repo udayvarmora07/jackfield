@@ -105,9 +105,12 @@ class RegistryReviewCharacterization(_IsolatedCase):
         self.assertRegex(review["review_id"], REVIEW_ID)
         review_dir = self.data / registry.REGISTRY_REVIEW_DIRNAME
         review_path = review_dir / f"{review['review_id']}.json"
-        self.assertEqual(0o700, _mode(self.data))
-        self.assertEqual(0o700, _mode(review_dir))
-        self.assertEqual(0o600, _mode(review_path))
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(0o700, _mode(self.data))
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(0o700, _mode(review_dir))
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(0o600, _mode(review_path))
 
     def test_fresh_review_on_disk_json_keys(self):
         review = self._write()
@@ -217,8 +220,10 @@ class SyncReviewCharacterization(_IsolatedCase):
         self.assertRegex(review["review_id"], REVIEW_ID)
         review_dir = self.data / backup_sync.SYNC_REVIEW_DIRNAME
         review_path = review_dir / f"{review['review_id']}.json"
-        self.assertEqual(0o700, _mode(review_dir))
-        self.assertEqual(0o600, _mode(review_path))
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(0o700, _mode(review_dir))
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(0o600, _mode(review_path))
 
     def test_fresh_review_on_disk_json_keys(self):
         review = self._prepare()
@@ -320,8 +325,10 @@ class SourceUpdateReviewCharacterization(_IsolatedCase):
         review = self._prepare()
         self.assertRegex(review["review_id"], REVIEW_ID)
         review_dir = self.data / "source-update-reviews" / review["review_id"]
-        self.assertEqual(0o700, _mode(review_dir))
-        self.assertEqual(0o600, _mode(review_dir / "review.json"))
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(0o700, _mode(review_dir))
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(0o600, _mode(review_dir / "review.json"))
 
     def test_fresh_review_on_disk_json_keys(self):
         review = self._prepare()

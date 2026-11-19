@@ -258,7 +258,7 @@ class ClaudeListingContracts(unittest.TestCase):
         self.assertEqual(sizes[0], 10 + 29)
         first = candidates["candidates"][0]
         self.assertEqual(first["freed_chars"], len(f": {'D' * 39}"))
-        self.assertTrue(first["path"].startswith("~/"))
+        self.assertTrue(first["path"].startswith("~" + os.sep))
 
     # -- confidence / evidence ---------------------------------------------
     def test_partial_settings_evidence_is_disclosed(self):

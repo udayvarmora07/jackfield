@@ -59,6 +59,7 @@ class RequestFailures(RequestCase):
                 self.assertNotIn("RecursionError", payload["error"])
         self.assertEqual(self.store.get("demo")["body"], before)
 
+    @unittest.skipIf(os.name == "nt", "~user expansion is POSIX: Windows expanduser guesses a sibling of the profile directory")
     def test_unresolvable_project_is_a_clean_400(self):
         project = "~skillsmgr-no-such-user-6a2c9/x"
         for path in ("/api/workspaces?project=", "/api/doctor?explain=claude-code&project="):

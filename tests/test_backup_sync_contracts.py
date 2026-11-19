@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -123,8 +124,10 @@ class BackupSyncContracts(unittest.TestCase):
                 },
             )
             review_path = root / "sync-reviews" / f"{review['review_id']}.json"
-            self.assertEqual((root / "sync-reviews").stat().st_mode & 0o777, 0o700)
-            self.assertEqual(review_path.stat().st_mode & 0o777, 0o600)
+            if os.name == "posix":  # Windows has no owner/group/other mode bits
+                self.assertEqual((root / "sync-reviews").stat().st_mode & 0o777, 0o700)
+            if os.name == "posix":  # Windows has no owner/group/other mode bits
+                self.assertEqual(review_path.stat().st_mode & 0o777, 0o600)
             self.assertNotIn("secret", review_path.read_text(encoding="utf-8"))
             with self.assertRaises(BackupSyncError):
                 commit_sync_review(root, review["review_id"], candidate, snapshot_root=root / "snapshots")

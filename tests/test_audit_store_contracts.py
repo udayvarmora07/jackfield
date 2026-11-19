@@ -167,7 +167,7 @@ class RemovePurgeAtomicityTests(AuditStoreTestCase):
         else:
             self.assertFalse(report["ok"])
             self.assertEqual(
-                report["transaction_artifacts"], ["skills/demo.skillsmgr-stage"]
+                report["transaction_artifacts"], [os.path.join("skills", "demo.skillsmgr-stage")]
             )
 
     def test_remove_purge_keeps_the_tree_when_nothing_was_deleted(self):

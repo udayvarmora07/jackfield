@@ -63,7 +63,8 @@ class LockRootTests(unittest.TestCase):
         lock_dir = self.data / "locks"
         self.assertTrue(lock_dir.is_dir())
         self.assertTrue(any(lock_dir.glob("*.lock")))
-        self.assertEqual(stat.S_IMODE(lock_dir.stat().st_mode), 0o700)
+        if os.name == "posix":  # Windows has no owner/group/other mode bits
+            self.assertEqual(stat.S_IMODE(lock_dir.stat().st_mode), 0o700)
         under_skills = [p for p in (self.data / "skills").rglob("*") if p.suffix == ".lock" or p.name == "locks"]
         self.assertEqual(under_skills, [])
 

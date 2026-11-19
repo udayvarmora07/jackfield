@@ -70,7 +70,7 @@ class AgentsBridgeTests(unittest.TestCase):
         self.assertEqual(section["consumer"], "claude-code")
         self.assertEqual([item["name"] for item in section["missing"]], ["only-agents"])
         self.assertEqual(section["missing_total"], 1)
-        self.assertEqual(section["missing"][0]["path"], "~/.agents/skills/only-agents")
+        self.assertEqual(section["missing"][0]["path"], os.path.join("~", ".agents", "skills", "only-agents"))
         self.assertIn("code.claude.com/docs/en/skills", section["source"])
 
     def test_a_copy_and_a_link_both_count_as_present(self):

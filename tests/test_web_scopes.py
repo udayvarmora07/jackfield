@@ -9,14 +9,22 @@ Run:  python3 -m unittest tests.test_web_scopes -v
 """
 
 import os
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest import mock
 
 from skillsmgr import context
 from skillsmgr import scopes
 from skillsmgr.store import StoreError
+
+
+def _query_one(db_path, sql):
+    """Run one read and close the connection (Windows cannot delete an open database)."""
+    with closing(sqlite3.connect(db_path)) as conn:
+        return conn.execute(sql).fetchone()
 
 
 class ScopedHomeTestCase(unittest.TestCase):
@@ -469,11 +477,9 @@ class TestFindDuplicates(ScopedHomeTestCase):
         out = scopes.sync_skill("syncme", "agents", ["global"])
         self.assertEqual(out["synced"], ["global"])
         # row reactivated by the post-sync resync
-        import sqlite3 as _sqlite3
-
-        row = _sqlite3.connect(store.db_path).execute(
+        row = _query_one(store.db_path,
             "SELECT status FROM skills WHERE name = 'syncme'"
-        ).fetchone()
+        )
         self.assertEqual(row[0], "active")
         self.assertIn("syncme", [r["name"] for r in store.list()])
         dupes = {d["name"] for d in scopes.find_duplicates()}
