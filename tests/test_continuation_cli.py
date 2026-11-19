@@ -97,6 +97,7 @@ class CliContinuationTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertEqual(report["degraded"][0]["section"], "scope-scan")
 
+    @unittest.skipIf(os.name == "nt", "Windows file names cannot contain an ESC control character")
     def test_doctor_sanitizes_filesystem_names_in_text_only(self):
         name = "bad\x1b[31m-name"
         root = self.root / "home/.claude/skills" / name

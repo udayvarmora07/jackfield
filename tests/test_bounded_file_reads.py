@@ -40,6 +40,7 @@ class BoundedReadTests(unittest.TestCase):
                 file_reads.read_regular_file(self.path, 8)
         self.assertEqual(read_sizes, [9])
 
+    @unittest.skipIf(os.name == "nt", "Windows cannot replace or unlink a file that is held open")
     def test_replacement_after_open_reads_the_checked_descriptor(self):
         self.path.write_bytes(b"old")
         replacement = self.root / "replacement"
@@ -109,6 +110,7 @@ class BoundedReadTests(unittest.TestCase):
         with mock.patch.object(file_reads.os, "O_NOFOLLOW", 0, create=True):
             self.assertEqual(file_reads.read_regular_file(self.path, 8, follow_symlinks=False), b"a")
 
+    @unittest.skipIf(os.name == "nt", "Windows cannot replace or unlink a file that is held open")
     def test_no_nofollow_support_refuses_swapped_final_link(self):
         self.path.write_bytes(b"a")
         target = self.root / "target"
@@ -125,6 +127,7 @@ class BoundedReadTests(unittest.TestCase):
                 with self.assertRaises(file_reads.SymlinkNotAllowed):
                     file_reads.read_regular_file(self.path, 8, follow_symlinks=False)
 
+    @unittest.skipIf(os.name == "nt", "Windows cannot replace or unlink a file that is held open")
     def test_no_nofollow_support_refuses_swapped_regular_file(self):
         self.path.write_bytes(b"a")
         replacement = self.root / "replacement"

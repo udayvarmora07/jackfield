@@ -9,7 +9,7 @@ import unittest
 
 def run_frontend(script: str) -> dict:
     capture_error = "process.on('uncaughtException',e=>{console.error('CAUGHT '+e.name+': '+e.message);process.exitCode=1}); process.on('unhandledRejection',e=>{console.error('CAUGHT '+e.name+': '+e.message);process.exitCode=1});\n"
-    result = subprocess.run(["node", "-e", capture_error + script], capture_output=True, text=True, timeout=30)
+    result = subprocess.run(["node", "-e", capture_error + script], capture_output=True, encoding="utf-8", timeout=30)
     if result.returncode:
         lines = [line for line in result.stderr.splitlines() if len(line) < 1000]
         raise AssertionError("\n".join(lines[-8:]))

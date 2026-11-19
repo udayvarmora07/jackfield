@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import os
 import unittest
 
 from skillsmgr.cli import build_parser
@@ -68,7 +69,8 @@ class ShellCompletionTests(unittest.TestCase):
             self.assertEqual(exc.exception.code, 2)
             self.assertIn("maybe you meant 'list'", error.getvalue())
 
-    @unittest.skipUnless(shutil.which("bash"), "bash unavailable")
+    @unittest.skipUnless(shutil.which("bash") and os.name != "nt",
+                         "needs a POSIX bash (on Windows `bash` is the WSL launcher)")
     def test_bash_real_completion_and_untrusted_word(self):
         with tempfile.TemporaryDirectory() as temp:
             marker = Path(temp) / "executed"

@@ -17,6 +17,7 @@ class ReviewArtifactFailures(unittest.TestCase):
             with self.assertRaisesRegex(backup_sync.BackupSyncError, 'path cannot contain a symlink'):
                 backup_sync._review_path(root / 'link' / '..' / 'data', 'a' * 32)
 
+    @unittest.skipIf(os.name == 'nt', 'Windows cannot rename a directory that holds an open file')
     def test_source_writer_cleans_temp_after_directory_move(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -42,7 +43,7 @@ class ReviewArtifactFailures(unittest.TestCase):
                 captured.append(fd)
                 raise OSError('simulated fchmod failure')
 
-            with mock.patch('skillsmgr.review_artifacts.os.fchmod', side_effect=fail):
+            with mock.patch('skillsmgr.review_artifacts.os.fchmod', side_effect=fail, create=True):
                 with self.assertRaises(OSError):
                     registry.write_private_bytes(root / 'review.json', b'{}')
             self.assertEqual(1, len(captured))
@@ -52,5 +53,5 @@ class ReviewArtifactFailures(unittest.TestCase):
 
     def test_source_writer_does_not_require_fchmod(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch('skillsmgr.review_artifacts.os.fchmod', side_effect=OSError('unsupported')):
+            with mock.patch('skillsmgr.review_artifacts.os.fchmod', side_effect=OSError('unsupported'), create=True):
                 source_update._write_record(Path(tmp), {'status': 'pending'})

@@ -33,7 +33,7 @@ def _node(script: str) -> dict:
     """Run a Node script against the real sources and return parsed JSON."""
     result = subprocess.run(
         ["node", "-e", script],
-        capture_output=True, text=True, check=True, cwd=str(ROOT),
+        capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT),
     )
     return json.loads(result.stdout)
 
@@ -762,7 +762,7 @@ console.log(JSON.stringify(JSON.parse(process.argv[1]).map(render)));
 """
         rendered = json.loads(subprocess.run(
             ["node", "-e", script, json.dumps(payloads)],
-            capture_output=True, text=True, check=True, cwd=str(ROOT),
+            capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT),
         ).stdout)
         for payload, html in zip(payloads, rendered):
             with self.subTest(payload=payload):

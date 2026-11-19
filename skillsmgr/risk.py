@@ -1086,6 +1086,12 @@ def _risk_visit_directory(root: Path, directory: Path,
                 path = directory / child.name
                 if child.is_dir(follow_symlinks=False):
                     metadata = child.stat(follow_symlinks=False)
+                    if not metadata.st_ino:
+                        # Windows: DirEntry.stat() reports st_dev and st_ino as
+                        # zero, which would never match the identity that
+                        # os.stat() gives when the directory is opened later,
+                        # so every nested directory read as "changed".
+                        metadata = os.stat(path, follow_symlinks=False)
                     _queue_risk_directory(path, metadata, pending,
                                           directories_seen, traversal_incomplete)
                     continue

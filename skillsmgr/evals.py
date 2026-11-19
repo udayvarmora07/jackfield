@@ -68,6 +68,15 @@ REGEX_UNSAFE_THREAD_REASON = (
     "cannot time out a backtracking pattern safely"
 )
 
+#: Windows has no ``SIGALRM``/``setitimer``, and CPython's ``re`` holds the GIL
+#: for a whole search, so a watchdog thread could not interrupt it either.  The
+#: pattern is refused (a failed assertion with this reason) instead of risking an
+#: unbounded search.
+REGEX_NO_TIMER_REASON = (
+    "regex assertions are not evaluated on this platform: it has no signal "
+    "timer, so a backtracking pattern could not be timed out safely"
+)
+
 EVAL_POLICY = (
     "advisory-only: results are files in the run workspace, never SQLite rows, "
     "and never gate installs or edits"
@@ -340,6 +349,8 @@ def _regex_deadline(seconds: float = REGEX_TIMEOUT_SECONDS):
     """
     if threading.current_thread() is not threading.main_thread():
         raise RegexUnavailable(REGEX_UNSAFE_THREAD_REASON)
+    if not hasattr(signal, "SIGALRM") or not hasattr(signal, "setitimer"):
+        raise RegexUnavailable(REGEX_NO_TIMER_REASON)
 
     def _expired(signum, frame):
         raise RegexTimeout(f"regex assertion exceeded {seconds:g}s")
