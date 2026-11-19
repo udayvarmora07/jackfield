@@ -9,6 +9,10 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
 
 ## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
 
+**[NOTE] Tablet help.** The header hid the "?" keyboard-shortcut button from
+601 to 900 px although it fits there (checked at 900/820/700/640/601 px with no
+overflow and unclipped tabs); it now hides only below 600 px.
+
 **[NOTE]** Maintainer-approved. Opening `http://localhost:<port>` against the
 default `127.0.0.1` bind returned 403 on every request. `WebAppServer` now
 allows exactly `localhost:<port>` beside the bound literal; Origin follows the

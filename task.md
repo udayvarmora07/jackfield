@@ -110,7 +110,9 @@ done.
 - [x] Missing marks filled: Command Code's official ⌘ symbol and the Agent Skills
   hexagon (both from the Apache-2.0 agentskills/agentskills repo), and the
   Skills Manager mark for "Your library"; README shows the agent row.
-- [/] Loop 4+ evaluation and improvements.
+- [x] v2: keyboard-shortcut help ("?") is reachable at tablet widths (601–900 px).
+- [/] Parallel sessions: CI full suite on macOS/Windows + e2e (`ci-portability`),
+  all-scope list performance (`list-perf`); each lands as a PR for review.
 
 Open for the maintainer:
 
