@@ -19,6 +19,7 @@ import shutil
 import tempfile
 import threading
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from skillsmgr import context, path_safety, registry, scopes
@@ -150,6 +151,7 @@ class ResolvedPathEquivalenceTests(ListPerfCase):
         second = {r["name"]: r["physical_path"] for r in scopes.scan_scope("claude-code")}
         self.assertEqual(str(claude / "gamma"), second["alpha"])
 
+    @unittest.skipUnless(os.name == "posix", "the lexical shortcut answers only on POSIX; elsewhere it defers to realpath by design")
     def test_the_lexical_shortcut_defers_whenever_it_could_differ(self):
         self.seed()
         claude = str(self.home / ".claude" / "skills")
@@ -221,12 +223,14 @@ class ProbeAndValidatorTests(ListPerfCase):
         located = self.skill(claude / "with-sidecar", "with-sidecar")
         sidecar = located / registry.PROVENANCE_FILENAME
         sidecar.write_text("{}", encoding="utf-8")
-        for spelling in (located, str(located), "~/.claude/skills/with-sidecar"):
-            with self.subTest(spelling=str(spelling)):
-                found = registry._locate_sidecar(spelling)
-                self.assertIsNotNone(found)
-                self.assertEqual(sidecar, found[1])
-        self.assertIsNone(registry._locate_sidecar("~/.claude/skills/plain"))
+        # Windows ``expanduser`` reads USERPROFILE and ignores HOME.
+        with mock.patch.dict(os.environ, {"USERPROFILE": str(self.home)}):
+            for spelling in (located, str(located), "~/.claude/skills/with-sidecar"):
+                with self.subTest(spelling=str(spelling)):
+                    found = registry._locate_sidecar(spelling)
+                    self.assertIsNotNone(found)
+                    self.assertEqual(sidecar, found[1])
+            self.assertIsNone(registry._locate_sidecar("~/.claude/skills/plain"))
 
     def test_reserved_device_names_are_still_rejected(self):
         for name in ("con", "NUL", "aux", "prn", "com1", "COM9", "lpt1", "Lpt9"):
