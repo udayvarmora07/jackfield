@@ -135,6 +135,14 @@ done.
 - [x] v2 follow-ups: "Compare with" shows the copy being compared; a failed
   re-read is announced on every page; a new import clears the old result; the
   command palette does nothing while busy.
+- [x] Merged PR #22: full suite on ubuntu/macOS/Windows plus a headless-Chrome
+  e2e job; fixes macOS temp-dir symlinks, Windows fchmod/replace/ordering/
+  directory identity.
+- [ ] Windows residual: concurrent HTTP reads can see a transient 404 while a
+  document replace is in flight (stress test skipped on Windows in PR #22).
+- [ ] Compatibility note: tree hashes now use `/` separators on every OS, so a
+  manifest from an archive exported on Windows by an earlier version will not
+  verify; POSIX-exported archives are unaffected.
 - [x] AI Center: buttons stay disabled until every overlapping request ends
   (an in-flight counter; the old boolean re-enabled paid calls early).
 - [x] Merged PR #23 (list request 29–49% faster, response unchanged) after
