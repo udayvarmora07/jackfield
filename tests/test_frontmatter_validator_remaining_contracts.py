@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tempfile
+import sys
 import unittest
 from pathlib import Path
 
@@ -53,6 +54,11 @@ class RemainingFrontmatterValidatorTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "reserved Windows device"):
                     validate_skill_name(name)
 
+    @unittest.skipIf(
+        sys.platform == "win32" and sys.version_info >= (3, 14),
+        "Python 3.14 on Windows resolves a path containing NUL without raising ValueError, "
+        "which is the failure this test provokes",
+    )
     def test_fm16_nul_in_link_and_layout_mentions_is_a_validation_warning(self):
         text = (
             dump_frontmatter(
