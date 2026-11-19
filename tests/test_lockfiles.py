@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import stat
 import os
 import shutil
 import subprocess
@@ -26,6 +27,12 @@ def _write(path: Path, data: bytes | str) -> None:
 def _tree_hash(path: Path) -> str:
     return lockfiles.skill_folder_tree_sha(path)
 
+
+
+def _make_writable_and_retry(function, path, _excinfo):
+    """``shutil.rmtree`` onerror: git object files are read-only on Windows."""
+    os.chmod(path, stat.S_IWRITE)
+    function(path)
 
 class SanitizeNameTests(unittest.TestCase):
     def test_matches_upstream_sanitisation(self):
@@ -410,7 +417,7 @@ class DisabledAndUnreadableTests(unittest.TestCase):
             subprocess.run(["git", "-C", str(skill), "add", "-A"], check=True)
             upstream = subprocess.run(["git", "-C", str(skill), "write-tree"],
                                       check=True, capture_output=True, text=True).stdout.strip()
-            shutil.rmtree(skill / ".git")
+            shutil.rmtree(skill / ".git", onerror=_make_writable_and_retry)
             (skill / "SKILL.md").rename(skill / "SKILL.md.disabled")
             _write(home / ".agents" / ".skill-lock.json",
                    json.dumps({"version": 3, "skills": {"one": {"source": "o/r", "skillFolderHash": upstream}}}))

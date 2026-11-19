@@ -21,7 +21,7 @@ const stamp='2026-11-17T00:00:00.000Z';
 class DocumentBaselineTests(unittest.TestCase):
     def run_js(self, body):
         subprocess.run(['node', '-e', HARNESS + body, str(MODEL)], cwd=ROOT,
-                       check=True, text=True, capture_output=True)
+                       check=True, encoding="utf-8", capture_output=True)
 
     def test_empty_and_privacy_roundtrip(self):
         self.run_js(r'''

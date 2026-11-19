@@ -39,7 +39,7 @@ def _node(body: str):
         "Promise.resolve(out).then(value=>console.log(JSON.stringify(value)))"
         ".catch(error=>{console.error(error);process.exit(1);});"
     )
-    res = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True, cwd=str(ROOT))
+    res = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT))
     return json.loads(res.stdout)
 
 

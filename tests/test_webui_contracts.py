@@ -133,7 +133,7 @@ const filtered = sandbox.app.computed.filteredQualitySkills.call(context);
 methods.inspectQualityInLibrary.call(context);
 console.log(JSON.stringify({summary, invalidLabel: methods.qualityStateLabel(records[3]), filtered: filtered.map(record => record.name), view: context.view, query: context.query, filter: context.filter, tagFilter: context.tagFilter, drilled: context.drilled.name}));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         self.assertEqual(json.loads(result.stdout), {
             "summary": {"observed": 5, "active": 2, "disabled": 1, "malformed": 1, "linked": 0, "unaddressable": 0, "validityFlagged": 2, "divergent": 1, "provenance": 1},
             "invalidLabel": "Invalid observed",
@@ -503,7 +503,7 @@ const context = {
 };
 (async()=>{ await methods.runRegistry.call(context); await methods.commitRegistryReview.call(context); console.log(JSON.stringify(calls)); })();
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         calls = json.loads(result.stdout)
         self.assertEqual(calls[0]["body"], {"fetch": True, "source": "owner/repo/demo", "allow_stale": False, "page": 0, "per_page": 25, "view": "all-time"})
         self.assertEqual(calls[1]["body"], {"fetch": True, "review_id": "review-1", "trust_confirmed": True})
@@ -599,7 +599,7 @@ ctx.applyLocale('not-supported');
 if (ctx.resolvedLocale !== 'en-IN' || sandbox.document.documentElement.lang !== 'en') throw new Error('system fallback or language boundary failed');
 console.log(JSON.stringify({locale:ctx.resolvedLocale, number:ctx.formatNumber(1234567), date:ctx.formatDate('2026-09-22T13:45:00Z')}));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         values = json.loads(result.stdout)
         self.assertEqual(values["locale"], "en-IN")
         self.assertEqual(values["number"], "12,34,567")
@@ -660,7 +660,7 @@ ctx.removeThemeListener();
 if (media.removed !== listeners[1]) throw new Error('theme listener not cleaned up');
 console.log(JSON.stringify({theme:ctx.theme, resolved:ctx.resolvedTheme, size:ctx.textSize, stored:store}));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         state = json.loads(result.stdout)
         self.assertEqual(state["theme"], "system")
         self.assertEqual(state["resolved"], "light")
@@ -685,7 +685,7 @@ const systemThemeLabel = () => sandbox.app.computed.systemThemeLabel.call(ctx);
 if (ctx.resolvedTheme !== 'dark' || systemThemeLabel() !== 'light') throw new Error('OS evidence was replaced by explicit app theme');
 console.log(JSON.stringify({resolved:ctx.resolvedTheme, os:systemThemeLabel()}));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         self.assertEqual(json.loads(result.stdout), {"resolved": "dark", "os": "light"})
 
     def test_preference_bootstrap_resolves_saved_values_before_stylesheet(self):
@@ -707,7 +707,7 @@ function run(savedTheme, savedSize, matches, fail) {
 }
 console.log(JSON.stringify([run('dark','large',false,false), run('system','bad',true,false), run('invalid','invalid',true,true)]));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         values = json.loads(result.stdout)
         self.assertEqual(values[0], {"themePreference": "dark", "theme": "dark", "textSize": "large"})
         self.assertEqual(values[1], {"themePreference": "system", "theme": "dark", "textSize": "standard"})
@@ -735,7 +735,7 @@ const rows = [
 ];
 console.log(JSON.stringify(sandbox.window.SkillManagerDomain.groupLogicalSkills(rows)));
 """
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         groups = json.loads(result.stdout)
         self.assertEqual(len(groups), 1)
         self.assertEqual(groups[0]["instanceCount"], 2)
@@ -762,7 +762,7 @@ const rows = [
 ];
 console.log(JSON.stringify(sandbox.window.SkillManagerDomain.groupLogicalSkills(rows, scopes)));
 """
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         groups = json.loads(result.stdout)
         alpha = groups[0]
         labels = [item["label"] for item in alpha["identities"]]
@@ -913,7 +913,7 @@ context.runGuideExplain().then(() => console.log(JSON.stringify({
   resolution:context.guideExplainResult.resolution, apiCalls
 })));
 """
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         evidence = json.loads(result.stdout)
         self.assertFalse(evidence["afterSkip"])
         self.assertTrue(evidence["restarted"])
@@ -1040,7 +1040,7 @@ const targets = sandbox.app.methods.profileTargets.call({profilePreview: {member
 ]}});
 console.log(JSON.stringify(targets));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         self.assertEqual(json.loads(result.stdout), [
             {"name": "review", "scope": "agents", "path": "/skills/review"},
             {"name": "review", "scope": "codex", "path": "/codex/review"},
@@ -1085,7 +1085,7 @@ Object.defineProperty(context, 'profileUnresolvedMembers', {
 methods.openProfileBatch.call(context);
 console.log(JSON.stringify(received));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         self.assertEqual(json.loads(result.stdout), {
             "operation": "enable",
             "targets": [
@@ -1210,7 +1210,7 @@ const selectedContext = {view:'skills', selectedName:'alpha', selected:{name:'al
 const selected = palette(selectedContext).map(item => item.id);
 console.log(JSON.stringify({overview, selected}));
 '''
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         value = json.loads(result.stdout)
         self.assertEqual(value["overview"], ["nav-install", "install-workflow"])
         self.assertEqual(value["selected"], ["selected-toggle"])
@@ -1318,7 +1318,7 @@ console.log(JSON.stringify(payloads.map(render)));
 """
         result = subprocess.run(
             ["node", "-e", script, json.dumps(self.PAYLOADS)],
-            capture_output=True, text=True, check=True, cwd=str(ROOT),
+            capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT),
         )
         rendered = json.loads(result.stdout)
         self.assertEqual(len(rendered), len(self.PAYLOADS))
@@ -1364,7 +1364,7 @@ console.log(JSON.stringify(sandbox.window.SkillManagerDomain.renderMarkdown(
   '<script>alert(1)</script>')));
 """
         result = subprocess.run(
-            ["node", "-e", script], capture_output=True, text=True, check=True,
+            ["node", "-e", script], capture_output=True, encoding="utf-8", check=True,
             cwd=str(ROOT),
         )
         html = json.loads(result.stdout)

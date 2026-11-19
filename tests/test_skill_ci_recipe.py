@@ -29,7 +29,8 @@ def _script() -> str:
     return match.group(1)
 
 
-@unittest.skipIf(shutil.which("bash") is None, "bash is required to run the recipe")
+@unittest.skipIf(shutil.which("bash") is None or os.name == "nt",
+                 "needs a POSIX bash (on Windows `bash` is the WSL launcher, whose paths and C: drive differ)")
 class SkillCiRecipeTests(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()

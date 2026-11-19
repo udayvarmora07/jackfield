@@ -456,7 +456,7 @@ def check_markdown_anchors(root: Path = ROOT) -> list[str]:
                 text = re.sub(r"[`*_]", "", heading.group(1).lower())
                 text = re.sub(r"[^\w\s-]", "", text)
                 found.add(text.replace(" ", "-"))
-        anchors[path] = found
+        anchors[path.resolve()] = found
 
     for path in markdown:
         rel = _relative(path, root)

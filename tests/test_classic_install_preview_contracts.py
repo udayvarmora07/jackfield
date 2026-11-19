@@ -42,7 +42,7 @@ def _read(path: Path) -> str:
 def _node(script: str) -> dict:
     result = subprocess.run(
         ["node", "-e", script],
-        capture_output=True, text=True, check=True, cwd=str(ROOT),
+        capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT),
     )
     return json.loads(result.stdout)
 

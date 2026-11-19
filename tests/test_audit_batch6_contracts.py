@@ -102,6 +102,8 @@ class ConcurrentMutationResilienceTests(BatchSixCase):
         release.wait(5)
         lock.release()
 
+    @unittest.skipUnless("fork" in multiprocessing.get_all_start_methods(),
+                         "needs the fork start method (POSIX only)")
     def test_mutation_lock_excludes_a_real_second_process(self):
         from skillsmgr.atomic_io import mutation_lock
 

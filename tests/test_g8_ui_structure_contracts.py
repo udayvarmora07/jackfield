@@ -338,7 +338,7 @@ console.log(JSON.stringify({
 }));
 """
         result = subprocess.run(
-            ["node", "-e", script], capture_output=True, text=True, check=True, cwd=str(ROOT)
+            ["node", "-e", script], capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT)
         )
         values = json.loads(result.stdout)
         # Every row Active -> uniform and suppressible.
@@ -395,7 +395,7 @@ const groups = m.groupedIdentities.call({ ...m, identityItems: () => [
 console.log(JSON.stringify(groups));
 """
         result = subprocess.run(
-            ["node", "-e", script], capture_output=True, text=True, check=True, cwd=str(ROOT)
+            ["node", "-e", script], capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT)
         )
         groups = json.loads(result.stdout)
         self.assertEqual(len(groups), 2, groups)

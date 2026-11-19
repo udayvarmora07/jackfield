@@ -387,7 +387,8 @@ class DocumentProbeTests(ScopeReadCase):
         self.assertIn("not valid UTF-8", record["decode_error"])
         self.assertEqual("", record["description"])
 
-    @unittest.skipIf(os.getuid() == 0, "root ignores the permission bits under test")
+    @unittest.skipIf(not hasattr(os, "getuid") or os.getuid() == 0,
+                     "needs POSIX permission bits and a non-root user")
     def test_an_unreadable_document_is_still_reported_as_drift(self):
         skill = self._skill(self.base / "skills" / "locked", "locked")
         os.chmod(skill, 0o000)

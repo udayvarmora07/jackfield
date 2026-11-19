@@ -6,6 +6,7 @@ import contextlib
 import io
 import json
 import os
+import signal
 import tempfile
 import threading
 import time
@@ -157,10 +158,20 @@ class GradingTests(unittest.TestCase):
         self.assertEqual(evals.grade_output(case, "bar chart")["passed"], 0)
         self.assertEqual(evals.grade_output(case, "Bar chart")["passed"], 1)
 
-    def test_regex_and_is_json(self):
+    @unittest.skipUnless(hasattr(signal, "SIGALRM"), "regex assertions need SIGALRM (absent on Windows)")
+    def test_regex_assertion(self):
         case = self._case([{"type": "regex", "value": r"\b\d+\b"}])
         self.assertEqual(evals.grade_output(case, "cleaned 4 rows")["passed"], 1)
         self.assertEqual(evals.grade_output(case, "no digits here")["passed"], 0)
+
+    @unittest.skipIf(hasattr(signal, "SIGALRM"), "this platform can time a regex out")
+    def test_regex_is_refused_where_it_cannot_be_timed_out(self):
+        case = self._case([{"type": "regex", "value": "(a+)+$"}])
+        result = evals.grade_output(case, "a" * 40000 + "b")
+        self.assertEqual(result["passed"], 0)
+        self.assertIn("not evaluated on this platform", result["assertions"][0]["detail"])
+
+    def test_is_json(self):
         plain = self._case([{"type": "is_json"}])
         self.assertEqual(evals.grade_output(plain, '{"a": 1}')["passed"], 1)
         self.assertEqual(evals.grade_output(plain, "not json")["passed"], 0)
@@ -168,6 +179,7 @@ class GradingTests(unittest.TestCase):
         self.assertEqual(evals.grade_output(valued, '{"a": 1}')["passed"], 1)
         self.assertEqual(evals.grade_output(valued, '{"a": 2}')["passed"], 0)
 
+    @unittest.skipUnless(hasattr(signal, "SIGALRM"), "regex assertions need SIGALRM (absent on Windows)")
     def test_catastrophic_regex_is_aborted_instead_of_hanging(self):
         # CLI-1: a hostile evals.json pinned the CLI forever and froze the web
         # UI process GIL-wide (Ctrl-C could not run).  re.compile succeeding is
@@ -227,7 +239,8 @@ class WorkspaceTests(unittest.TestCase):
             evals.variant_dir(Path("/w"), 1, "eval-x", "wrong_variant")
         self.assertEqual(
             evals.variant_dir(Path("/w"), 2, "eval-x", "with_skill"),
-            Path("/w/iteration-2/eval-x/with_skill"),
+            # The harness resolves paths, which adds the drive letter on Windows.
+            Path("/w").resolve() / "iteration-2" / "eval-x" / "with_skill",
         )
 
     def test_workspace_for_dir_keeps_the_store_skills_tree_clean(self):

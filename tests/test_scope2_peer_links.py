@@ -49,7 +49,7 @@ def _node(body: str):
         "Promise.resolve(out).then(value=>console.log(JSON.stringify(value)))"
         ".catch(error=>{console.error(error);process.exit(1);});"
     )
-    res = subprocess.run(["node", "-e", script], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", cwd=str(ROOT))
     if res.returncode:
         raise AssertionError(f"Node helper failed: {res.stderr}")
     return json.loads(res.stdout)

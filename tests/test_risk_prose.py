@@ -203,6 +203,8 @@ class RiskListingBoundsTests(unittest.TestCase):
                              for entry in entries))
         self.assertTrue(any(entry.get("truncated") for entry in entries))
 
+    @unittest.skipUnless(hasattr(os, "O_DIRECTORY") and hasattr(os, "O_NOFOLLOW"),
+                         "the pinned directory-descriptor path needs O_DIRECTORY/O_NOFOLLOW (absent on Windows)")
     def test_directory_descriptor_closes_when_identity_check_raises(self):
         from skillsmgr import risk as insights
 

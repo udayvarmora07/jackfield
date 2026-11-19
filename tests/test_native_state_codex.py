@@ -6,6 +6,7 @@ absolute ``path`` that matches one ``SKILL.md`` file, or a ``name`` that matches
 every skill with that name -- plus ``enabled``, and the last matching entry
 wins.
 """
+import json
 import os
 import tempfile
 import unittest
@@ -14,6 +15,11 @@ from unittest.mock import patch
 
 from skillsmgr import native_state, scopes
 from skillsmgr.native_state import observe_codex_states, observe_native_state
+
+
+def _toml(value) -> str:
+    """A TOML basic string for a path: Windows backslashes must be escaped."""
+    return json.dumps(str(value))
 
 
 class CodexCase(unittest.TestCase):
@@ -52,7 +58,7 @@ class CodexCase(unittest.TestCase):
 
 class CodexSelectorTests(CodexCase):
     def test_path_selector_disables_that_document(self):
-        self.config(f'[[skills.config]]\npath = "{self.skill / "SKILL.md"}"\nenabled = false\n')
+        self.config(f'[[skills.config]]\npath = {_toml(self.skill / "SKILL.md")}\nenabled = false\n')
         result = self.observe()
         self.assertEqual(result["consumer"], "codex")
         self.assertEqual(result["observed_setting"], "disabled")
@@ -70,13 +76,13 @@ class CodexSelectorTests(CodexCase):
     def test_last_matching_entry_wins(self):
         self.config(
             '[[skills.config]]\nname = "deploy"\nenabled = false\n\n'
-            f'[[skills.config]]\npath = "{self.skill / "SKILL.md"}"\nenabled = true\n'
+            f'[[skills.config]]\npath = {_toml(self.skill / "SKILL.md")}\nenabled = true\n'
         )
         self.assertEqual(self.observe()["observed_setting"], "enabled")
 
     def test_a_directory_path_matches_no_skill(self):
         # The shape on the maintainer's machine: a directory, not a SKILL.md.
-        self.config(f'[[skills.config]]\npath = "{self.skill.parent}"\nenabled = false\n')
+        self.config(f'[[skills.config]]\npath = {_toml(self.skill.parent)}\nenabled = false\n')
         result = self.observe()
         self.assertEqual(result["observed_setting"], "not disabled by the files read")
         self.assertNotIn("declared", self.user(result))
@@ -84,7 +90,7 @@ class CodexSelectorTests(CodexCase):
     def test_path_selector_is_canonicalized(self):
         alias = self.base / "alias"
         alias.symlink_to(self.skill.parent, target_is_directory=True)
-        self.config(f'[[skills.config]]\npath = "{alias / "deploy/SKILL.md"}"\nenabled = false\n')
+        self.config(f'[[skills.config]]\npath = {_toml(alias / "deploy/SKILL.md")}\nenabled = false\n')
         self.assertEqual(self.observe()["observed_setting"], "disabled")
 
     def test_other_names_are_untouched(self):
@@ -92,7 +98,7 @@ class CodexSelectorTests(CodexCase):
         self.assertEqual(self.observe()["observed_setting"], "not disabled by the files read")
 
     def test_document_is_optional_for_name_only_matching(self):
-        self.config(f'[[skills.config]]\npath = "{self.skill / "SKILL.md"}"\nenabled = false\n')
+        self.config(f'[[skills.config]]\npath = {_toml(self.skill / "SKILL.md")}\nenabled = false\n')
         result = observe_native_state("codex", "deploy", home=self.home)
         self.assertEqual(result["consumer"], "codex")
         self.assertEqual(result["observed_setting"], "not disabled by the files read")
@@ -116,6 +122,7 @@ class CodexBoundsTests(CodexCase):
         self.config("# " + "x" * (native_state.MAX_CONFIG_BYTES + 10) + "\n")
         self.assertEqual(self.user(self.observe())["status"], "unavailable")
 
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "needs POSIX FIFOs")
     def test_fifo_is_refused(self):
         target = self.home / ".codex/config.toml"
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -151,7 +158,7 @@ class CodexBoundsTests(CodexCase):
 
 class CodexScopeIntegrationTests(CodexCase):
     def test_codex_scope_rows_carry_the_path_matched_observation(self):
-        self.config(f'[[skills.config]]\npath = "{self.skill / "SKILL.md"}"\nenabled = false\n')
+        self.config(f'[[skills.config]]\npath = {_toml(self.skill / "SKILL.md")}\nenabled = false\n')
         with patch.object(scopes.paths, "home_dir", return_value=self.home), \
                 patch.object(Path, "home", return_value=self.home):
             rows = scopes.scan_scope("codex")

@@ -50,7 +50,7 @@ vm.runInNewContext(fs.readFileSync({str(DOMAIN_JS)!r}, 'utf8'), sandbox);
 const D = sandbox.window.SkillManagerDomain;
 {body}
 """
-    result = subprocess.run(["node", "-e", script], capture_output=True, text=True)
+    result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8")
     if result.returncode != 0:
         raise AssertionError(f"node harness failed:\n{result.stderr}")
     return json.loads(result.stdout)
@@ -171,7 +171,7 @@ console.log(JSON.stringify({{
   threshold: ctx.scopeThresholdPos,
 }}));
 """
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8")
         if result.returncode != 0:
             raise AssertionError(f"node harness failed:\n{result.stderr}")
         return json.loads(result.stdout)

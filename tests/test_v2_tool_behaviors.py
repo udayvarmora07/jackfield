@@ -35,7 +35,7 @@ const tick=()=>new Promise(r=>setImmediate(r));
 
 def run_node(body):
     script = "const V2=" + json.dumps(str(V2)) + ";" + HARNESS + "\n(async()=>{" + body + "})().then(v=>console.log(JSON.stringify(v))).catch(e=>{console.error(e);process.exit(1)});"
-    result = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, capture_output=True, check=True)
+    result = subprocess.run(["node", "-e", script], cwd=ROOT, encoding="utf-8", capture_output=True, check=True)
     return json.loads(result.stdout)
 
 
