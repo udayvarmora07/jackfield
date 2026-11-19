@@ -37,6 +37,16 @@ the same drawing coloured by theme tokens so it follows the in-app toggle.
 Checked at 16–160 px on light and dark grounds; a test keeps the file
 well-formed XML, since a malformed SVG decodes to a silent 0x0 image.
 
+**[NOTE] Logo research and refinement.** A survey of logo tooling found no
+MCP server worth adopting: the SVG-generation servers wrap an image model
+(the "AI slop" risk), and the icon servers only search existing sets. The
+adopted pipeline is free CLI tooling: resvg (via `@resvg/resvg-js`) rasterised
+the mark at 16/24/32 px for an 8x nearest-neighbour legibility check, which
+showed half-pixel edges blurring at 16 px. The mark was redrawn with every edge
+on an even coordinate (one whole pixel at 16 px), a solid text line and a
+full-width switch track. No PNG/ICO set ships: every supported browser takes
+the SVG favicon, and nothing else in the product displays an icon.
+
 ## 2026-11-18 — Evidence-based context sweep
 
 **[NOTE]** Applied the supplied video's context-management practices to

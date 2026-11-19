@@ -1,17 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Skills Manager">
   <!-- A skill document (folded page) carrying a switch: one file, turned on
-       or off across agents. Hand-drawn on a 32-unit grid; flat colours from
-       the v2 palette (ink, paper, brand tokens). Legible down to 16 px.
-       Dark surfaces invert the page so the mark never sinks into the ground. -->
+       or off across agents. Drawn by hand on a 32-unit grid with every edge on
+       an even coordinate, so each edge lands on a whole pixel at 16 px. Flat
+       colours from the v2 palette (ink, paper, brand tokens). Dark surfaces
+       invert the page so the mark never sinks into the ground. -->
   <style>
-    .page { fill: #1b1d22 } .fold { fill: #55585f } .line, .track { fill: #fdfcfa } .knob { fill: #b8492a }
+    .page { fill: #1b1d22 } .fold { fill: #63666d } .line { fill: #8c8f96 } .track { fill: #fdfcfa } .knob { fill: #b8492a }
     @media (prefers-color-scheme: dark) {
-      .page { fill: #f4efe5 } .fold { fill: #a69e8d } .line, .track { fill: #1b1d22 } .knob { fill: #c2512c }
+      .page { fill: #f4efe5 } .fold { fill: #a69e8d } .line { fill: #8a8273 } .track { fill: #1b1d22 } .knob { fill: #c2512c }
     }
   </style>
-  <path class="page" d="M7 2.5h12.5L27 10v17.5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-23a2 2 0 0 1 2-2Z"/>
-  <path class="fold" d="M19.5 2.5V8a2 2 0 0 0 2 2H27Z"/>
-  <rect class="line" x="9" y="12" width="9" height="2.2" rx="1.1" opacity=".55"/>
-  <rect class="track" x="9" y="18.5" width="14" height="7" rx="3.5"/>
-  <circle class="knob" cx="19.5" cy="22" r="2.3"/>
+  <path class="page" d="M8 2h10l8 8v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/>
+  <path class="fold" d="M18 2v8h8Z"/>
+  <rect class="line" x="8" y="12" width="8" height="2"/>
+  <rect class="track" x="8" y="18" width="16" height="8" rx="4"/>
+  <circle class="knob" cx="20" cy="22" r="3"/>
 </svg>
