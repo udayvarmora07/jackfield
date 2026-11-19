@@ -14,8 +14,9 @@ extended to **every** request rather than only to state-changing methods:
 a DNS-rebinding page cannot use the read routes (SEC-1, closing the F-1 half of
 issue #14). That widening **supports** this decision rather than reopening it —
 the boundary is now strictly larger, and no token is needed to make a browser page
-rejectable. The F-2 `localhost`-alias over-rejection remains a tracked nuisance,
-not a reason to add a secret.
+rejectable. The F-2 `localhost`-alias over-rejection was closed on 2026-11-19 by
+accepting exactly `localhost:<port>`; that alias is resolved locally and is not
+a reason to add a secret.
 
 ## Context
 

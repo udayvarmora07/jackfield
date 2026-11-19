@@ -167,21 +167,33 @@ class LocalClientContractTests(unittest.TestCase):
         self.assertEqual(status, 403)
         self.assertIn("Host", payload["error"])
 
-    def test_localhost_host_header_is_rejected_for_mutations(self):
-        """Tracked integration limitation (see issue #14), not an endorsement.
+    def test_localhost_host_header_is_accepted_for_a_loopback_bind(self):
+        """Issue #14 F-2, resolved 2026-11-19: ``localhost`` is an alias.
 
-        The default bind is ``127.0.0.1``, so ``allowed_hosts`` holds only
-        ``127.0.0.1:<port>`` and a client configured with the equally-loopback
-        name ``localhost`` gets 403 on every state-changing call. The extension
-        must therefore use ``127.0.0.1`` until the alias question is decided.
+        The default bind is ``127.0.0.1``; a client configured with the
+        equally-loopback name ``localhost`` used to get 403 on every call.
+        ``localhost`` is resolved on this machine, so accepting it admits no
+        DNS-rebinding page, and the request reaches the route handler.
         """
         status, payload = self._raw_request(
+            "GET", "/api/scopes", {"Host": f"localhost:{self.port}"},
+        )
+        self.assertEqual(status, 200, payload)
+
+    def test_localhost_alias_does_not_relax_origin_or_other_hosts(self):
+        """The alias is exactly ``localhost:<port>``: no wildcard, no other port."""
+        for host in (f"localhost:{self.port + 1}", "localhost", f"sub.localhost:{self.port}",
+                     f"localhost.evil.example:{self.port}"):
+            status, payload = self._raw_request("GET", "/api/scopes", {"Host": host})
+            self.assertEqual(status, 403, host)
+            self.assertIn("invalid Host header", payload["error"])
+        status, payload = self._raw_request(
             "POST", "/api/skills",
-            {"Host": f"localhost:{self.port}", "Content-Type": "application/json"},
+            {"Host": f"localhost:{self.port}", "Origin": "http://evil.example",
+             "Content-Type": "application/json"},
             json.dumps({"name": "nope", "description": "Use this when probing"}).encode(),
         )
         self.assertEqual(status, 403)
-        self.assertIn("invalid Host header", payload["error"])
 
     def test_read_path_host_validation_closes_the_dns_rebinding_gap(self):
         """SEC-1: reads are Host-validated too (issue #14, now fixed).
@@ -282,8 +294,9 @@ class ServerBindingContractTests(unittest.TestCase):
             try:
                 self.assertEqual(server.host, "127.0.0.1")
                 self.assertTrue(server.url.startswith("http://127.0.0.1:"))
+                # Exactly the bound literal plus the F-2 `localhost` alias.
                 self.assertEqual(server.httpd.allowed_hosts,
-                                 {f"127.0.0.1:{server.port}"})
+                                 {f"127.0.0.1:{server.port}", f"localhost:{server.port}"})
             finally:
                 server.httpd.server_close()
 

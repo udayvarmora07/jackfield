@@ -1813,6 +1813,11 @@ class WebAppServer:
         hostnames = {host, bound_host}
         if normalized_host == "localhost":
             hostnames.update({"127.0.0.1", "::1"})
+        # Issue #14 F-2: `localhost` names this machine's own loopback and is
+        # resolved locally, so accepting it for a loopback bind admits no
+        # rebinding page (those arrive under an attacker-controlled name,
+        # which stays rejected). Without it, http://localhost:<port> got 403.
+        hostnames.add("localhost")
         self.httpd.allowed_hosts = {
             f"{name}:{self.port}" if ":" not in name else f"[{name}]:{self.port}"
             for name in hostnames

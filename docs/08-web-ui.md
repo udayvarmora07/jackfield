@@ -641,12 +641,11 @@ validate, doctor, stats, tokens, templates, export/import — so an extension is
 separate repository with **no backend change here** (`tests/test_web_client_contracts.py`
 pins the contract). What a client must know:
 
-- **Address it at `127.0.0.1`.** The server binds loopback only and rejects a
-  non-loopback bind host. With the default bind, its `Host` allowlist holds only
-  `127.0.0.1:<port>`; a client configured with the equally-loopback name
-  `localhost` gets **403 on every request, `GET` included**. Using the same host
-  for bind and link keeps the header valid — which is why `desktop_launcher.py`
-  does exactly that. Tracked as issue #14 F-2.
+- **Address it at `127.0.0.1` or `localhost`.** The server binds loopback only and rejects a
+  non-loopback bind host. Its `Host` allowlist holds the bound literal (e.g.
+  `127.0.0.1:<port>`) plus the `localhost:<port>` alias (issue #14 F-2, resolved
+  2026-11-19); any other host, subdomain or port gets **403 on every request,
+  `GET` included**.
 - **Call from the extension host (Node), not a webview origin.** No CORS headers
   are served on purpose: the server has no authentication, so a cross-origin
   browser request must stay rejectable. Requests carrying `Origin`/`Referer`

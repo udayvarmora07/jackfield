@@ -209,8 +209,8 @@ advisory eval harness, both shipped by extending existing surfaces only — see
   suite green. Fixed test-only; the real tree passes with the fix, so **the gate
   was blind, not the workflows wrong**.
 - **Client contract (2026-09-11, #8)**: the REST API is the surface for local non-browser
-  clients (editor extensions, scripts). Address it at `127.0.0.1` — `Host: localhost:<port>`
-  is rejected on **every** request under the default bind, reads included (issue #14 F-2) —
+  clients (editor extensions, scripts). Address it at `127.0.0.1` or `localhost` (the alias is
+  accepted since 2026-11-19, issue #14 F-2; other hosts and ports stay rejected) —
   and call from the host process, not a webview origin: no CORS headers are served on purpose. Pinned by
   `tests/test_web_client_contracts.py`; documented in @docs/08-web-ui.md.
 - **Optional desktop window (2026-09-11, #9)**: `python3 desktop_launcher.py` (repo root,

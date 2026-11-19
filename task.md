@@ -114,7 +114,7 @@ done.
 
 Open for the maintainer:
 
-- [ ] Issue #14 F-2: accept `localhost:<port>` as a Host alias for a loopback bind?
+- [x] Issue #14 F-2: `localhost:<port>` is accepted as a Host alias for a loopback bind (maintainer approved 2026-11-19).
 - [ ] ADR-001 revisit: loopback is reachable by every local OS user, and
   `POST /api/install {"run": true}` executes the npm runner; a per-user token
   file (0600) would close that without a remote attack surface.

@@ -7,6 +7,17 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
+
+**[NOTE]** Maintainer-approved. Opening `http://localhost:<port>` against the
+default `127.0.0.1` bind returned 403 on every request. `WebAppServer` now
+allows exactly `localhost:<port>` beside the bound literal; Origin follows the
+same set. `localhost` resolves on this machine, so a DNS-rebinding page, which
+arrives under an attacker-controlled name, is still refused, as are other
+ports, bare `localhost`, `sub.localhost` and `localhost.evil.example`. The
+pinned rejection test became an acceptance test plus a boundary regression;
+ADR-001, the threat model and the web UI client contract were updated.
+
 ## 2026-11-19 — Review loop 1: UI fixes, pyflakes gate, repository cleanup
 
 **[NOTE]** An in-depth review (backend, web security boundary, live v2 UI,
