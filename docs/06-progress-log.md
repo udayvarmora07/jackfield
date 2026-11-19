@@ -9,6 +9,31 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
 
 ## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
 
+**[NOTE] Security review.** A subagent reviewed archive, install, upload,
+source-lock, backup-sync, frontmatter, CLI and AI paths; five findings were
+reproduced and fixed. (1) Any caller of the settings API could point
+`base_url` at itself and receive `OPENAI_API_KEY` from the server's
+environment on the next call; environment keys now go only to the provider's
+default endpoint unless the operator names one endpoint in
+`SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT` (the 2026-11-17 study workflow needs that
+variable now). The end-to-end repro's fake server received no Authorization
+header afterwards. (2) `untrusted_block` put labels into an attribute
+unescaped and only defanged lowercase `</untrusted`. (3) `local_manifest` read
+a file before its 4 MiB check and `tree_content_hash` read whole files and
+blocked on FIFOs; both are bounded/streamed, with an identical digest.
+(4) `git_fetch` let `remote.<name>.uploadpack` run a program; it now pins
+`--upload-pack` and the pager (a repo-local credential helper is a recorded
+residual). (5) `validate --path` printed raw directory names.
+
+**[NOTE] v2 bug review.** A subagent traced the v2 code; each finding was
+checked. Ctrl/Cmd+S skipped the Save button's guard, so with no target ticked
+it discarded the edit (reproduced, then fixed and re-verified). Clicking inside
+a dialog left focus on `body`, so Escape and the Tab trap stopped working
+(fixed: the dialog takes focus). `refresh()` and skill history had no
+stale-response guard; history never reloaded after a change; Test connection
+reloaded the AI form and wiped unsaved edits including a typed key; several
+counts printed "1 skills".
+
 **[NOTE] Docs audit.** A subagent compared README and the CLI surface doc with
 real runs in an isolated HOME; each finding was re-run before editing. The
 README told users to `chmod 700 ~/.local/share/skills-manager`, but the check

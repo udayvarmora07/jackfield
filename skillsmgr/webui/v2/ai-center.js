@@ -305,7 +305,15 @@
       },
       async clearKey() { const s = await this.guard(() => post("/api/ai/settings", { clear_key: true })); if (s) { this.settings = s; this.note = "Stored key removed."; } },
       async turnOff() { const s = await this.guard(() => post("/api/ai/settings", { provider: null })); if (s) { this.settings = s; this.load(); this.note = "AI features are off and the stored key is deleted."; } },
-      async testConnection() { const r = await this.guard(() => post("/api/ai/test-connection", {})); if (r) { this.connection = r; this.load(); } },
+      async testConnection() {
+        const r = await this.guard(() => post("/api/ai/test-connection", {}));
+        if (!r) return;
+        this.connection = r;
+        /* Refresh the saved status only; reloading the form would wipe unsaved
+         * edits, including a freshly typed API key. */
+        const s = await this.guard(() => api("/api/ai/settings"));
+        if (s) { this.settings = s; this.loadRuns(); }
+      },
       async loadRuns() {
         const request = ++this.historyRequest;
         this.historyBusy = true; this.historyError = ""; this.pastRun = null;

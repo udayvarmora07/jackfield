@@ -59,7 +59,7 @@ function savedPreference(key, choices, fallback) {try{const value=localStorage.g
 
 const app = createApp({
   data() {
-    return {
+    return { refreshGen: 0, historyGen: 0,
       route: parseRoute(), m: null, loading: true, loadError: "", history: [], busy: false,
       records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "",
@@ -290,11 +290,15 @@ const app = createApp({
 
     /* ----- loading ----- */
     async refresh() {
+      /* Overlapping refreshes (Refresh files, tab focus, Undo, tool changes)
+       * must not let an older, slower response overwrite a newer one. */
+      const gen = ++this.refreshGen;
       this.loading = true; this.loadError = "";
       try {
         const [scopes, records, history] = await Promise.all([
           api("/api/scopes"), api("/api/skills?scope=all&body=0"), api("/api/history?limit=8").then(r=>{this.historyError="";return r;}).catch(e => {this.historyError=this.friendly(e.message);return []; }),
         ]);
+        if (gen !== this.refreshGen) return;
         this.scopes=markRaw(scopes);this.records=markRaw(records);
         this.m = markRaw(Model.build(records, scopes, { suggested: 100 }));
         /* A reload produces fresh copies, so nothing is carried over from the
@@ -305,17 +309,20 @@ const app = createApp({
         if (this.route.page === "recovery") this.loadAgentTrash();
         this.loadCatalog();
         this.primeBodies();
+        this.loadSkillHistory();
       } catch (e) {
-        this.loadError = this.friendly(e.message || "The skills could not be read.");
-      } finally { this.loading = false; }
+        if (gen === this.refreshGen) this.loadError = this.friendly(e.message || "The skills could not be read.");
+      } finally { if (gen === this.refreshGen) this.loading = false; }
     },
     async loadSkillHistory() {
+      const gen = ++this.historyGen;
       this.skillHistory = [];this.skillHistoryError="";
       if (this.route.page !== "skill") return;
+      const name = this.route.name;
       try {
-        const rows = await api("/api/history?limit=20&name=" + encodeURIComponent(this.route.name));
-        this.skillHistory = (Array.isArray(rows) ? rows : []).slice(0, 3);
-      } catch (e) { this.skillHistoryError=this.friendly(e.message); }
+        const rows = await api("/api/history?limit=20&name=" + encodeURIComponent(name));
+        if (gen === this.historyGen) this.skillHistory = (Array.isArray(rows) ? rows : []).slice(0, 3);
+      } catch (e) { if (gen === this.historyGen) this.skillHistoryError=this.friendly(e.message); }
     },
     async loadCatalog() { try {this.catalog=await api("/api/catalog");this.catalogError="";} catch(e){this.catalogError=this.friendly(e.message);} },
 
@@ -796,7 +803,9 @@ const app = createApp({
       this.edit = null; return null;
     },
     async saveEdit() {
-      const e = this.edit; if (!e || this.editError) return;
+      /* Same guard as the Save button: Ctrl/Cmd+S must not save to zero
+       * targets (which discarded the edit), save nothing, or save twice. */
+      const e = this.edit; if (!e || this.editError || this.busy || !e.targets.length || !this.editDirty) return;
       this.busy = true; const saved = [];
       try {
         const fields = {};

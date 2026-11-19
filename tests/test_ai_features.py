@@ -13,6 +13,7 @@ import re
 import tempfile
 import threading
 import unittest
+from unittest import mock
 import urllib.request
 from pathlib import Path
 
@@ -216,7 +217,13 @@ class AiFeatureTests(unittest.TestCase):
     def test_environment_key_takes_precedence(self):
         self._configure(provider="anthropic", api_key="")
         os.environ["ANTHROPIC_API_KEY"] = "sk-from-environment-xyz9"
-        public = ai.public_settings(self.store.data_dir)
+        endpoint = f"http://127.0.0.1:{self.port}"
+        # This fake endpoint is not Anthropic's default, so the environment key
+        # is withheld (2026-11-19 security review) until the operator opts in.
+        with mock.patch.dict(os.environ, {ai.ENV_KEY_ENDPOINT_VAR: ""}):
+            self.assertEqual(ai.public_settings(self.store.data_dir)["key_source"], "none")
+        with mock.patch.dict(os.environ, {ai.ENV_KEY_ENDPOINT_VAR: endpoint}):
+            public = ai.public_settings(self.store.data_dir)
         self.assertEqual(public["key_source"], "env:ANTHROPIC_API_KEY")
         self.assertNotIn("sk-from-environment", json.dumps(public))
 

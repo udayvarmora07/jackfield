@@ -503,11 +503,12 @@ def cmd_validate(args, store: Store) -> int:
         return EXIT_OK if not any_errors else EXIT_ERROR
     for entry in results:
         status = colors.COLORS.green("ok") if entry["valid"] else colors.COLORS.red("invalid")
-        print(f"{entry['name']}: {status}")
+        # ``--path`` names come from the filesystem (often an extracted archive).
+        print(f"{_display(entry['name'])}: {status}")
         for message in entry["warnings"]:
-            print(f"  {colors.COLORS.yellow('warn')}  {message}")
+            print(f"  {colors.COLORS.yellow('warn')}  {_display(message)}")
         for message in entry["errors"]:
-            print(f"  {colors.COLORS.red('error')} {message}")
+            print(f"  {colors.COLORS.red('error')} {_display(message)}")
         _print_eval_report(entry.get("evals"))
     return EXIT_OK if not any_errors else EXIT_ERROR
 

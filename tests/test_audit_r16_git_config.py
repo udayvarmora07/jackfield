@@ -33,6 +33,8 @@ EXPECTED_OVERRIDES = (
     ("uploadpack.packObjectsHook", ""),
     ("core.gitProxy", ""),
     ("diff.external", ""),
+    # 2026-11-19 security review: a repository's pager may not come from it.
+    ("core.pager", "cat"),
 )
 EXPECTED_CONFIG_ARGV = [
     token for key, value in EXPECTED_OVERRIDES for token in ("-c", f"{key}={value}")
@@ -89,6 +91,14 @@ class GitConfigHardeningContracts(unittest.TestCase):
             for offset, (key, value) in enumerate(EXPECTED_OVERRIDES):
                 self.assertEqual(argv[4 + 2 * offset], "-c")
                 self.assertEqual(argv[5 + 2 * offset], f"{key}={value}")
+
+    def test_fetch_pins_upload_pack_over_repository_config(self):
+        # `remote.<name>.uploadpack` in repo config would run a program; the
+        # command-line option wins over it (2026-11-19 security review).
+        calls = self._capture_git_calls(lambda repo: backup_sync.git_fetch(repo))
+        fetch = next(argv for argv, _ in calls if "fetch" in argv)
+        self.assertIn("--upload-pack=git-upload-pack", fetch)
+        self.assertLess(fetch.index("fetch"), fetch.index("--upload-pack=git-upload-pack"))
 
     def test_environment_blocks_program_hooks_and_keeps_delegation(self):
         hostile = {name: "/tmp/evil-helper" for name in REMOVED_VARIABLES}

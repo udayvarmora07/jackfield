@@ -112,6 +112,19 @@ done.
   Skills Manager mark for "Your library"; README shows the agent row.
 - [x] v2: keyboard-shortcut help ("?") is reachable at tablet widths (601–900 px).
 - [x] CLI: typo hints for commands (all supported Pythons) and library skill names.
+- [x] Security review (subagent, each finding reproduced, then fixed):
+  environment API keys follow only the provider's default endpoint (operator
+  opt-in `SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT`); `untrusted_block` labels and
+  case-variant tags cannot end the data region; source manifests and tree
+  hashes are size-bounded and skip FIFOs; `validate --path` output sanitized;
+  `git_fetch` pins `--upload-pack` and the pager.
+- [ ] Residual: a repository-local `credential.helper` still runs during
+  `git_fetch` (resetting it would also clear the user's global helper); no
+  product caller uses `git_fetch` yet.
+- [x] v2 bug review (subagent, each finding verified): Ctrl+S save guard,
+  dialog Escape/Tab trap after a click, stale-response guards for refresh and
+  skill history, history reload after changes, Test connection keeps unsaved
+  AI settings, visible plurals.
 - [x] Docs audit (subagent, each finding re-verified): README data-root fix,
   localhost guidance, doctor drift recipe; CLI surface signatures for `create`,
   `trash restore`, `templates new`; `--scope` help lists `commandcode`.

@@ -71,9 +71,9 @@
       "lineno": 251
     },
     "skillsmgr/ai.py::_key_source": {
-      "complexity": 5,
-      "end_lineno": 200,
-      "lineno": 191
+      "complexity": 4,
+      "end_lineno": 254,
+      "lineno": 246
     },
     "skillsmgr/ai.py::_merged_settings": {
       "complexity": 11,
@@ -146,9 +146,9 @@
       "lineno": 211
     },
     "skillsmgr/ai.py::resolve_config": {
-      "complexity": 12,
-      "end_lineno": 326,
-      "lineno": 304
+      "complexity": 11,
+      "end_lineno": 390,
+      "lineno": 370
     },
     "skillsmgr/ai.py::save_settings": {
       "complexity": 5,
@@ -4146,9 +4146,9 @@
       "lineno": 697
     },
     "skillsmgr/source_lock.py::local_manifest": {
-      "complexity": 18,
-      "end_lineno": 132,
-      "lineno": 87
+      "complexity": 17,
+      "end_lineno": 145,
+      "lineno": 102
     },
     "skillsmgr/source_lock.py::preview_local_update": {
       "complexity": 14,

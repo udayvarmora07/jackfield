@@ -101,7 +101,7 @@
     <div class="page" v-else-if="route.page === 'skills'">
       <div class="shelf-head">
         <div><h1 class="h1" id="h1" tabindex="-1">Skills</h1>
-          <p class="lede">{{ fmt(shelfTotal) }} skills across {{ agentInfos.length }} tools, {{ grouping === 'category' ? 'grouped by category' : 'A to Z' }}. Open one to read, change or copy it.</p></div>
+          <p class="lede">{{ fmt(shelfTotal) }} {{ shelfTotal === 1 ? 'skill' : 'skills' }} across {{ plural(agentInfos.length, 'tool') }}, {{ grouping === 'category' ? 'grouped by category' : 'A to Z' }}. Open one to read, change or copy it.</p></div>
         <div class="instance-actions"><a class="btn btn-line" href="#/tools/install">Add from source</a><button type="button" class="btn btn-ink" @click="openCreate()"><ic name="plus"></ic>New skill</button></div>
       </div>
       <div class="tools">
@@ -397,7 +397,7 @@
 
   <!-- dialog -->
   <div class="scrim" v-if="dialog" @mousedown.self="closeDialog()" @keydown="dialogKeys($event)">
-    <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t" ref="dlg">
+    <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t" ref="dlg" tabindex="-1">
       <div class="dlg-h"><h2 id="dlg-t">{{ dialog.title }}</h2></div>
       <div class="dlg-b">
         <p v-for="(line, i) in dialog.lines" :key="i">{{ line }}</p>

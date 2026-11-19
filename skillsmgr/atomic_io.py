@@ -403,6 +403,20 @@ def tree_content_hash(root: Path) -> str:
             path = current / name
             if path.is_symlink():
                 continue
-            digest.update(str(path.relative_to(root)).encode("utf-8"))
-            digest.update(path.read_bytes())
+            _digest_member(digest, root, path)
     return digest.hexdigest()
+
+
+def _digest_member(digest, root: Path, path: Path) -> None:
+    """Add one regular file's name and bytes to ``digest``, streamed.
+
+    A FIFO or device would block or never end, so only regular files count.
+    Chunked reads give the same digest as hashing the whole file at once,
+    without holding a large file in memory.
+    """
+    if not path.is_file():
+        return
+    digest.update(str(path.relative_to(root)).encode("utf-8"))
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)

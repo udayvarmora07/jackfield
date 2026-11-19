@@ -108,6 +108,7 @@
     methods:{
       human(v){const t=String(v==null?'':v).replace(/[-_]+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'Unknown';},
       when(iso){if(!iso)return 'Not returned';const d=new Date(iso);if(isNaN(d))return String(iso);try{return new Intl.DateTimeFormat(this.locale==='system'?undefined:this.locale,{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(e){return String(iso)}},
+      pl(n,one,many){return window.SkillsV2Model.plural(n,one,many)},
       fmtN(n){if(n==null||n==='')return '—';try{return new Intl.NumberFormat(this.locale==='system'?undefined:this.locale).format(n)}catch(e){return String(n)}},
       scopeLabel(id){if(!id)return '';const s=this.scopes.find(x=>x.id===id);return id==='global'?'Your library':(s&&s.label)||id;},
       sevTone(s){return {error:'bad',warning:'warn',info:'info',unavailable:'off'}[s]||'off';},
@@ -503,7 +504,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <template v-if="catalog">
               <p v-if="!Object.keys(catalog.profiles||{}).length" class="tp-empty">No profiles yet. Fill in the profile details to create one.</p>
               <ul class="tp-rows"><li class="v2-tool-row tp-prof" :class="{on: profile.name===name}" v-for="(p,name) in catalog.profiles" :key="name">
-                <span class="tp-row-main"><strong>{{name}}</strong><small>{{(p.skills||[]).length}} skills<template v-if="p.description"> · {{p.description}}</template></small></span>
+                <span class="tp-row-main"><strong>{{name}}</strong><small>{{pl((p.skills||[]).length,'skill')}}<template v-if="p.description"> · {{p.description}}</template></small></span>
                 <span class="tp-acts"><button class="btn btn-line btn-sm" @click="previewProfile(name)">Preview</button><button class="btn btn-soft btn-sm" @click="editProfile(name,p)">Edit</button><button class="btn btn-danger btn-sm" :disabled="busy" @click="deleteProfile(name)" :aria-label="'Delete '+name">Delete</button></span>
               </li></ul>
             </template>
@@ -716,7 +717,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
           <template v-if="reportKind==='stats'">
             <div class="tp-stats"><div><b class="num">{{fmtN(report.all_total)}}</b><small>copies observed</small></div><div><b class="num">{{fmtN(report.all_tokens)}}</b><small>estimated tokens</small></div><div><b class="num">{{report.window_tokens ? (Math.round(1000*report.all_tokens/report.window_tokens)/10)+'%' : '—'}}</b><small>of the {{report.window}} window</small></div></div>
             <p class="tp-fine">{{report.has_tiktoken?'Counted with a tokenizer.':'Heuristic estimate (about four characters per token).'}} Not a guarantee of available context.</p>
-            <ul class="tp-rows"><li v-for="s in report.scopes||[]" :key="s.id" class="v2-tool-row"><span>{{scopeLabel(s.id)}}</span><span class="tp-count num">{{fmtN(s.count)}} skills · {{fmtN(s.tokens)}} tokens</span></li></ul>
+            <ul class="tp-rows"><li v-for="s in report.scopes||[]" :key="s.id" class="v2-tool-row"><span>{{scopeLabel(s.id)}}</span><span class="tp-count num">{{fmtN(s.count)}} {{s.count===1?'skill':'skills'}} · {{fmtN(s.tokens)}} tokens</span></li></ul>
             <h3 v-if="(report.largest||[]).length" class="tp-eyebrow tp-gap">Largest</h3>
             <ul class="tp-rows"><li v-for="(r,i) in report.largest||[]" :key="i" class="v2-tool-row"><span class="tp-row-main"><strong class="tp-mono">{{r.name}}</strong><small>{{scopeLabel(r.scope)}} · {{fmtN(r.tokens)}} tokens</small></span><button class="btn btn-line btn-sm" @click="inspectInstance(r)">Open</button></li></ul>
           </template>
@@ -838,7 +839,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <h2>Review and apply</h2>
             <section class="card tp-panel" aria-label="Review candidate">
               <header class="tp-panel-h"><div><p>Review {{sourceReview.review_id||'not persisted'}} · expires {{when(sourceReview.review_expires_at)}}</p></div><span :class="['pill', sourceReview.validation && sourceReview.validation.valid ? 'ok':'bad']">{{sourceReview.validation && sourceReview.validation.valid ? 'Valid' : 'Blocked'}}</span></header>
-              <h3>Changes <span class="tp-count">{{((sourceReview.comparison||{}).changed_files||[]).length}} files</span></h3>
+              <h3>Changes <span class="tp-count">{{pl(((sourceReview.comparison||{}).changed_files||[]).length,'file')}}</span></h3>
               <p v-if="!((sourceReview.comparison||{}).changed_files||[]).length" class="tp-empty">No file changes — nothing to apply.</p>
               <details v-for="change in ((sourceReview.comparison||{}).changed_files||[])" :key="change.path" class="tp-more"><summary><span :class="['tp-chg', change.status]">{{human(change.status)}}</span> <span class="tp-mono">{{change.path}}</span><span v-if="change.diff_truncated" class="tp-count"> · diff truncated</span></summary><p class="tp-fine">{{change.explanation}}</p><pre v-if="change.diff">{{change.diff}}</pre></details>
               <ai-briefing v-if="((sourceReview.comparison||{}).changed_files||[]).length" kind="update" :review-id="sourceReview.review_id"></ai-briefing>

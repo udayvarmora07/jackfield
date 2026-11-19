@@ -68,6 +68,9 @@ a { color: inherit; }
 /* ---------- Top bar ---------- */
 .top { position: sticky; top: 0; z-index: 40; height: 66px; display: flex; align-items: center; gap: 28px; padding: 0 32px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .brand { display: flex; flex-shrink: 0; white-space: nowrap; align-items: center; gap: 10px; font-weight: 800; font-size: 15.5px; text-decoration: none; }
+/* A click inside a dialog focuses the dialog itself, so Escape and the Tab
+ * trap keep working; that programmatic focus needs no ring. */
+.dlg:focus { outline: none; }
 /* The brand mark (same drawing as logo.svg), coloured by theme tokens so it
  * follows the in-app theme toggle rather than the OS colour scheme. */
 .mark { width: 30px; height: 30px; flex: none; display: block; }

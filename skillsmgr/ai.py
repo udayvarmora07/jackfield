@@ -212,12 +212,42 @@ def _cap(value, default: int, name: str) -> int:
     return value
 
 
-def _key_source(provider: str, stored: dict) -> tuple[str | None, str]:
-    spec = PROVIDERS.get(provider, {})
+#: Operator opt-in: the one custom endpoint an environment key may be sent to.
+#: It lives in the server's own environment, which no API caller can change.
+ENV_KEY_ENDPOINT_VAR = "SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT"
+
+
+def _env_key_allowed(spec: dict, stored: dict) -> bool:
+    """May an environment key go to the configured endpoint?
+
+    Only to the provider's own default endpoint, or to the single endpoint the
+    operator named in ``SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT``. Otherwise any
+    caller of the settings API could point ``base_url`` at itself and receive
+    ``OPENAI_API_KEY`` and friends on the next call.
+    """
+    endpoint = (stored.get("base_url") or spec.get("base_url") or "").rstrip("/")
+    if endpoint == (spec.get("base_url") or "").rstrip("/"):
+        return True
+    opted_in = os.environ.get(ENV_KEY_ENDPOINT_VAR, "").strip().rstrip("/")
+    return bool(opted_in) and opted_in == endpoint
+
+
+def _env_key(spec: dict, stored: dict) -> tuple[str | None, str]:
+    """The first environment key this endpoint may receive, with its name."""
+    if not _env_key_allowed(spec, stored):
+        return None, ""
     for name in spec.get("env", ()):
         value = os.environ.get(name, "").strip()
         if value:
-            return value, f"env:{name}"
+            return value, name
+    return None, ""
+
+
+def _key_source(provider: str, stored: dict) -> tuple[str | None, str]:
+    spec = PROVIDERS.get(provider, {})
+    value, name = _env_key(spec, stored)
+    if value:
+        return value, f"env:{name}"
     key = stored.get("api_key")
     if isinstance(key, str) and key:
         return key, "settings"
@@ -325,6 +355,18 @@ def save_settings(data_dir: Path, payload: dict) -> dict:
     return public_settings(data_dir)
 
 
+def _missing_key_message(spec: dict, stored: dict) -> str:
+    """Explain a missing key, including an environment key withheld by policy."""
+    envs = [name for name in spec.get("env", ()) if os.environ.get(name, "").strip()]
+    if envs and not _env_key_allowed(spec, stored):
+        endpoint = (stored.get("base_url") or spec["base_url"]).rstrip("/")
+        return (f"{envs[0]} is only sent to {spec['label']}'s default endpoint. Store a key "
+                f"for {endpoint} in AI settings, or set {ENV_KEY_ENDPOINT_VAR}={endpoint} "
+                "in the server's environment to allow it.")
+    names = " or ".join(spec.get("env", ())) or "an API key"
+    return f"{spec['label']} needs an API key: add one in AI settings or set {names}."
+
+
 def resolve_config(data_dir: Path) -> dict:
     """The full call configuration, key included.  Never serialize this."""
     stored = _read_settings(data_dir)
@@ -335,9 +377,7 @@ def resolve_config(data_dir: Path) -> dict:
     spec = PROVIDERS[provider]
     key, _source = _key_source(provider, stored)
     if spec["key"] and not key:
-        envs = " or ".join(spec.get("env", ())) or "an API key"
-        raise AiError(f"{spec['label']} needs an API key: add one in AI settings or set {envs}.",
-                      "ai-not-configured", 409)
+        raise AiError(_missing_key_message(spec, stored), "ai-not-configured", 409)
     return {
         "provider": provider, "kind": spec["kind"], "label": spec["label"],
         "model": stored["model"], "base_url": stored.get("base_url") or spec["base_url"],
@@ -558,10 +598,21 @@ class ClientDisconnected(Exception):
 # -- output helpers ---------------------------------------------------------
 
 
+_UNTRUSTED_TAG = re.compile(r"<(/?)(untrusted)", re.IGNORECASE)
+_LABEL_UNSAFE = re.compile(r"[^A-Za-z0-9 ._/-]")
+
+
 def untrusted_block(label: str, text: str) -> str:
-    """Wrap untrusted content so the model is told it is data, not instructions."""
-    safe = str(text).replace("</untrusted", "<\\/untrusted")
-    return (f"<untrusted kind=\"{label}\">\n{safe}\n</untrusted>")
+    """Wrap untrusted content so the model is told it is data, not instructions.
+
+    Labels can carry archive- or skill-controlled file names, so they are
+    reduced to a safe character set (no quotes, angle brackets or newlines).
+    Any opening or closing ``untrusted`` tag in the text, in any letter case,
+    is defanged so the text cannot end the data region early.
+    """
+    kind = _LABEL_UNSAFE.sub("_", str(label))[:120]
+    safe = _UNTRUSTED_TAG.sub(lambda m: "<\\" + m.group(1) + m.group(2), str(text))
+    return (f"<untrusted kind=\"{kind}\">\n{safe}\n</untrusted>")
 
 
 UNTRUSTED_RULE = (

@@ -84,6 +84,21 @@ def _relative_file(root: Path, path: Path) -> str:
     return relative
 
 
+def _read_capped(path: Path, relative: str) -> bytes:
+    """Read one source file, refusing it by size before and during the read.
+
+    A huge (or growing) file must not exhaust memory before the cap applies.
+    """
+    too_big = SourceLockError(f"source file exceeds {MAX_SOURCE_FILE_BYTES} bytes: {relative}")
+    if path.stat().st_size > MAX_SOURCE_FILE_BYTES:
+        raise too_big
+    with path.open("rb") as handle:
+        raw = handle.read(MAX_SOURCE_FILE_BYTES + 1)
+    if len(raw) > MAX_SOURCE_FILE_BYTES:
+        raise too_big
+    return raw
+
+
 def local_manifest(root: str | Path) -> dict:
     """Read a bounded regular-file manifest without following symlinks."""
     root = Path(root).expanduser()
@@ -102,9 +117,7 @@ def local_manifest(root: str | Path) -> dict:
             if not path.is_file():
                 continue
             relative = _relative_file(root, path)
-            raw = path.read_bytes()
-            if len(raw) > MAX_SOURCE_FILE_BYTES:
-                raise SourceLockError(f"source file exceeds {MAX_SOURCE_FILE_BYTES} bytes: {relative}")
+            raw = _read_capped(path, relative)
             total += len(raw)
             if total > MAX_SOURCE_TOTAL_BYTES:
                 raise SourceLockError(f"source exceeds {MAX_SOURCE_TOTAL_BYTES} bytes")

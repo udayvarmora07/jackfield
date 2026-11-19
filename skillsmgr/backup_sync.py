@@ -62,6 +62,12 @@ _GIT_CONFIG_OVERRIDES = (
     ("uploadpack.packObjectsHook", ""),
     ("core.gitProxy", ""),
     ("diff.external", ""),
+    # 2026-11-19 review: a repository's own config could name a pager to run.
+    # `credential.helper` is deliberately NOT reset: `-c credential.helper=`
+    # clears the user's global helper too and breaks private HTTPS remotes.
+    # A repo-local helper therefore remains a residual risk (task.md), and
+    # `git_fetch` has no product caller yet.
+    ("core.pager", "cat"),
 )
 # Environment wins over `core.sshCommand`, so pinning the SSH command here
 # closes the same hole for a Git build that reads the variable first.
@@ -381,7 +387,9 @@ def git_fetch(repo: str | Path, *, remote: str = "origin", refspec: str | None =
               timeout: float = 60.0) -> dict:
     """Fetch one configured Git remote without accepting a credential argument."""
     info = git_remote_info(repo, remote=remote)
-    arguments = ["fetch", "--no-tags", remote]
+    # The command line beats `remote.<name>.uploadpack` in repository config,
+    # which would otherwise run an arbitrary program during the fetch.
+    arguments = ["fetch", "--no-tags", "--upload-pack=git-upload-pack", remote]
     if refspec is not None:
         if not isinstance(refspec, str) or not _REFSPEC.fullmatch(refspec) or ".." in refspec:
             raise BackupSyncError("Git refspec is invalid")

@@ -367,7 +367,7 @@ class ToolBehaviorTests(unittest.TestCase):
           ctx.window.SkillsV2Model={plural:(n,s)=>s};
           vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
           const metadata={category:'',version:'',license:'',compatibility:'',allowed_tools:''};
-          const h={edit:{name:'one',desc:'Unchanged',baseDesc:'Unchanged',body:'# Changed',baseBody:'# Original',metadata,baseMetadata:{...metadata},targets:['global']},editError:'',snapshotIds:async()=>[],refresh:async()=>{},toast:()=>{}};
+          const h={edit:{name:'one',desc:'Unchanged',baseDesc:'Unchanged',body:'# Changed',baseBody:'# Original',metadata,baseMetadata:{...metadata},targets:['global']},editError:'',busy:false,editDirty:true,snapshotIds:async()=>[],refresh:async()=>{},toast:()=>{}};
           await component.methods.saveEdit.call(h);return JSON.parse(calls[0].opts.body);
         """)
         self.assertEqual(out, {"body": "# Changed"})
