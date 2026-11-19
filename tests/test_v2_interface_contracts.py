@@ -227,11 +227,14 @@ class AgentIconTests(unittest.TestCase):
     def test_each_vendored_mark_is_path_data_with_a_licence_note(self):
         source = (V2 / "model.js").read_text(encoding="utf-8")
         block = source[source.index("const AGENT_ICONS"):source.index("function hash")]
-        rows = re.findall(r'^\s+"([a-z-]+)": \{ d: "([^"]+)", .*// (.+)$', block, re.M)
-        self.assertEqual({r[0] for r in rows}, {"claude-code", "codex", "cursor", "gemini", "opencode"})
-        for agent, path, note in rows:
-            self.assertRegex(path, r"^[MmZzLlHhVvCcSsQqTtAa0-9.,\s-]+$", agent)
-            self.assertRegex(note, r"(CC0-1\.0|MIT)$", agent)
+        rows = re.findall(r'^\s+"([a-z-]+)": \{ vb: "([0-9 ]+)", paths: \[(.+)\] \}, // (.+)$', block, re.M)
+        self.assertEqual({r[0] for r in rows},
+                         {"claude-code", "codex", "cursor", "gemini", "opencode", "commandcode", "agents", "global"})
+        for agent, view_box, paths, note in rows:
+            self.assertEqual(len(view_box.split()), 4, agent)
+            for path in re.findall(r'd: "([^"]+)"', paths):
+                self.assertRegex(path, r"^[MmZzLlHhVvCcSsQqTtAa0-9.,\s-]+$", agent)
+            self.assertRegex(note, r"(CC0-1\.0|MIT|Apache-2\.0)$", agent)
 
     def test_agents_without_a_mark_keep_the_initials_badge(self):
         app =(V2 / "app.js").read_text(encoding="utf-8")

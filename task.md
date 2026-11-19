@@ -107,6 +107,9 @@ done.
   initials badges across v2, vendored from Simple Icons (CC0) and theSVG (MIT);
   Command Code and the shared folder keep badges (no open mark exists).
 - [x] Scope label "Opencode" corrected to the project's own "OpenCode".
+- [x] Missing marks filled: Command Code's official ⌘ symbol and the Agent Skills
+  hexagon (both from the Apache-2.0 agentskills/agentskills repo), and the
+  Skills Manager mark for "Your library"; README shows the agent row.
 - [/] Loop 4+ evaluation and improvements.
 
 Open for the maintainer:

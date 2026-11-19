@@ -66,6 +66,14 @@ so they invert in dark mode. Command Code and the shared skills folder keep
 initials badges because no open mark exists. All seven routes still pass axe
 WCAG 2.2 AA in light and dark.
 
+**[NOTE] Missing marks filled.** The Agent Skills standard's own repository
+(agentskills/agentskills, Apache-2.0) carries official adopter logos, so
+Command Code now shows its ⌘ symbol (extracted from its lockup) and the shared
+`~/.agents/skills` folder shows the Agent Skills hexagon. "Your library" shows
+the Skills Manager mark. The icon table supports several paths per mark, a
+custom viewBox and theme-token fills. `docs/images/agents/*.svg` are generated
+from the same table with a dark-scheme rule and form the README agent row.
+
 **[NOTE] Logo research and refinement (superseded mark).** A survey of logo tooling found no
 MCP server worth adopting: the SVG-generation servers wrap an image model
 (the "AI slop" risk), and the icon servers only search existing sets. The

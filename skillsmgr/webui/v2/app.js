@@ -962,7 +962,7 @@ app.component("logo", {
   /* A real agent mark when one is vendored (model.js AGENT_ICONS), otherwise
    * the initials badge. Both are decorative: the agent name is always shown. */
   template: '<span v-if="agent.icon" :class="[\'logo\', \'mark-tile\', size]" aria-hidden="true">'
-    + '<svg viewBox="0 0 24 24"><path :d="agent.icon.d" :fill="agent.icon.fill || \'currentColor\'" :fill-rule="agent.icon.evenodd ? \'evenodd\' : null"></path></svg></span>'
+    + '<svg :viewBox="agent.icon.vb"><path v-for="(p, i) in agent.icon.paths" :key="i" :d="p.d" :style="{ fill: p.fill || \'currentColor\' }" :fill-rule="p.evenodd ? \'evenodd\' : null"></path></svg></span>'
     + '<span v-else :class="[\'logo\', size]" :style="{ background: agent.color }" aria-hidden="true">{{ agent.initials }}</span>',
 });
 

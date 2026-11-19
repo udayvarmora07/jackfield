@@ -9,6 +9,8 @@
 A local CLI and web UI for Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Command Code and anything that reads `~/.agents/skills`.
 No account, no telemetry, no runtime dependencies.
 
+<img src="docs/images/agents/claude-code.svg" width="28" height="28" alt="Claude Code" title="Claude Code"> <img src="docs/images/agents/codex.svg" width="28" height="28" alt="Codex" title="Codex"> <img src="docs/images/agents/cursor.svg" width="28" height="28" alt="Cursor" title="Cursor"> <img src="docs/images/agents/opencode.svg" width="28" height="28" alt="OpenCode" title="OpenCode"> <img src="docs/images/agents/gemini.svg" width="28" height="28" alt="Gemini CLI" title="Gemini CLI"> <img src="docs/images/agents/commandcode.svg" width="28" height="28" alt="Command Code" title="Command Code"> <img src="docs/images/agents/agents.svg" width="28" height="28" alt="Agent Skills (~/.agents/skills)" title="Agent Skills (~/.agents/skills)">
+
 [![CI](https://github.com/udayvarmora07/skills-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/udayvarmora07/skills-manager/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/skill-control-plane.svg)](https://pypi.org/project/skill-control-plane/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](pyproject.toml)
