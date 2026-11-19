@@ -1046,6 +1046,20 @@ def _open_risk_directory(directory: Path, root_real: Path,
     return descriptor
 
 
+def _directory_identity(child: os.DirEntry, path: Path):
+    """``stat`` of a scanned directory with a real device and inode.
+
+    Windows: ``DirEntry.stat()`` reports ``st_dev`` and ``st_ino`` as zero,
+    which would never match the identity ``os.stat()`` gives when the directory
+    is opened later, so every nested directory read as "changed" and the whole
+    tree was reported ``listing-incomplete``.
+    """
+    metadata = child.stat(follow_symlinks=False)
+    if not metadata.st_ino:
+        metadata = os.stat(path, follow_symlinks=False)
+    return metadata
+
+
 def _queue_risk_directory(path: Path, metadata, pending: list,
                           directories_seen: int, incomplete: list[bool]) -> None:
     """Queue a checked directory or remember that the traversal cap omitted it."""
@@ -1085,13 +1099,7 @@ def _risk_visit_directory(root: Path, directory: Path,
                     continue
                 path = directory / child.name
                 if child.is_dir(follow_symlinks=False):
-                    metadata = child.stat(follow_symlinks=False)
-                    if not metadata.st_ino:
-                        # Windows: DirEntry.stat() reports st_dev and st_ino as
-                        # zero, which would never match the identity that
-                        # os.stat() gives when the directory is opened later,
-                        # so every nested directory read as "changed".
-                        metadata = os.stat(path, follow_symlinks=False)
+                    metadata = _directory_identity(child, path)
                     _queue_risk_directory(path, metadata, pending,
                                           directories_seen, traversal_incomplete)
                     continue

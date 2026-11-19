@@ -339,6 +339,14 @@ class RegexTimeout(Exception):
     """Raised internally when a regex assertion exceeds its wall-clock budget."""
 
 
+def _require_regex_timer() -> None:
+    """Refuse a regex search that this process could not time out safely."""
+    if threading.current_thread() is not threading.main_thread():
+        raise RegexUnavailable(REGEX_UNSAFE_THREAD_REASON)
+    if not hasattr(signal, "SIGALRM") or not hasattr(signal, "setitimer"):
+        raise RegexUnavailable(REGEX_NO_TIMER_REASON)
+
+
 @contextmanager
 def _regex_deadline(seconds: float = REGEX_TIMEOUT_SECONDS):
     """Abort a runaway regex search instead of hanging the process (CLI-1).
@@ -347,10 +355,7 @@ def _regex_deadline(seconds: float = REGEX_TIMEOUT_SECONDS):
     so this is deliberately narrow: the alarm is armed around one ``re`` call
     and always disarmed afterwards, and the previous handler is restored.
     """
-    if threading.current_thread() is not threading.main_thread():
-        raise RegexUnavailable(REGEX_UNSAFE_THREAD_REASON)
-    if not hasattr(signal, "SIGALRM") or not hasattr(signal, "setitimer"):
-        raise RegexUnavailable(REGEX_NO_TIMER_REASON)
+    _require_regex_timer()
 
     def _expired(signum, frame):
         raise RegexTimeout(f"regex assertion exceeded {seconds:g}s")
