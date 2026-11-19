@@ -1,5 +1,6 @@
 import hashlib
 import tempfile
+import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -90,6 +91,11 @@ class DocumentFingerprintsTests(unittest.TestCase):
         self.assertTrue(report['summary']['partial'])
         self.assertEqual(report['document_fingerprints']['status'], 'partial')
 
+    @unittest.skipIf(
+        sys.platform == "win32" and sys.version_info >= (3, 14),
+        "Python 3.14 on Windows resolves a path containing NUL without raising ValueError, "
+        "which is the failure this test provokes",
+    )
     def test_context_resolution_error_does_not_crash(self):
         store = SimpleNamespace(data_dir='bad\x00path')
         with mock.patch.object(doctor, '_hygiene_records', return_value=([], [])):
