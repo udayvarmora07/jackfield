@@ -70,6 +70,8 @@ import tempfile
 from pathlib import Path
 from typing import Callable
 
+from .path_safety import fchmod_private
+
 
 #: A review id is exactly 32 lowercase hexadecimal characters.  All three
 #: stores built paths from this shape before writing anything.
@@ -213,7 +215,7 @@ def write_private_bytes(path: str | Path, payload: bytes) -> None:
     temporary_path = Path(temporary)
     try:
         try:
-            os.fchmod(fd, 0o600)
+            fchmod_private(fd)
         except BaseException:
             os.close(fd)
             raise

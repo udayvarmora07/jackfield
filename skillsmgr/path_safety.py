@@ -13,6 +13,18 @@ from typing import Iterator
 from .validator import validate_skill_name
 
 
+def fchmod_private(fd: int) -> None:
+    """Make an open descriptor owner-only where the platform has ``fchmod``.
+
+    ``os.fchmod`` does not exist on Windows, where file modes carry no
+    owner/group/other meaning and ``tempfile.mkstemp`` already restricts the
+    file to the current user.  Everywhere else the explicit 0600 stays.
+    """
+    fchmod = getattr(os, "fchmod", None)
+    if fchmod is not None:
+        fchmod(fd, 0o600)
+
+
 def canonical_mkdtemp(prefix: str) -> Path:
     """``tempfile.mkdtemp`` returning the symlink-free (canonical) path.
 
