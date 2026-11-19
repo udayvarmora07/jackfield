@@ -86,6 +86,11 @@ FAKE = textwrap.dedent(
 )
 
 
+@unittest.skipIf(
+    os.name == "nt",
+    "the fake SkillSpector is a #!-script plus POSIX mode checks; Windows cannot execute "
+    "a shebang script, so the hook is exercised against the real tool where installed",
+)
 class _FakeScannerCase(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="skillsmgr-extscan-"))

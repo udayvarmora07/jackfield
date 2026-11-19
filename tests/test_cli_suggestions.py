@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
 import sys
 import tempfile
 import unittest
@@ -46,8 +47,11 @@ class SkillNameHintTests(unittest.TestCase):
                              "-d", "Use when handling PDF files"])
         self.assertEqual(code, 0, err)
         skills = next(self.data.rglob("pdf-tools")).parent
-        # A hostile folder name must never be echoed to the terminal.
-        (skills / "pdf-tool\x1b[31m").mkdir()
+        # A hostile folder name must never be echoed to the terminal. Windows
+        # file names cannot contain a control character, so the folder cannot
+        # exist there and the hostile-name case is a POSIX-only scenario.
+        if os.name != "nt":
+            (skills / "pdf-tool\x1b[31m").mkdir()
 
     def tearDown(self):
         self.tmp.cleanup()
