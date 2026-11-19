@@ -15,8 +15,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import browser_harness
-import desktop_launcher
 from skillsmgr.launcher_security import trusted_executable
 
 

@@ -76,6 +76,39 @@ Evidence and remaining decisions are recorded in @docs/06-progress-log.md.
 - [x] Add an evidence-only context sweep with explicit invocation.
 - [x] Verify and correct stale guidance in the current session entry points.
 
+## Autonomous review and improvement loops (2026-11-19)
+
+The maintainer asked for an in-depth review, then repeated improve/evaluate
+loops while away. Locked constraints and ASK gates still apply; items that
+need a decision are listed under "Open for the maintainer" instead of being
+done.
+
+- [x] Loop 1 — review: backend, web security boundary, v2 UI (live), lint.
+- [x] v2 nav: fade the tab strip only while tabs are actually clipped.
+- [x] v2 skill page: library-only skills say "only in your library", not "in 0 places".
+- [x] v2 Markdown: a link address with parentheses is shown whole.
+- [x] Static gate: Ruff selects all of pyflakes (`F`); 40 dead imports/variables removed.
+- [x] Remove unreferenced prototype/design-concept folders and generated build output.
+- [x] Loop 2 — evaluate as a user with Lighthouse and axe-core (agent-browser `a11y`).
+- [x] v2: turned-off cards keep AA contrast (dashed edge, muted tokens; no opacity).
+- [x] v2: Claude/Gemini badge fills darkened to clear 4.5:1 under white initials; test added.
+- [x] Every v2 page passes axe WCAG 2.2 AA in light and dark; Lighthouse a11y 100.
+- [x] Brand: hand-drawn SVG mark (a skill page carrying a switch), v2 favicon,
+  theme-token header mark and README logo; flat palette, no gradients or glyph tropes.
+- [/] Loop 3+ evaluation and improvements.
+
+Open for the maintainer:
+
+- [ ] Issue #14 F-2: accept `localhost:<port>` as a Host alias for a loopback bind?
+- [ ] ADR-001 revisit: loopback is reachable by every local OS user, and
+  `POST /api/install {"run": true}` executes the npm runner; a per-user token
+  file (0600) would close that without a remote attack surface.
+- [ ] `.specs/` (40 MB evidence) and history purge: keep, move, or rewrite history?
+- [ ] `GET /api/skills?scope=all` sends ~4.8 MB for ~2,100 records; `portable_frontmatter`
+  (17%) is read by neither UI. Trim it from list rows, or add an opt-in field set?
+- [ ] Card `aria-label`s fail axe's experimental label-content-name-mismatch
+  (weight 0); decide whether accessible names should mirror visible card text.
+
 ## Remaining gated and deferred entries
 
 The 13 open entries include 12 pending and one in progress, with
@@ -143,7 +176,7 @@ are historical; the queue above is authoritative.
 - [x] Use UI/UX Craft, Design Taste Frontend, Better Accessibility and Frontend
   UI Engineering; inspect three archived Inspo captures. Preserve v2's existing
   warm-paper/serif design. Luna/Terra provided scoped implementation and review.
-- [x] Build the approved [demo-only mockups](prototype-v2-parity/README.md), then
+- [x] Build the approved [demo-only mockups](https://github.com/udayvarmora07/skills-manager/blob/515f5be/prototype-v2-parity/README.md), then
   follow the user's expanded instruction to integrate production workflows.
 - [x] Integrate Install, Profiles, Templates, Quality, Workspaces, Settings,
   source updates/snapshots, scoped history, full-archive modes, exact-instance

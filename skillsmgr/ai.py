@@ -27,7 +27,7 @@ from __future__ import annotations
 import hashlib
 import contextvars
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 import json
 import os
 import re
@@ -537,7 +537,7 @@ def _release_day_tokens(data_dir: Path, key: str) -> None:
 
 _disconnect_check = contextvars.ContextVar("ai_disconnect_check", default=None)
 _retry_hook = contextvars.ContextVar("ai_retry_hook", default=None)
-_run_context = contextvars.ContextVar("ai_run_context", default={})
+_run_context = contextvars.ContextVar("ai_run_context", default=None)
 
 
 @contextmanager
@@ -869,7 +869,7 @@ class AiRun:
         check = _disconnect_check.get()
         if not self.estimate_only and check is not None and check():
             from .ai_skills import _save_run
-            _save_run(self.data_dir, {**_run_context.get(), "kind": self.feature,
+            _save_run(self.data_dir, {**(_run_context.get() or {}), "kind": self.feature,
                                       "status": "disconnected", "run": self.label()})
             raise ClientDisconnected()
 

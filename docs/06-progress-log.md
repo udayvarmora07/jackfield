@@ -7,6 +7,36 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-19 — Review loop 1: UI fixes, pyflakes gate, repository cleanup
+
+**[NOTE]** An in-depth review (backend, web security boundary, live v2 UI,
+lint) produced three v2 fixes: the narrow-width tab mask now applies only
+while tabs are clipped (it dimmed "Tools" when every tab fit); a skill held
+only in the library reads "only in your library" instead of "in 0 places";
+and a Markdown link address containing parentheses is no longer cut short
+(new regression test). Ruff now selects all of pyflakes, and 40 dead
+imports/variables were removed. Seven `prototype-*` folders, `design-concepts/`
+and `.design/` (about 18 MB, referenced by no code, test, CI or packaging)
+were removed; three historical links now point at commit `515f5be`.
+`.specs/` evidence is kept pending a maintainer decision.
+
+**[NOTE] Loop 2 (accessibility).** Lighthouse scored v2 accessibility 96: 1,508
+text nodes on turned-off skill cards fell to 2.4–2.8:1 because the card was
+dimmed with `opacity: .6`. Those cards are links, so AA applies; they now use a
+dashed edge and passing muted tokens. axe-core (agent-browser `a11y`, WCAG 2.2
+AA tags) then flagged white initials on the Claude (3.1:1) and Gemini (4.1:1)
+badges; both fills were darkened along their hue to 4.6/4.8:1, and a test pins
+every badge fill at 4.5:1 or better. All seven v2 routes now pass axe in light
+and dark; Lighthouse reports accessibility, best practices and SEO at 100.
+
+**[NOTE] Brand mark.** v2 had no favicon (`data:,`) and a text "SM" tile. The
+new mark is drawn by hand on a 32-unit grid: a folded skill page carrying a
+switch, the product's core action. `skillsmgr/webui/v2/logo.svg` is the
+favicon and README logo and inverts on dark colour schemes; the header carries
+the same drawing coloured by theme tokens so it follows the in-app toggle.
+Checked at 16–160 px on light and dark grounds; a test keeps the file
+well-formed XML, since a malformed SVG decodes to a silent 0x0 image.
+
 ## 2026-11-18 — Evidence-based context sweep
 
 **[NOTE]** Applied the supplied video's context-management practices to
@@ -330,7 +360,7 @@ The [design inventory](superpowers/specs/2026-11-06-v2-feature-parity-design.md)
 records the source baseline; the
 [implementation plan](superpowers/plans/2026-11-06-v2-feature-parity.md)
 records acceptance evidence. The
-[earlier mockup](../prototype-v2-parity/README.md) remains an isolated design aid.
+[earlier mockup](https://github.com/udayvarmora07/skills-manager/blob/515f5be/prototype-v2-parity/README.md) remained an isolated design aid (removed from the tree 2026-11-19; last present in `515f5be`).
 
 V2 now contains the remaining classic workflows: registry/runner/folder install,
 profiles, templates, hygiene/validation/diagnostics, workspaces, preferences and

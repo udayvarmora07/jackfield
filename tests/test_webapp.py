@@ -3,7 +3,6 @@
 import io
 import json
 import os
-import tarfile
 import tempfile
 import unittest
 import unittest.mock
@@ -673,7 +672,6 @@ class DoctorScopeEnrichmentSeamTests(unittest.TestCase):
         )
         self.store.resync()
 
-        from skillsmgr import scopes
 
         context.set_active_store(self.store)
         self.addCleanup(context.set_active_store, None)

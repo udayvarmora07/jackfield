@@ -25,7 +25,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from skillsmgr import context
-from skillsmgr import cli, external_scan, scopes, source_update
+from skillsmgr import cli, external_scan, source_update
 from skillsmgr.webapp import WebAppServer
 from skillsmgr.store import Store, StoreError
 

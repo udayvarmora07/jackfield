@@ -948,7 +948,6 @@ context.runGuideExplain().then(() => console.log(JSON.stringify({
         self.assertNotIn('border-left: 3px solid var(--border-strong)', css)
 
     def test_browse_mode_controls_and_cards_are_keyboard_accessible(self):
-        source = _read(APP_JS)
         html = _read(INDEX_HTML)
         css = _read(ROOT / "skillsmgr" / "webui" / "styles.css")
         self.assertIn(':aria-pressed="browseMode === \'list\'"', html)

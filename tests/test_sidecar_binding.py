@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from skillsmgr import context
-from skillsmgr import atomic_io, hygiene, registry, scopes, sidecar_binding
+from skillsmgr import atomic_io, hygiene, registry, sidecar_binding
 from skillsmgr.source_lock import (
     SourceLockError,
     local_manifest,
@@ -371,7 +371,6 @@ class SidecarBindingTests(unittest.TestCase):
 
     def test_external_binding_uses_active_store_not_registration_order(self):
         from types import SimpleNamespace
-        from skillsmgr import scopes
 
         skill = self.home / "external"
         skill.mkdir()

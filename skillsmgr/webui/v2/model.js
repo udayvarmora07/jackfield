@@ -18,12 +18,13 @@
   const words = (tokens) => Math.round((tokens * 0.75) / 10) * 10;
 
   /* ---------- Agents ---------- */
+  /* Badge fills carry white initials, so each clears 4.5:1 (WCAG AA) on #fff. */
   const BRAND = {
-    "claude-code": ["CC", "#d97757"], codex: ["CX", "#2f6f5e"], cursor: ["CU", "#1b1d22"],
-    gemini: ["GE", "#3d7be0"], opencode: ["OC", "#b04a7a"], commandcode: ["CM", "#7a5ad6"],
+    "claude-code": ["CC", "#b85a3a"], codex: ["CX", "#2f6f5e"], cursor: ["CU", "#1b1d22"],
+    gemini: ["GE", "#2f6fd6"], opencode: ["OC", "#b04a7a"], commandcode: ["CM", "#7a5ad6"],
     agents: ["SF", "#55585f"], global: ["LB", "#55585f"],
   };
-  const PALETTE = ["#d97757", "#2f6f5e", "#3d7be0", "#b04a7a", "#7a5ad6", "#a2510a", "#0e7490", "#1c7a47"];
+  const PALETTE = ["#b85a3a", "#2f6f5e", "#2f6fd6", "#b04a7a", "#7a5ad6", "#a2510a", "#0e7490", "#1c7a47"];
   function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
   function initialsOf(label) {
     const parts = String(label || "?").split(/[\s_-]+/).filter(Boolean);
@@ -323,7 +324,8 @@
       .replace(/`([^`]+)`/g, "<code>$1</code>")
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>")
-      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, "$1 <code>$2</code>");
+      /* One level of balanced parentheses, so `…/Foo_(bar)` is not cut short. */
+      .replace(/\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)/g, "$1 <code>$2</code>");
     const wrap = (raw, html) => (set.has(raw.trim()) ? `<mark>${html}</mark>` : html);
     const out = []; let list = null; let fence = false;
     const close = () => { if (list) { out.push(`</${list}>`); list = null; } };

@@ -116,10 +116,13 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("--fix", text)
         self.assertNotIn("ruff format", text)
 
-    def test_ruff_configuration_is_only_the_three_undefined_name_rules(self):
+    def test_ruff_configuration_is_exactly_the_pyflakes_family(self):
+        # Widened deliberately on 2026-11-19 (docs/STATIC-ANALYSIS.md): pin the
+        # family so a later change cannot silently narrow or broaden the gate.
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('[tool.ruff]\ntarget-version = "py311"', pyproject)
-        self.assertIn('select = ["F821", "F822", "F823"]', pyproject)
+        self.assertIn('select = ["F"]', pyproject)
+        self.assertEqual(pyproject.count("select = "), 1)
         self.assertNotIn("ruff", pyproject.split("[project]", 1)[1].split("[project.urls]", 1)[0].lower())
 
     def test_ci_matrix_covers_supported_interpreters(self):

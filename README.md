@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="skillsmgr/webui/v2/logo.svg" width="72" height="72" alt="">
+
 # skills-manager
 
 **One place to see, fix, sync and back up the `SKILL.md` skills of every AI coding agent on your machine.**

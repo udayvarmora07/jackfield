@@ -36,7 +36,6 @@ from __future__ import annotations
 import io
 import json
 import os
-import re
 import tarfile
 import tempfile
 import unittest
@@ -44,7 +43,7 @@ import zipfile
 from pathlib import Path
 
 from skillsmgr import context
-from skillsmgr import documents, loader, scopes
+from skillsmgr import documents, scopes
 from skillsmgr.store import SkillNotFound, Store, StoreError
 
 ACTIVE = "SKILL.md"
@@ -238,7 +237,7 @@ class TestBothMessageShapesArePreserved(InvariantHomeTestCase):
         )
 
     def test_the_store_toggle_message_does_not_name_a_scope(self):
-        d = self._mixed_global("storem")
+        self._mixed_global("storem")
         for enable in (False, True):
             with self.subTest(enable=enable):
                 call = (

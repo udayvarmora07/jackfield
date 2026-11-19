@@ -6,7 +6,7 @@
   <title>Skills Manager</title>
   <meta name="description" content="Inspect detected AI tools, their skill copies and differences. Local only.">
   <script src="../preferences.js"></script>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="tools.css">
 </head>
@@ -14,8 +14,8 @@
 <div id="app" v-cloak>
   <a class="skip" href="#main" @click.prevent="skipToContent()">Skip to content</a>
   <header class="top" :inert="!!dialog">
-    <a class="brand" href="#/home" aria-label="Skills Manager home"><span class="mark" aria-hidden="true">SM</span><span class="brand-t">Skills Manager</span></a>
-    <nav class="tabs" aria-label="Main">
+    <a class="brand" href="#/home" aria-label="Skills Manager home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path class="pg" d="M7 2.5h12.5L27 10v17.5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-23a2 2 0 0 1 2-2Z"/><path class="fd" d="M19.5 2.5V8a2 2 0 0 0 2 2H27Z"/><rect class="ln" x="9" y="12" width="9" height="2.2" rx="1.1"/><rect class="tr" x="9" y="18.5" width="14" height="7" rx="3.5"/><circle class="kn" cx="19.5" cy="22" r="2.3"/></svg><span class="brand-t">Skills Manager</span></a>
+    <nav class="tabs" ref="tabs" aria-label="Main" @scroll.passive="updateTabsClip">
       <a href="#/home" :aria-current="route.page === 'home' ? 'page' : null">Home</a>
       <a href="#/skills" :aria-current="route.page === 'skills' || route.page === 'skill' ? 'page' : null">Skills</a>
       <a href="#/map" :aria-current="route.page === 'map' ? 'page' : null">Sync map</a>
@@ -162,7 +162,7 @@
           <!-- read -->
           <div class="sheet" v-if="!edit">
             <article>
-              <p class="meta">{{ skill.category || 'Skill' }} · in {{ plural(skill.tools.length, 'place') }}</p>
+              <p class="meta">{{ skill.category || 'Skill' }} · {{ skill.tools.length ? 'in ' + plural(skill.tools.length, 'place') : 'only in your library' }}</p>
               <h1 class="doc-title" id="h1" tabindex="-1">{{ titleCase(skill.name) }}</h1>
               <p class="doc-lead">{{ skill.description || 'No description yet.' }}</p>
               <div class="inline-note bad" v-if="skill.status.key === 'bad'"><b>Problem:</b> {{ brokenText }}<br><button type="button" class="btn btn-ink btn-sm" @click="fixSkillBad()">{{ brokenAction }}</button></div>

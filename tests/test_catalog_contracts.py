@@ -72,7 +72,6 @@ class CatalogWebContractTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        from skillsmgr import scopes
 
         cls.server.shutdown()
         cls.thread.join(timeout=5)

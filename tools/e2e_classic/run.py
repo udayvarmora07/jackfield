@@ -8,7 +8,6 @@ The unauthenticated service is bound to 127.0.0.1 only: that binding is its
 sole security boundary, so never forward or tunnel the port.
 """
 import argparse
-import json
 import os
 from pathlib import Path
 import stat

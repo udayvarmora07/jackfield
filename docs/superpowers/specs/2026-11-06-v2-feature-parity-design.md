@@ -4,7 +4,7 @@
 
 **AI manifest:** Design proposal and source-backed parity inventory for the
 remaining classic-interface features. Companion mockups live in
-[prototype-v2-parity](../../../prototype-v2-parity/README.md). This is a review
+[prototype-v2-parity](https://github.com/udayvarmora07/skills-manager/blob/515f5be/prototype-v2-parity/README.md) (removed from the tree 2026-11-19; last present in `515f5be`). This is a review
 artifact, not evidence that the production v2 interface implements these flows.
 
 ## Status and intent
@@ -40,7 +40,7 @@ approve new CLI commands, public Store methods or additional mutation contracts.
 
 **[NOTE]** The selected v2 style is defined by the shipped
 [v2 stylesheet](../../../skillsmgr/webui/v2/styles.css) and the
-[original final prototype](../../../prototype-final/README.md). The repository
+[original final prototype](https://github.com/udayvarmora07/skills-manager/blob/515f5be/prototype-final/README.md) (removed 2026-11-19; last present in `515f5be`). The repository
 root `DESIGN.md` describes classic's earlier cool-paper/Plex system; its
 palette must not silently replace the selected v2 palette.
 

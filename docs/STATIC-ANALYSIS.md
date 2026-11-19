@@ -1,30 +1,32 @@
 # Static Analysis Decision Record
 
-**Version 1.0.0**
+**Version 1.1.0**
 
-**AI manifest**: Maintained record of the narrow undefined-name gate and the
+**AI manifest**: Maintained record of the pyflakes (`F`) gate and the
 dated Bandit review for skills-manager. Re-run the commands below after
 changes to the owning symbols; do not treat this document as a security
 certificate.
 
 **[SPEC]** Static analysis is advisory evidence, not proof of security. Ruff
-guards the three undefined-name classes that can survive compilation and
-reach rarely executed code. Bandit findings are reviewed against the actual
+guards all pyflakes rules (`F`): the undefined-name classes that can survive
+compilation and reach rarely executed code, plus dead imports, unused
+variables and redefinitions, which hide code that silently stopped being used
+(widened 2026-11-19 after 40 such findings had accumulated). Bandit findings are reviewed against the actual
 callers, input validation, and regression contracts; a clean scan does not
 prove that the application is secure.
 
 ## Tool scope and commands
 
 **[SPEC]** The mandatory CI gate uses Ruff 0.16.8 through the full-SHA-pinned
-`astral-sh/ruff-action` v4.1.0. Its only selected rules are `F821`, `F822`, and
-`F823`, with `py311` as the target. The source set is the first-party Python
+`astral-sh/ruff-action` v4.1.0. Its selected rule family is `F` (pyflakes), with
+`py311` as the target. The source set is the first-party Python
 surface listed in `.github/workflows/ci.yml`; the action runs once on Ubuntu,
 outside the Python-version matrix. Ruff is a developer/CI tool, never a
 runtime or build dependency, and CI does not auto-fix or format files.
 
 ```text
 ruff 0.16.8
-ruff check --select F821,F822,F823 skillsmgr tests smoke_store.py smoke_web.py browser_harness.py desktop_launcher.py check_complexity.py check_docs.py check_package_data.py
+ruff check --select F skillsmgr tests smoke_store.py smoke_web.py browser_harness.py desktop_launcher.py check_complexity.py check_docs.py check_package_data.py
 ```
 
 The reviewed Bandit command is:

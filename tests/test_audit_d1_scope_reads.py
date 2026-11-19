@@ -43,8 +43,7 @@ from unittest import mock
 
 from skillsmgr import context
 import skillsmgr.path_safety as path_safety_module
-import skillsmgr.paths as paths_module
-from skillsmgr import clock, documents, loader, observations, scopes
+from skillsmgr import clock, documents, loader, scopes
 from skillsmgr.store import Store
 
 _DOCUMENT_NAMES = {"SKILL.md", "SKILL.md.disabled"}
@@ -1292,7 +1291,7 @@ class ScanScopeAnnotationLoopTests(ScopeReadCase):
     def test_scope_availability_is_classified_once_not_once_per_row(self):
         """``_availability`` is a function of the scope, not of the row."""
         self._seed_flat(4)
-        scope = scopes.scope_by_id("gemini")
+        scopes.scope_by_id("gemini")  # fail fast if the scope id is unknown
         patcher, seen = self._counting(
             scopes, "_availability", lambda self, *a, **k: True
         )

@@ -885,10 +885,19 @@ const app = createApp({
       if (ok) { this.dismissed.push(p.id); this.skipped = this.skipped.filter((id) => id !== p.id); if (this.front === p.id) this.front = null; this.done++; }
       return null;
     },
+    updateTabsClip() {
+      const el = this.$refs.tabs; if (!el) return;
+      el.classList.toggle("is-clipped", el.scrollWidth - el.clientWidth - el.scrollLeft > 1);
+    },
     skipCurrent() { if (!this.cur) return; const id = this.cur.id; this.skipped = [...this.skipped.filter((x) => x !== id), id]; this.front = null; this.focusH1(); },
   },
   mounted() {
     this.refresh();
+    if (window.ResizeObserver && this.$refs.tabs) {
+      this.tabsObserver = new ResizeObserver(() => this.updateTabsClip());
+      this.tabsObserver.observe(this.$refs.tabs);
+    }
+    this.updateTabsClip();
     window.addEventListener("hashchange", () => {
       const next = parseRoute();
       if (this.edit && this.editDirty && !(next.page === "skill" && next.name === this.edit.name)) {

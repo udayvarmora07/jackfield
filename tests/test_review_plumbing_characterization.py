@@ -29,7 +29,7 @@ from pathlib import Path
 from unittest import mock
 
 from skillsmgr import context
-from skillsmgr import backup_sync, registry, scopes, source_update
+from skillsmgr import backup_sync, registry, source_update
 from skillsmgr.source_lock import local_manifest
 from skillsmgr.store import Store
 

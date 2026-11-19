@@ -202,6 +202,36 @@ class ModelProblemTests(unittest.TestCase):
 
 
 @unittest.skipUnless(NODE, "node is required")
+class BadgeContrastTests(unittest.TestCase):
+    """Agent badges print white initials on a fill, so each fill needs 4.5:1."""
+
+    @staticmethod
+    def _contrast_on_white(hex_color: str) -> float:
+        channels = [int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+        return 1.05 / (luminance + 0.05)
+
+    def test_every_badge_fill_clears_aa_against_white_initials(self):
+        source = (V2 / "model.js").read_text(encoding="utf-8")
+        block = source[source.index("const BRAND"):source.index("function hash")]
+        fills = set(re.findall(r"#[0-9a-fA-F]{6}", block))
+        self.assertGreaterEqual(len(fills), 8)
+        for fill in sorted(fills):
+            self.assertGreaterEqual(self._contrast_on_white(fill), 4.5, f"{fill} fails AA with white text")
+
+
+class BrandMarkTests(unittest.TestCase):
+    def test_logo_is_well_formed_and_is_the_favicon(self):
+        # A malformed SVG (e.g. "--" inside an XML comment) decodes to a 0x0
+        # image with no console error, so parse it as XML here.
+        import xml.etree.ElementTree as ElementTree
+        root = ElementTree.parse(V2 / "logo.svg").getroot()
+        self.assertEqual(root.get("viewBox"), "0 0 32 32")
+        self.assertIn('<link rel="icon" href="logo.svg" type="image/svg+xml">',
+                      (V2 / "index.html").read_text(encoding="utf-8"))
+
+
 class RenderSafetyTests(unittest.TestCase):
     PAYLOADS = [
         "<script>alert(1)</script>", "<img src=x onerror=alert(1)>", "**<b onmouseover=x>** y",
@@ -222,6 +252,11 @@ class RenderSafetyTests(unittest.TestCase):
         self.assertNotIn("<a", out)
         self.assertIn("<code>https://x.test/a</code>", out)
         self.assertIn("<em>this</em>", out)
+
+    def test_a_link_address_with_parentheses_is_shown_whole(self):
+        out = _node(HELPERS + "return M.renderDoc('see [wiki](https://x.test/Foo_(bar)) now', new Set());")
+        self.assertIn("<code>https://x.test/Foo_(bar)</code> now", out)
+        self.assertNotIn("<a", out)
 
     def test_a_marked_line_is_highlighted_and_nothing_else(self):
         out = _node(HELPERS + "return M.renderDoc('one\\n\\ntwo', new Set(['two']));")

@@ -13,7 +13,6 @@ from unittest import mock
 from skillsmgr import __version__
 from skillsmgr.archive import (
     MAX_ARCHIVE_COMPRESSION_RATIO,
-    MAX_ARCHIVE_EXPANDED_BYTES,
     MAX_ARCHIVE_MEMBER_BYTES,
     MAX_ARCHIVE_MEMBERS,
     MAX_ARCHIVE_NESTING,
@@ -369,7 +368,6 @@ class ArchiveContractTests(unittest.TestCase):
         source.create("new-skill", "New skill", body="new body")
         archive = source.export(self.root / "new-failure.tar.gz")
         target = self._store("target-new")
-        original_upsert = target._upsert_entry
         with mock.patch.object(target, "_upsert_entry", side_effect=StoreError("injected index failure")):
             result = target.import_(archive, force=True)
         self.assertEqual(result["imported"], [])

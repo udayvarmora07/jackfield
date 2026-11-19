@@ -9,7 +9,6 @@ Run:  python3 -m unittest tests.test_web_scopes -v
 """
 
 import os
-import shutil
 import tempfile
 import unittest
 from pathlib import Path

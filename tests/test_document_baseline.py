@@ -1,5 +1,4 @@
 """Browser baseline contracts, executed against the shipped pure JS model."""
-import json
 from pathlib import Path
 import shutil
 import subprocess

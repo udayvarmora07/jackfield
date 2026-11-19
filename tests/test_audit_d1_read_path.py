@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import copy
 import os
-import shutil
 import tempfile
 import unittest
 from pathlib import Path

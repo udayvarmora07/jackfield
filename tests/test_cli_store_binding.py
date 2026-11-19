@@ -18,7 +18,7 @@ from pathlib import Path
 from unittest import mock
 
 from skillsmgr import context
-from skillsmgr import cli, scopes
+from skillsmgr import cli
 from skillsmgr.store import Store
 
 

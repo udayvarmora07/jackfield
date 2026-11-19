@@ -37,7 +37,6 @@ from unittest import mock
 
 from skillsmgr import context
 import skillsmgr.path_safety as path_safety_module
-import skillsmgr.paths as paths_module
 from skillsmgr import loader, scopes
 from skillsmgr.store import Store, StoreError
 

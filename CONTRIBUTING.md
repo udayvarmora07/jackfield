@@ -61,7 +61,7 @@ Disposable static-analysis environment:
 ```bash
 python3 -m venv /tmp/skillsmgr-analysis
 /tmp/skillsmgr-analysis/bin/python -m pip install ruff==0.16.8 bandit==1.9.4
-/tmp/skillsmgr-analysis/bin/ruff check --select F821,F822,F823 skillsmgr tests smoke_store.py smoke_web.py browser_harness.py desktop_launcher.py check_complexity.py check_docs.py check_package_data.py
+/tmp/skillsmgr-analysis/bin/ruff check --select F skillsmgr tests smoke_store.py smoke_web.py browser_harness.py desktop_launcher.py check_complexity.py check_docs.py check_package_data.py
 /tmp/skillsmgr-analysis/bin/bandit -r skillsmgr -q
 ```
 

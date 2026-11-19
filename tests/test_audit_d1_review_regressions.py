@@ -21,7 +21,6 @@ because a name is missing.
 
 from __future__ import annotations
 
-import io
 import os
 import shutil
 import sqlite3
@@ -32,11 +31,9 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
-from contextlib import redirect_stderr
 from pathlib import Path
 
 from skillsmgr import context
-from skillsmgr import scopes as scopes_mod, store as store_mod
 from skillsmgr.read_flights import coalesced_read
 from skillsmgr.store import Store, StoreError, StoreLayoutError
 
