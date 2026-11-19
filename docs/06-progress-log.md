@@ -43,7 +43,7 @@ regression test):
 **[NOTE] Skips, each precise.** POSIX mode bits (assertions guarded, not whole
 tests), shebang-script fake scanner (SkillSpector hook, skipped on Windows),
 `fork`, FIFOs, `SIGALRM`, ESC in file names, `~user`, replace-while-open
-descriptor races, WSL `bash`, and two concurrency stress tests whose racing
+descriptor races, WSL `bash`, and three concurrency stress tests whose racing
 reader/renamer sees a transient sharing violation on Windows (see Open items).
 The suite now normalises two platform differences before any test runs
 (`tests/test_00_portable_environment.py`): a symlink-free temp root and LF from
