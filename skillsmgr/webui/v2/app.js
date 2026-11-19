@@ -285,7 +285,7 @@ const app = createApp({
     inspectRecord(record) { this.query=record.name;this.filter="all";this.tagFilter="";this.agentFilter=record.scope||"all";this.libraryView="instances";location.hash="#/skills"; },
     openRecord(record) {this.toolTarget=markRaw(record);this.readCopyPath=record.physical_path||record.path||"";this.readCopyScope=record.scope||"";this.readCopyName=record.name||"";location.hash="#/skill/"+encodeURIComponent(record.name);},
     openCommands() {this.commandQuery="";this.openDialog({title:"Find a tool or action",commands:true,cancel:"Close"}); },
-    commandGo(item) {const opener=this.opener;this.closeDialog();if(item.action==="create"){this.openCreate();this.opener=opener;}else if(item.action==="refresh")this.refresh();else location.hash=item.path;},
+    commandGo(item) {if(this.busy)return;const opener=this.opener;this.closeDialog();if(item.action==="create"){this.openCreate();this.opener=opener;}else if(item.action==="refresh")this.refresh();else location.hash=item.path;},
     agentOf(id) { return (this.m && this.m.agent(id)) || { ...FALLBACK_AGENT, name: id || "Unknown" }; },
 
     /* ----- loading ----- */
@@ -753,7 +753,7 @@ const app = createApp({
     },
     async doImport() {
       const f = this.importFile; if (!f || this.busy) return;
-      this.busy = true;
+      this.busy = true; this.importResult = null;
       try {
         const r = await api(`/api/import?filename=${encodeURIComponent(f.name)}&force=${this.importForce ? 1 : 0}&full=${this.importFull ? 1 : 0}`, { method: "PUT", body: f });
         this.importResult=r;

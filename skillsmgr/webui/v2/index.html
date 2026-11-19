@@ -49,6 +49,10 @@
     </div>
 
     <template v-else-if="m">
+    <!-- A failed re-read must be visible on every page, not only Home. -->
+    <div class="page" style="padding-bottom:0" v-if="loadError && route.page !== 'home'">
+      <p class="state-note err" role="alert">{{ loadError }} <button type="button" class="btn btn-line btn-sm" @click="refresh()">Try again</button></p>
+    </div>
     <!-- ========== HOME ========== -->
     <div class="page" v-if="route.page === 'home'">
       <h1 class="h1" id="h1" tabindex="-1">Your agents</h1>
@@ -173,7 +177,7 @@
               <div class="note warn" v-if="skill.status.key === 'warn' && cmp"><h2 class="note-h">Note</h2>
                 <p>{{ highlight ? 'The highlighted lines are missing from' : 'Some lines are missing from' }} {{ agentOf(cmp.scope).name }}'s copy, so it may skip these steps.</p>
                 <p v-if="skill.ref.ambiguous">Your copies are split evenly, so the app can't tell which is the reference. Open the Inbox to choose one.</p>
-                <label class="hl" v-if="skill.differing.length > 1">Compare with <select class="field" style="height:32px;font-size:13px" v-model="compareWith"><option v-for="c in skill.differing" :key="c.scope" :value="c.scope">{{ agentOf(c.scope).name }}</option></select></label>
+                <label class="hl" v-if="skill.differing.length > 1">Compare with <select class="field" style="height:32px;font-size:13px" :value="cmp ? cmp.scope : ''" @change="compareWith = $event.target.value"><option v-for="c in skill.differing" :key="c.scope" :value="c.scope">{{ agentOf(c.scope).name }}</option></select></label>
                 <label class="hl"><input type="checkbox" v-model="highlight"> Highlight what's missing</label>
                 <button type="button" class="btn btn-ink btn-sm" @click="syncDiffering()" :disabled="skill.ref.ambiguous">{{ matchLabel }}</button></div>
               <div class="note bad" v-if="skill.status.key === 'bad'"><h2 class="note-h">Problem</h2><p>{{ brokenText }}</p><button type="button" class="btn btn-ink btn-sm" @click="fixSkillBad()">{{ brokenAction }}</button></div>

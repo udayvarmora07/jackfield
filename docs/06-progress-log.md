@@ -24,6 +24,17 @@ Store change. Evidence: @docs/52-list-request-performance-2026-11-19.md,
 
 ## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
 
+**[NOTE] v2 follow-ups and PR #23.** The remaining frontend-review findings
+were fixed: the "Compare with" select rendered blank while a copy was already
+compared (now bound to the compared copy, verified live), a failed re-read was
+shown only on Home, a new import kept the previous result line, and the
+command palette navigated while a dialog refused to close. PR #23 (list
+request) was reviewed and merged: its lexical containment shortcut answers only
+when every component below an already-resolved root is a present, non-link
+plain entry (exactly when `realpath` returns the joined path) and defers to
+`realpath` otherwise. One post-merge suite run showed a single intermittent
+failure that two further full runs did not reproduce.
+
 **[NOTE] Security review.** A subagent reviewed archive, install, upload,
 source-lock, backup-sync, frontmatter, CLI and AI paths; five findings were
 reproduced and fixed. (1) Any caller of the settings API could point

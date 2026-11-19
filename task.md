@@ -132,6 +132,11 @@ done.
   dialog Escape/Tab trap after a click, stale-response guards for refresh and
   skill history, history reload after changes, Test connection keeps unsaved
   AI settings, visible plurals.
+- [x] v2 follow-ups: "Compare with" shows the copy being compared; a failed
+  re-read is announced on every page; a new import clears the old result; the
+  command palette does nothing while busy.
+- [x] Merged PR #23 (list request 29–49% faster, response unchanged) after
+  reviewing the path-safety shortcuts against `realpath` semantics.
 - [x] Docs audit (subagent, each finding re-verified): README data-root fix,
   localhost guidance, doctor drift recipe; CLI surface signatures for `create`,
   `trash restore`, `templates new`; `--scope` help lists `commandcode`.
