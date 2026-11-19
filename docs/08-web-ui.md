@@ -179,6 +179,12 @@ remaining coverage limits are in @docs/31-combined-e2e-verification-2026-11-06.m
 The optional developer runner is `tools/e2e_v2/run.py` (external Playwright,
 no runtime dependency). It isolates fixtures and server lifetime, checks both
 UI transports and supports measured browser zoom on isolated X11.
+**[SPEC]** CI runs both `tools/e2e_v2/run.py` and `tools/e2e_classic/run.py`
+headless on every push and pull request (the `e2e` job in
+`.github/workflows/ci.yml`). Playwright is installed from the hash-verified
+lockfile in `tools/e2e_deps` with `npm ci --ignore-scripts` and drives the
+runner's own Chrome; locally use
+`NODE_PATH=tools/e2e_deps/node_modules python3 tools/e2e_v2/run.py --output-dir <private dir>`.
 
 **[SPEC] Startup and list projection (2026-11-06).** The classic UI starts
 scopes, skills, trash, history, catalog and stats loaders together. Each paints

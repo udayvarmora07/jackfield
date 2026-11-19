@@ -135,8 +135,15 @@ done.
 - [x] Docs audit (subagent, each finding re-verified): README data-root fix,
   localhost guidance, doctor drift recipe; CLI surface signatures for `create`,
   `trash restore`, `templates new`; `--scope` help lists `commandcode`.
-- [/] Parallel sessions: CI full suite on macOS/Windows + e2e (`ci-portability`),
-  all-scope list performance (`list-perf`); each lands as a PR for review.
+- [x] CI: the full unit suite runs on ubuntu, macOS and Windows (3.11, 3.14);
+  product fixes for macOS temp symlinks and Windows `fchmod`, inode-0 risk scan,
+  provenance/tree-hash ordering and separators; precise skips for POSIX-only tests.
+- [x] CI: new `e2e` job runs `tools/e2e_v2` and `tools/e2e_classic` headless on
+  Ubuntu with Playwright from the hash-verified `tools/e2e_deps` lockfile.
+- [ ] Windows: readers racing a document replace can get a transient
+  `PermissionError` (writer retries now); decide whether reads should retry too.
+- [/] Parallel sessions: all-scope list performance (`list-perf`) lands as a PR
+  for review; CI portability is PR #22.
 
 Open for the maintainer:
 

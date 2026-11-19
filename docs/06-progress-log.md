@@ -7,6 +7,54 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Full suite on every OS, browser e2e in CI
+
+**[NOTE]** CI ran only a four-module path/archive subset on macOS and Windows,
+and `tools/e2e_v2` / `tools/e2e_classic` (not unittest modules, so `discover`
+never reaches them) ran nowhere. The `xplat` job now runs `python -m unittest
+discover -s tests` on ubuntu, macOS and Windows (Python 3.11 and 3.14), and a
+new `e2e` job (Ubuntu, headless Chrome, sandbox on) runs both browser suites
+against throwaway fixtures. Playwright comes from `tools/e2e_deps`, a
+hash-verified lockfile installed with `npm ci --ignore-scripts`; it is CI/dev
+tooling only, never a package or runtime dependency.
+
+**[NOTE] Product portability bugs the full suite exposed** (each fixed with a
+regression test):
+
+- **macOS:** `/var` is a symlink to `/private/var`, so a folder upload
+  (`web_upload`: resolved target vs unresolved `mkdtemp` root) and every
+  registry fetch/commit (`install`: staging below a symlinked ancestor) failed
+  on every default macOS install. Staging directories are now canonical
+  (`path_safety.canonical_mkdtemp`). `check_docs` anchors were keyed by an
+  unresolved path for the same reason.
+- **Windows:** `os.fchmod` does not exist (registry cache, sidecar and review
+  writes crashed; `fchmod_private`); `DirEntry.stat()` reports inode 0, so the
+  risk scan marked every nested directory "changed" and returned
+  `listing-incomplete` with no findings; the regex-assertion deadline needs
+  `SIGALRM` and now refuses the pattern (fail closed) instead of raising
+  `AttributeError`; the registry provenance manifest sorted `Path` objects
+  (case-insensitive on Windows) against a string-sorted snapshot, so any tree
+  with `SKILL.md` and `references/` looked like drift; `tree_content_hash` used
+  `\` separators, giving an archive a different manifest hash per OS; the
+  source-lock digest sorted `Path` objects (now `parts`, which keeps the
+  existing POSIX order); `os.replace` onto a document a reader had open raised
+  `PermissionError` (now retried briefly on Windows).
+
+**[NOTE] Skips, each precise.** POSIX mode bits (assertions guarded, not whole
+tests), shebang-script fake scanner (SkillSpector hook, skipped on Windows),
+`fork`, FIFOs, `SIGALRM`, ESC in file names, `~user`, replace-while-open
+descriptor races, WSL `bash`, and two concurrency stress tests whose racing
+reader/renamer sees a transient sharing violation on Windows (see Open items).
+The suite now normalises two platform differences before any test runs
+(`tests/test_00_portable_environment.py`): a symlink-free temp root and LF from
+`Path.write_text`.
+
+**[?] Open items.** On Windows a reader that races an in-flight document
+replace can get a transient `PermissionError`; the writer now retries, readers
+do not. The external-scanner hook is not exercised against a fake tool on
+Windows. A `macos-latest` leg can sit queued and be cancelled; that is runner
+capacity, not a test result.
+
 ## 2026-11-19 — Faster all-scope list request (v2 Home first paint)
 
 **[NOTE]** `GET /api/skills?scope=all&body=0` is 29–49% faster on a synthetic
