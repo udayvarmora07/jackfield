@@ -130,7 +130,7 @@ jobs:
         run: python3 check_design_tokens.py
 
   xplat:
-    name: cross-platform path/archive (py${{ matrix.python-version }} + ${{ matrix.os }})
+    name: cross-platform full suite (py${{ matrix.python-version }} + ${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -144,8 +144,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Compile
         run: python -m compileall -q skillsmgr tests check_package_data.py smoke_store.py smoke_web.py browser_harness.py check_docs.py check_complexity.py check_design_tokens.py
-      - name: Path, archive, package-data contracts
-        run: python -m unittest tests.test_path_safety tests.test_archive_contracts tests.test_package_data tests.test_ci_release_contracts.CrossPlatformContractTests
+      - name: Full unit suite (stdlib only, every supported OS)
+        run: python -m unittest discover -s tests
       # The one-command installers are only worth their README line if they
       # really install on each OS. These run them against this checkout
       # (venv method, isolated prefix), run the installed command, then
