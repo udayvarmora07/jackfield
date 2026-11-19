@@ -24,6 +24,7 @@ from . import sidecar_binding
 from .atomic_io import mutation_lock
 from .sidecar_binding import MANAGER_SIDECARS, PROVENANCE_FILENAME
 from .errors import StoreError
+from .path_safety import fchmod_private
 from .review_artifacts import (
     encode_review,
     enforce_review_size,
@@ -737,7 +738,7 @@ class RegistryClient:
                 return
             fd, temporary = tempfile.mkstemp(prefix=".registry-", suffix=".tmp", dir=self.cache_dir)
             try:
-                os.fchmod(fd, 0o600)
+                fchmod_private(fd)
                 with os.fdopen(fd, "wb") as stream:
                     stream.write(encoded)
                     stream.flush()
@@ -1225,7 +1226,7 @@ def write_provenance(skill_dir: str | Path, provenance: dict) -> Path:
     encoded = _provenance_bytes(value)
     fd, temporary = tempfile.mkstemp(prefix=".provenance-", suffix=".tmp", dir=root)
     try:
-        os.fchmod(fd, 0o600)
+        fchmod_private(fd)
         with os.fdopen(fd, "wb") as stream:
             stream.write(encoded)
             stream.flush()
