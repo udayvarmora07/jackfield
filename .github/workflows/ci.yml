@@ -280,9 +280,15 @@ jobs:
           done
       - name: Install the locked Playwright client (no install scripts, no browser download)
         run: npm ci --ignore-scripts --no-audit --no-fund --prefix tools/e2e_deps
-      - name: Confirm the runners can resolve Node, Chrome and Playwright
+      - name: Resolve the trusted Node and Chrome, and confirm Playwright
+        # The runner image presets CHROME_BIN to a path the launcher trust check
+        # rejects, and the e2e runners honour CHROME_BIN over their own lookup.
+        # Point it at the executable the harness itself resolves and trusts.
         run: |
-          python3 -c "import browser_harness as b; print(b._node()); print(b._chrome())"
+          python3 -c "import browser_harness as b; print(b._node())"
+          chrome="$(python3 -c "import browser_harness as b; print(b._chrome())")"
+          echo "$chrome"
+          echo "CHROME_BIN=$chrome" >> "$GITHUB_ENV"
           node -e "console.log('playwright', require('playwright/package.json').version)"
       - name: V2 UI end-to-end suite
         run: python3 tools/e2e_v2/run.py --output-dir "$RUNNER_TEMP/e2e-v2"
