@@ -37,6 +37,14 @@ the same drawing coloured by theme tokens so it follows the in-app toggle.
 Checked at 16–160 px on light and dark grounds; a test keeps the file
 well-formed XML, since a malformed SVG decodes to a silent 0x0 image.
 
+**[NOTE] Loop 3.** At 375 px no v2 route overflows horizontally. A read-only
+fuzz sent 3,528 GET requests with malformed parameters (negative, huge, NUL,
+traversal, invalid UTF-8) to every read route and received no 5xx. axe found
+one classic violation, a scrollable first-scan list keyboard users could not
+reach; it is now a focusable, named region. A keyboard walk of v2 showed text
+fields signalled focus only by a 1 px border change; they now carry the same
+2 px outline as every other control.
+
 **[NOTE] Logo research and refinement.** A survey of logo tooling found no
 MCP server worth adopting: the SVG-generation servers wrap an image model
 (the "AI slop" risk), and the icon servers only search existing sets. The

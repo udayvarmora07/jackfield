@@ -95,7 +95,11 @@ done.
 - [x] Every v2 page passes axe WCAG 2.2 AA in light and dark; Lighthouse a11y 100.
 - [x] Brand: hand-drawn SVG mark (a skill page carrying a switch), v2 favicon,
   theme-token header mark and README logo; flat palette, no gradients or glyph tropes.
-- [/] Loop 3+ evaluation and improvements.
+- [x] Loop 3 — phone width (375 px): no horizontal overflow on any v2 route.
+- [x] Loop 3 — read-only REST fuzz: 3,528 malformed GET requests, zero 5xx.
+- [x] Classic: the first-scan root list is a focusable, named scroll region (axe clean).
+- [x] v2: text fields show the same 2 px focus outline as every other control.
+- [/] Loop 4+ evaluation and improvements.
 
 Open for the maintainer:
 

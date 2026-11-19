@@ -557,7 +557,7 @@
               <p v-if="scopeScanFailed">Root details could not be loaded. Retry the scan or open the read-only health check.</p>
               <p v-else-if="!guideRoots.length">No scope roots were returned. This does not prove that unlisted or inaccessible roots are empty.</p>
               <p v-else>The scope list reports detected roots only; roots omitted by discovery are not represented here.</p>
-              <ul v-if="guideRoots.length" class="first-scan-root-list">
+              <ul v-if="guideRoots.length" class="first-scan-root-list" tabindex="0" aria-label="Detected skill roots">
                 <li v-for="root in guideRoots" :key="root.id">
                   <strong>{{ root.label }}</strong>
                   <span>{{ formatNumber(root.count) }} observed · {{ root.availability === 'writable' ? 'writable' : root.availability === 'read-only' ? 'read-only' : root.availability || 'availability unknown' }}</span>
