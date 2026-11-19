@@ -33,6 +33,7 @@ import uuid
 from pathlib import Path
 from unittest.mock import patch
 
+from skillsmgr.path_safety import canonical_mkdtemp
 from skillsmgr.store import Store, StoreError
 from skillsmgr.web_upload import staged_single_skill, upload_folder
 from skillsmgr.webapp import WebAppServer
@@ -139,7 +140,7 @@ class UploadPathPolicyParityTests(unittest.TestCase):
         installed: list[str] = []
         # Invalid parts are rejected before staging. Inspect this call's
         # allocation rather than other processes' directories in shared /tmp.
-        with patch("skillsmgr.web_upload.tempfile.mkdtemp", wraps=tempfile.mkdtemp) as stage:
+        with patch("skillsmgr.web_upload.canonical_mkdtemp", wraps=canonical_mkdtemp) as stage:
             with self.assertRaises(StoreError):
                 upload_folder([_part("../evil/SKILL.md")], _recording_add(installed))
         stage.assert_not_called()

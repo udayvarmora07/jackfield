@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import re
 import subprocess  # nosec B404 - allowlisted runners are executed with list argv, never a shell.
-import tempfile
 from pathlib import Path
 
 from .errors import StoreError
+from .path_safety import canonical_temporary_directory
 from .frontmatter import FrontmatterError, dump_frontmatter, parse_frontmatter
 from .registry import (
     RegistryClient,
@@ -341,7 +341,7 @@ def prepare_registry_review(store, spec: str, *, expected_hash: str | None,
     name = _snapshot_name(snapshot)
     local_snapshot, normalization = _normalized_snapshot(snapshot, name)
     provenance = provenance_for_snapshot(local_snapshot)
-    with tempfile.TemporaryDirectory(prefix="skillsmgr-registry-review-") as temporary:
+    with canonical_temporary_directory("skillsmgr-registry-review-") as temporary:
         staged = Path(temporary) / name
         materialize_snapshot(local_snapshot, staged)
         validation, risk = _inspect_staged(name, staged, "registry snapshot failed validation before install")
@@ -402,7 +402,7 @@ def _commit_registry_review(store, review_id: str) -> dict:
     if remote_hash is not None:
         provenance["remote_hash"] = remote_hash
         provenance["hash_verified"] = bool(snapshot.get("hash_verified"))
-    with tempfile.TemporaryDirectory(prefix="skillsmgr-registry-commit-") as temporary:
+    with canonical_temporary_directory("skillsmgr-registry-commit-") as temporary:
         staged = Path(temporary) / name
         materialize_snapshot(snapshot, staged)
         _, risk = _inspect_staged(name, staged, "registry review failed validation before install")

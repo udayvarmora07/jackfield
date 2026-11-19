@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import shutil
-import tempfile
 from contextlib import contextmanager
 from email.parser import BytesParser
 from email.policy import compat32 as _email_policy
@@ -13,6 +12,7 @@ from typing import Callable
 
 from .documents import DOCUMENT_NAMES
 from .errors import StoreError
+from .path_safety import canonical_mkdtemp
 
 
 MAX_UPLOAD_PARTS = 200
@@ -269,7 +269,7 @@ def upload_folder(
 
     planned = _plan_staging(file_parts)
 
-    tmp_root = Path(tempfile.mkdtemp(prefix="skillsmgr-add-"))
+    tmp_root = canonical_mkdtemp("skillsmgr-add-")
     imported: list[str] = []
     skipped: list[str] = []
     try:
@@ -311,7 +311,7 @@ def staged_single_skill(
     if any(PurePosixPath(name).parts[:len(root_name.parts)] != root_name.parts for name in names):
         raise StoreError("upload must contain exactly one skill root")
     planned = _plan_staging(file_parts)
-    tmp_root = Path(tempfile.mkdtemp(prefix="skillsmgr-update-"))
+    tmp_root = canonical_mkdtemp("skillsmgr-update-")
     try:
         _write_staged(tmp_root, planned)
         yield tmp_root if str(root_name) == "." else tmp_root / root_name
