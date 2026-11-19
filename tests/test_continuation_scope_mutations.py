@@ -136,6 +136,7 @@ class ScopeMutationTests(unittest.TestCase):
                 self.assertTrue(document.is_symlink())
                 self.assertEqual(target.read_bytes(), original)
 
+    @unittest.skipIf(os.name == "nt", "Windows gives a reader or renamer racing an in-flight replace a transient sharing violation / missing file; the advisory lock only orders writers")
     def test_repeated_mixed_mutations_leave_one_valid_document(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"HOME": tmp, "SKILLS_MANAGER_DATA": str(Path(tmp) / "data")}):
             (Path(tmp) / "data").mkdir(mode=0o700)

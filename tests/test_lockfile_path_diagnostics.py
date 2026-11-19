@@ -27,7 +27,7 @@ class LockfilePathDiagnosticsTests(unittest.TestCase):
         self.assertEqual(len(result['name_collisions']), 1)
         collision = result['name_collisions'][0]
         self.assertEqual(collision['names'], ['My Skill', 'my-skill'])
-        self.assertTrue(collision['installed_path'].endswith('/my-skill'))
+        self.assertTrue(collision['installed_path'].replace(os.sep, '/').endswith('/my-skill'))
 
     def test_distinct_names_and_no_entries_have_no_collision(self):
         self.assertEqual(self.evidence({})['name_collisions'], [])

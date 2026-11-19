@@ -378,7 +378,7 @@ class HuskVisibilityTests(AuditStoreTestCase):
         report = self.store.doctor()
         self.assertEqual(report["orphan_dirs"], [])
         self.assertEqual(
-            report["transaction_artifacts"], ["skills/demo.skillsmgr-stage"]
+            report["transaction_artifacts"], [os.path.join("skills", "demo.skillsmgr-stage")]
         )
 
 

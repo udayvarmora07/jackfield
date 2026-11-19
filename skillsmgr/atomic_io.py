@@ -441,7 +441,9 @@ def _digest_member(digest, root: Path, path: Path) -> None:
     """
     if not path.is_file():
         return
-    digest.update(str(path.relative_to(root)).encode("utf-8"))
+    # POSIX separators, so one tree has one digest on every OS: an archive
+    # exported on Linux must import on Windows and vice versa.
+    digest.update(path.relative_to(root).as_posix().encode("utf-8"))
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)

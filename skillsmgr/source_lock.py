@@ -109,7 +109,10 @@ def local_manifest(root: str | Path) -> dict:
             raise SourceLockError("source is inaccessible")
         files = []
         total = 0
-        for path in sorted(root.rglob("*")):
+        # ``parts`` keeps the POSIX ordering on every OS; sorting the Path
+        # objects themselves is case-insensitive on Windows and would give the
+        # same tree a different digest there.
+        for path in sorted(root.rglob("*"), key=lambda item: item.parts):
             if path.name in MANAGER_SIDECARS:
                 continue
             if path.is_symlink():
