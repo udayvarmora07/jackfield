@@ -175,7 +175,7 @@ CONSUMERS: dict[str, dict] = {
         ),
     },
     "opencode": {
-        "label": "Opencode",
+        "label": "OpenCode",
         "source": "https://opencode.ai/docs/skills/",
         "policy": "ordered",
         "tiers": (

@@ -48,7 +48,7 @@ HELPERS = r"""
 const scopes=[
  {id:'claude-code',label:'Claude Code',kind:'agent',exists:true,writable:true,consumer:'claude-code',path:'/h/.claude/skills'},
  {id:'codex',label:'Codex',kind:'agent',exists:true,writable:true,consumer:'codex',path:'/h/.codex/skills'},
- {id:'opencode',label:'Opencode',kind:'agent',exists:true,writable:true,consumer:'opencode',path:'/h/.config/opencode/skills'}];
+ {id:'opencode',label:'OpenCode',kind:'agent',exists:true,writable:true,consumer:'opencode',path:'/h/.config/opencode/skills'}];
 let n=0;
 const rec=(name,scope,over)=>Object.assign({name,scope,scope_label:scope,description:'d',category:'uncategorized',
  body:'b',tokens:100,content_hash:'h1',physical_path:'/p/'+scope+'/'+name,path:'/p/'+scope+'/'+name,
@@ -214,11 +214,30 @@ class BadgeContrastTests(unittest.TestCase):
 
     def test_every_badge_fill_clears_aa_against_white_initials(self):
         source = (V2 / "model.js").read_text(encoding="utf-8")
-        block = source[source.index("const BRAND"):source.index("function hash")]
+        block = source[source.index("const BRAND"):source.index("const AGENT_ICONS")]
         fills = set(re.findall(r"#[0-9a-fA-F]{6}", block))
         self.assertGreaterEqual(len(fills), 8)
         for fill in sorted(fills):
             self.assertGreaterEqual(self._contrast_on_white(fill), 4.5, f"{fill} fails AA with white text")
+
+
+class AgentIconTests(unittest.TestCase):
+    """Real agent marks are vendored path data with a recorded licence."""
+
+    def test_each_vendored_mark_is_path_data_with_a_licence_note(self):
+        source = (V2 / "model.js").read_text(encoding="utf-8")
+        block = source[source.index("const AGENT_ICONS"):source.index("function hash")]
+        rows = re.findall(r'^\s+"([a-z-]+)": \{ d: "([^"]+)", .*// (.+)$', block, re.M)
+        self.assertEqual({r[0] for r in rows}, {"claude-code", "codex", "cursor", "gemini", "opencode"})
+        for agent, path, note in rows:
+            self.assertRegex(path, r"^[MmZzLlHhVvCcSsQqTtAa0-9.,\s-]+$", agent)
+            self.assertRegex(note, r"(CC0-1\.0|MIT)$", agent)
+
+    def test_agents_without_a_mark_keep_the_initials_badge(self):
+        app =(V2 / "app.js").read_text(encoding="utf-8")
+        self.assertIn('v-if="agent.icon"', app)
+        self.assertIn("v-else", app)
+        self.assertIn("{{ agent.initials }}", app)
 
 
 class BrandMarkTests(unittest.TestCase):

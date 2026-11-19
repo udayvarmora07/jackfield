@@ -99,6 +99,14 @@ done.
 - [x] Loop 3 — read-only REST fuzz: 3,528 malformed GET requests, zero 5xx.
 - [x] Classic: the first-scan root list is a focusable, named scroll region (axe clean).
 - [x] v2: text fields show the same 2 px focus outline as every other control.
+- [x] Logo restart (owner rejected the page-and-switch mark): researched studio
+  process and 2024–26 clichés, installed the vetted MIT `logo-designer` skill,
+  drew five concepts in parallel, chose "the switchboard" by scale, 1-bit and
+  distinctiveness tests; applied to favicon, header and README.
+- [x] Real agent marks (Claude Code, Codex, Cursor, Gemini, OpenCode) replace
+  initials badges across v2, vendored from Simple Icons (CC0) and theSVG (MIT);
+  Command Code and the shared folder keep badges (no open mark exists).
+- [x] Scope label "Opencode" corrected to the project's own "OpenCode".
 - [/] Loop 4+ evaluation and improvements.
 
 Open for the maintainer:

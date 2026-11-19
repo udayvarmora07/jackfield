@@ -45,7 +45,28 @@ reach; it is now a focusable, named region. A keyboard walk of v2 showed text
 fields signalled focus only by a 1 px border change; they now carry the same
 2 px outline as every other control.
 
-**[NOTE] Logo research and refinement.** A survey of logo tooling found no
+**[NOTE] Logo restart.** The owner rejected the page-and-switch mark. A
+research pass (studio process: brief, volume, reduction, choosing by function;
+2024–26 clichés: sparkles, gradients, circle-with-hole, hexagons, node
+networks, documents with badges, toggles) informed five concepts drawn in
+parallel with the vetted MIT `logo-designer` skill. Each was rendered at 128,
+32 and 16 px, in 1-bit and on dark (board: `docs/images/logo-concepts-2026-11-19.png`).
+The S monogram was legible but generic; the bars read as a sort icon; the
+stepped and pixel S read as "5". The winner is **the switchboard**: rows are
+skills, columns are agents, one row has slipped out of step and its last copy
+is the one the tool flags in terracotta. The offset carries the meaning in
+1-bit, and every edge sits on a whole pixel at 16 px.
+
+**[NOTE] Real agent marks.** v2 now shows the official marks for Claude Code,
+Codex, Cursor, Gemini and OpenCode instead of initials badges. Path data is
+vendored verbatim from Simple Icons (CC0-1.0) and theSVG (MIT, Codex), with
+the source and licence beside each entry; marks remain their owners'
+trademarks and only identify the agent. Monochrome marks take the theme ink,
+so they invert in dark mode. Command Code and the shared skills folder keep
+initials badges because no open mark exists. All seven routes still pass axe
+WCAG 2.2 AA in light and dark.
+
+**[NOTE] Logo research and refinement (superseded mark).** A survey of logo tooling found no
 MCP server worth adopting: the SVG-generation servers wrap an image model
 (the "AI slop" risk), and the icon servers only search existing sets. The
 adopted pipeline is free CLI tooling: resvg (via `@resvg/resvg-js`) rasterised

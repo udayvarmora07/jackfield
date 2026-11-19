@@ -14,7 +14,7 @@
 <div id="app" v-cloak>
   <a class="skip" href="#main" @click.prevent="skipToContent()">Skip to content</a>
   <header class="top" :inert="!!dialog">
-    <a class="brand" href="#/home" aria-label="Skills Manager home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path class="pg" d="M8 2h10l8 8v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path class="fd" d="M18 2v8h8Z"/><rect class="ln" x="8" y="12" width="8" height="2"/><rect class="tr" x="8" y="18" width="16" height="8" rx="4"/><circle class="kn" cx="20" cy="22" r="3"/></svg><span class="brand-t">Skills Manager</span></a>
+    <a class="brand" href="#/home" aria-label="Skills Manager home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect class="cl" x="0" y="2" width="8" height="8" rx="1"/><rect class="cl" x="10" y="2" width="8" height="8" rx="1"/><rect class="cl" x="20" y="2" width="8" height="8" rx="1"/><rect class="cl" x="4" y="12" width="8" height="8" rx="1"/><rect class="cl" x="14" y="12" width="8" height="8" rx="1"/><rect class="fl" x="24" y="12" width="8" height="8" rx="1"/><rect class="cl" x="0" y="22" width="8" height="8" rx="1"/><rect class="cl" x="10" y="22" width="8" height="8" rx="1"/><rect class="cl" x="20" y="22" width="8" height="8" rx="1"/></svg><span class="brand-t">Skills Manager</span></a>
     <nav class="tabs" ref="tabs" aria-label="Main" @scroll.passive="updateTabsClip">
       <a href="#/home" :aria-current="route.page === 'home' ? 'page' : null">Home</a>
       <a href="#/skills" :aria-current="route.page === 'skills' || route.page === 'skill' ? 'page' : null">Skills</a>

@@ -320,7 +320,7 @@ def known_scopes() -> list[Scope]:
         Scope("claude-code", "Claude Code", home / ".claude/skills", "agent", True, consumer="claude-code"),
         Scope("codex", "Codex", home / ".codex/skills", "agent", True, consumer="codex"),
         Scope("cursor", "Cursor", home / ".cursor/skills", "agent", True, recursive=True, consumer="cursor"),
-        Scope("opencode", "Opencode", home / ".config/opencode/skills", "agent", True, recursive=True, consumer="opencode"),
+        Scope("opencode", "OpenCode", home / ".config/opencode/skills", "agent", True, recursive=True, consumer="opencode"),
         Scope("gemini", "Gemini", home / ".gemini/skills", "agent", True, consumer="gemini"),
         Scope("commandcode", "Command Code", home / ".commandcode/skills", "agent", True, consumer="commandcode"),
         Scope("agents", "Agents", home / ".agents/skills", "agent", True, recursive=True, consumer="shared-agent-skills"),

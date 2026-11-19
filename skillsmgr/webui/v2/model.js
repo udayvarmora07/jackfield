@@ -25,6 +25,17 @@
     agents: ["SF", "#55585f"], global: ["LB", "#55585f"],
   };
   const PALETTE = ["#b85a3a", "#2f6f5e", "#2f6fd6", "#b04a7a", "#7a5ad6", "#a2510a", "#0e7490", "#1c7a47"];
+  /* Real agent marks, 24-unit viewBox, path data verbatim from the named
+   * open icon sets (licence beside each). Marks remain their owners'
+   * trademarks and identify the agent only (nominative use). `fill: null`
+   * means the mark is monochrome and takes the theme ink colour. */
+  const AGENT_ICONS = {
+    "claude-code": { d: "M21 10.5h3v3h-3v3h-1.5v3H18v-3h-1.5v3H15v-3H9v3H7.5v-3H6v3H4.5v-3H3v-3H0v-3h3v-6h18Zm-15 0h1.5v-3H6Zm10.5 0H18v-3h-1.5z", fill: "#d97757", evenodd: false }, // Simple Icons claudecode, CC0-1.0
+    "codex": { d: "M8.086.457a6.105 6.105 0 013.046-.415c1.333.153 2.521.72 3.564 1.7a.117.117 0 00.107.029c1.408-.346 2.762-.224 4.061.366l.063.03.154.076c1.357.703 2.33 1.77 2.918 3.198.278.679.418 1.388.421 2.126a5.655 5.655 0 01-.18 1.631.167.167 0 00.04.155 5.982 5.982 0 011.578 2.891c.385 1.901-.01 3.615-1.183 5.14l-.182.22a6.063 6.063 0 01-2.934 1.851.162.162 0 00-.108.102c-.255.736-.511 1.364-.987 1.992-1.199 1.582-2.962 2.462-4.948 2.451-1.583-.008-2.986-.587-4.21-1.736a.145.145 0 00-.14-.032c-.518.167-1.04.191-1.604.185a5.924 5.924 0 01-2.595-.622 6.058 6.058 0 01-2.146-1.781c-.203-.269-.404-.522-.551-.821a7.74 7.74 0 01-.495-1.283 6.11 6.11 0 01-.017-3.064.166.166 0 00.008-.074.115.115 0 00-.037-.064 5.958 5.958 0 01-1.38-2.202 5.196 5.196 0 01-.333-1.589 6.915 6.915 0 01.188-2.132c.45-1.484 1.309-2.648 2.577-3.493.282-.188.55-.334.802-.438.286-.12.573-.22.861-.304a.129.129 0 00.087-.087A6.016 6.016 0 015.635 2.31C6.315 1.464 7.132.846 8.086.457zm-.804 7.85a.848.848 0 00-1.473.842l1.694 2.965-1.688 2.848a.849.849 0 001.46.864l1.94-3.272a.849.849 0 00.007-.854l-1.94-3.393zm5.446 6.24a.849.849 0 000 1.695h4.848a.849.849 0 000-1.696h-4.848z", fill: null, evenodd: true }, // theSVG codex-openai, MIT
+    "cursor": { d: "M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23", fill: null, evenodd: false }, // Simple Icons cursor, CC0-1.0
+    "gemini": { d: "M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81", fill: "#8e75b2", evenodd: false }, // Simple Icons googlegemini, CC0-1.0
+    "opencode": { d: "M22 24H2V0h20zM17 4.8H7v14.4h10z", fill: null, evenodd: false }, // Simple Icons opencode, CC0-1.0
+  };
   function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
   function initialsOf(label) {
     const parts = String(label || "?").split(/[\s_-]+/).filter(Boolean);
@@ -48,7 +59,7 @@
       const brand = BRAND[s.id] || [initialsOf(s.label || s.id), PALETTE[hash(String(s.id)) % PALETTE.length]];
       out.push({
         id: s.id, name: kind === "global" ? "Your library" : s.id === "agents" ? "Shared skills folder" : (s.label || s.id), kind,
-        initials: brand[0], color: brand[1], path: shortPath(s.path || ""),
+        initials: brand[0], color: brand[1], icon: AGENT_ICONS[s.id] || null, path: shortPath(s.path || ""),
         limit: WINDOW_BY_CONSUMER[s.consumer || s.id] || DEFAULT_WINDOW,
         library: kind === "global", writable: s.writable !== false && s.availability !== "read-only",
       });
