@@ -24,6 +24,12 @@ Store change. Evidence: @docs/52-list-request-performance-2026-11-19.md,
 
 ## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
 
+**[NOTE] AI Center busy state.** One `busy` boolean was cleared by whichever
+guarded request finished first, re-enabling buttons that start paid model
+calls while another request ran. An in-flight counter now keeps it set until
+the last one ends; a new Node test fails on the old code ([true, false, false])
+and passes now.
+
 **[NOTE] v2 follow-ups and PR #23.** The remaining frontend-review findings
 were fixed: the "Compare with" select rendered blank while a copy was already
 compared (now bound to the compared copy, verified live), a failed re-read was

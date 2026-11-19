@@ -15,7 +15,7 @@
     data() {
       return {
         settings: null, form: { provider: "", model: "", base_url: "", api_key: "", max_run_tokens: 300000, max_day_tokens: 2000000 },
-        busy: false, error: "", note: "", connection: null,
+        busy: false, inflight: 0, error: "", note: "", connection: null,
         scope: "", mode: "generate", chosen: [], filter: "", perSkill: 3, nearMisses: 2, promptText: "", repeats: 1,
         estimate: null, result: null,
         portName: "", portTarget: "codex", ported: null,
@@ -190,11 +190,11 @@
       async estimateProfile() {
         if (!this.profileProject.trim() || !this.profileScope) return;
         this.clearProfileSuggestion(); const request = ++this.profileRequest; const key = this.profileInputKey();
-        this.busy = true; this.error = ""; this.note = "";
+        this.begin();
         let result = null;
         try { result = await post("/api/ai/suggest-profile", this.profileBody(true)); }
         catch (e) { if (request === this.profileRequest && key === this.profileInputKey() && this.page === "ai-profile") this.error = (e && e.message) || String(e); }
-        finally { this.busy = false; }
+        finally { this.end(); }
         if (request !== this.profileRequest || key !== this.profileInputKey() || this.page !== "ai-profile") return;
         if (result && result.status === "estimate") { this.profileEstimate = result; this.profileEstimateKey = key; }
         else if (result && result.status === "empty") this.profileResult = result;
@@ -202,11 +202,11 @@
       async runProfileSuggestion() {
         if (!this.profileEstimateCurrent || !this.profileProject.trim() || !this.profileScope) return;
         const request = ++this.profileRequest; const key = this.profileInputKey();
-        this.busy = true; this.error = ""; this.note = "";
+        this.begin();
         let result = null;
         try { result = await post("/api/ai/suggest-profile", this.profileBody(false)); }
         catch (e) { if (request === this.profileRequest && key === this.profileInputKey() && this.page === "ai-profile") this.error = (e && e.message) || String(e); }
-        finally { this.busy = false; }
+        finally { this.end(); }
         if (request !== this.profileRequest || key !== this.profileInputKey() || this.page !== "ai-profile") return;
         if (!result || !["suggested", "empty"].includes(result.status)) return;
         this.profileResult = result; this.profileEstimate = null; this.profileEstimateKey = "";
@@ -280,9 +280,14 @@
         if (t && t.scope) { this.scope = t.scope; this.$nextTick(() => { if (t.name) this.improveName = t.name; }); }
       },
       handoff(name) { try { sessionStorage.setItem(HANDOFF, JSON.stringify({ scope: this.scope, name })); } catch (e) { /* optional */ } location.hash = "#/tools/ai-improve"; },
+      /* `busy` stays true until every overlapping request finishes: a single
+       * boolean re-enabled the buttons (paid model calls) while another
+       * request was still in flight. */
+      begin() { this.inflight += 1; this.busy = true; this.error = ""; this.note = ""; },
+      end() { this.inflight = Math.max(0, this.inflight - 1); if (!this.inflight) this.busy = false; },
       async guard(fn) {
-        this.busy = true; this.error = ""; this.note = "";
-        try { return await fn(); } catch (e) { this.error = (e && e.message) || String(e); return null; } finally { this.busy = false; }
+        this.begin();
+        try { return await fn(); } catch (e) { this.error = (e && e.message) || String(e); return null; } finally { this.end(); }
       },
       async load() {
         const s = await this.guard(() => api("/api/ai/settings"));

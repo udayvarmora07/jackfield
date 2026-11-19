@@ -135,6 +135,8 @@ done.
 - [x] v2 follow-ups: "Compare with" shows the copy being compared; a failed
   re-read is announced on every page; a new import clears the old result; the
   command palette does nothing while busy.
+- [x] AI Center: buttons stay disabled until every overlapping request ends
+  (an in-flight counter; the old boolean re-enabled paid calls early).
 - [x] Merged PR #23 (list request 29–49% faster, response unchanged) after
   reviewing the path-safety shortcuts against `realpath` semantics.
 - [x] Docs audit (subagent, each finding re-verified): README data-root fix,
