@@ -22,7 +22,7 @@ def add_scope_arg(parser) -> None:
         "--scope",
         metavar="SCOPE",
         default="global",
-        help="scope: global, all, or an agent id (claude-code, codex, cursor, opencode, gemini, agents). Default: global",
+        help="scope: global, all, or an agent id (claude-code, codex, cursor, opencode, gemini, commandcode, agents). Default: global",
     )
 
 

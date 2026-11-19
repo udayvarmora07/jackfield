@@ -9,6 +9,16 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
 
 ## 2026-11-19 — Accept the `localhost` Host alias (issue #14 F-2)
 
+**[NOTE] Docs audit.** A subagent compared README and the CLI surface doc with
+real runs in an isolated HOME; each finding was re-run before editing. The
+README told users to `chmod 700 ~/.local/share/skills-manager`, but the check
+is on the base folder, so that never cleared the error; it still said to avoid
+`localhost`; and its drift recipe missed body-only differences (plain `doctor
+--scope all` flags differing descriptions, `--hygiene` flags differing bodies).
+The CLI surface doc lacked `create --metadata` and `trash restore --snapshot/
+--scope` and described `templates new` wrongly. `--scope` help omitted
+`commandcode`.
+
 **[NOTE] CLI typo hints.** A first-time-user pass found clear errors and exit
 codes but no help for typos: `skills-mgr lst` listed 32 commands with no hint on
 3.11–3.13 (argparse's `suggest_on_error` exists only on 3.14), and `view

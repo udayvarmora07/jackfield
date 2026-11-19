@@ -112,6 +112,9 @@ done.
   Skills Manager mark for "Your library"; README shows the agent row.
 - [x] v2: keyboard-shortcut help ("?") is reachable at tablet widths (601–900 px).
 - [x] CLI: typo hints for commands (all supported Pythons) and library skill names.
+- [x] Docs audit (subagent, each finding re-verified): README data-root fix,
+  localhost guidance, doctor drift recipe; CLI surface signatures for `create`,
+  `trash restore`, `templates new`; `--scope` help lists `commandcode`.
 - [/] Parallel sessions: CI full suite on macOS/Windows + e2e (`ci-portability`),
   all-scope list performance (`list-perf`); each lands as a PR for review.
 

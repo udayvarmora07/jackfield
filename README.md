@@ -245,7 +245,7 @@ python3 desktop_launcher.py
 <details>
 <summary><b>Build on top of it (REST API)</b></summary>
 
-The same server is a JSON REST API for local scripts and editor extensions. Call it at `127.0.0.1` (not `localhost`) from a host process, not from a web page. Contract: [docs/08-web-ui.md](docs/08-web-ui.md#local-client-integration-contract-non-browser-clients--issue-8).
+The same server is a JSON REST API for local scripts and editor extensions. Call it at `127.0.0.1` or `localhost` (same port) from a host process, not from a web page. Contract: [docs/08-web-ui.md](docs/08-web-ui.md#local-client-integration-contract-non-browser-clients--issue-8).
 
 </details>
 
@@ -255,7 +255,8 @@ The same server is a JSON REST API for local scripts and editor extensions. Call
 <summary><b>Find and fix copies that drifted apart</b></summary>
 
 ```bash
-skills-mgr doctor --scope all                     # lists same-name skills whose copies differ
+skills-mgr doctor --scope all                     # same-name skills in several places; flags differing descriptions
+skills-mgr doctor --hygiene --scope all           # also flags copies whose bodies differ (divergent-name)
 skills-mgr view deploy-staging --scope claude-code
 skills-mgr sync deploy-staging --from claude-code --to agents --force   # old copy is snapshotted first
 ```
@@ -436,12 +437,14 @@ Deeper reading: [architecture](docs/01-architecture.md) · [modules](docs/02-mod
 ## Troubleshooting and FAQ
 
 <details>
-<summary><b>"unsafe data directory: … is writable by another user"</b></summary>
+<summary><b>"unsafe data root: … is writable by another user"</b></summary>
 
-The data root must be private to you:
+The data root (the base folder: `$SKILLS_MANAGER_DATA`, or `~/.local/share`
+by default) must not be writable by other users. Run the exact command the
+message prints, for example:
 
 ```bash
-chmod 700 ~/.local/share/skills-manager
+chmod 700 ~/.local/share
 ```
 
 </details>
@@ -460,7 +463,7 @@ skills-mgr db resync     # or: skills-mgr db rebuild
 <details>
 <summary><b>The web UI answers 403</b></summary>
 
-Use `http://127.0.0.1:<port>`, not `localhost`. The server only accepts its own loopback host and same-origin requests.
+Use `http://127.0.0.1:<port>` or `http://localhost:<port>` with the port the server printed. A 403 means another port, a different hostname (including look-alikes such as `localhost.example`) or a cross-origin request; the server only accepts its own loopback host and same-origin requests.
 
 </details>
 

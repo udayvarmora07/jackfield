@@ -110,7 +110,7 @@ An empty, unfiltered global text listing also checks agent scopes and prints
 their populated counts with a `list --scope all` hint. JSON, named-scope and
 filtered listings keep their existing output and avoid this extra scan.
 
-### `create NAME [-d/--description TEXT] [--license LIC] [--category CAT] [--compatibility SPEC] [--version VER] [--allowed-tools TOOLS] [--body TEXT] [--body-file PATH] [--json]`
+### `create NAME [-d/--description TEXT] [--license LIC] [--category CAT] [--compatibility SPEC] [--version VER] [--allowed-tools TOOLS] [--metadata KEY=VALUE] [--body TEXT] [--body-file PATH] [--json]`
 Create a skill in the global store. Name must match `NAME_RE`; description required. `--body` and `--body-file` are mutually exclusive.
 
 **[NOTE]** `create` is global-only in the CLI — agent-scope creates go through the web UI (`POST /api/skills?scope=`) or `scopes.create_skill()`.
@@ -318,12 +318,12 @@ Nothing is linked, copied or written.
 ### `stats [--json] [--scope SCOPE]`
 Counts and summary (skills, disabled, trash, categories, sizes). With `--scope all`, also lists per-scope counts. Category names are sanitized before printing (see *Untrusted display text*).
 
-### `trash list [--json] | trash restore NAME [--json] | trash purge [--json]`
+### `trash list [--json] | trash restore NAME [--snapshot TS] [--scope SCOPE] [--json] | trash purge [--json]`
 Manage the trash: list, restore one, purge all. Human `trash purge` reports the
 number of purged skills; `--json` preserves the structured `purged` name list.
 
 ### `templates list [--json] | templates new NAME [--body TEXT] [--json]`
-List templates; create a skill from a template.
+List templates; create a new template NAME (optional `--body`). Templates are files under `<data>/templates/`, used when creating skills.
 
 ### `db rebuild [--json] | db resync [--json]`
 `rebuild` drops and re-creates the index from the filesystem; `resync` syncs the index with FS without dropping. Both leave skill documents untouched. A bare `db` is a usage error.
