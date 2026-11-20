@@ -319,7 +319,9 @@ def contained_entry(root: Path, *parts: str | Path) -> Path:
     return contained_entry_under(Path(root).expanduser().resolve(), *parts)
 
 
-def contained_entry_under(resolved_root: Path, *parts: str | Path) -> Path:
+def contained_entry_under(
+    resolved_root: Path, *parts: str | Path, check_name: bool = True
+) -> Path:
     """Return the *named* entry below an already-resolved root.
 
     Identical guarantee to :func:`contained_entry`, but the caller supplies the
@@ -336,7 +338,7 @@ def contained_entry_under(resolved_root: Path, *parts: str | Path) -> Path:
     # A single part is a skill name, so it must satisfy the canonical name rule.
     # A deeper path is a discovered location below the root, so the containment
     # check below is what constrains it.
-    if len(path_parts) == 1:
+    if check_name and len(path_parts) == 1:
         validate_skill_name(str(path_parts[0]))
     candidate = resolved_root.joinpath(*path_parts)
     if _lexical_below(str(resolved_root), tuple(str(part) for part in path_parts)) is not None:

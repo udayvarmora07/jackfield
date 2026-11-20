@@ -628,6 +628,7 @@ def husk_record(skill_dir: Path) -> dict:
         "decode_error": f"{skill_dir} holds no SKILL.md (or SKILL.md.disabled)",
         "document_conflict": False,
         "missing_required": ["name", "description"],
+        "addressable": name_is_addressable(skill_dir.name),
         "description": "",
         "body": "",
         "category": "uncategorized",
@@ -825,7 +826,12 @@ def scan_dir(
                 _scan_degraded(collector, "candidate path could not be inspected")
                 continue
         try:
-            named = path_safety.contained_entry_under(resolved_root, *relative_parts)
+            # The scan enumerated this entry itself, so a non-canonical name is
+            # not an escape: load it and let the row be marked unaddressable
+            # (SCOPE-14) instead of blanking it as a link escape.
+            named = path_safety.contained_entry_under(
+                resolved_root, *relative_parts, check_name=False
+            )
         except ValueError as exc:
             # SCOPE-2: a skill directory that is a symlink out of the root is
             # invisible to every read view, yet every name-addressed operation
@@ -848,6 +854,14 @@ def scan_dir(
             entry["path"] = str(child)
             entries.append(entry)
             continue
+        # A non-canonical directory with no document (Codex's `.system/`
+        # container, an empty `.git`) was historically visible as a row, and
+        # the v2 Inbox relies on that to say "Not a skill" (docs/08).  Keep it
+        # visible, but as what it is -- a document-less, unaddressable husk --
+        # rather than as a link escape.
+        keep_husk = include_husks or (
+            len(relative_parts) == 1 and not name_is_addressable(relative_parts[0])
+        )
         observed_document = True
         if collector is not None and not recursive:
             try:
@@ -859,11 +873,11 @@ def scan_dir(
             observed_document = _diagnostic_has_document(named, collector)
             if observed_document is None:
                 continue
-            if not observed_document and not include_husks:
+            if not observed_document and not keep_husk:
                 continue
         try:
             entry = load_skill(
-                named, include_husks=include_husks, reuse=reuse
+                named, include_husks=keep_husk, reuse=reuse
             )
             if recursive:
                 entry["path"] = str(child)

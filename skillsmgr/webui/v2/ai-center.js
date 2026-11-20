@@ -435,7 +435,7 @@
       </template>
 
       <template v-else-if="!configured && settings">
-        <h1 class="h1" id="h1" tabindex="-1">{{ {'ai-explain':'Explain risk findings','ai-port':'Porting notes','ai-ask':'Ask your library','ai-draft':'Draft a skill','ai-profile':'Suggest a profile','ai-trigger':'Trigger test','ai-improve':'Improve a description','ai-overlap':'Overlap check','ai-budget':'Fit the listing budget','ai-evals':'Does it help?'}[page] || 'AI assist' }}</h1>
+        <h1 class="h1" id="h1" tabindex="-1">{{ {'ai-concise':'Shorten a skill','ai-explain':'Explain risk findings','ai-port':'Porting notes','ai-ask':'Ask your library','ai-draft':'Draft a skill','ai-profile':'Suggest a profile','ai-trigger':'Trigger test','ai-improve':'Improve a description','ai-overlap':'Overlap check','ai-budget':'Fit the listing budget','ai-evals':'Does it help?'}[page] || 'AI assist' }}</h1>
         <section class="card tp-panel"><p>AI features are off. Connect a model first; nothing is sent until you run a test.</p>
           <div class="tp-acts"><a class="btn btn-ink" href="#/tools/ai-settings">Open AI settings</a></div></section>
       </template>

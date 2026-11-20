@@ -80,6 +80,42 @@ class UnaddressableNamesTests(BatchFourCase):
         self.assertFalse(row["addressable"])
         self.assertIn("unaddressable", row["instance_states"])
 
+    def test_a_non_canonical_name_keeps_its_content_and_is_not_a_link_escape(self):
+        # The scan used to apply the name rule to the entry it had enumerated
+        # itself, so the failure was reported as a link escape and the row was
+        # blanked: empty description, bogus "escapes managed root" reason.
+        self._scope_skill("Upper-Case", "An upper-case directory name.")
+
+        from skillsmgr import scopes
+
+        row = next(r for r in scopes.scan_scope("agents") if r["name"] == "Upper-Case")
+        self.assertFalse(row.get("link_escape"))
+        self.assertEqual(row["description"], "An upper-case directory name.")
+        self.assertIn("unaddressable", row["instance_states"])
+
+    def test_a_container_dot_directory_is_a_husk_not_a_link_escape(self):
+        # Codex materializes its bundled skills under ~/.codex/skills/.system/;
+        # the container has no SKILL.md of its own.  The v2 Inbox shows it as
+        # "Not a skill" (docs/08), so the row stays, but it must say what it is
+        # -- a document-less, unaddressable folder -- not "escapes managed root".
+        root = self.home / ".codex" / "skills"
+        (root / ".system" / "imagegen").mkdir(parents=True)
+        (root / ".system" / "imagegen" / "SKILL.md").write_text(
+            "---\nname: imagegen\ndescription: Bundled.\n---\nbody\n", encoding="utf-8"
+        )
+
+        from skillsmgr import scopes
+
+        rows = [r for r in scopes.scan_scope("codex") if r["name"] == ".system"]
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0]["document_missing"])
+        self.assertFalse(rows[0].get("link_escape"))
+        self.assertFalse(rows[0]["addressable"])
+        self.assertIn("unaddressable", rows[0]["instance_states"])
+        # An empty folder with a valid name keeps the historical contract.
+        (root / "empty-valid").mkdir()
+        self.assertNotIn("empty-valid", [r["name"] for r in scopes.scan_scope("codex")])
+
     def test_an_undecodable_document_reports_no_mojibake_description(self):
         # BUG-10: the row is correctly flagged malformed, but its description
         # was still populated with replacement characters and shown/counted.

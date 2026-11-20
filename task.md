@@ -138,6 +138,13 @@ done.
 - [x] Merged PR #22: full suite on ubuntu/macOS/Windows plus a headless-Chrome
   e2e job; fixes macOS temp-dir symlinks, Windows fchmod/replace/ordering/
   directory identity.
+- [x] Scope scan: non-canonical names (`Upper-Case`, `.hidden`) were blanked
+  as bogus link escapes with blank descriptions; document-less dot-folders
+  are now honest husks ("Not a skill" kept). Toggle-toast punctuation and the
+  unconfigured "Shorten a skill" heading fixed (2026-11-20, docs/06).
+- [ ] Owner's call: `~/.agents/skills/agent-only` and `demo` (2026-10-09) look
+  like fixtures a past test run leaked into the real shared root (the suite now
+  isolates `HOME`); delete or keep?
 - [ ] Windows residual: concurrent HTTP reads can see a transient 404 while a
   document replace is in flight (stress test skipped on Windows in PR #22).
 - [ ] Compatibility note: tree hashes now use `/` separators on every OS, so a

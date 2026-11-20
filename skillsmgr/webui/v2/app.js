@@ -566,7 +566,9 @@ const app = createApp({
     tokenClause(tokens, turning) {
       const n = Number(tokens) || 0;
       if (n <= 0) return "";
-      return turning === "off" ? ` — frees about ${this.fmt(n)} tokens of that agent's budget` : ` — uses about ${this.fmt(n)} tokens`;
+      // A sentence of its own: the toast already ends its first sentence with
+      // a full stop, and "Codex. — frees" read as a typo.
+      return turning === "off" ? ` That frees about ${this.fmt(n)} tokens of that agent's budget.` : ` It uses about ${this.fmt(n)} tokens.`;
     },
 
     async syncDiffering() {
@@ -606,7 +608,7 @@ const app = createApp({
       try {
         for (const c of s.copies.filter((x) => x.state === "off" && !x.readOnly)) { await api(`/api/skills/${encodeURIComponent(s.name)}/enable?scope=${encodeURIComponent(c.scope)}`, { method: "POST" }); turned.push(c.scope); }
         await this.refresh();
-        const clause = gained > 0 ? ` — uses about ${this.fmt(gained)} tokens across ${plural(turned.length, "agent")}` : "";
+        const clause = gained > 0 ? ` That uses about ${this.fmt(gained)} tokens across ${plural(turned.length, "agent")}.` : "";
         this.toast(`${s.name} turned on everywhere.${clause}`, { undo: async () => { for (const sc of turned) await api(`/api/skills/${encodeURIComponent(s.name)}/disable?scope=${encodeURIComponent(sc)}`, { method: "POST" }); } });
       } catch (e) { this.toast(e.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
     },

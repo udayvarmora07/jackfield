@@ -7,6 +7,42 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Scope scan no longer blanks non-canonical names
+
+**[NOTE]** Found by exploratory testing of the v2 Skills page against the
+maintainer's real roots: a Codex row named `.system` showed as an "active"
+skill with no description. `loader.scan_dir` passed each enumerated entry to
+`path_safety.contained_entry_under`, which applies the skill-name rule to a
+single-part path; the resulting `ValueError` was handled as a *link escape*.
+So every directory whose name fails `NAME_RE` (`Upper-Case`, `.hidden-skill`)
+was listed as a blank link-escape stub ("path escapes managed root"
+reason, empty description), and a container with no `SKILL.md` of its own
+(Codex's bundled `~/.codex/skills/.system/`) appeared as a skill.
+
+**[SPEC]** `contained_entry_under(..., check_name=False)` is for scans only: the
+entry was enumerated, not named by a caller, so containment and the Windows
+separator check still run but the name rule does not. Non-canonical rows now
+keep their real content and stay marked `unaddressable` (SCOPE-14). A
+non-canonical directory with **no** document (Codex's `.system/`) stays visible,
+because the v2 Inbox's "Not a skill" note depends on it (docs/08), but as a
+document-less husk (`document_missing: true`, `addressable: false`) instead of
+a link escape; `husk_record` now carries `addressable`. An empty folder with a
+valid name keeps the old contract (not listed outside doctor). Name-addressed
+callers keep the default. Doctor output on the maintainer's roots is
+byte-identical before and after.
+
+**[NOTE]** The first cut dropped document-less dot-folders entirely; unit tests
+stayed green but the v2 browser suite failed ("Home Inbox count equals queue"
+expects the `.system` note). Fixed before commit — the browser suites are the
+only evidence for that contract.
+
+Also in this pass (v2 copy): the on/off toast read "turned off in Codex. —
+frees about…"; the token effect is now its own sentence. The AI "Shorten a
+skill" page was titled "AI assist" while no model was configured (its id was
+missing from the fallback heading map). Regression tests:
+`tests/test_audit_batch4_contracts.py`, `tests/test_v2_interface_contracts.py`
+(each fails without its fix).
+
 ## 2026-11-20 — Full suite on every OS, browser e2e in CI
 
 **[NOTE]** CI ran only a four-module path/archive subset on macOS and Windows,

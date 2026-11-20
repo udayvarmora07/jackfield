@@ -650,6 +650,18 @@ class BodyLazyLoadTests(unittest.TestCase):
         self.assertNotIn("token", out["zero"])
         self.assertIn("turned on everywhere.", out["all"])
         self.assertIn("uses about 1,240 tokens across 2 agents", out["all"])
+        for text in out.values():
+            self.assertNotIn(". —", text, "a token clause must not follow a full stop with a dash")
+
+    def test_every_ai_tool_has_its_own_heading_while_ai_is_off(self):
+        # The unconfigured fallback heading map once lacked "ai-concise", so
+        # that page alone was titled "AI assist" until a model was connected.
+        model = (V2 / "model.js").read_text(encoding="utf-8")
+        center = (V2 / "ai-center.js").read_text(encoding="utf-8")
+        ids = set(re.findall(r'id: "(ai-[a-z-]+)"', model)) - {"ai-settings"}
+        self.assertTrue(ids)
+        heading_map = re.search(r"<h1[^>]*>\{\{ (\{[^}]*\})\[page\]", center).group(1)
+        self.assertEqual(ids - set(re.findall(r"'(ai-[a-z-]+)':", heading_map)), set())
 
     def test_startup_list_request_omits_document_bodies(self):
         app = (V2 / "app.js").read_text(encoding="utf-8")
