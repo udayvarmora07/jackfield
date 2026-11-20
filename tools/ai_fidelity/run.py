@@ -278,6 +278,11 @@ def _stop(process) -> None:
         os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # macOS answers EPERM, not ESRCH, when only zombies remain in the
+        # group. Anything still alive in our own group would have been killed.
+        if process.poll() is None:
+            process.kill()
     finally:
         process.wait()
 

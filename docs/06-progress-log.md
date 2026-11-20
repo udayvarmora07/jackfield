@@ -34,6 +34,12 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
   the killed child was in the transient `X (dead)` state. The test now accepts
   `Z` or `X`; both prove the child stopped. All nine cross-platform jobs
   (ubuntu, macOS, Windows on 3.11 and 3.14) had already passed.
+- The rerun (44707293366) passed 3.13 but hit two other races. On macOS,
+  `os.killpg` returned EPERM for a process group holding only zombies; the
+  fidelity harness's `_stop` now treats EPERM like ESRCH after killing the
+  direct child if it is still alive. The v2 "Peer scope link" scenario read
+  `.use` rows once without waiting; it now waits for the shared-folder row.
+  The fidelity tests and the full v2 e2e suite pass locally.
 
 ## 2026-11-20 — Recovery paths for repeat removals
 

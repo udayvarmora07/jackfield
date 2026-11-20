@@ -513,7 +513,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert(await instance.getByRole('button',{name:'Review update',exact:true}).isDisabled());
     await page.locator('.instance-filters').getByRole('button',{name:'Shelf',exact:true}).click();
     await card.click();
-    assert((await page.locator('.use').allInnerTexts()).some(text=>text.includes('Shared skills folder')));
+    await page.locator('.use').filter({hasText:'Shared skills folder'}).first().waitFor({state:'visible'});
     const claudeCopy=page.locator('.use').filter({hasText:'Claude Code'});
     assert(await claudeCopy.locator('input[type="checkbox"]').isDisabled());
     await page.locator('.acts button').filter({hasText:'Edit'}).click();
