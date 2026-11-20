@@ -17,7 +17,7 @@ from . import __version__
 from . import path_safety
 from .errors import StoreError
 from .sidecar_binding import MANAGER_SIDECARS
-from .atomic_io import tree_content_hash
+from .atomic_io import tree_hash_matches
 from .diagnostics import diagnose as _diagnose
 from .frontmatter import FrontmatterError, parse_frontmatter
 from .validator import validate_skill_name
@@ -526,13 +526,13 @@ def commit_staged_skill(
     dest_existed = dest.exists()
     try:
         copytree(source, staged)
-        if expected_hash and tree_content_hash(staged) != expected_hash:
+        if expected_hash and not tree_hash_matches(staged, expected_hash):
             raise ArchiveError(f"content hash mismatch for '{dest.name}'")
         if dest.exists():
             move(str(dest), str(backup))
             moved_original = True
         move(str(staged), str(dest))
-        if expected_hash and tree_content_hash(dest) != expected_hash:
+        if expected_hash and not tree_hash_matches(dest, expected_hash):
             raise ArchiveError(f"committed content hash mismatch for '{dest.name}'")
         upsert(dest.name)
         if backup.exists():

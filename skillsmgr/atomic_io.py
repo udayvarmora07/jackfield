@@ -404,7 +404,7 @@ def is_sha256_hex(value: object) -> bool:
     return isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdefABCDEF" for c in value)
 
 
-def tree_content_hash(root: Path) -> str:
+def tree_content_hash(root: Path, *, separator: str = "/") -> str:
     """Hash relative file names and bytes for a directory tree.
 
     Only regular, non-symlink files are hashed, and symlinked directories are
@@ -414,7 +414,12 @@ def tree_content_hash(root: Path) -> str:
     the manifest hash covers bytes the archive does not contain and the whole
     archive becomes unimportable.  It also used to follow a link that escaped
     the managed root, hashing (and thereby oracling) data outside it.
+
+    ``separator="\\"`` reproduces the digest Windows builds before 2026-11-20
+    wrote into export manifests (``str(relative)`` used the OS separator); it
+    exists only so :func:`tree_hash_matches` can verify those archives.
     """
+    _require_separator(separator)
     digest = hashlib.sha256()
     root = Path(root)
     if not root.is_dir():
@@ -428,11 +433,30 @@ def tree_content_hash(root: Path) -> str:
             path = current / name
             if path.is_symlink():
                 continue
-            _digest_member(digest, root, path)
+            _digest_member(digest, root, path, separator)
     return digest.hexdigest()
 
 
-def _digest_member(digest, root: Path, path: Path) -> None:
+def _require_separator(separator: str) -> None:
+    if separator not in ("/", "\\"):
+        raise ValueError("separator must be '/' or '\\'")
+
+
+def tree_hash_matches(root: Path, expected: str) -> bool:
+    """True when *root* hashes to *expected* in the current or legacy form.
+
+    The current form joins relative names with ``/`` on every OS.  An archive
+    a Windows build exported before that change carries the ``\\`` form, and
+    it described the same bytes, so it is accepted too -- the bytes are still
+    fully hashed, only the name spelling differs.  Top-level files hash the
+    same either way, so the second walk runs only for nested trees that missed.
+    """
+    if tree_content_hash(root) == expected:
+        return True
+    return tree_content_hash(root, separator="\\") == expected
+
+
+def _digest_member(digest, root: Path, path: Path, separator: str = "/") -> None:
     """Add one regular file's name and bytes to ``digest``, streamed.
 
     A FIFO or device would block or never end, so only regular files count.
@@ -443,7 +467,7 @@ def _digest_member(digest, root: Path, path: Path) -> None:
         return
     # POSIX separators, so one tree has one digest on every OS: an archive
     # exported on Linux must import on Windows and vice versa.
-    digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+    digest.update(separator.join(path.relative_to(root).parts).encode("utf-8"))
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)

@@ -7,6 +7,24 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Two residuals closed: legacy Windows archives, repo credential helpers
+
+- **Legacy Windows archives import again.** Tree hashes join names with `/` on
+  every OS since 2026-11-20, so a manifest a Windows build wrote earlier (with
+  `\`) failed verification for any skill with nested files.
+  `atomic_io.tree_hash_matches` accepts the legacy digest only on an exact
+  match (top-level files hash the same either way; the bytes are still fully
+  hashed). `tests/test_archive_legacy_windows_hash.py` builds such an archive
+  and imports it; a wrong digest is still skipped with "content hash mismatch".
+- **Repository credential helpers.** `backup_sync.git_fetch` now refuses a
+  `credential.helper` (incl. URL-scoped `credential.<url>.helper`) whose scope
+  is the repository's own config, before fetching: a helper is a program, so a
+  crafted repository could run code. Global/system helpers stay in use (a
+  `-c credential.helper=` reset would have broken private HTTPS remotes).
+  `_run_git` takes explicit `ok_codes` for the one `git config` lookup that
+  exits 1 when nothing matches. Regression test in
+  `tests/test_backup_sync_contracts.py` (fails without the fix).
+
 ## 2026-11-20 — v2 component ports and guideline pass
 
 **[NOTE]** From the component-library survey (Aceternity, Magic UI, Untitled

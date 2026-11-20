@@ -125,9 +125,9 @@ done.
   case-variant tags cannot end the data region; source manifests and tree
   hashes are size-bounded and skip FIFOs; `validate --path` output sanitized;
   `git_fetch` pins `--upload-pack` and the pager.
-- [ ] Residual: a repository-local `credential.helper` still runs during
-  `git_fetch` (resetting it would also clear the user's global helper); no
-  product caller uses `git_fetch` yet.
+- [x] `git_fetch` refuses a credential helper set by the repository's own config
+  (`git config --show-scope`: local/worktree, includes too); global and system
+  helpers keep working (2026-11-20).
 - [x] v2 bug review (subagent, each finding verified): Ctrl+S save guard,
   dialog Escape/Tab trap after a click, stale-response guards for refresh and
   skill history, history reload after changes, Test connection keeps unsaved
@@ -161,9 +161,9 @@ done.
 - [x] Windows residual: concurrent HTTP reads saw a transient 404 during a
   replace. Readers now retry delete-pending documents (≤100 ms); the stress test
   runs on Windows again and passed on py3.11/3.14 (2026-11-20).
-- [ ] Compatibility note: tree hashes now use `/` separators on every OS, so a
-  manifest from an archive exported on Windows by an earlier version will not
-  verify; POSIX-exported archives are unaffected.
+- [x] Compatibility: archives a Windows build exported before the `/`-separator
+  change verify again (`atomic_io.tree_hash_matches` accepts the legacy `\`
+  digest only on an exact match; 2026-11-20).
 - [x] AI Center: buttons stay disabled until every overlapping request ends
   (an in-flight counter; the old boolean re-enabled paid calls early).
 - [x] Merged PR #23 (list request 29–49% faster, response unchanged) after

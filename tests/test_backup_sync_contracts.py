@@ -97,6 +97,44 @@ class BackupSyncContracts(unittest.TestCase):
             self.assertTrue(fetched["credential_redacted"])
             self.assertNotIn("secret", str(fetched))
 
+    def test_fetch_refuses_a_repository_scoped_credential_helper(self):
+        if shutil.which("git") is None:
+            self.skipTest("Git is not installed")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            remote = root / "remote.git"
+            repo = root / "repo"
+            marker = root / "helper-ran"
+            subprocess.run(["git", "init", "--bare", "-q", str(remote)], check=True)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+
+            def git(*args):
+                return subprocess.run(
+                    ["git", *args], cwd=repo, check=True, capture_output=True, text=True
+                )
+
+            git("config", "user.email", "test@example.invalid")
+            git("config", "user.name", "Test")
+            (repo / "README").write_text("one\n", encoding="utf-8")
+            git("add", "README")
+            git("commit", "-qm", "initial")
+            git("remote", "add", "origin", str(remote))
+            git("push", "-q", "origin", "HEAD")
+            # A program a crafted repository would have Git run during a fetch.
+            git("config", "credential.helper", f"!touch {marker.as_posix()}")
+            with self.assertRaises(BackupSyncError) as caught:
+                git_fetch(repo)
+            self.assertIn("credential helper", str(caught.exception))
+            self.assertFalse(marker.exists())
+            # A URL-scoped repository helper is refused the same way.
+            git("config", "--unset", "credential.helper")
+            git("config", "credential.https://example.invalid.helper", "store")
+            with self.assertRaises(BackupSyncError):
+                git_fetch(repo)
+            # With no repository helper the fetch proceeds as before.
+            git("config", "--unset", "credential.https://example.invalid.helper")
+            self.assertIn("fetched_revision", git_fetch(repo))
+
     def test_review_apply_is_private_revalidated_snapshot_backed_and_single_use(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

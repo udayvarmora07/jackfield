@@ -65,8 +65,8 @@ _GIT_CONFIG_OVERRIDES = (
     # 2026-11-19 review: a repository's own config could name a pager to run.
     # `credential.helper` is deliberately NOT reset: `-c credential.helper=`
     # clears the user's global helper too and breaks private HTTPS remotes.
-    # A repo-local helper therefore remains a residual risk (task.md), and
-    # `git_fetch` has no product caller yet.
+    # A repository-scoped helper is refused instead, before any fetch
+    # (`_refuse_repository_credential_helpers`, 2026-11-20).
     ("core.pager", "cat"),
 )
 # Environment wins over `core.sshCommand`, so pinning the SSH command here
@@ -330,7 +330,8 @@ def _git_environment() -> dict[str, str]:
     return environment
 
 
-def _run_git(repo: str | Path, arguments: list[str], *, timeout: float = 60.0) -> str:
+def _run_git(repo: str | Path, arguments: list[str], *, timeout: float = 60.0,
+             ok_codes: tuple[int, ...] = (0,)) -> str:
     root = Path(repo).expanduser()
     if not root.is_dir() or root.is_symlink():
         raise BackupSyncError("Git repository is not an accessible directory")
@@ -357,7 +358,7 @@ def _run_git(repo: str | Path, arguments: list[str], *, timeout: float = 60.0) -
         )
     except (OSError, subprocess.SubprocessError) as exc:
         raise BackupSyncError("Git operation could not be started or completed") from exc
-    if result.returncode != 0:
+    if result.returncode not in ok_codes:
         raise BackupSyncError("Git operation failed; inspect the repository and configured authentication")
     output = result.stdout.strip()
     if len(output.encode("utf-8")) > 64 * 1024:
@@ -383,10 +384,36 @@ def git_remote_info(repo: str | Path, *, remote: str = "origin") -> dict:
     }
 
 
+_LOCAL_CONFIG_SCOPES = frozenset({"local", "worktree"})
+
+
+def _refuse_repository_credential_helpers(repo: str | Path) -> None:
+    """Refuse a credential helper named by the repository's own config.
+
+    A helper is a program Git runs, so one set in ``.git/config`` (or a file it
+    includes) lets whoever wrote the repository run code during a fetch.  The
+    user's global and system helpers stay in use -- resetting the key with
+    ``-c credential.helper=`` would clear those too and break private HTTPS
+    remotes -- so only repository-scoped entries are refused.
+    """
+    listing = _run_git(
+        repo, ["config", "--show-scope", "--get-regexp", r"^credential\..*helper$"],
+        ok_codes=(0, 1),  # 1: no helper configured anywhere
+    )
+    for line in listing.splitlines():
+        scope = line.split("\t", 1)[0].strip()
+        if scope in _LOCAL_CONFIG_SCOPES:
+            raise BackupSyncError(
+                "this repository's own Git config names a credential helper, which the "
+                "manager will not run; move it to your global Git config"
+            )
+
+
 def git_fetch(repo: str | Path, *, remote: str = "origin", refspec: str | None = None,
               timeout: float = 60.0) -> dict:
     """Fetch one configured Git remote without accepting a credential argument."""
     info = git_remote_info(repo, remote=remote)
+    _refuse_repository_credential_helpers(repo)
     # The command line beats `remote.<name>.uploadpack` in repository config,
     # which would otherwise run an arbitrary program during the fetch.
     arguments = ["fetch", "--no-tags", "--upload-pack=git-upload-pack", remote]
