@@ -29,6 +29,11 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
   3.11; Store and Web smokes; v2 and classic e2e (39 scenarios, 349
   assertions) in a chmod-700 temp dir; docs, complexity and design tokens.
   macOS and Windows coverage comes from CI.
+- CI run 44705858668 then failed only `unit (py3.13)`:
+  `test_timeout_terminates_fake_descendant` read `/proc/<pid>/status` while
+  the killed child was in the transient `X (dead)` state. The test now accepts
+  `Z` or `X`; both prove the child stopped. All nine cross-platform jobs
+  (ubuntu, macOS, Windows on 3.11 and 3.14) had already passed.
 
 ## 2026-11-20 — Recovery paths for repeat removals
 

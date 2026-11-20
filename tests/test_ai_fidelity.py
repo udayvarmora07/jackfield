@@ -201,7 +201,8 @@ print(json.dumps({'type':'result','subtype':'success','is_error':False}))
             child_status = status.read_text()
         except (FileNotFoundError, ProcessLookupError):
             return  # Reaping may remove the entry before the status read.
-        self.assertIn('State:\tZ', child_status)
+        # Z (zombie) or X (dead, mid-reap) both mean the child stopped running.
+        self.assertRegex(child_status, r'State:\t[ZX]')
 
     @unittest.skipUnless(os.name == 'posix', 'process groups require POSIX')
     def test_fake_timeout_and_output_flood_are_inconclusive(self):
