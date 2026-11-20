@@ -138,6 +138,11 @@ done.
 - [x] Merged PR #22: full suite on ubuntu/macOS/Windows plus a headless-Chrome
   e2e job; fixes macOS temp-dir symlinks, Windows fchmod/replace/ordering/
   directory identity.
+- [x] v2 interface pass (2026-11-20): type-scale tokens (Large text now scales
+  everything), spacing rhythm, axe 0 violations, Home layout, copy (docs/06).
+- [ ] UI follow-ups from the reference study (`~/design-refs/`): Sync map as a
+  skills × agents matrix, Skills shelf density toggle, collapse repeated history
+  rows in Recovery, sticky A–Z headers.
 - [x] Scope scan: non-canonical names (`Upper-Case`, `.hidden`) were blanked
   as bogus link escapes with blank descriptions; document-less dot-folders
   are now honest husks ("Not a skill" kept). Toggle-toast punctuation and the

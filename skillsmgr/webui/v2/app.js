@@ -276,6 +276,9 @@ const app = createApp({
   methods: {
     enc: encodeURIComponent, plural, join, words, titleCase, shortPath, plainLine, renderDoc,
     fmt(n) {return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale).format(Number(n));},
+    /* The informative end of a long folder path ("…/.claude/skills"); the full
+     * path stays in the element's title. A leading ellipsis cut the useful part. */
+    shortPath(path) {const text=String(path||"");const parts=text.split(/[\\/]/).filter(Boolean);return text.length<=28||parts.length<=2?text:"…/"+parts.slice(-2).join("/");},
     fmtDate(value) {const date=new Date(value);return Number.isNaN(date.getTime())?String(value||"Date unavailable"):Domain.dateFormatter(this.formatLocale==="system"?undefined:this.formatLocale,{dateStyle:"medium",timeStyle:"short"}).format(date);},
     preferencesChanged() {this.theme=savedPreference("skillsmgr-theme",THEMES,"system");this.formatLocale=savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system");document.documentElement.dataset.textSize=savedPreference("skillsmgr-text-size",["standard","large"],"standard");this.applyTheme(); },
     skillTags(name) {return (this.catalog.tags || {})[name] || [];},
@@ -740,7 +743,7 @@ const app = createApp({
       });
     },
     openPurge() {
-      this.openDialog({ title: "Empty the trash?", danger: true, confirm: "Delete forever", lines: [`${plural(this.trash.length, "skill")} will be deleted permanently. This cannot be undone.`],
+      this.openDialog({ title: "Empty the trash?", danger: true, confirm: "Delete permanently", lines: [`${plural(this.trash.length, "skill")} will be deleted permanently. This cannot be undone.`],
         onConfirm: async () => { this.busy = true; try { await api("/api/trash/purge", { method: "POST" }); await this.loadTrash(); this.toast("The trash was emptied."); } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; } } });
     },
     async exportBackup(full) {

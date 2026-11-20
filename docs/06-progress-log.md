@@ -7,6 +7,43 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — v2 interface pass: type scale, spacing rhythm, a11y, Home layout
+
+**[NOTE]** Driven by the `better-interface` review (accessibility, layout,
+writing, typography, colour, UI skills), two read-only audit subagents (a
+designer walk-through at 1440/768/390 in both themes, and an axe-core 4.7
+sweep of 11 routes × 2 themes), and design references gathered with the inspo
+MCP plus Godly/Awwwards/vendor product UIs (report kept outside the repo at
+`~/design-refs/skills-manager-references.md`).
+
+- **Type scale.** 28 ad-hoc font sizes became 11 named tokens (`--fs-caption`
+  12 … `--fs-display` 52) in `v2/styles.css`; every size is `calc(N px ×
+  --fs-k)`. The "Large text" preference used to enlarge only `body` (almost
+  every element sets its own size), so it barely changed anything; it now sets
+  `--fs-k: 1.133` and every step follows (verified: card text 13 → 14.7px, h1
+  44 → 49.9px, no horizontal overflow). Agent-logo initials stay fixed to their
+  tiles. Fonts unchanged: Plus Jakarta Sans / Newsreader / IBM Plex Mono is the
+  serif-display + sans-UI + mono pairing the references endorse.
+- **Spacing.** 20 distinct `gap` values snapped to one rhythm
+  (2/4/6/8/12/16/20/24/32/56).
+- **Typography.** `text-wrap: balance` on headings, `pretty` on ledes and card
+  descriptions; the empty-state icon stroke (rendered ~2.75px) now matches the
+  ~1.5px set.
+- **Accessibility.** axe `aria-allowed-attr` (serious): skill-tree status dots
+  carried `aria-label` without a role (`role="img"` added); the Inbox badge's
+  label moved to visually-hidden text; the formatting bar is a `toolbar` and the
+  mini-diff a labelled `region`; the Sync map's mobile list had a second `h1`
+  (now `h2`). axe: 0 violations on every route in both themes after the change.
+- **Home.** "Shared by most agents" and "Recent changes" moved from the long
+  right rail into the main column under the agent cards, removing a ~1,300px
+  empty area; agent paths show their informative end (`…/.claude/skills`, full
+  path in the tooltip) instead of a leading-ellipsis cut; the "If read in full"
+  meter says "under 0.1%" instead of a misleading "0%" over a forced 1.5% bar,
+  and its limit tick has a title.
+- **Copy.** "skills in all" → "skills in total"; detected apps are "agents"
+  throughout the shelf (was "tools"); "Delete forever" → "Delete permanently"
+  (matching the rest of the UI).
+
 ## 2026-11-20 — Open-queue pass: peer-user check, list payload, card names, Windows reads
 
 **[NOTE]** Work on the agent-actionable entries of the "Open for the maintainer"
