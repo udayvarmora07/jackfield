@@ -7,6 +7,29 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Pilot capture refresh and Recovery rehearsal
+
+- Captured nine screens from `d2257c8` in headless Chrome, including the
+  Inbox overwrite preview and the previous Codex folder in Recovery after
+  Sync. The synthetic fixture includes a disabled skill, an unreadable
+  document and a divergent copy with a supporting file. All image dimensions
+  and SHA-256 checksums matched the manifest. Visual review confirmed that
+  the Inbox path points inside the disposable fixture. The private ZIP is
+  `~/skills-manager-artifacts/2026-11-20-pilot/2026-11-20-d2257c8-pilot-screenshots.zip`.
+- Selecting Claude Code as the source showed one destination, Codex.
+  Selecting Codex showed two destinations, Claude Code and the shared folder.
+  Sync from Claude Code copied both fixture files to Codex and saved both
+  original files in Recovery. Restore refused the occupied path. After the
+  rehearsal set the current copy aside, the exact Recovery entry restored
+  both original files. External use and consented participant sessions
+  still require human approval and participation.
+- To inform the `.specs/` retention decision, the current subtree at `d2257c8`
+  produced a 37,883,054-byte gzip-compressed Git archive. Twelve tracked
+  Markdown files outside the subtree contain literal `.specs/` references.
+  These measurements describe the current archive and reference surface.
+  They do not estimate the size of a history rewrite. The owner decision
+  remains open.
+
 ## 2026-11-20 — Lifecycle evidence and remaining-task review
 
 - `archive candidates` now shows the primary document modification time

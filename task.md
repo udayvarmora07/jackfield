@@ -241,6 +241,7 @@ Open for the maintainer:
   user is refused (kernel socket owner via `/proc/net/tcp`, no token, no client
   change). macOS/Windows unchanged — per-user token file still the option there.
 - [ ] `.specs/` (40 MB evidence) and history purge: keep, move, or rewrite history?
+  Current archive size and Markdown references are recorded in @docs/06-progress-log.md.
 - [x] `body=0` list rows also omit `portable_frontmatter`/`frontmatter_extensions`
   (896 KB of 4.8 MB on the maintainer's library; detail route unchanged; 2026-11-20).
 - [x] Shelf cards: accessible name is the visible text, skill name first (no
@@ -282,6 +283,9 @@ The full dated context remains in the archive.
 - [x] Check the dated pilot screenshot package locally. All seven image
   checksums and viewport labels match the manifest. Review notes are in
   @docs/06-progress-log.md.
+
+- [x] Refresh the pilot package from `d2257c8` and rehearse Sync and Recovery
+  with a synthetic divergent copy containing a supporting file.
 
 - [ ] Approve the dated screenshot package for external use and run real
   consented participant sessions using the pilot kit in docs/25.
