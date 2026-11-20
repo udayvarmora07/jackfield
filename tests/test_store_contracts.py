@@ -599,23 +599,22 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         self.assertEqual(list(self.store.trash_dir.iterdir()), [trash_path])
 
     def _vanishing_stat(self, vanished):
-        """Make *vanished* disappear after the name check but before the mtime sort.
+        """Delete *vanished* right after its name check, before the mtime read.
 
-        ``_trash_entry_name`` probes the entry with ``lstat`` and one ``stat``
-        (``is_symlink`` / ``is_dir``); the entry then vanishes, so the next
-        ``stat`` — the mtime read — is the one that fails.
+        This removes the real directory at the real moment another tool could,
+        instead of counting ``Path.stat`` calls (pathlib's internal probes
+        differ between Python versions).
         """
-        real_stat = Path.stat
-        probes = []
+        import skillsmgr.store as store_module
+        real_name = store_module._trash_entry_name
 
-        def stat(path, *args, **kwargs):
-            if path == vanished and kwargs.get("follow_symlinks", True):
-                probes.append(path)
-                if len(probes) > 1:
-                    raise FileNotFoundError(errno.ENOENT, "fixture: entry vanished", str(path))
-            return real_stat(path, *args, **kwargs)
+        def name_then_vanish(path):
+            result = real_name(path)
+            if path == vanished and path.exists():
+                shutil.rmtree(path)
+            return result
 
-        return mock.patch.object(Path, "stat", stat)
+        return mock.patch.object(store_module, "_trash_entry_name", side_effect=name_then_vanish)
 
     def test_restore_default_follows_trash_order_not_directory_mtime(self):
         self.store.create("demo", "A useful skill", body="First copy")
