@@ -152,6 +152,9 @@ a { color: inherit; }
 .switch { display: inline-flex; align-items: center; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .switch .tr { width: 36px; height: 22px; border-radius: var(--r-sm); background: var(--switch-off); position: relative; transition: background-color .15s var(--ease); }
+/* WCAG 1.4.11: the off track alone is ~1.5:1 against the page; a 1px
+   --line-strong ring (3.6:1) keeps the control's boundary visible. */
+.switch input:not(:checked) + .tr { box-shadow: inset 0 0 0 1px var(--line-strong); }
 .switch .tr::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / .25); transition: transform .15s var(--ease); }
 .switch input:checked + .tr { background: var(--ink); }
 .switch input:checked + .tr::after { transform: translateX(14px); }
@@ -202,7 +205,7 @@ a { color: inherit; }
 .seg button { height: 34px; padding: 0 14px; border: 0; border-radius: var(--r-sm); background: none; font-weight: 700; font-size: var(--fs-ui); color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
 .seg .n { color: var(--muted); font-weight: 600; }
-.field { height: 42px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); padding: 0 14px; font-weight: 600; font-size: var(--fs-ui); }
+.field { height: 42px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 0 14px; font-weight: 600; font-size: var(--fs-ui); }
 .field:focus { outline: 2px solid var(--ink); outline-offset: 1px; border-color: var(--ink); }
 select.field { padding-right: 34px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2355585f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
 .searchf { position: relative; flex: 1; min-width: 220px; max-width: 420px; }
@@ -663,3 +666,41 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 @media (max-width:1350px) { .themebtn.launcher { display: none; } }
 @media (max-width:1100px) { .brand-t, .gsearch { display: none; } }
+/* Phone: the shelf's header actions share the page's edges (they shrank to
+   their content, leaving a ragged right edge beside the full-width search). */
+@media (max-width: 600px) {
+  .shelf-head > .instance-actions { flex: 1 1 100%; }
+  .shelf-head > .instance-actions .btn { flex: 1 1 100%; }
+}
+
+/* Recovery backup dropzone (visual spec: Untitled UI FileUploadDropzone, MIT,
+   rewritten for this app's tokens). */
+.smdz { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 24px; text-align: center;
+  background: var(--surface); border-radius: var(--r-lg); box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--ink-2); cursor: pointer;
+  transition: box-shadow .1s linear, background-color .1s linear; }
+.smdz:hover { background: var(--hover); }
+.smdz.is-over { box-shadow: inset 0 0 0 2px var(--brand); background: var(--sunken); }
+.smdz:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.smdz-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.smdz-input:disabled { cursor: not-allowed; }
+.smdz-ico { color: var(--muted); margin-bottom: 4px; }
+.smdz-title { font-size: var(--fs-small); line-height: 20px; }
+.smdz-link { font-weight: 600; color: var(--brand); }
+.smdz-or { color: var(--muted); }
+.smdz-hint, .smdz-status { font-size: var(--fs-caption); line-height: 16px; color: var(--muted); }
+.smdz-status:not(:empty) { color: var(--ink); font-weight: 500; }
+@media (forced-colors: active) { .smdz { border: 1px solid CanvasText; } .smdz.is-over { border-color: Highlight; } }
+@media (prefers-reduced-motion: reduce) { .smdz { transition: none; } }
+
+/* Web Interface Guidelines (vercel-labs): no double-tap zoom delay on controls;
+   anchored headings clear the 66px sticky bar (plus a sticky letter header);
+   scroll inside dialogs and the skill tree does not chain to the page. */
+a, button, summary, label, select, [role="button"] { touch-action: manipulation; }
+h1[id], h2[id], h3[id] { scroll-margin-top: 80px; }
+.dlg, .tree, .instance-dialog { overscroll-behavior: contain; }
+/* Browser surfaces in the system's own palette (impeccable craft floor): the
+   highlighter token for selection (ink on --mark is 13.5:1 light; the dark
+   --mark is a 32% tint under light ink), the brand caret, quiet scrollbars. */
+::selection { background: var(--mark); color: var(--ink); }
+input, textarea, [contenteditable] { caret-color: var(--brand); }
+html, .tree, .dlg, .mpanel, .instance-dialog { scrollbar-color: var(--line-2) transparent; }

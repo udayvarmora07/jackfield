@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17150f" media="(prefers-color-scheme: dark)">
   <title>Skills Manager</title>
   <meta name="description" content="Inspect detected AI tools, their skill copies and differences. Local only.">
   <script src="../preferences.js"></script>
@@ -69,7 +71,7 @@
               <ic :name="inf.key"></ic>{{ inf.broken.length ? plural(inf.broken.length, 'skill') + " can't be read" : inf.differing.length ? plural(inf.differing.length, 'skill') + (inf.differing.length === 1 ? ' differs' : ' differ') : 'All ' + plural(inf.mine.length, 'skill') + ' readable' }}
             </span>
             <p class="room-note" v-if="inf.links.length">{{ plural(inf.links.length, 'skill is a link', 'skills are links') }} to other folders</p>
-            <div class="chips"><span v-for="s in inf.mine.slice(0, 4)" :key="s.name">{{ s.name }}</span><span class="more" v-if="inf.mine.length > 4">+{{ inf.mine.length - 4 }} more</span></div>
+            <div class="chips" translate="no"><span v-for="s in inf.mine.slice(0, 4)" :key="s.name">{{ s.name }}</span><span class="more" v-if="inf.mine.length > 4">+{{ inf.mine.length - 4 }} more</span></div>
             <div class="meter"><div class="ml"><span>If read in full</span><b class="num">{{ inf.pct > 0 ? inf.pct + '%' : inf.tokens ? 'under 0.1%' : '0%' }}</b></div>
               <div class="track" role="img" :aria-label="inf.pct + '% of a reading window if every skill were read in full'"><i :class="{ warn: inf.over }" :style="{ width: (inf.tokens ? Math.min(Math.max(inf.pct * 0.8, 1.5), 100) : 0) + '%' }"></i><span class="lim" style="left:80%" title="Suggested limit"></span></div></div>
           </a>
@@ -77,7 +79,7 @@
           <div class="home-extra">
           <div class="card" v-if="sharedSkills.length">
               <h2>Shared by most agents</h2><p class="sub">Skills that live in the most places</p>
-              <a class="shared-row" v-for="s in sharedSkills" :key="s.name" :href="'#/skill/' + enc(s.name)"><span>{{ s.name }}</span><span class="faces"><logo v-for="c in s.tools.slice(0, 6)" :key="c.scope" :agent="agentOf(c.scope)" size="xs"></logo></span></a>
+              <a class="shared-row" v-for="s in sharedSkills" :key="s.name" :href="'#/skill/' + enc(s.name)"><span translate="no">{{ s.name }}</span><span class="faces"><logo v-for="c in s.tools.slice(0, 6)" :key="c.scope" :agent="agentOf(c.scope)" size="xs"></logo></span></a>
             </div>
             <div class="card">
               <h2>Recent changes</h2>
@@ -121,9 +123,11 @@
         <select class="field" id="agent-f" v-model="agentFilter" @change="capReset()"><option value="all">All agents</option><option v-for="inf in agentInfos" :key="inf.id" :value="inf.id">Only {{ inf.agent.name }}</option></select>
         <label class="sr-only" for="sort-f">Sort</label>
         <select class="field" id="sort-f" v-model="sortBy" @change="capReset()"><option value="name">A to Z</option><option value="size">Largest first</option><option value="shared">In most agents</option></select>
+        <label class="sr-only" for="tag-f">Tag</label>
+        <select class="field" id="tag-f" v-model="tagFilter"><option value="">All tags</option><option value="__untagged">Untagged</option><option v-for="tag in catalogTags" :key="tag" :value="tag">{{tag}}</option></select>
         <span class="count" aria-live="polite">{{ visible.length === shelfTotal ? fmt(visible.length) + ' skills' : 'Showing ' + fmt(visible.length) + ' of ' + fmt(shelfTotal) }}</span>
       </div>
-      <div class="instance-filters"><label>Tag<select class="field" v-model="tagFilter"><option value="">All tags</option><option value="__untagged">Untagged</option><option v-for="tag in catalogTags" :key="tag" :value="tag">{{tag}}</option></select></label><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading">Refresh files</button></div>
+      <div class="instance-filters"><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading">Refresh files</button></div>
       <p class="state-note err" role="alert" v-if="catalogError">Tags and profiles are unavailable: {{catalogError}} <button class="btn btn-line btn-sm" @click="loadCatalog()">Retry</button></p>
       <div class="ribbon" v-if="careCount && filter !== 'care'"><ic name="warn"></ic><span><b>{{ plural(careCount, 'skill needs', 'skills need') }} a little care.</b> Cards with a badge have a problem.</span><a class="btn btn-ink btn-sm" href="#/inbox">Fix them in Inbox</a></div>
       <library-tools v-if="libraryView==='instances'" :records="records" :scopes="scopes" :names="visibleNames" :agent-filter="agentFilter" :catalog="catalog" @changed="refresh()" @inspect="openRecord($event)" @source="openSource($event)" @removed="removedBatch($event)"></library-tools>
@@ -132,7 +136,7 @@
           <div class="cat-h"><h2 class="h2" :id="'cat-' + g.key">{{ g.id }}</h2><span>{{ plural(g.items.length, 'skill') }}</span></div>
           <div class="shelf">
             <a v-for="s in g.shown" :key="s.name" :class="['card sk', 'st-' + s.status.key, { faded: s.status.key === 'off' }]" :href="'#/skill/' + enc(s.name)">
-              <div class="sk-b"><b>{{ s.name }}</b><p>{{ s.description || 'No description yet.' }}</p><span class="instance-tags"><span v-for="tag in skillTags(s.name)" :key="tag">{{tag}}</span></span>
+              <div class="sk-b"><b translate="no">{{ s.name }}</b><p>{{ s.description || 'No description yet.' }}</p><span class="instance-tags"><span v-for="tag in skillTags(s.name)" :key="tag">{{tag}}</span></span>
                 <div class="sk-f"><span class="dots"><i v-for="c in s.tools" :key="c.scope" :class="{ 'is-off': c.state === 'off', 'is-bad': c.state === 'broken' }" :style="{ background: agentOf(c.scope).color }" :title="agentOf(c.scope).name"></i></span>
                   </div></div>
               <!-- After the body in the DOM so the link's accessible name starts
@@ -161,7 +165,7 @@
       <div class="nb" v-else>
         <nav class="tree" aria-label="All skills">
           <div class="tree-find"><label class="sr-only" for="tree-q">Filter skills</label><input id="tree-q" type="search" placeholder="Filter skills" autocomplete="off" v-model="treeQuery"></div>
-          <a v-for="x in treeList" :key="x.name" :href="'#/skill/' + enc(x.name)" :aria-current="x.name === skill.name ? 'page' : null"><span class="nm">{{ x.name }}</span><i :class="['d', x.status.key]" role="img" :aria-label="x.status.label"></i></a>
+          <a v-for="x in treeList" :key="x.name" :href="'#/skill/' + enc(x.name)" :aria-current="x.name === skill.name ? 'page' : null"><span class="nm" translate="no">{{ x.name }}</span><i :class="['d', x.status.key]" role="img" :aria-label="x.status.label"></i></a>
           <p class="tree-more" v-if="treeHidden">{{ treeHidden }} more. Type to filter.</p>
         </nav>
         <div class="nb-main">
@@ -341,8 +345,16 @@
         <section class="card rec-card" aria-labelledby="rec-import">
           <h2 id="rec-import">Load from a backup</h2>
           <p class="sub">Choose a backup file (.tar.gz, .tar or .zip). Skills that already exist are kept unless you tick the box.</p>
-          <label class="ed-label" for="imp-file">Backup file</label>
-          <input class="field" id="imp-file" type="file" accept=".tar.gz,.tgz,.tar,.zip" @change="importFile = $event.target.files[0] || null" style="height:auto;padding:10px 12px;width:100%">
+          <!-- Dropzone (visual spec: Untitled UI FileUploadDropzone, MIT; written for
+               this app). The native input stays inside the label, so click,
+               keyboard and screen readers need no script; drag-drop is extra. -->
+          <label class="smdz" :class="{ 'is-over': dropDepth > 0 }" @dragenter.prevent="dropDepth++" @dragover.prevent @dragleave="dropDepth = Math.max(0, dropDepth - 1)" @drop.prevent="dropDepth = 0; pickImport($event.dataTransfer.files)">
+            <input class="smdz-input" id="imp-file" type="file" accept=".tar.gz,.tgz,.tar,.zip" :disabled="busy" @change="pickImport($event.target.files)">
+            <ic name="upload" cls="smdz-ico"></ic>
+            <span class="smdz-title"><span class="smdz-link">Choose a backup file</span> <span class="smdz-or">or drag it here</span></span>
+            <span class="smdz-hint">.tar.gz, .tgz, .tar or .zip</span>
+            <span class="smdz-status" role="status">{{ importReject || (importFile ? importFile.name + ' is ready to load.' : '') }}</span>
+          </label>
           <label class="hl-row"><input type="checkbox" v-model="importForce"> Replace skills that already exist</label>
           <label class="hl-row"><input type="checkbox" v-model="importFull"> Full manager archive: include global trash, templates and catalog metadata</label>
           <div class="rec-acts"><button type="button" class="btn btn-ink" :disabled="!importFile || busy" @click="doImport()">Load skills</button></div>

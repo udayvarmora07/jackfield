@@ -687,6 +687,24 @@ class BodyLazyLoadTests(unittest.TestCase):
         heading_map = re.search(r"<h1[^>]*>\{\{ (\{[^}]*\})\[page\]", center).group(1)
         self.assertEqual(ids - set(re.findall(r"'(ai-[a-z-]+)':", heading_map)), set())
 
+    def test_a_dropped_backup_must_look_like_an_archive(self):
+        out = self._app_with_api("""
+        const M=ctx.options.methods;const c={importFile:null,importReject:''};
+        const r={};
+        M.pickImport.call(c,[{name:'notes.txt'}]);r.bad=[c.importFile,c.importReject];
+        M.pickImport.call(c,[{name:'Backup.TAR.GZ'}]);r.good=[c.importFile&&c.importFile.name,c.importReject];
+        M.pickImport.call(c,[]);r.none=[c.importFile,c.importReject];
+        return r;""")
+        self.assertIsNone(out["bad"][0])
+        self.assertIn("not a backup file", out["bad"][1])
+        self.assertEqual(out["good"], ["Backup.TAR.GZ", ""])  # case-insensitive
+        self.assertEqual(out["none"], [None, ""])
+        html = (V2 / "index.html").read_text(encoding="utf-8")
+        # The native input keeps its id inside the dropzone label (browser suites
+        # and keyboard users drive it directly).
+        zone = html[html.index('<label class="smdz"'):]
+        self.assertLess(zone.index('id="imp-file" type="file"'), zone.index("</label>"))
+
     def test_startup_list_request_omits_document_bodies(self):
         app = (V2 / "app.js").read_text(encoding="utf-8")
         self.assertIn('api("/api/skills?scope=all&body=0")', app)

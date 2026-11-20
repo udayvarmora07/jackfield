@@ -7,6 +7,35 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — v2 component ports and guideline pass
+
+**[NOTE]** From the component-library survey (Aceternity, Magic UI, Untitled
+UI, and the Vue libraries Inspira UI, shadcn-vue and Reka UI; 68 components
+assessed, 13 rewritten for this stack outside the repo under
+`~/design-refs/ports/`; Uiverse was blocked by Cloudflare). React/Tailwind/
+framer-motion code cannot ship here (no build step, no new runtime
+dependency), so only patterns were ported, rewritten from scratch.
+
+- **Recovery backup dropzone** (visual spec: Untitled UI FileUploadDropzone,
+  MIT): the bare native "Choose File" input became a labelled drop target. The
+  native `#imp-file` input stays inside the `<label>`, so click, keyboard and
+  screen readers need no script; a dropped file must end in
+  .tar.gz/.tgz/.tar/.zip (the server still decides whether the bytes are an
+  archive); status text is `role=status`. New `upload` glyph in the icon set.
+- **Switch (WCAG 1.4.11):** the off track (~1.5:1 against the page) gets a 1px
+  `--line-strong` ring (3.6:1).
+- **Web Interface Guidelines (vercel-labs) pass:** `theme-color` meta for both
+  schemes; `touch-action: manipulation` on controls; `scroll-margin-top` on
+  anchored headings to clear the sticky bar; `overscroll-behavior: contain` on
+  dialogs and the skill tree; `translate="no"` on skill names (identifiers were
+  open to browser auto-translation); explicit text colour on `.field` for
+  Windows dark-mode selects.
+- **Browser surfaces (impeccable craft floor):** text selection uses the
+  highlighter token, the caret is brand, scrollbars are quiet.
+- Not ported on purpose: the app already has a switch, tabs, toasts, dialogs
+  and a command palette that pass axe and the browser suites; replacing them
+  would churn tested markup for little gain. The ports remain a spec to diff.
+
 ## 2026-11-20 — v2 reference-driven polish: radii, icon stroke, history runs
 
 **[NOTE]** From the measured reference study (`~/design-refs/`, 14 product UIs
@@ -23,6 +52,11 @@ and icons render at a constant ~1.5px stroke.
   unchanged. `tests/test_v2_tool_behaviors.py`.
 - Skills shelf letter headers are sticky under the 66px top bar (z-index
   below it), so a long shelf keeps its place; contract-tested.
+- Skills toolbar: the Tag filter joins the filter row with a visually-hidden
+  label like Agent and Sort (it was the only visible-label filter and sat
+  alone on a second row); on phones the header actions span the page gutter
+  instead of shrinking to a ragged right edge (measured: right edges 372/372/372
+  at 390px).
 - Sync copy rewritten in plain words ("whether the skill is on or off, and its
   supporting files"), replacing "file enabled state and companion files".
 - Kept on purpose: the three font families and the serif page titles (the

@@ -37,6 +37,7 @@ const PATHS = {
   inbox: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M5 5h14l1 8v6H4v-6Z"/>',
   tools: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  upload: '<path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
   moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/>',
   auto: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
@@ -68,7 +69,7 @@ const app = createApp({
       bodies: {}, bodyInflight: {}, bodyErrors: {},
       treeQuery: "", edit: null, highlight: true, compareWith: "",
       mapSelId: "", mapPicked: [], peek: null,
-      trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importForce: false,
+      trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", dropDepth: 0, importForce: false,
       theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
       dialog: null, toasts: [], live: "", toastSeq: 0, skillHistory: [], opener: null,
     };
@@ -755,6 +756,13 @@ const app = createApp({
         setTimeout(() => URL.revokeObjectURL(url), 2000);
         this.toast("Backup downloaded.");
       } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
+    },
+    /* The picker filters by `accept`; a dropped file is not, so check its name.
+     * The server still decides whether the bytes are a real archive. */
+    pickImport(list) {
+      const file = (list && list[0]) || null;
+      if (file && !/\.(tar\.gz|tgz|tar|zip)$/i.test(file.name)) { this.importFile = null; this.importReject = `${file.name} is not a backup file. Choose a .tar.gz, .tgz, .tar or .zip file.`; return; }
+      this.importReject = ""; this.importFile = file;
     },
     async doImport() {
       const f = this.importFile; if (!f || this.busy) return;

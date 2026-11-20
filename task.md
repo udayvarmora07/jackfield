@@ -140,6 +140,11 @@ done.
   directory identity.
 - [x] v2 interface pass (2026-11-20): type-scale tokens (Large text now scales
   everything), spacing rhythm, axe 0 violations, Home layout, copy (docs/06).
+- [ ] Owner's call (design, from the measured reference study): (a) a 13px/500
+  "chrome" default for rows, tabs and filters with 15px kept for reading — every
+  measured product UI does this, but it re-densifies every screen; (b) an
+  alpha-based ink ramp (`rgba(27,29,34, .90/.62/.45/.27)`, borders at .08) to
+  replace hand-picked greys. Both need a human perceptual pass, so not applied.
 - [ ] UI follow-ups from the reference study (`~/design-refs/`): Sync map as a
   skills × agents matrix, Skills shelf density toggle. (Sticky A–Z headers done.)
   (Repeated history rows now collapse; radii 6/8/12 and a constant 1.5px icon
