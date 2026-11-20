@@ -41,6 +41,28 @@ def run_node(body):
 
 @unittest.skipUnless(shutil.which("node"), "Node is required for frontend behavior checks")
 class ToolBehaviorTests(unittest.TestCase):
+    def test_history_collapses_runs_of_one_action_in_one_minute(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'recovery-extra'});
+          h.history=[
+            {id:1,name:'a',action:'create',at:'2026-11-20T10:09:05Z'},
+            {id:2,name:'b',action:'create',at:'2026-11-20T10:09:40Z'},
+            {id:3,name:'c',action:'edit',at:'2026-11-20T10:09:41Z'},
+            {id:4,name:'d',action:'create',at:'2026-11-20T10:09:42Z'},
+            {id:5,name:'e',action:'create',at:'2026-11-20T10:10:01Z'},
+            {id:6,name:'f',action:'',at:'2026-11-20T10:10:02Z'},
+            {id:7,name:'g',action:'',at:'2026-11-20T10:10:03Z'}];
+          const groups=h.historyGroups.map(g=>g.rows.map(r=>r.name).join(''));
+          h.history=[];const empty=h.historyGroups.length;
+          h.history=null;const none=h.historyGroups.length;
+          return {groups,empty,none};
+        """)
+        # Only consecutive rows with the same action in the same minute merge;
+        # an interleaved action, a new minute or a missing action splits them.
+        self.assertEqual(out["groups"], ["ab", "c", "d", "e", "f", "g"])
+        self.assertEqual(out["empty"], 0)
+        self.assertEqual(out["none"], 0)
+
     def test_document_baseline_requires_explicit_save_and_stores_only_hashes(self):
         out = run_node(r"""
           const memory=new Map();let writes=0;

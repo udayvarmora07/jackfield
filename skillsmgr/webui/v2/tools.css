@@ -151,7 +151,7 @@
 .tp-f-b { display: grid; gap: 12px; padding: 4px 18px 18px 60px; font-size: var(--fs-ui); color: var(--ink-2); }
 .tp-rec { color: var(--ink); }
 .tp-sev { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-sm); vertical-align: middle; }
-.tp-sev .i { width: 16px; height: 16px; stroke-width: 2.2; }
+.tp-sev .i { width: 16px; height: 16px; }
 .tp-sev.bad { background: var(--bad-bg); color: var(--bad); }
 .tp-sev.warn { background: var(--warn-bg); color: var(--warn); }
 .tp-sev.info { background: var(--sunken); color: var(--ink-2); }
@@ -282,3 +282,8 @@
 .ai-brief h4 { font-size: var(--fs-ui); margin-top: 8px; }
 .ai-brief-body { display: grid; gap: 6px; }
 .ai-brief q { overflow-wrap: anywhere; }
+
+/* Collapsed history run: the summary is the row; names wrap below it. */
+.tp-hist-group { min-width: 0; flex: 1; }
+.tp-hist-group summary { cursor: pointer; list-style-position: outside; }
+.tp-hist-group p { margin-top: 6px; overflow-wrap: anywhere; }

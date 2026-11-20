@@ -639,7 +639,7 @@ const app = createApp({
     openShare() {
       const s = this.skill, from = this.refCopy.scope;
       this.openDialog({
-        title: `Add “${s.name}” to another agent`, lines: ["Choose where to copy it. The copy comes from " + this.agentOf(from).name + ". Its file enabled or disabled state and companion files are copied too."],
+        title: `Add “${s.name}” to another agent`, lines: ["Choose where to copy it. The copy comes from " + this.agentOf(from).name + ". Whether it is on or off, and its supporting files, are copied too."],
         picks: this.shareTargets.map((a) => ({ id: a.id, label: a.name, path: a.path })), chosen: this.shareTargets.length === 1 ? [this.shareTargets[0].id] : [], confirm: "Add",
         onConfirm: (d) => this.runSync(s.name, from, d.chosen, `${s.name} was added to`),
       });

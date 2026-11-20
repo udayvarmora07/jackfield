@@ -41,7 +41,7 @@
   --add-bg: #e9f8ef; --add-ink: #166534;
   --del-bg: #fdeeee; --del-ink: #9f1239;
 
-  --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 10px; --r-pill: 999px; /* pills only for status */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 12px; --r-pill: 999px; /* pills only for status */
   --shadow: 0 1px 2px rgb(27 29 34 / .04);
   --shadow-lift: 0 1px 2px rgb(27 29 34 / .04), 0 24px 60px -30px rgb(27 29 34 / .28);
   --ui: "Jakarta", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -71,7 +71,10 @@ a { color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 [tabindex="-1"]:focus { outline: none; }
-.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5px; stroke-linecap: round; stroke-linejoin: round; }
+/* One rendered stroke at every icon size (references: 1.4-1.75px at 16-20px),
+   instead of a 24-unit stroke that thinned or thickened with the box. */
+.i * { vector-effect: non-scaling-stroke; }
 .i-s { width: 15px; height: 15px; }
 .num { font-variant-numeric: tabular-nums; }
 .skip { position: fixed; top: -60px; left: 16px; z-index: 99; background: var(--ink); color: var(--on-ink); padding: 10px 16px; border-radius: var(--r-sm); font-weight: 700; text-decoration: none; }
@@ -124,7 +127,7 @@ a { color: inherit; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .link { border: 0; background: none; padding: 0; font-weight: 700; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--r-pill); font-weight: 700; font-size: var(--fs-small); white-space: nowrap; }
-.pill .i { width: 14px; height: 14px; stroke-width: 2.4; }
+.pill .i { width: 14px; height: 14px; }
 .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .off { color: var(--off); }
 .pill.ok { background: var(--ok-bg); } .pill.warn { background: var(--warn-bg); } .pill.bad { background: var(--bad-bg); } .pill.off { background: var(--off-bg); }
 .logo { width: 52px; height: 52px; border-radius: var(--r-md); display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px; flex: none; }
@@ -143,7 +146,7 @@ a { color: inherit; }
 .track .lim { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink-2); border-radius: 1px; }
 .empty { padding: 56px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .empty .ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-bg); color: var(--ok); margin-bottom: 4px; }
-.empty .ic .i { width: 30px; height: 30px; stroke-width: 1.2; } /* renders ~1.5px, matching the 18px set */
+.empty .ic .i { width: 30px; height: 30px; }
 .empty h2 { font-family: var(--serif); font-size: var(--fs-h2); font-weight: 600; }
 .empty p { color: var(--ink-2); max-width: 46ch; }
 .switch { display: inline-flex; align-items: center; cursor: pointer; }

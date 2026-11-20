@@ -50,6 +50,10 @@
     };
        },
     computed:{
+      /* History collapses runs of one action in one minute ("12 skills · Created")
+       * so a bulk import is one row, not a screen of identical lines. A single
+       * event stays a plain row; the names stay reachable in a native <details>. */
+      historyGroups(){const out=[];for(const row of (this.history||[])){const minute=String(row.at||'').slice(0,16);const last=out[out.length-1];if(last&&last.action===row.action&&last.minute===minute&&row.action){last.rows.push(row);}else{out.push({action:row.action,minute,at:row.at,rows:[row]});}}return out;},
       toolGroups(){return TOOL_GROUPS;},
       fieldLabels(){return {name:'Name',description:'Description',category:'Category',version:'Version',license:'License',compatibility:'Compatibility',allowed_tools:'Allowed tools'};},
       severityNames(){return {all:'All',error:'Errors',warning:'Warnings',info:'Info'};},
@@ -866,7 +870,7 @@ ${scanPanel('sourceReview.external_scan')}
 
       <template v-else-if="page==='recovery-extra'">
         <div class="tp-sec-h tp-gap"><h2>History and text snapshots</h2><a class="tp-link" href="#/tools/source-update">Whole-folder snapshots →</a></div>
-        <p class="tp-fine">Text rollback restores an older skill document only; companion files and on/off state are not restored.</p>
+        <p class="tp-fine">Text rollback restores an older skill document only; supporting files and the on/off state are not restored.</p>
         <form class="tp-inline" @submit.prevent="loadHistory">
           <label class="tp-field">Skill name <input class="field" v-model="historyName" placeholder="All skills" list="tp-names"></label>
           <datalist id="tp-names"><option v-for="n in skillNames" :key="n" :value="n"></option></datalist>
@@ -875,7 +879,10 @@ ${scanPanel('sourceReview.external_scan')}
         </form>
         <div v-if="history" class="card tp-panel tp-flush">
           <p v-if="!history.length" class="tp-empty">No history recorded.</p>
-          <ul class="tp-rows"><li class="v2-tool-row" v-for="(row,i) in history" :key="row.id||i"><span class="tp-hist"><strong class="tp-mono">{{row.name}}</strong><span class="tp-act">{{human(row.action)}}</span></span><time class="tp-count" :datetime="row.at">{{when(row.at)}}</time></li></ul>
+          <ul class="tp-rows"><li class="v2-tool-row" v-for="(g,i) in historyGroups" :key="(g.rows[0].id||i)+':'+g.rows.length">
+            <span v-if="g.rows.length===1" class="tp-hist"><strong class="tp-mono">{{g.rows[0].name}}</strong><span class="tp-act">{{human(g.action)}}</span></span>
+            <details v-else class="tp-hist-group"><summary><span class="tp-hist"><strong>{{g.rows.length}} skills</strong><span class="tp-act">{{human(g.action)}}</span></span></summary><p class="tp-mono tp-fine">{{g.rows.map(r=>r.name).join(', ')}}</p></details>
+            <time class="tp-count" :datetime="g.at">{{when(g.at)}}</time></li></ul>
         </div>
         <template v-if="textSnapshots">
           <h3 class="tp-eyebrow tp-gap">Text snapshots</h3>

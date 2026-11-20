@@ -7,6 +7,26 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — v2 reference-driven polish: radii, icon stroke, history runs
+
+**[NOTE]** From the measured reference study (`~/design-refs/`, 14 product UIs
+incl. Linear, Vercel, Raycast, Resend, Supabase, Attio, via the godly/awwwards/
+inspo MCPs and live pages): the near-universal radius family is 6/8/12/pill,
+and icons render at a constant ~1.5px stroke.
+
+- `--r-lg`/`--r-xl` 10 → 12px (cards, panels); controls keep 6, groups 8.
+- Icons: `stroke-width: 1.5px` with `vector-effect: non-scaling-stroke` on the
+  shapes, so every size renders the same stroke; the 2.4 / 2.2 / 1.2 per-size
+  overrides are gone (measured: 1.5px at 14 and 18px).
+- Recovery history collapses consecutive rows with one action in one minute
+  ("6 skills · Create", names in a native `<details>`); single events are
+  unchanged. `tests/test_v2_tool_behaviors.py`.
+- Sync copy rewritten in plain words ("whether the skill is on or off, and its
+  supporting files"), replacing "file enabled state and companion files".
+- Kept on purpose: the three font families and the serif page titles (the
+  study endorses a serif display + sans UI + mono system); Plus Jakarta vs Inter
+  density was not measured on our screens, so no family swap.
+
 ## 2026-11-20 — v2 interface pass: type scale, spacing rhythm, a11y, Home layout
 
 **[NOTE]** Driven by the `better-interface` review (accessibility, layout,
