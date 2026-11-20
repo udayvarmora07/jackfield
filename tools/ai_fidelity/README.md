@@ -52,3 +52,25 @@ not establish fidelity under normal use.
 The JSON report contains hashes rather than prompt text, and does not retain raw
 transcripts or stderr. Hashes of predictable prompts are not anonymous. Reports
 still contain skill names and model labels; treat them as potentially sensitive.
+
+## Offline OpenCode compatibility probe
+
+From the repository root, on Linux with unprivileged user and network namespaces
+enabled, use a trusted OpenCode 2.3.2 executable:
+
+```sh
+unshare --user --map-root-user --net /bin/sh -c '
+  ip link set lo up && exec python3 -m tools.ai_fidelity.opencode_probe --opencode "$1"
+' probe /absolute/path/to/opencode
+```
+
+The probe requires a loopback-only network namespace. The loopback binding is the
+fake provider's only security boundary. The probe uses a temporary home and
+project and passes the CLI a synthetic credential. It limits provider requests
+and CLI output, checks the model-facing listing and the completed skill event,
+and prints counts plus a listing fingerprint. It retains no request bodies or
+raw CLI streams. Use the exact version because the CLI event shape may change.
+
+The stub chooses the skill for a single synthetic prompt. An attended routing
+study still needs a permitted model, a bounded provider setup and equivalent
+model-facing listings. See @docs/48-ai-http-study-2026-11-17.md.

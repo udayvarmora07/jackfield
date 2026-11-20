@@ -83,6 +83,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Fixed
 
+- On Windows, Undo accepts the writable mode of a newly created project lock,
+  and portable lock hashes preserve binary file bytes. Codex usage scans keep
+  backslashes in quoted transcript command paths and preserve CRLF byte offsets.
+
 - `archive candidates` now shows observed primary document modification times
   for active and disabled copies. It checks modifications and cached usage
   over the same UTC date window.

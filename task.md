@@ -39,6 +39,9 @@ See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
 - [x] Discard superseded v2 history, trash and catalog responses.
 - [x] Finish the current-tree verification ladder and record the results in
   @docs/06-progress-log.md.
+- [x] Correct the Windows lockfile mode, binary-read and Codex usage failures
+  seen in GitHub CI, and cover the Chrome profile cleanup race. Windows
+  runner confirmation for these changes is pending.
 - [x] Replay the full v2 suite in Firefox and enable repeatable Firefox runs
   for the classic suite. Verify classic in both browser engines.
 - [x] Capture and label seven screenshots from the current v2 build with
@@ -265,6 +268,8 @@ The full dated context remains in the archive.
   An offline OpenCode probe confirmed how to observe a successful skill load.
   The retained HTTP artifacts passed an offline checksum recheck, and the
   native harness dry run matched all 12 prompt records to the simulation.
+  The repeatable OpenCode probe verifies the model-facing listing, completed
+  skill call and follow-up request using a loopback-only fake provider.
   An attended same-model comparison remains open for the permitted models.
   See @docs/48-ai-http-study-2026-11-17.md.
 

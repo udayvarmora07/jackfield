@@ -12,6 +12,7 @@ provide).
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import re
@@ -25,6 +26,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from threading import Thread
+from contextlib import contextmanager
 
 from skillsmgr.launcher_security import trusted_executable
 from skillsmgr.store import Store
@@ -465,6 +467,24 @@ def _launch_chrome(profile: Path, log, attempts: int = 3, timeout: float = 30.0)
     raise RuntimeError(f"chrome did not expose DevTools after {attempts} attempts: {last}")
 
 
+@contextmanager
+def _browser_workspace():
+    directory = tempfile.TemporaryDirectory(prefix="skillsmgr-browser-")
+    try:
+        yield directory.name
+    finally:
+        # A Chrome descendant can finish writing its private profile just
+        # after the parent exits. Retry only transient directory races.
+        for attempt in range(6):
+            try:
+                directory.cleanup()
+                break
+            except OSError as exc:
+                if exc.errno not in {errno.ENOTEMPTY, errno.EEXIST} or attempt == 5:
+                    raise
+                time.sleep(0.1 * (attempt + 1))
+
+
 def run() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--keep-profile", action="store_true")
@@ -479,7 +499,7 @@ def run() -> int:
         screenshot_dir = args.screenshots_dir.expanduser().resolve()
         screenshot_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(screenshot_dir, 0o700)
-    with tempfile.TemporaryDirectory(prefix="skillsmgr-browser-") as directory:
+    with _browser_workspace() as directory:
         root = Path(directory)
         home = root / "home"
         data_dir = root / "data"

@@ -2,6 +2,7 @@
 
 import json
 import os
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -185,9 +186,17 @@ class WriteProjectLockTests(unittest.TestCase):
             args = {"demo": ".agents/skills/demo"}
             plan = project_lock_commands.preview_project_lock_write(root, ["demo"], local_sources=args)
             project_lock_commands.apply_project_lock_write(root, ["demo"], plan["plan_hash"], data_dir=data, local_sources=args)
+            lock = root / "skills-lock.json"
+            receipt_path = data / "project-lock-backups" / (plan["plan_hash"] + ".json")
+            receipt = json.loads(receipt_path.read_text())
+            self.assertEqual(receipt["mode"], stat.S_IMODE(lock.stat().st_mode))
+            if os.name == "nt":
+                # Simulate an already-applied receipt from before the fix.
+                receipt["mode"] = 0o644
+                receipt_path.write_text(json.dumps(receipt))
             project_lock_commands.undo_project_lock_write(root, plan["plan_hash"], data_dir=data)
-            self.assertFalse((root / "skills-lock.json").exists())
-            (root / "skills-lock.json").write_text('{"version":1,"skills":{"demo":{"source":"a/b"}}}')
+            self.assertFalse(lock.exists())
+            lock.write_text('{"version":1,"skills":{"demo":{"source":"a/b"}}}')
             with self.assertRaises(lockfiles.LockfileError):
                 project_lock_commands.preview_project_lock_write(root, ["demo"])
 

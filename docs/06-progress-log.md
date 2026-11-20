@@ -7,6 +7,35 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Windows CI follow-up and offline fidelity probe
+
+- GitHub CI reproduced the same four failing tests on Windows 3.11 and
+  3.14. A new lockfile receipt now records the platform's writable mode, and
+  Undo accepts older receipts for newly created Windows locks while still
+  checking the written bytes and the Windows read-only flag. Bounded
+  descriptor reads use binary mode, which preserves the exact bytes in
+  portable hashes and incremental transcript offsets. Codex command parsing
+  preserves Windows path separators and quoted paths. The next manual
+  refresh on Windows rereads old text watermarks and retains known event
+  IDs for deduplication.
+- The Chrome smoke harness retries only temporary profile cleanup failures
+  with `ENOTEMPTY` or `EEXIST`. A persistent error still fails the harness.
+  GitHub logged successful page probes before an `ENOTEMPTY` cleanup failure.
+  [CI with the cleanup failure](https://github.com/udayvarmora07/skills-manager/actions/runs/44738831473)
+  [Latest CI at the start of this work](https://github.com/udayvarmora07/skills-manager/actions/runs/44741155867)
+- Added a repeatable, development-only OpenCode 2.3.2 probe. The Linux
+  loopback-only run saw three fake-provider requests, two containing the
+  synthetic listing, one completed skill event, and one follow-up request
+  carrying the skill's synthetic body. The stub selected the tool.
+  @docs/48-ai-http-study-2026-11-17.md records the run.
+
+Linux ran 2,342 unit cases on each of Python 3.11–3.14 with 7/7/7/6 skips
+and zero failures. Both smokes passed, and Chrome passed six viewports and
+four scenarios. Compile, Ruff, Bandit, complexity, docs, design tokens and
+offline AI checks passed. Pinned wheel and sdist checks passed, and eight
+lifecycle cases passed from a clean install of each artifact. The new Windows
+behavior still needs confirmation on GitHub's Windows runners.
+
 ## 2026-11-20 — Pilot capture refresh and Recovery rehearsal
 
 - Captured nine screens from `d2257c8` in headless Chrome, including the

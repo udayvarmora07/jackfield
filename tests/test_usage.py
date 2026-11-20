@@ -106,6 +106,23 @@ class UsageTests(unittest.TestCase):
         result = usage.report(self.data, home=self.home, refresh=True)
         self.assertEqual(result["counts"][0]["explicit"], 2)
 
+    def test_older_text_watermark_is_rescanned_without_duplicate_counts(self):
+        self._transcript([self._skill_record(), self._skill_record("tool-2")])
+        usage.enable(self.data, ["claude-code"], home=self.home)
+        parse_events = usage._events
+
+        def older_parser(*args, **kwargs):
+            return [event for event in parse_events(*args, **kwargs) if event[-1] != "tool-2"]
+
+        with patch.object(usage, "PARSER_VERSION", "usage-1"), \
+                patch.object(usage, "_events", side_effect=older_parser):
+            initial = usage.report(self.data, home=self.home, refresh=True)
+        self.assertEqual(initial["counts"][0]["explicit"], 1)
+        with patch.object(usage, "_WINDOWS", True):
+            for _ in range(2):
+                current = usage.report(self.data, home=self.home, refresh=True)
+                self.assertEqual(current["counts"][0]["explicit"], 2)
+
     def test_agent_disable_retains_other_agent_consent_and_purge_removes_cache(self):
         usage.enable(self.data, ["claude-code", "codex"], home=self.home)
         state = usage.disable(self.data, ["claude-code"])
@@ -213,14 +230,24 @@ class UsageTests(unittest.TestCase):
         exec_call = {
             "timestamp": "2026-11-19T12:31:00Z", "type": "response_item",
             "payload": {"type": "function_call", "name": "exec_command", "call_id": "exec-1",
-                        "arguments": json.dumps({"cmd": f"cat {skill_path}"})},
+                        "arguments": json.dumps({"cmd": f'cat "{skill_path}"'})},
         }
-        (root / "rollout-test.jsonl").write_bytes(_line(fragment) + _line(exec_call))
+        path = root / "rollout-test.jsonl"
+        first_batch = _line(fragment).replace(b"\n", b"\r\n")
+        path.write_bytes(first_batch)
         usage.enable(self.data, ["codex"], home=self.home)
+        usage.report(self.data, ["codex"], home=self.home, refresh=True)
+        with path.open("ab") as transcript:
+            transcript.write(_line(exec_call).replace(b"\n", b"\r\n"))
         result = usage.report(self.data, ["codex"], home=self.home, refresh=True)
         self.assertEqual(result["counts"][0]["name"], "codex-skill")
         self.assertEqual(result["counts"][0]["explicit"], 1)
         self.assertEqual(result["counts"][0]["inferred"], 1)
+
+    def test_codex_windows_commands_keep_quoted_paths_and_backslashes(self):
+        pathname = r"C:\Test Home\.agents\skills\codex-skill\SKILL.md"
+        self.assertEqual(usage._codex_command_words(f'cat "{pathname}"', windows=True), ["cat", pathname])
+        self.assertEqual(usage._codex_command_words(["cat", pathname], windows=True), ["cat", pathname])
 
     def test_gemini_top_level_arrays_and_legacy_json_conversation(self):
         chat_root = self.home / ".gemini" / "tmp" / "project" / "chats"

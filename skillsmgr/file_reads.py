@@ -52,7 +52,7 @@ def read_regular_file(path: Path, limit: int, *, follow_symlinks: bool = True) -
     Where O_NOFOLLOW is unavailable, no-follow opens compare path identity
     before and after opening with the opened descriptor and reject any change.
     """
-    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     verify_identity = not follow_symlinks and not nofollow
     if not follow_symlinks and nofollow:

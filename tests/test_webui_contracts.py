@@ -304,6 +304,25 @@ console.log(JSON.stringify({summary, invalidLabel: methods.qualityStateLabel(rec
                 child.kill()
                 child.wait(timeout=5)
 
+    def test_browser_workspace_retries_a_profile_cleanup_race(self):
+        import errno
+        from unittest import mock
+        import browser_harness as harness
+
+        original_cleanup = harness.tempfile.TemporaryDirectory.cleanup
+        errors = [OSError(errno.ENOTEMPTY, "profile write raced with cleanup")]
+
+        def cleanup(directory):
+            if errors:
+                raise errors.pop()
+            return original_cleanup(directory)
+
+        with mock.patch.object(harness.tempfile.TemporaryDirectory, "cleanup", cleanup):
+            with harness._browser_workspace() as directory:
+                self.assertTrue(Path(directory).is_dir())
+        self.assertFalse(Path(directory).exists())
+        self.assertEqual(errors, [])
+
     def test_browser_harness_is_hermetic_and_waits_for_stable_overview(self):
         source = _read(ROOT / "browser_harness.py")
         self.assertIn('os.environ["HOME"]', source)

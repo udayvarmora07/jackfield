@@ -250,6 +250,12 @@ def _read_current(path):
         return None
 
 
+def _new_lock_mode():
+    # Windows chmod/stat exposes a writable file as 0666 regardless of the
+    # group and other bits passed to chmod.
+    return 0o666 if os.name == "nt" else 0o644
+
+
 def apply_project_lock_write(project_root: str | Path, names: list[str], plan_hash: str, *, data_dir: str | Path, local_sources: dict[str, str] | None = None) -> dict:
     project, before, after, binding, expected_mode = _write_plan(project_root, names, local_sources)
     if not matches_plan_token(plan_hash, binding):
@@ -258,7 +264,7 @@ def apply_project_lock_write(project_root: str | Path, names: list[str], plan_ha
     with _vendor_mutex(path) as check_lock:
         if _read_current(path) != before:
             raise lockfiles.LockfileError("lockfile changed after preview")
-        mode = stat.S_IMODE(path.stat().st_mode) if before is not None else 0o644
+        mode = stat.S_IMODE(path.stat().st_mode) if before is not None else _new_lock_mode()
         if before is not None and mode != expected_mode:
             raise lockfiles.LockfileError("lockfile permissions changed after preview")
         if before == after:
@@ -302,18 +308,22 @@ def undo_project_lock_write(project_root: str | Path, plan_hash: str, *, data_di
     if receipt.get("state") != "applied":
         raise lockfiles.LockfileError("write was not confirmed as applied")
     before = None if receipt["before"] is None else base64.b64decode(receipt["before"], validate=True)
+    mode = receipt["mode"]
+    # Earlier Windows receipts recorded the requested mode for new files.
+    if os.name == "nt" and before is None and mode == 0o644:
+        mode = _new_lock_mode()
     path = project / lockfiles.PROJECT_LOCK_FILENAME
     with _vendor_mutex(path) as check_lock:
         current = _read_current(path)
         if current is None or _digest(current) != receipt["after"]:
             raise lockfiles.LockfileError("lockfile changed after write; undo refused")
-        if stat.S_IMODE(path.stat().st_mode) != receipt["mode"]:
+        if stat.S_IMODE(path.stat().st_mode) != mode:
             raise lockfiles.LockfileError("lockfile permissions changed after write; undo refused")
         if before is None:
             check_lock()
             if _read_current(path) != current:
                 raise lockfiles.LockfileError("lockfile changed before undo")
-            if stat.S_IMODE(path.stat().st_mode) != receipt["mode"]:
+            if stat.S_IMODE(path.stat().st_mode) != mode:
                 raise lockfiles.LockfileError("lockfile permissions changed before undo")
             path.unlink()
         else:
@@ -321,9 +331,9 @@ def undo_project_lock_write(project_root: str | Path, plan_hash: str, *, data_di
                 check_lock()
                 if _read_current(path) != current:
                     raise lockfiles.LockfileError("lockfile changed before undo")
-                if stat.S_IMODE(path.stat().st_mode) != receipt["mode"]:
+                if stat.S_IMODE(path.stat().st_mode) != mode:
                     raise lockfiles.LockfileError("lockfile permissions changed before undo")
-            _atomic_bytes(path, before, receipt["mode"], check_postimage)
+            _atomic_bytes(path, before, mode, check_postimage)
         receipt["state"] = "undone"
         atomic_write_text(receipt_path, json.dumps(receipt, sort_keys=True))
     return {"project": str(project), "plan_hash": plan_hash, "restored": True}

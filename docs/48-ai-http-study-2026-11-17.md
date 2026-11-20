@@ -122,3 +122,25 @@ retained evidence.
 The stub chose the tool call. An attended OpenCode study would measure
 OpenCode's routing for the permitted model and listing, with Claude Code and
 Command Code fidelity still unknown.
+
+## 2026-11-20 — Repeatable offline OpenCode probe
+
+[The development probe](../tools/ai_fidelity/opencode_probe.py) reproduces the
+observation path with OpenCode 2.3.2. It checks the actual listing in the
+model-facing instruction message, requires one completed skill tool event and
+checks for the synthetic skill body in a subsequent provider request. The
+server observed three requests, including two carrying the synthetic listing
+and one carrying the completed result. The first request had no listing.
+The probe retains the listing fingerprint and counts. Setup instructions are
+in [the harness README](../tools/ai_fidelity/README.md#offline-opencode-compatibility-probe).
+
+The fake provider controls the tool choice. Same-model native routing and
+GOAT interoperability remain open for an attended comparison.
+
+For that comparison, start with a fresh simulation of the permitted model
+and the OpenCode fixture. Capture the OpenCode listing on the request that
+offers the skill tool and check its names and descriptions against the
+simulator's snapshot before comparing choices. The retained Claude-scoped
+simulation documents that separate run. A request with no skill tool and
+no listing still counts toward the provider budget. A failed or incomplete
+native run stays out of the agreement denominator.

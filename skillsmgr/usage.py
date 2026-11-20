@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import sqlite3
 import stat
@@ -24,7 +25,7 @@ from .file_reads import read_regular_file
 from .path_safety import mkdir_private
 from . import paths as _paths
 
-PARSER_VERSION = "usage-1"
+PARSER_VERSION = "usage-2"
 RETENTION_DAYS = 400
 MAX_LINE_BYTES = 4 * 1024 * 1024
 MAX_FILE_BYTES = 32 * 1024 * 1024
@@ -37,6 +38,9 @@ MAX_NAME_LEN = 64
 _NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*(?::[a-z0-9]+(?:-[a-z0-9]+)*)?$")
 _AGENTS = ("claude-code", "codex", "commandcode", "gemini", "opencode")
 _ISO = re.compile(r"^\d{4}-\d\d-\d\d(?:T|$)")
+_WINDOWS = os.name == "nt"
+# Windows text-mode descriptors would translate CRLF and invalidate byte offsets.
+_READ_FLAGS = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
 
 
 class UsageError(ValueError):
@@ -444,6 +448,22 @@ def _events(agent: str, row: dict, *, home: Path | None = None) -> list[tuple[st
     return [found] if found else []
 
 
+def _codex_command_words(command, *, windows: bool) -> list[str]:
+    if isinstance(command, list):
+        return [word for word in command if isinstance(word, str)]
+    if not isinstance(command, str):
+        return []
+    try:
+        words = shlex.split(command, posix=not windows)
+    except ValueError:
+        return []
+    if windows:
+        # Keep path separators. shlex's non-POSIX mode leaves outer quotes intact.
+        return [word[1:-1] if word[:1] in {"'", '"'} and word[-1:] == word[:1] else word
+                for word in words]
+    return words
+
+
 def _codex_exec_events(row: dict, payload: dict, *, home: Path | None = None) -> list[tuple[str, str, str, str]]:
     """Count only structured Codex exec calls that read a known skill file."""
     raw_args = payload.get("arguments")
@@ -454,16 +474,7 @@ def _codex_exec_events(row: dict, payload: dict, *, home: Path | None = None) ->
     except json.JSONDecodeError:
         return []
     command = (args.get("command") or args.get("cmd")) if isinstance(args, dict) else None
-    if isinstance(command, list):
-        words = [word for word in command if isinstance(word, str)]
-    elif isinstance(command, str):
-        try:
-            import shlex
-            words = shlex.split(command)
-        except ValueError:
-            return []
-    else:
-        return []
+    words = _codex_command_words(command, windows=_WINDOWS)
     if not words or Path(words[0]).name not in {"cat", "head", "tail", "less", "more"}:
         return []
     call_id = payload.get("call_id")
@@ -547,8 +558,7 @@ def _file_id(path: Path) -> str:
 
 
 def _head_hash(path: Path) -> str:
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
-    fd = os.open(path, flags)
+    fd = os.open(path, _READ_FLAGS)
     try:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode):
@@ -559,8 +569,7 @@ def _head_hash(path: Path) -> str:
 
 
 def _read_lines(path: Path, offset: int, per_file_left: int, scan_left: int) -> tuple[list[tuple[dict | list, int]], int, int, bool, os.stat_result]:
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
-    fd = os.open(path, flags)
+    fd = os.open(path, _READ_FLAGS)
     try:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode):
@@ -757,6 +766,10 @@ def _scan_text_agent(agent: str, root: Path, cache: dict, counts: dict, seen: di
                 state["status"] = "partial"
                 continue
             old = watermarks.get(fid, {})
+            # Old text offsets can end mid-line on Windows. Keep the seen IDs
+            # when rereading so past events are not counted again.
+            if _WINDOWS and old.get("parser_version") != PARSER_VERSION:
+                old = {}
             head_hash = _head_hash(path)
             unchanged = (old.get("size") == before.st_size and old.get("mtime_ns") == before.st_mtime_ns
                          and old.get("inode") == getattr(before, "st_ino", None)
@@ -794,7 +807,7 @@ def _scan_text_agent(agent: str, root: Path, cache: dict, counts: dict, seen: di
                     state["earliest_event"] = min(state["earliest_event"] or day, day)
             watermarks[fid] = {"size": opened.st_size, "mtime_ns": opened.st_mtime_ns,
                                "inode": getattr(opened, "st_ino", None), "offset": new_offset,
-                               "head_hash": head_hash}
+                               "head_hash": head_hash, "parser_version": PARSER_VERSION}
             if incomplete or state["status"] == "partial":
                 state["status"] = "partial"
             if bytes_read >= scan_left:
