@@ -67,11 +67,19 @@ from a local worktree based on `6733da9`. It includes the uncommitted
 first-scan guide and illustrates a candidate UI state; it is not participant
 or adoption evidence or a screenshot of the previously committed build.
 
+The 2026-11-20 v2 pilot package contains seven dated screenshots from local
+checkpoint `2359e7a` with synthetic skills. Its manifest records each viewport,
+caption and checksum. The package location and coverage are recorded in
+@docs/06-progress-log.md. External-use review and consented sessions remain
+open.
+
 ## Installation and release claims
 
 Verified local distribution claims on this tree:
 
-- Python 3.10+ and a stdlib-only runtime;
+- Python 3.11+ and a stdlib-only runtime for this checkout. The published
+  1.0.2 package requires Python 3.10 or newer.
+  [PyPI release metadata](https://pypi.org/project/skill-control-plane/1.0.2/#data)
 - `pip install skill-control-plane` / `pipx install skill-control-plane` as
   the published package path;
 - `skills-mgr webui --no-browser` starts the loopback UI, with the canonical

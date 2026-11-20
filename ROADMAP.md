@@ -59,6 +59,12 @@ shipped; the remaining lines below are future or rejected directions:
 
 ## Release
 
+- **`v1.0.2` published on 2026-11-18.** PyPI lists both distributions with
+  provenance, and the GitHub release points to `ef9bfd6`. The next version
+  and its candidate remain open in [the task tracker](task.md).
+  [PyPI files and provenance](https://pypi.org/project/skill-control-plane/1.0.2/#files)
+  [GitHub release](https://github.com/udayvarmora07/skills-manager/releases/tag/v1.0.2)
+
 - **`v1.0.1` published successfully (2026-09-10).** The existing release
   workflow built and verified the exact `skill_control_plane-1.0.1` wheel and
   sdist, attested provenance, published to TestPyPI and PyPI, created the

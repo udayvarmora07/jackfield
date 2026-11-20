@@ -8,6 +8,29 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## Sync map and Recovery continuation (2026-11-20)
+
+- [x] Add a Sync map review filter that combines with name search and covers
+  differing, unreadable, duplicate and uninspected copies in displayed scopes.
+- [x] Clear repair selections when opening another copy, including in the
+  same scope. Count only currently eligible selections in the sync action.
+- [x] Restore exact global trash entries from both interfaces and Undo.
+  Separate scoped restore of a skill named `purge` from emptying global trash.
+- [x] Discard superseded v2 history, trash and catalog responses.
+- [x] Finish the current-tree verification ladder and record the results in
+  @docs/06-progress-log.md.
+- [x] Replay the full v2 suite in Firefox and enable repeatable Firefox runs
+  for the classic suite. Verify classic in both browser engines.
+- [x] Capture and label seven screenshots from the current v2 build with
+  synthetic skills. Package them for review before external use.
+- [x] Verify fresh Recovery addresses for same-second removals in global and
+  agent trash, including restores from older builds' timestamped directories.
+- [x] Verify that global Recovery rolls back the selected trash tree when
+  its index/history transaction fails.
+- [x] Accept trash paths returned through a linked global trash folder, and
+  make restore and rollback work across volumes (EXDEV: copy, verify, retire
+  the original; withdraw the copy and keep the original if retiring fails).
+
 ## All-scope list request speed (2026-11-19)
 
 - [x] Profile `GET /api/skills?scope=all&body=0` on 1,000 and 10,000-record
@@ -233,7 +256,8 @@ queue. The other eleven entries follow.
   @docs/06-progress-log.md and @docs/32-continuation-verification-2026-11-06.md.
   Human visual and spoken screen-reader sign-off remain open.
 
-- [ ] Capture dated external screenshots and run real consented participant sessions; this repository records the protocol only.
+- [ ] Review the dated screenshot package for external use and run real
+  consented participant sessions using the pilot kit in docs/25.
 
 - [ ] Run five consent-safe human usability sessions; automated work does not
   fabricate participant evidence.

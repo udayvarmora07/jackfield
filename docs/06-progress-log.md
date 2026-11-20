@@ -7,6 +7,102 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Recovery across linked and cross-volume trash
+
+- Global Recovery accepts either the listed trash path or the physical path
+  `remove()` returned when the trash folder is a link to another location.
+  The incoming string is only compared against listed children of the trash.
+- Restore and its rollback now survive `EXDEV`. The fallback stages a copy
+  beside the destination, verifies relative names and bytes with
+  `tree_content_hash`, publishes it, then parks and deletes the original.
+  If the original cannot be parked, the published copy is withdrawn, so only
+  the untouched original remains and the restore can be retried.
+- New regressions cover a successful cross-volume restore, a copy that does
+  not match, an original that cannot be retired (mutation-checked: red with
+  the withdrawal disabled), and listed versus returned paths through a linked
+  trash. A manual run with data on ext4 and trash linked to `/dev/shm` tmpfs
+  restored a skill and its binary companion through a real `EXDEV`.
+- `test_restore_reports_a_lost_trash_copy_as_a_store_error` mocked
+  `shutil.move`, which restore no longer calls; it now injects the failure at
+  `os.rename` and again proves the clean `StoreError`.
+- Ladder on the final tree: 2,252 unit cases with 7 skips on Python 3.12 and
+  3.11; Store and Web smokes; v2 and classic e2e (39 scenarios, 349
+  assertions) in a chmod-700 temp dir; docs, complexity and design tokens.
+  macOS and Windows coverage comes from CI.
+
+## 2026-11-20 — Recovery paths for repeat removals
+
+- A restore followed by another removal in the same UTC second could reuse
+  the earlier path in either trash. A browser with the old path could then
+  restore the new version. New paths add a numeric suffix ordered by the
+  host's monotonic clock, with extra entropy for equal readings. Both trash
+  readers still accept dated paths and collision counters from earlier builds.
+- Regressions freeze the clock, restore the first version, change the body
+  and remove it again. The old path is refused and the new path restores the
+  expected bytes. An agent name-only restore still picks the later copy in
+  the same second. A full backup containing old and new path formats imported
+  both and restored each by its exact path.
+- On Linux, Python 3.11–3.14 each ran 2,245 cases with no failures and
+  7, 7, 7 and 6 skips. Store and Web smokes, checked package contents and
+  clean wheel and sdist installs passed. Chromium and Firefox each passed
+  46 v2 scenarios and 39 classic scenarios with 349 classic assertions.
+
+## 2026-11-20 — Firefox replay and pilot screenshot package
+
+- The matching Firefox 151.0 build in a private Playwright cache passed all
+  46 v2 scenarios. The classic runner now also accepts `--browser firefox`,
+  isolates Codex and Gemini config paths, and records browser and version in
+  `results.json`. Both engines passed 39 classic scenarios and 349 assertions.
+  Chromium remains the default for CI. The Linux Python 3.12 suite passed
+  2,242 cases with seven skips after the runner change.
+- Captured seven screenshots from local checkpoint `2359e7a` with synthetic
+  skills. The package covers Skills, Sync map and exact copy evidence,
+  Workspaces discovery, Quality and Recovery. It includes a phone capture
+  of the Sync map and a manifest with dates, viewport sizes and SHA-256
+  digests. The ZIP is at
+  `~/skills-manager-artifacts/2026-11-20-pilot/2026-11-20-2359e7a-pilot-screenshots.zip`.
+  The package is ready for external-use review. Participant sessions and
+  human visual and spoken sign-off remain open.
+- The Unreleased changelog records the Sync map and exact Recovery changes
+  for the maintainer's release-candidate review.
+- The `.specs/` checkout contains 288 tracked files totaling 40,234,010
+  bytes. Of those, 30,222,125 bytes are under `evidence/` and 9,951,650 under
+  `prototypes/`. Git reported 277 unique `.specs/` blobs across named refs
+  with 40,787,437 uncompressed bytes. That count includes blobs still in the
+  checkout. The checked wheel and sdist contain no `.specs/` entries. The
+  [combined verification report](31-combined-e2e-verification-2026-11-06.md)
+  and other records still reference this evidence. Retention and any history
+  rewrite remain a maintainer decision.
+
+## 2026-11-20 — Sync map review filter and exact Recovery restore
+
+- Sync map can show only skills with a copy that needs review in a displayed
+  scope. The filter combines with name search and returns to the first page.
+  Opening a different skill copy clears the previous repair selection.
+- Both interfaces restore the selected global trash entry. Scoped restore
+  also works for a skill named `purge`, while the explicit empty-trash action
+  still uses its existing endpoint. A missing selected entry fails without
+  restoring a different version. The Store matches paths against listed
+  children while holding the index and trash locks.
+- Older v2 responses can no longer overwrite newer global trash, agent trash,
+  catalog or Recent changes results and errors.
+- Linux verification ran 2,242 unit cases on each of Python 3.11–3.14 with
+  7, 7, 7 and 6 skips, respectively. Both smokes, the viewport harness,
+  Ruff, the medium/high Bandit check, docs, design tokens and complexity
+  passed. The pinned wheel and sdist built, passed package inspection and
+  installed in fresh environments. Offline AI verification passed.
+- Chromium passed 46 v2 scenarios and a separate 200%/400% zoom check.
+  Classic passed 39 scenarios and 349 assertions.
+  The Sync map filtered 10,000 fixture records, and 20 concurrent restore
+  rounds each preserved the unselected trash entry. agent-browser reported
+  zero axe violations on the sampled light desktop and dark phone map.
+  agent-desktop exposed the filter, table and row through Linux AT-SPI.
+- The Playwright Firefox download timed out. A WebDriver smoke on installed
+  Firefox 157.0.1 verified the Sync map and review filter. macOS, Windows
+  and human spoken or visual sign-off remain outside this run.
+- The remaining release, native-tool, and human-study decisions are listed
+  in @task.md.
+
 ## 2026-11-20 — Shelf density and Sync map matrix
 
 - The Skills shelf remembers its card density. Compact uses a tighter grid and

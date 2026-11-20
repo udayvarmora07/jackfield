@@ -1490,35 +1490,33 @@ class WebAppHandler(BaseHTTPRequestHandler):
         """
         if parts[:2] != ["api", "trash"]:
             return False
-        if len(parts) == 3 and parts[2] == "purge":
+        if len(parts) != 3:
+            self._send_error(404, "unknown endpoint", code="unknown_endpoint")
+        # An explicit scope or snapshot identifies a restore, including for a
+        # skill named "purge".
+        elif parts[2] == "purge" and not (qs.keys() & {"scope", "snapshot"}):
             self._send_json(self.store.purge_trash())
-            return True
-        if len(parts) == 3:
+        else:
             self._restore_trash_post(parts[2], qs)
-            return True
-        self._send_error(404, "unknown endpoint", code="unknown_endpoint")
         return True
 
     def _restore_trash_post(self, name: str, qs: dict[str, list[str]]) -> None:
         """Restore one name from the global store or an agent's trash folder.
 
-        A ``snapshot`` query keeps the historical snapshot rollback.  Without
-        it, ``global`` restores through the Store exactly as before, and an
-        agent scope restores the exact trashed copy named by the JSON
-        ``trash_path`` (or that skill's newest trashed copy).
+        A ``snapshot`` query rolls back the document. Otherwise ``trash_path``
+        selects a listed trash entry, with newest-by-name as the default.
         """
         snapshot = qs.get("snapshot", [None])[0]
         scope = _scope_param(qs)
         if snapshot:
             self._send_json(scopes.restore_snapshot(scope, name, snapshot))
             return
-        if scope != "global":
-            trash_path = self._body_json().get("trash_path")
-            if trash_path is not None and not isinstance(trash_path, str):
-                raise StoreError("trash_path must be a string")
-            self._send_json(scopes.restore_trashed(scope, name, trash_path=trash_path))
-            return
-        self._send_json(self.store.restore(name))
+        trash_path = self._body_json().get("trash_path")
+        if trash_path is not None and not isinstance(trash_path, str):
+            raise StoreError("trash_path must be a string")
+        result = (self.store.restore(name, trash_path=trash_path) if scope == "global"
+                  else scopes.restore_trashed(scope, name, trash_path=trash_path))
+        self._send_json(result)
 
     def _route_templates_post(self, parts: list[str]) -> bool:
         """Serve ``POST /api/templates`` -- create a template, 201 on success.

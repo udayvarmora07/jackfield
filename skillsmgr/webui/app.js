@@ -2473,7 +2473,7 @@ createApp({
         || (this.selected && this.selected.scope)
         || (this.activeScope !== "all" ? this.activeScope : "global");
       const qp = "?scope=" + encodeURIComponent(sc) + "&purge=" + (purge ? "1" : "0");
-      await api("/api/skills/" + encodeURIComponent(name) + qp, { method: "DELETE" });
+      const removed = await api("/api/skills/" + encodeURIComponent(name) + qp, { method: "DELETE" });
       if (purge) {
         this.toast('Skill "' + name + '" permanently deleted from ' + sc + '.');
       } else {
@@ -2481,7 +2481,9 @@ createApp({
         // their own per-scope trash without a UI restore path yet.
         if (sc === "global") {
           this.toast('Skill "' + name + '" moved to trash.', "ok", async () => {
-            await api("/api/trash/" + encodeURIComponent(name), { method: "POST" });
+            await api("/api/trash/" + encodeURIComponent(name) + "?scope=global", {
+              method: "POST", body: JSON.stringify({ trash_path: removed.trash_path }),
+            });
             await this.loadSkills();
             await this.loadTrash();
             this.loadDetail(name, sc);
@@ -2519,11 +2521,13 @@ createApp({
     },
 
     async restoreTrash() {
-      if (!this.selectedTrash) return;
-      const name = this.selectedTrash.name;
+      if (!this.selectedTrash || this.busy) return;
+      const { name, trash_path } = this.selectedTrash;
       this.busy = true;
       try {
-        await api("/api/trash/" + encodeURIComponent(name), { method: "POST" });
+        await api("/api/trash/" + encodeURIComponent(name) + "?scope=global", {
+          method: "POST", body: JSON.stringify({ trash_path }),
+        });
         this.toast('Skill "' + name + '" restored.');
         this.selectedTrash = null;
         await this.loadTrash();

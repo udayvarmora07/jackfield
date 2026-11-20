@@ -161,6 +161,10 @@ NODE_PATH=/path/to/node_modules python3 tools/e2e_v2/run.py \
   --browser firefox --output-dir /private/evidence-directory
 ```
 
+As of 2026-11-20, the classic runner also accepts `--browser firefox`. Use
+`tools/e2e_classic/run.py` in place of the v2 runner and select a separate
+output directory.
+
 The regression suites and captures exercise synthetic fixtures. The human
 walkthrough above remains the procedure for spoken sign-off.
 [Playwright browser installation](https://playwright.dev/docs/browsers#firefox)

@@ -108,6 +108,30 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Native invalid and unavailable settings render without exposing values',async()=>{let config=path.join(home,'.config/opencode/opencode.json'),saved=fs.readFileSync(config),claude=path.join(home,'.claude/settings.json'),oldClaude=fs.readFileSync(claude);fs.writeFileSync(config,'{"private":"fixture-secret",');fs.writeFileSync(claude,JSON.stringify({skillOverrides:{'majority-minor':'invalid-fixture-value'}}));try{await go('skill/majority-minor');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/invalid/);assert.match(t,/unavailable/);assert.doesNotMatch(t,/fixture-secret|invalid-fixture-value/);}finally{fs.writeFileSync(config,saved);fs.writeFileSync(claude,oldClaude);}});
   await test('Discard navigation, dialog focus trap and cancellation',async()=>{await go('skill/same-everywhere');await page.locator('.acts button').filter({hasText:'Edit'}).click();assert(await page.locator('#ed-desc').evaluate(e=>e===document.activeElement));await page.locator('.ed-area').fill('Unsaved browser fixture');await page.locator('.tabs a').filter({hasText:'Home'}).click();await page.locator('.dlg').waitFor();for(let i=0;i<10;i++){await page.keyboard.press('Tab');assert(await page.evaluate(()=>document.querySelector('.dlg').contains(document.activeElement)));}await page.getByRole('button',{name:'Keep editing'}).click();assert(await page.locator('.ed-area').isVisible());await page.locator('.tabs a').filter({hasText:'Home'}).click();await page.getByRole('button',{name:'Discard changes'}).click();await page.waitForTimeout(300);assert(page.url().endsWith('#/home'));});
   await test('Global Recovery restores a trashed fixture',async()=>{await go('skill/library-fixture');await page.getByRole('button',{name:'Move to trash',exact:true}).click();assert.equal(await page.locator('.pick input:checked').count(),1);await page.locator('.dlg-f .btn-danger').click();await page.waitForTimeout(700);let f=path.join(root,'data/skills-manager/skills/library-fixture/SKILL.md');assert(!fs.existsSync(f));await go('recovery');assert.match(await page.locator('.rec-list').innerText(),/last changed/);await page.locator('.rec-list button').filter({hasText:'Restore'}).click();await page.waitForTimeout(700);assert(fs.existsSync(f));});
+  await test('Global Recovery restores the selected copy of a skill named purge', async () => {
+    const trashed = [];
+    const installed = path.join(root, 'data', 'skills-manager', 'skills', 'purge');
+    try {
+      for (const [i, body] of ['Older content.', 'Newer content.'].entries()) {
+        const created = await page.request.post(base+'/api/skills', {data:{name:'purge', description:'Recovery test fixture.', body}});
+        assert.equal(created.status(), 201);
+        const removed = await page.request.delete(base+'/api/skills/purge?scope=global');
+        assert.equal(removed.status(), 200);
+        trashed.push((await removed.json()).trash_path);
+        fs.utimesSync(trashed[i], 1700000000 + i * 60, 1700000000 + i * 60);
+      }
+      await go('recovery');
+      const copies = page.getByRole('region', {name:/^Trash/}).getByRole('button', {name:'Restore', exact:true});
+      assert.equal(await copies.count(), 2);
+      await copies.first().click();
+      await page.getByText('purge restored to your library.', {exact:true}).first().waitFor();
+      assert.match(fs.readFileSync(path.join(installed, 'SKILL.md'), 'utf8'), /Older content\./);
+      assert(!fs.existsSync(trashed[0]));
+      assert(fs.existsSync(trashed[1]));
+    } finally {
+      for (const dir of [installed, ...trashed]) fs.rmSync(dir, {recursive:true, force:true});
+    }
+  });
   await test('Classic disable and enable send bodyless POST requests',async()=>{await page.goto(base+'/classic/');await page.waitForTimeout(700);await page.getByRole('button',{name:'Library',exact:true}).first().click();await page.waitForTimeout(400);await page.locator('[data-skill-key$="/library-fixture"]').click();await page.waitForTimeout(400);let requests=[];page.on('request', req=>{if(req.method()==='POST'&&/\/api\/skills\/library-fixture\/(disable|enable)/.test(req.url())) requests.push({url:req.url(),body:req.postData()});});await page.getByRole('button',{name:'Disable',exact:true}).click();await page.waitForTimeout(600);await page.getByRole('button',{name:'Enable',exact:true}).click();await page.waitForTimeout(600);assert.equal(requests.length,2);assert(requests.every(r=>!r.body));let f=path.join(root,'data/skills-manager/skills/library-fixture/SKILL.md');assert(fs.existsSync(f));});
   for (const [name,sourceDisabled,targetDisabled] of [['target-disabled',false,true],['source-disabled',true,false]]) {
     await test(`Sync Undo restores ${name} bytes and disabled state`,async()=>{
@@ -259,6 +283,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const many = Array.from({length:10000}, (_, i) => ({
       ...row, name:'fixture-'+String(i).padStart(5,'0'), path:undefined, physical_path:undefined, body:undefined,
     }));
+    for (const i of [0, 9999]) many[i] = {...many[i], decode_error:'not valid UTF-8'};
     try {
       await page.route(list, route => route.fulfill({json:many}));
       await go('map');
@@ -268,8 +293,68 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert.equal(await table.locator('tbody th').first().innerText(), 'fixture-00048');
       await page.getByRole('searchbox', {name:'Find a skill in Sync map'}).fill('fixture-09999');
       assert.deepEqual(await table.locator('tbody th').allInnerTexts(), ['fixture-09999']);
+      await page.getByRole('searchbox', {name:'Find a skill in Sync map'}).clear();
+      await page.getByRole('button', {name:'Next', exact:true}).click();
+      await page.getByRole('checkbox', {name:'Needs review only'}).check();
+      assert.deepEqual(await table.locator('tbody th').allInnerTexts(), ['fixture-00000', 'fixture-09999']);
     } finally {
       await page.unrouteAll({behavior:'wait'});
+    }
+  });
+  await test('Sync map clears scope selections when opening a copy in that scope', async () => {
+    await go('map');
+    const table = page.getByRole('table', {name:'Skill copies by agent'});
+    const panel = page.locator('#map-details');
+    const checkbox = panel.getByRole('checkbox', {name:'Make majority-minor match'});
+    const select = panel.getByRole('button', {name:'Select skills to sync'});
+    const scope = table.getByRole('button', {name:'Codex', exact:true});
+    await scope.click();
+    assert(await checkbox.isChecked());
+    await table.getByRole('button', {name:/same-everywhere, Codex:/}).click();
+    assert(await select.isDisabled());
+    assert(!(await checkbox.isChecked()));
+    await scope.click();
+    assert(await checkbox.isChecked());
+  });
+  await test('Sync map review filter combines with search and keeps actionable rows', async () => {
+    await go('map');
+    const table = page.getByRole('table', {name:'Skill copies by agent'});
+    const review = page.getByRole('checkbox', {name:'Needs review only'});
+    const rows = table.locator('tbody th');
+    const search = page.getByRole('searchbox', {name:'Find a skill in Sync map'});
+    await review.check();
+    const names = await rows.allInnerTexts();
+    for (const name of ['damaged-one', 'majority-minor', 'split-even']) {
+      assert(names.includes(name), `${name} needs review`);
+    }
+    for (const name of ['sole-copy', 'same-everywhere', 'library-fixture']) {
+      assert(!names.includes(name), `${name} has no flagged agent copies`);
+    }
+    await search.fill('damaged');
+    assert.deepEqual(await rows.allInnerTexts(), ['damaged-fm', 'damaged-one']);
+    await search.fill('same-everywhere');
+    await page.getByRole('status').filter({hasText:'No skills match the review filter.'}).waitFor();
+    await review.uncheck();
+    assert.deepEqual(await rows.allInnerTexts(), ['same-everywhere']);
+  });
+  await test('Sync map review filter includes duplicated copies and uninspected links', async () => {
+    const list = '**/api/skills?scope=all&body=0';
+    const records = await (await page.request.get(base+'/api/skills?scope=all&body=0')).json();
+    const copy = records.find(record => record.scope === 'codex' && record.name === 'same-everywhere');
+    const record = (name, suffix) => ({...copy, name, path:undefined, physical_path:`/fixture/${name}/${suffix}`});
+    const fixtures = [record('repeated', 'one'), record('repeated', 'two'), {
+      ...record('uninspected', 'link'), decode_error:'Link outside the managed root', content_hash:null,
+    }];
+    try {
+      await page.route(list, route => route.fulfill({json:fixtures}));
+      await go('map');
+      await page.getByRole('checkbox', {name:'Needs review only'}).check();
+      const table = page.getByRole('table', {name:'Skill copies by agent'});
+      assert.deepEqual(await table.locator('tbody th').allInnerTexts(), ['repeated', 'uninspected']);
+      assert.equal(await table.getByRole('button', {name:/Multiple copies listed/}).count(), 1);
+      assert.equal(await table.getByRole('button', {name:/Link target not inspected/}).count(), 1);
+    } finally {
+      await page.unroute(list);
     }
   });
   await test('Sync map keeps Undo when a later copy fails to sync', async () => {

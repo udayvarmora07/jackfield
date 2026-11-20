@@ -69,7 +69,7 @@ function savedPreference(key, choices, fallback) {try{const value=localStorage.g
 
 const app = createApp({
   data() {
-    return { refreshGen: 0, historyGen: 0,
+    return { refreshGen: 0, historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
       route: parseRoute(), m: null, loading: true, loadError: "", history: [], busy: false,
       records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "",
@@ -78,7 +78,7 @@ const app = createApp({
       bodies: {}, bodyInflight: {}, bodyErrors: {},
       treeQuery: "", edit: null, highlight: true, compareWith: "",
       mapSelId: "", mapPicked: [], peek: null,
-      mapQuery: "", mapPage: 0, mapSkillName: "", mapOrigin: null,
+      mapQuery: "", mapReviewOnly: false, mapPage: 0, mapSkillName: "", mapOrigin: null,
       trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", dropDepth: 0, importForce: false,
       theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
       dialog: null, toasts: [], live: "", toastSeq: 0, skillHistory: [], opener: null,
@@ -213,8 +213,11 @@ const app = createApp({
     },
     mapStates() { return MAP_STATES; },
     mapSkills() {
+      if (!this.m) return [];
       const query = this.mapQuery.trim().toLowerCase();
-      return this.m ? this.m.skills.filter((s) => s.status.key !== "note" && s.name.toLowerCase().includes(query)) : [];
+      const scopes = new Set(this.agentInfos.map((inf) => inf.id));
+      return this.m.skills.filter((s) => s.status.key !== "note" && s.name.toLowerCase().includes(query) &&
+        (!this.mapReviewOnly || this.needsMapReview(s, scopes)));
     },
     mapPageIndex() { return Math.min(this.mapPage, Math.max(0, Math.ceil(this.mapSkills.length / CAP) - 1)); },
     mapStart() { return this.mapPageIndex * CAP; },
@@ -228,6 +231,11 @@ const app = createApp({
       const infos = this.agentInfos;
       if (!infos.length) return null;
       return infos.find((i) => i.id === this.mapSelId) || infos.find((i) => i.key === "bad") || infos.find((i) => i.key === "warn") || infos[0];
+    },
+    mapSelected() {
+      const inf = this.mapSel;
+      return inf ? inf.differing.slice(0, 12).filter((s) =>
+        this.mapPicked.includes(s.name) && this.mapSyncable(s, inf.id)) : [];
     },
     mapDetail() {
       const skill = this.mapSkillName && this.m && this.m.byName.get(this.mapSkillName);
@@ -295,7 +303,8 @@ const app = createApp({
     "route.page"(page) { if (page !== "map") this.mapOrigin = null; },
     skill(s) { if (!s && this.edit) this.edit = null; if (s) this.ensureBodies(s.copies); },
     mapSel() { if (this.route.page === "map") this.ensureMapBodies(); },
-    mapQuery() { this.mapPage = 0; },
+    mapQuery() { this.resetMapPage(); },
+    mapReviewOnly() { this.resetMapPage(); },
   },
   methods: {
     enc: encodeURIComponent, plural, join, words, titleCase, shortPath, plainLine, renderDoc,
@@ -323,7 +332,9 @@ const app = createApp({
       this.loading = true; this.loadError = "";
       try {
         const [scopes, records, history] = await Promise.all([
-          api("/api/scopes"), api("/api/skills?scope=all&body=0"), api("/api/history?limit=8").then(r=>{this.historyError="";return r;}).catch(e => {this.historyError=this.friendly(e.message);return []; }),
+          api("/api/scopes"), api("/api/skills?scope=all&body=0"),
+          api("/api/history?limit=8").then(rows => ({rows, error: ""}),
+            e => ({rows: [], error: this.friendly(e.message)})),
         ]);
         if (gen !== this.refreshGen) return;
         this.scopes=markRaw(scopes);this.records=markRaw(records);
@@ -331,7 +342,8 @@ const app = createApp({
         /* A reload produces fresh copies, so nothing is carried over from the
          * previous list: a body is re-read only where a view needs one. */
         this.bodies = {}; this.bodyInflight = {}; this.bodyErrors = {};
-        this.history = Array.isArray(history) ? history : (history && history.history) || [];
+        this.history = Array.isArray(history.rows) ? history.rows : history.rows?.history || [];
+        this.historyError = history.error;
         this.loadTrash();
         if (this.route.page === "recovery") this.loadAgentTrash();
         this.loadCatalog();
@@ -351,7 +363,14 @@ const app = createApp({
         if (gen === this.historyGen) this.skillHistory = (Array.isArray(rows) ? rows : []).slice(0, 3);
       } catch (e) { if (gen === this.historyGen) this.skillHistoryError=this.friendly(e.message); }
     },
-    async loadCatalog() { try {this.catalog=await api("/api/catalog");this.catalogError="";} catch(e){this.catalogError=this.friendly(e.message);} },
+    async loadCatalog() {
+      const gen = ++this.catalogGen;
+      try {
+        const catalog = await api("/api/catalog");
+        if (gen !== this.catalogGen) return;
+        this.catalog = catalog; this.catalogError = "";
+      } catch (e) { if (gen === this.catalogGen) this.catalogError = this.friendly(e.message); }
+    },
 
     /* ----- documents (fetched only where a view needs one) -----
      * The list request omits document bodies; this fetches one lazily. The
@@ -722,21 +741,29 @@ const app = createApp({
       });
     },
     async loadCreateTemplate() {const d=this.dialog;if(!d?.form?.template)return;const name=d.form.template;d.templateLoading=true;try{const t=await api("/api/templates/"+encodeURIComponent(name));if(this.dialog===d&&d.form.template===name)d.form.body=stripFrontmatter(t.body||"");}catch(e){if(this.dialog===d)d.error=this.friendly(e.message);}finally{if(this.dialog===d)d.templateLoading=false;}},
-    async loadTrash() { this.trashLoading=true;try { this.trash = await api("/api/trash");this.trashError=""; } catch (e) { this.trashError=this.friendly(e.message); } finally {this.trashLoading=false;} },
+    async loadTrash() {
+      const gen = ++this.trashGen;
+      this.trashLoading = true;
+      try {
+        const rows = await api("/api/trash");
+        if (gen !== this.trashGen) return;
+        this.trash = rows; this.trashError = "";
+      } catch (e) { if (gen === this.trashGen) this.trashError = this.friendly(e.message); }
+      finally { if (gen === this.trashGen) this.trashLoading = false; }
+    },
     async restoreTrash(t) {
+      if (this.busy) return;
       this.busy = true;
-      try { await api("/api/trash/" + encodeURIComponent(t.name), { method: "POST" }); await this.refresh(); this.toast(`${t.name} restored to your library.`); }
+      try { await this.restoreTrashed(t.name, "global", t.trash_path); await this.refresh(); this.toast(`${t.name} restored to your library.`); }
       catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
     },
-    /* One restore for both trashes: an agent scope names the exact trashed copy
-     * the removal returned, so Undo cannot pick the wrong one when a skill was
-     * removed twice. */
+    /* Both Recovery rows and Undo address the listed trash entry. */
     async restoreTrashed(name, scope, trashPath) {
-      const scoped = scope && scope !== "global";
-      const url = `/api/trash/${encodeURIComponent(name)}${scoped ? "?scope=" + encodeURIComponent(scope) : ""}`;
+      const url = `/api/trash/${encodeURIComponent(name)}?scope=${encodeURIComponent(scope || "global")}`;
       await api(url, { method: "POST", body: trashPath ? JSON.stringify({ trash_path: trashPath }) : undefined });
     },
     async loadAgentTrash() {
+      const gen = ++this.agentTrashGen;
       const agents = (this.m ? this.m.agents : []).filter((a) => !a.library && a.writable);
       this.agentTrashLoading = true;
       const rows = [], errors = [];
@@ -746,10 +773,12 @@ const app = createApp({
           for (const row of Array.isArray(list) ? list : []) rows.push({ ...row, scopeLabel: a.name });
         } catch (e) { errors.push({ scope: a.id, message: this.friendly(e.message) }); }
       }));
+      if (gen !== this.agentTrashGen) return;
       rows.sort((a, b) => String(b.trashed_at).localeCompare(String(a.trashed_at)) || a.name.localeCompare(b.name));
       this.agentTrash = rows; this.agentTrashErrors = errors; this.agentTrashLoading = false;
     },
     async restoreAgentTrash(t) {
+      if (this.busy) return;
       this.busy = true;
       try {
         await this.restoreTrashed(t.name, t.scope, t.trash_path);
@@ -876,6 +905,20 @@ const app = createApp({
     },
 
     /* ----- sync map ----- */
+    mapComparison(skill, copy) {
+      if (!copy.hash) return "";
+      if (skill.ref.ambiguous) return "Copies differ (no majority)";
+      return skill.ref.hash && copy.hash !== skill.ref.hash ? "Different copy" : "";
+    },
+    needsMapReview(skill, scopes) {
+      const seen = new Set();
+      for (const copy of skill.copies) {
+        if (!scopes.has(copy.scope)) continue;
+        if (seen.has(copy.scope) || copy.state === "broken" || copy.state === "link" || this.mapComparison(skill, copy)) return true;
+        seen.add(copy.scope);
+      }
+      return false;
+    },
     mapCell(skill, scope) {
       const copies = skill.copies.filter((copy) => copy.scope === scope);
       if (copies.length !== 1) {
@@ -884,8 +927,7 @@ const app = createApp({
       const [copy] = copies;
       if (copy.state === "broken") return { state: "bad", label: MAP_STATES.bad.label, copy };
       if (copy.state === "link") return { state: "link", label: "Link target not inspected", copy };
-      const differs = copy.hash && skill.ref.hash && copy.hash !== skill.ref.hash;
-      const comparison = copy.hash && skill.ref.ambiguous ? "Copies differ (no majority)" : differs ? "Different copy" : "";
+      const comparison = this.mapComparison(skill, copy);
       const label = copy.state === "off" ? MAP_STATES.off.label : copy.readOnly ? "Linked copy (read-only)" : MAP_STATES.on.label;
       const state = comparison ? "warn" : copy.state === "off" ? "off" : copy.readOnly ? "link" : "on";
       const detail = comparison || (copy.hash && skill.ref.holders.length > 1 ? "Matches reference content" : "");
@@ -895,7 +937,7 @@ const app = createApp({
       return inf.key === "bad" ? `${plural(inf.broken.length, "skill")} can't be read` : inf.key === "warn" ? `${plural(inf.differing.length, "copy", "copies")} ${inf.differing.length === 1 ? "differs" : "differ"}` : "No copy differences flagged";
     },
     selectMap(id, event, name = "") {
-      if (id !== this.mapSelId) {
+      if (id !== this.mapSelId || name !== this.mapSkillName) {
         this.mapPicked = name ? [] : this.mapDefaults(id);
         this.peek = null;
       }
@@ -907,6 +949,10 @@ const app = createApp({
     backToMap() {
       const target = this.mapOrigin?.isConnected ? this.mapOrigin : this.$refs.mapSearch;
       target?.focus();
+    },
+    resetMapPage() {
+      this.mapPage = 0;
+      if (this.$refs.matrix) this.$refs.matrix.scrollTop = 0;
     },
     moveMapPage(step) {
       this.mapPage = this.mapPageIndex + step;
@@ -932,8 +978,9 @@ const app = createApp({
     async syncPicked() {
       const inf = this.mapSel;
       if (this.busy || !inf) return;
-      const picked = inf.differing.slice(0, 12).filter((s) => this.mapPicked.includes(s.name) && this.mapSyncable(s, inf.id));
+      const picked = this.mapSelected;
       if (!picked.length) return;
+      const detailName = this.mapSkillName;
       const results = [];
       let failure = "";
       this.busy = true;
@@ -949,7 +996,7 @@ const app = createApp({
         }
         const undo = this.undoFor("", results);
         await this.refresh();
-        if (this.mapSel?.id === inf.id) this.mapPicked = this.mapDefaults(inf.id);
+        if (this.mapSel?.id === inf.id && this.mapSkillName === detailName) this.mapPicked = [];
         const ok = results.filter((r) => r.synced.length).length;
         const summary = ok ? `${plural(ok, "skill")} now ${ok === 1 ? "matches" : "match"} in ${inf.agent.name}.` : "No skills were confirmed as synced.";
         const skipped = results.flatMap((r) => r.skipped);

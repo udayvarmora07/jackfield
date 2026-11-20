@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+from .clock import trash_stamp
 from .validator import validate_skill_name
 
 
@@ -367,3 +368,12 @@ def unique_child(directory: Path, stem: str, suffix: str = "") -> Path:
         target = contained_path(directory, f"{stem}-{counter}{suffix}")
         counter += 1
     return target
+
+
+def new_trash_path(directory: Path, name: str) -> Path:
+    """Choose an unused entry with a new address even after the old one moves."""
+    for _ in range(5):
+        candidate = contained_path(directory, f"{name}-{trash_stamp()}")
+        if not candidate.exists() and not candidate.is_symlink():
+            return candidate
+    raise ValueError("could not allocate a unique trash entry; retry the removal")

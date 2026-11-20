@@ -6,6 +6,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- Sync map shows one row per skill across agent scopes, with name search and a
+  **Needs review only** filter for divergent, unreadable, duplicate and
+  uninspected copies. The Skills shelf remembers its density preference.
+
 - Measured Rust/stack assessment and bounded scan/size evidence. Combined
   single-agent Doctor/hygiene reuses one observation, with compatibility
   fallback for malformed recursive layouts. Exact-copy font resources are
@@ -71,6 +75,20 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
   block or allow an install or update. SkillSpector is not a dependency.
 
 ### Fixed
+
+- Recovery and Undo restore the selected global trash entry in both web
+  interfaces, even when several entries have the same name. Restoring a skill
+  named `purge` is distinct from emptying the global trash.
+- Removing a skill again within the same second gives it a fresh trash path.
+  Old Restore buttons and Undo actions reject the moved entry.
+- A failed global Recovery index or history write rolls back to the exact
+  trash entry, so the restore can be retried after the index problem clears.
+- Global Recovery works when the trash folder is linked to another volume:
+  it accepts the listed or the returned path, and a cross-volume restore or
+  rollback copies, verifies and then retires the original, leaving the
+  original intact if any step fails.
+- Changing the selected Sync map copy clears previous repair selections.
+  Older v2 responses no longer replace newer trash, history or catalog reads.
 
 - Hygiene now reports bounded filesystem acquisition failures instead of
   treating failed reads as an empty scan; known partial evidence blocks baseline

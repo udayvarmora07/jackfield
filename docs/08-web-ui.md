@@ -185,6 +185,10 @@ headless on every push and pull request (the `e2e` job in
 lockfile in `tools/e2e_deps` with `npm ci --ignore-scripts` and drives the
 runner's own Chrome; locally use
 `NODE_PATH=tools/e2e_deps/node_modules python3 tools/e2e_v2/run.py --output-dir <private dir>`.
+Both runners also accept `--browser firefox` for local checks with the
+Playwright-managed Firefox build. Setup is in
+@docs/32-continuation-verification-2026-11-06.md. Each runner reports the
+engine and version with its results.
 
 **[SPEC] Startup and list projection (2026-11-06).** The classic UI starts
 scopes, skills, trash, history, catalog and stats loaders together. Each paints
@@ -556,8 +560,15 @@ stated beside the setting and in every result.
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/trash` | Global Store trash by default; `?scope=<agent>` lists that agent's bounded trash |
-| POST | `/api/trash/<name>` | Restore in the requested scope; optional JSON `trash_path` selects an agent copy; `?snapshot=ID&scope=SCOPE` rolls back a snapshot |
-| POST | `/api/trash/purge` | Purge global trash; agent-scope purge is refused |
+| POST | `/api/trash/<name>` | Restore the newest copy in the requested scope, or pass the listed `trash_path` in JSON to select an entry. Both UIs pass the scope and selected path. Use `?scope=global` when restoring a global skill named `purge`. Use `?snapshot=ID&scope=SCOPE` to roll back a snapshot. |
+| POST | `/api/trash/purge` | Purge global trash. The purge action has no `scope` or `snapshot` parameter. |
+
+Treat `trash_path` as an opaque value from the current listing or removal
+response. A later removal in the same second gets a fresh path, so a Restore
+button for the earlier copy fails after that copy has been restored.
+If the global index or history write fails, the server attempts to move the
+selected tree back to its original trash path. If rollback fails, the server
+keeps the restored tree and asks the user to check the library and trash.
 
 ### AI assist (bring your own key)
 
@@ -692,13 +703,17 @@ secondary navigation and contextual links from exact instances.
 **[SPEC] Shelf density and Sync map.** The Skills shelf remembers Comfortable
 or Compact in the browser. The Sync map lists skills by agent scope, shows
 observed file and content states, filters by skill name and displays 48 rows
-per page. A scope heading opens the existing comparison and repair panel.
+per page. **Needs review only** keeps rows with differences, unreadable or
+multiple copies, or uninspected links in a displayed scope. It combines with
+name search. A scope heading opens the comparison and repair panel.
 An observed cell also identifies the selected skill and scope in that panel.
 When several copies share the same name and scope, the cell links to the
 skill's copies. An empty cell means the scan returned no copy in that scope.
 The map reports evidence from disk. Effective agent loading is unknown.
 The direct sync action applies only to selected eligible rows shown in the
-panel. Tied and read-only copies require review in Skills or the Inbox.
+panel. Opening a different copy clears previous repair selections, including
+within the same scope. Tied and read-only copies require review in Skills or
+the Inbox.
 
 Home also shows Claude Code and Codex listing-budget estimates in a side card.
 The card reads the existing `GET /api/doctor?scope=all&hygiene=1` report after

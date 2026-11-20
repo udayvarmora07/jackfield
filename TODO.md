@@ -4,6 +4,10 @@
 **Backlog date:** 2026-09-07
 **Baseline:** `main` at `667fabb` in `/home/uday-varmora/skills-manager`
 **Companion plan:** `/home/uday-varmora/skills-manager/PLAN.md`
+
+**Current queue (2026-11-20):** [task.md](task.md) tracks live work and its
+remaining decisions. This file retains the original milestones and verdicts.
+
 **Research annex (2026-09-09):** loop-engineering probes plus a 200+-source
 web survey, distilled into per-item verdicts in the Milestone 4 note, the
 Deferred section, and the new Milestone 11 queue. Docs-only change: no
@@ -25,7 +29,7 @@ Release, provenance attestation, and post-publish install/CRUD verification.
 This worktree only records the completed release; no publish, tag, or push is
 performed here.
 
-> This is the canonical execution backlog for the next product cycle. It is
+> This was the execution backlog for the original product cycle. It is
 > deliberately risk-first: protect user data and make future regressions
 > difficult before adding more visible features.
 

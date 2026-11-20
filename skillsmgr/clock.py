@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from secrets import randbelow
+from time import monotonic_ns
 
 ISO_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 #: The filename-safe form used in trash names, snapshot ids and backups.
@@ -26,3 +28,8 @@ def now_iso() -> str:
 def stamp() -> str:
     """The current UTC time in the filename-safe :data:`STAMP_FORMAT`."""
     return datetime.now(timezone.utc).strftime(STAMP_FORMAT)
+
+
+def trash_stamp() -> str:
+    """Keep same-second entries ordered using the host's monotonic clock."""
+    return f"{stamp()}-{monotonic_ns():019d}{randbelow(1_000_000):06d}"

@@ -303,7 +303,7 @@ class TestTrash(IsolatedStoreTestCase):
         self.store.remove("demo")
         source = next(p for p in self.store.trash_dir.iterdir() if p.is_dir())
 
-        with mock.patch("skillsmgr.store.shutil.move", side_effect=OSError("gone")):
+        with mock.patch("skillsmgr.store.os.rename", side_effect=FileNotFoundError("gone")):
             with self.assertRaises(StoreError) as ctx:
                 self.store.restore("demo")
         self.assertIn("cannot restore 'demo'", str(ctx.exception))

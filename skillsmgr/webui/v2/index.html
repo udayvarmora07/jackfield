@@ -261,6 +261,7 @@
         <div class="map-toolbar">
           <label for="map-search" class="sr-only">Find a skill in Sync map</label>
           <input id="map-search" ref="mapSearch" class="field" type="search" v-model="mapQuery" placeholder="Find a skill…">
+          <label class="hl-row map-review"><input type="checkbox" v-model="mapReviewOnly"> Needs review only</label>
           <a class="link map-total" href="#/skills">{{ plural(shelfTotal, 'skill') }} in Skills</a>
         </div>
         <ul class="map-legend" aria-label="Copy states" v-if="agentInfos.length && mapRows.length">
@@ -294,6 +295,7 @@
           </table>
         </div>
         <p v-else-if="!agentInfos.length" class="state-note">No agent scope folders were found.</p>
+        <p v-else-if="mapReviewOnly" class="state-note" role="status">No skills match the review filter.</p>
         <p v-else-if="mapQuery.trim()" class="state-note" role="status">No skills match this search.</p>
         <p v-else class="state-note">Add a skill to compare its copies.</p>
         <footer class="map-pages" v-if="agentInfos.length && mapRows.length">
@@ -329,7 +331,7 @@
           <div class="minidiff" v-if="peekLines" role="region" :aria-label="'Differences in ' + peek"><div class="h">{{ peek }}: what will change in {{ mapSel.agent.name }}</div>
             <div v-for="(l, i) in peekLines" :key="i" :class="l.t"><span class="sr-only" v-if="l.t === 'add'">Added: </span><span class="sr-only" v-else-if="l.t === 'del'">Removed: </span>{{ plainLine(l.x) }}</div></div>
           <p class="backup" v-if="mapSel.differing.length"><ic name="undo" cls="i-s"></ic>Sync also copies whether the skill is on or off, and its supporting files. Undo restores only the text and the on/off state.</p>
-          <div class="cta" v-if="mapSel.differing.slice(0, 12).some((s) => mapSyncable(s, mapSel.id))"><button type="button" class="btn btn-ink btn-lg" :disabled="!mapPicked.length || busy" @click="syncPicked()">{{ mapPicked.length ? 'Make ' + plural(mapPicked.length, 'skill') + ' match in ' + mapSel.agent.name : 'Select skills to sync' }}</button></div>
+          <div class="cta" v-if="mapSel.differing.slice(0, 12).some((s) => mapSyncable(s, mapSel.id))"><button type="button" class="btn btn-ink btn-lg" :disabled="!mapSelected.length || busy" @click="syncPicked()">{{ mapSelected.length ? 'Make ' + plural(mapSelected.length, 'skill') + ' match in ' + mapSel.agent.name : 'Select skills to sync' }}</button></div>
           <div class="cta" v-else-if="mapSel.differing.length"><a class="btn btn-line btn-lg" href="#/inbox" style="flex:1">Choose which copies to keep in the Inbox</a></div>
         </template>
       </aside>

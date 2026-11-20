@@ -9,6 +9,7 @@ skills via :meth:`Store.resync` / :meth:`Store.db_rebuild`.
 
 from __future__ import annotations
 
+import errno
 import io
 import json
 import os
@@ -22,7 +23,7 @@ import time
 import zipfile
 import zlib
 import gzip
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 from . import paths
@@ -80,10 +81,8 @@ CREATE TABLE IF NOT EXISTS meta (
 CREATE INDEX IF NOT EXISTS idx_skills_status ON skills(status);
 """
 
-# Suffix written by remove() as ``name-<ts>`` where <ts> ends in ``Z``; when
-# two trashes collide within one second a ``-<n>`` counter is appended AFTER
-# the ``Z`` (``name-<ts>-1``).  The regex accepts the counter on either side
-# of an optional ``Z`` so every entry this writer produces stays canonical.
+# New removals add a numeric serial after ``Z``. Keep accepting bare stamps
+# and historical counters on either side of an optional ``Z``.
 _TRASH_TS_RE = re.compile(r"-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(?:-\d+)?Z?(?:-\d+)?$")
 
 SNAPSHOT_KEEP = 5
@@ -430,6 +429,88 @@ def _trash_entry_name(path: Path) -> str | None:
         return validate_skill_name(name)
     except ValueError:
         return None
+
+
+def _trash_source(trash_dir: Path, name: str, trash_path: str | None) -> Path:
+    """Select a valid trash child while the caller holds the trash lock."""
+    if not trash_dir.is_dir():
+        raise StoreError(f"no trashed copy of '{name}' found")
+    actual_root = trash_dir.resolve()
+    # Match the listed path or the physical path returned by remove() when
+    # the trash root is linked. The incoming path is only a string comparison.
+    candidates = sorted(
+        (path for path in trash_dir.iterdir()
+         if trash_path in (None, str(path), str(actual_root / path.name)) and _trash_entry_name(path) == name),
+        key=lambda path: path.stat().st_mtime,
+    )
+    if not candidates:
+        raise StoreError(f"no trashed copy of '{name}' found")
+    return candidates[-1]
+
+
+def _move_trash_tree(source: Path, destination: Path) -> None:
+    """Move to an exact unoccupied path, including between mounted volumes."""
+    if os.path.lexists(destination):
+        raise FileExistsError(f"the destination is occupied: {destination}")
+    try:
+        os.rename(source, destination)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        # Copy beside the destination first. A failed copy cannot publish an
+        # incomplete directory or remove the original.
+        with tempfile.TemporaryDirectory(prefix=".trash-transfer.skillsmgr-stage.", dir=destination.parent) as stage:
+            staged = Path(stage) / source.name
+            shutil.copytree(source, staged, symlinks=True)
+            # Verify names and bytes before anything is published or retired.
+            if tree_content_hash(staged) != tree_content_hash(source):
+                raise OSError(errno.EIO, f"the copy of {source} did not match the original")
+            os.rename(staged, destination)
+        # The destination now holds the complete tree. Remove the old path
+        # atomically, then clean up the parked copy outside the live layout.
+        # If the original cannot be parked, withdraw the published copy so
+        # exactly one tree remains: the untouched original.
+        parked = _stage_sibling(source)
+        try:
+            os.rename(source, parked)
+        except OSError:
+            _discard_published_copy(destination)
+            raise
+        try:
+            shutil.rmtree(parked)
+        except OSError as cleanup_error:
+            _diagnose(f"trash transfer completed but left a staged tree at {parked}", cleanup_error)
+
+
+def _discard_published_copy(destination: Path) -> None:
+    """Remove a cross-volume copy whose original could not be retired."""
+    try:
+        withdrawn = _stage_sibling(destination)
+        os.rename(destination, withdrawn)
+        shutil.rmtree(withdrawn)
+    except OSError as cleanup_error:
+        _diagnose(f"cross-volume move left a duplicate copy at {destination}", cleanup_error)
+
+
+@contextmanager
+def _restoring_trash_copy(name: str, source: Path, skill_dir: Path):
+    """Return a moved tree to its exact trash path if indexing fails."""
+    try:
+        _move_trash_tree(source, skill_dir)
+    except OSError as exc:
+        raise StoreError(f"cannot restore '{name}' from {source}: {exc}") from exc
+    try:
+        yield
+    except BaseException:
+        try:
+            _move_trash_tree(skill_dir, source)
+        except OSError as exc:
+            _diagnose(f"restore rollback failed for {name!r} from {skill_dir} to {source}", exc)
+            raise StoreError(
+                f"could not finish restoring '{name}' or return it to its original trash path. "
+                "Check the library and trash before retrying."
+            ) from exc
+        raise
 
 
 def _is_transaction_artifact(name: str) -> bool:
@@ -1706,7 +1787,7 @@ class Store:
                 result = {"name": name, "action": "purged"}
             else:
                 self.trash_dir.mkdir(parents=True, exist_ok=True)
-                target = path_safety.unique_child(self.trash_dir, f"{name}-{stamp()}")
+                target = path_safety.new_trash_path(self.trash_dir, name)
                 shutil.move(str(skill_dir), str(target))
                 conn.execute(
                     "UPDATE skills SET status = 'trashed', updated_at = ? "
@@ -1775,12 +1856,11 @@ class Store:
         finally:
             conn.close()
 
-    def restore(self, name: str, snapshot: str | None = None) -> dict:
-        """Restore from trash, or roll back to a validated snapshot."""
-        _safe_skill_path(self.skills_dir, name)
+    def restore(self, name: str, snapshot: str | None = None, *, trash_path: str | None = None) -> dict:
+        """Restore the selected trash entry (newest by default), or roll back a snapshot."""
+        skill_dir = _safe_skill_path(self.skills_dir, name)
         if snapshot is not None:
             content = read_snapshot(self.data_dir, "global", name, snapshot)
-            skill_dir = _safe_skill_path(self.skills_dir, name)
             md_file = skill_dir / "SKILL.md"
             if not md_file.is_file():
                 if (skill_dir / "SKILL.md.disabled").is_file():
@@ -1806,56 +1886,27 @@ class Store:
                         _diagnose(f"snapshot rollback failed for {name!r}", rollback_exc)
                     raise
             return {"name": name, "snapshot": snapshot}
-        skill_dir = _safe_skill_path(self.skills_dir, name)
         # The whole read-then-move sequence runs under the trash lock so a
         # concurrent purge_trash() cannot delete the candidate we picked
         # between listing it and moving it (STORE-5).
-        index_lock = mutation_lock(index_lock_path(self.skills_dir))
-        index_lock.acquire()
-        trash_lock = mutation_lock(_trash_lock_dir(self.trash_dir))
-        trash_lock.acquire()
-        try:
-            candidates = sorted(
-                (
-                    p
-                    for p in self.trash_dir.iterdir()
-                    if _trash_entry_name(p) == name
-                ),
-                key=lambda p: p.stat().st_mtime,
-            ) if self.trash_dir.is_dir() else []
-            if not candidates:
-                raise StoreError(f"no trashed copy of '{name}' found")
-            source = candidates[-1]
+        with mutation_lock(index_lock_path(self.skills_dir)), mutation_lock(_trash_lock_dir(self.trash_dir)):
+            source = _trash_source(self.trash_dir, name, trash_path)
             return _with_skill_lock(skill_dir, self._restore_unlocked, name, skill_dir, source)
-        finally:
-            trash_lock.release()
-            index_lock.release()
 
-    def _restore_unlocked(self, name: str, skill_dir, source) -> dict:
-        """Move a validated trash copy back into the skills directory."""
-        if skill_dir.exists():
+    def _restore_unlocked(self, name: str, skill_dir: Path, source: Path) -> dict:
+        """Move a validated trash copy and commit its index row and history together."""
+        if os.path.lexists(skill_dir):
             raise StoreError(
                 f"cannot restore '{name}': a skill with that name already exists"
             )
-        self.trash_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            shutil.move(str(source), str(skill_dir))
-        except OSError as exc:
-            # The copy vanished or is not movable: a clean StoreError, never a
-            # raw OSError escaping to callers (REST would answer 500).
-            raise StoreError(
-                f"cannot restore '{name}' from {source}: {exc}"
-            ) from exc
-        self._upsert_entry(name)
-        conn = self._connect()
-        try:
-            conn.execute(
-                "UPDATE skills SET status = 'active', updated_at = ? WHERE name = ?",
-                (now_iso(), name),
-            )
-            self._commit_history(conn, name, "restore")
-        finally:
-            conn.close()
+        with (
+            _restoring_trash_copy(name, source, skill_dir),
+            _driver_errors("restore"),
+            closing(self._connect()) as conn,
+            conn,
+        ):
+            self._upsert_row(conn, name, self._load_skill(skill_dir))
+            self._history(conn, name, "restore")
         return {"name": name, "restored_from": str(source)}
 
     def disable(self, name: str) -> dict:

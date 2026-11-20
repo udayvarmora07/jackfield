@@ -4,7 +4,7 @@
  * real skills service. Safety nets: any POST to /api/install that would run a
  * package runner, fetch, search, curate or commit is aborted in the browser,
  * and run.py plants fake runners whose execution would be reported. */
-const {chromium} = require('playwright');
+const {chromium, firefox} = require('playwright');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -119,7 +119,17 @@ const overflowOf = () => page.evaluate(() => ({sw: document.documentElement.scro
 
 /* ----------------------------------------------------------------- run */
 (async () => {
-  browser = await chromium.launch({executablePath: process.env.CHROME_BIN || undefined, headless: process.env.BROWSER_TEST_HEADED !== '1', chromiumSandbox: true});
+  const engine = process.env.BROWSER_TEST_ENGINE;
+  const headless = process.env.BROWSER_TEST_HEADED !== '1';
+  if (engine === 'firefox') {
+    browser = await firefox.launch({headless});
+  } else if (engine === 'chromium') {
+    browser = await chromium.launch({executablePath: process.env.CHROME_BIN, headless, chromiumSandbox: true});
+  } else {
+    throw Error('Use run.py to select a browser engine');
+  }
+  const browserVersion = browser.version();
+  console.log(`Browser: ${engine} ${browserVersion}`);
   context = await browser.newContext({viewport: {width: 1280, height: 900}, colorScheme: 'light', serviceWorkers: 'block'});
   page = await context.newPage(); page.setDefaultTimeout(6000);
   page.on('console', m => { if (['error', 'warning'].includes(m.type())) events.push({k: 'console.' + m.type(), t: m.text(), u: m.location().url, d: deliberate, url: page.url()}); });
@@ -685,6 +695,39 @@ const overflowOf = () => page.evaluate(() => ({sw: document.documentElement.scro
     ok(low.length === 0, 'low contrast: ' + low.join(' ; '));
     await page.evaluate(() => localStorage.removeItem('skillsmgr-theme'));
   });
+  await test('Recovery', 'restores the selected global copy and keeps its sibling', async () => {
+    const name = 'purge';
+    const paths = [];
+    const installed = path.join(store, 'skills', name);
+    try {
+      for (const [i, body] of ['Older content.', 'Newer content.'].entries()) {
+        eq((await api('POST', '/api/skills', {name, description:'Recovery test fixture.', body})).status, 201);
+        const removed = await api('DELETE', `/api/skills/${name}?scope=global`);
+        eq(removed.status, 200);
+        paths.push(removed.json.trash_path);
+        fs.utimesSync(paths[i], 1700000000 + i * 60, 1700000000 + i * 60);
+      }
+      await load();
+      await nav('recovery');
+      const row = page.getByRole('region', {name:'Global trash'}).getByRole('listitem')
+        .filter({has:page.getByText(paths[0], {exact:true})});
+      await row.getByRole('button', {name:'Select for restore'}).click();
+      await Promise.all([
+        page.waitForEvent('requestfinished', request => {
+          const url = new URL(request.url());
+          return url.pathname === '/api/source-updates/snapshots' && url.searchParams.get('name') === name;
+        }),
+        page.getByRole('button', {name:'Restore purge', exact:true}).click(),
+      ]);
+      await waitToast(/Skill "purge" restored/);
+      match(fs.readFileSync(path.join(installed, 'SKILL.md'), 'utf8'), /Older content\./);
+      ok(!fs.existsSync(paths[0]), 'selected trash entry moved');
+      ok(fs.existsSync(paths[1]), 'other trash entry preserved');
+    } finally {
+      for (const dir of [installed, ...paths]) fs.rmSync(dir, {recursive:true, force:true});
+    }
+  });
+
   await test('Cross-cutting', 'Escape closes dialogs with focus return (batch, install, validate)', async () => {
     await load('/classic/'); await nav('quality'); await page.locator('.quality-hygiene-metrics').waitFor();
     await nav('install'); const o = page.getByRole('button', {name: 'Open full install workflow'}); await o.focus(); await page.keyboard.press('Enter'); await page.locator('[data-modal=install]').waitFor();
@@ -754,7 +797,7 @@ const overflowOf = () => page.evaluate(() => ({sw: document.documentElement.scro
   });
 
   await browser.close();
-  fs.writeFileSync(path.join(root, 'results.json'), JSON.stringify({results, notes, defects, events, assertions, failed}, null, 2));
+  fs.writeFileSync(path.join(root, 'results.json'), JSON.stringify({engine, browserVersion, results, notes, defects, events, assertions, failed}, null, 2));
   const by = {}; for (const r of results) { by[r.screen] = by[r.screen] || {p: 0, f: 0, a: 0}; by[r.screen][r.status === 'PASS' ? 'p' : 'f']++; by[r.screen].a += r.assertions; }
   console.log('\nSUMMARY ' + JSON.stringify(by) + ` total assertions ${assertions}, failed tests ${failed}`);
   process.exit(failed ? 1 : 0);

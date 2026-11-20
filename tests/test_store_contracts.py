@@ -8,9 +8,11 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+import errno
 import io
 import json
 import os
+import shutil
 import sqlite3
 import tarfile
 import tempfile
@@ -272,9 +274,7 @@ class TestStoreLifecycle(StoreContractCase):
     def test_purge_trash_dedupes_repeated_skill_names(self):
         # FIX-15 (promoted from OBS-3): purging two timestamped copies of one
         # skill reported ["demo", "demo"]; the name must appear once.
-        with mock.patch(
-            "skillsmgr.store.stamp", return_value="2026-09-08_19-13-21Z"
-        ):
+        with mock.patch("skillsmgr.clock.stamp", return_value="2026-09-08_19-13-21Z"):
             self.store.create("demo", "First", body="v1")
             self.store.remove("demo")
             self.store.create("demo", "Second", body="v2")
@@ -508,17 +508,186 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         self.store.restore("demo")
         self.assertEqual(self.store.get("demo")["body"], "v1\n")
 
-    def test_same_second_trash_counter_entries_are_listed_restored_and_purged(self):
-        # Two trashes of the same name inside one second make remove() fall
-        # back to a `-<n>` suffix. Those entries must stay recognizable as
-        # canonical trash: listed, restorable (newest first), and purgeable.
-        with mock.patch(
-            "skillsmgr.store.stamp", return_value="2026-09-08_19-13-21Z"
+    def test_same_second_remove_does_not_reuse_a_restored_trash_path(self):
+        with (
+            mock.patch("skillsmgr.clock.stamp", return_value="2026-09-08_19-13-21Z"),
+            mock.patch("skillsmgr.clock.monotonic_ns", return_value=12345),
+            mock.patch("skillsmgr.clock.randbelow", side_effect=[1, 2]),
         ):
-            self.store.create("demo", "First", body="v1")
-            self.store.remove("demo")
-            self.store.create("demo", "Second", body="v2")
-            self.store.remove("demo")
+            self.store.create("demo", "First version", body="v1")
+            old_path = self.store.remove("demo")["trash_path"]
+            self.store.restore("demo", trash_path=old_path)
+            self.store.edit("demo", body="v2")
+            new_path = self.store.remove("demo")["trash_path"]
+        self.assertNotEqual(new_path, old_path)
+        with self.assertRaisesRegex(StoreError, "no trashed copy"):
+            self.store.restore("demo", trash_path=old_path)
+        self.assertFalse((self.store.skills_dir / "demo").exists())
+        self.assertTrue(Path(new_path).exists())
+        self.store.restore("demo", trash_path=new_path)
+        self.assertEqual(self.store.get("demo")["body"], "v2\n")
+
+    def test_failed_restore_history_write_puts_the_exact_tree_back_for_retry(self):
+        self.store.create("demo", "Selected copy", body="older content")
+        live = self.store.skills_dir / "demo"
+        (live / "companion.bin").write_bytes(b"\x00\xff")
+        self.store.disable("demo")
+        older = Path(self.store.remove("demo")["trash_path"])
+        self.store.create("demo", "Other copy", body="newer content")
+        newer = Path(self.store.remove("demo")["trash_path"])
+        row = "SELECT status, disabled, body FROM skills WHERE name = 'demo'"
+        before = _query_one(self.store.db_path, row)
+        with closing(sqlite3.connect(self.store.db_path)) as conn, conn:
+            conn.execute("CREATE TRIGGER stop_restore BEFORE INSERT ON history "
+                         "WHEN NEW.action = 'restore' BEGIN SELECT RAISE(ABORT, 'fixture write refused'); END")
+
+        with self.assertRaisesRegex(StoreError, "fixture write refused"):
+            self.store.restore("demo", trash_path=str(older))
+        self.assertFalse(live.exists())
+        self.assertIn(b"older content", (older / "SKILL.md.disabled").read_bytes())
+        self.assertEqual((older / "companion.bin").read_bytes(), b"\x00\xff")
+        self.assertTrue(newer.is_dir())
+        self.assertEqual(_query_one(self.store.db_path, row), before)
+        self.assertEqual(_query_one(self.store.db_path, "SELECT count(*) FROM history WHERE action = 'restore'"), (0,))
+
+        with closing(sqlite3.connect(self.store.db_path)) as conn, conn:
+            conn.execute("DROP TRIGGER stop_restore")
+        self.store.restore("demo", trash_path=str(older))
+        self.assertFalse(older.exists())
+        self.assertTrue(newer.is_dir())
+        self.assertTrue(self.store.get("demo")["disabled"])
+        self.assertEqual((live / "companion.bin").read_bytes(), b"\x00\xff")
+        self.assertEqual(_query_one(self.store.db_path, "SELECT count(*) FROM history WHERE action = 'restore'"), (1,))
+
+    def test_failed_restore_preserves_both_trees_if_old_path_is_reoccupied(self):
+        self.store.create("demo", "A useful skill", body="selected text")
+        trash_path = Path(self.store.remove("demo")["trash_path"])
+
+        def fail_with_replaced_trash(*_args):
+            trash_path.mkdir()
+            (trash_path / "SKILL.md").write_text(document("demo", body="other text"), encoding="utf-8")
+            raise sqlite3.OperationalError("fixture index error")
+
+        with mock.patch.object(self.store, "_upsert_row", side_effect=fail_with_replaced_trash):
+            with self.assertRaisesRegex(StoreError, "Check the library and trash"):
+                self.store.restore("demo", trash_path=str(trash_path))
+        self.assertIn("other text", (trash_path / "SKILL.md").read_text(encoding="utf-8"))
+        self.assertEqual(len(list(trash_path.iterdir())), 1)
+        self.assertEqual(self.store.get("demo")["body"], "selected text\n")
+
+    def test_failed_restore_returns_tree_when_rename_crosses_volumes(self):
+        self.store.create("demo", "A useful skill", body="Selected copy")
+        live = self.store.skills_dir / "demo"
+        (live / "companion.bin").write_bytes(b"\x00\xff")
+        trash_path = Path(self.store.remove("demo")["trash_path"])
+        real_rename = os.rename
+
+        def across_volumes(source, destination):
+            if {Path(source), Path(destination)} == {trash_path, live}:
+                raise OSError(errno.EXDEV, "fixture cross-volume rename")
+            return real_rename(source, destination)
+
+        with (
+            mock.patch("skillsmgr.store.os.rename", side_effect=across_volumes),
+            mock.patch.object(self.store, "_history", side_effect=sqlite3.OperationalError("fixture error")),
+        ):
+            with self.assertRaisesRegex(StoreError, "fixture error"):
+                self.store.restore("demo", trash_path=str(trash_path))
+        self.assertIn(b"Selected copy", (trash_path / "SKILL.md").read_bytes())
+        self.assertEqual((trash_path / "companion.bin").read_bytes(), b"\x00\xff")
+        self.assertEqual(list(self.store.skills_dir.iterdir()), [])
+        self.assertEqual(list(self.store.trash_dir.iterdir()), [trash_path])
+
+    def _cross_volume_rename(self, trash_path, live, *, refuse_park=False):
+        real_rename = os.rename
+
+        def rename(source, destination):
+            pair = {Path(source), Path(destination)}
+            if pair == {trash_path, live}:
+                raise OSError(errno.EXDEV, "fixture cross-volume rename")
+            if refuse_park and Path(source) == trash_path:
+                raise PermissionError(errno.EACCES, "fixture park refused")
+            return real_rename(source, destination)
+
+        return mock.patch("skillsmgr.store.os.rename", side_effect=rename)
+
+    def test_restore_across_volumes_copies_verifies_and_retires_the_original(self):
+        self.store.create("demo", "A useful skill", body="Selected copy")
+        live = self.store.skills_dir / "demo"
+        (live / "nested").mkdir()
+        (live / "nested" / "companion.bin").write_bytes(b"\x00\xff")
+        trash_path = Path(self.store.remove("demo")["trash_path"])
+        with self._cross_volume_rename(trash_path, live):
+            self.store.restore("demo", trash_path=str(trash_path))
+        self.assertEqual(self.store.get("demo")["body"], "Selected copy\n")
+        self.assertEqual((live / "nested" / "companion.bin").read_bytes(), b"\x00\xff")
+        self.assertEqual(list(self.store.trash_dir.iterdir()), [])
+        self.assertEqual(sorted(p.name for p in self.store.skills_dir.iterdir()), ["demo"])
+
+    def test_cross_volume_restore_keeps_only_the_original_if_it_cannot_be_retired(self):
+        self.store.create("demo", "A useful skill", body="Selected copy")
+        live = self.store.skills_dir / "demo"
+        trash_path = Path(self.store.remove("demo")["trash_path"])
+        with self._cross_volume_rename(trash_path, live, refuse_park=True):
+            with self.assertRaisesRegex(StoreError, "cannot restore 'demo'"):
+                self.store.restore("demo", trash_path=str(trash_path))
+        self.assertIn(b"Selected copy", (trash_path / "SKILL.md").read_bytes())
+        self.assertEqual(list(self.store.skills_dir.iterdir()), [])
+        self.assertEqual(list(self.store.trash_dir.iterdir()), [trash_path])
+        self.store.restore("demo", trash_path=str(trash_path))
+        self.assertEqual(self.store.get("demo")["body"], "Selected copy\n")
+
+    def test_cross_volume_restore_refuses_a_copy_that_does_not_match(self):
+        self.store.create("demo", "A useful skill", body="Selected copy")
+        live = self.store.skills_dir / "demo"
+        trash_path = Path(self.store.remove("demo")["trash_path"])
+        real_copytree = shutil.copytree
+
+        def corrupt_copy(source, destination, **kwargs):
+            result = real_copytree(source, destination, **kwargs)
+            (Path(destination) / "SKILL.md").write_bytes(b"truncated")
+            return result
+
+        with (
+            self._cross_volume_rename(trash_path, live),
+            mock.patch("skillsmgr.store.shutil.copytree", side_effect=corrupt_copy),
+        ):
+            with self.assertRaisesRegex(StoreError, "did not match"):
+                self.store.restore("demo", trash_path=str(trash_path))
+        self.assertIn(b"Selected copy", (trash_path / "SKILL.md").read_bytes())
+        self.assertEqual(list(self.store.skills_dir.iterdir()), [])
+
+    @unittest.skipIf(os.name == "nt", "directory symlinks need privileges on Windows")
+    def test_restore_accepts_listed_and_returned_paths_through_a_linked_trash_folder(self):
+        elsewhere = Path(self.tmp.name) / "elsewhere-trash"
+        elsewhere.mkdir()
+        self.store.trash_dir.mkdir(parents=True, exist_ok=True)
+        self.store.trash_dir.rmdir()
+        self.store.trash_dir.symlink_to(elsewhere, target_is_directory=True)
+        for body in ("first", "second"):
+            self.store.create("demo", "A useful skill", body=body)
+            returned = self.store.remove("demo")["trash_path"]
+            listed = [row["trash_path"] for row in self.store.trash_list()
+                      if Path(row["trash_path"]).name == Path(returned).name]
+            self.assertEqual(len(listed), 1)
+            selected = returned if body == "first" else listed[0]
+            self.store.restore("demo", trash_path=selected)
+            self.assertEqual(self.store.get("demo")["body"], f"{body}\n")
+            self.assertFalse(Path(returned).exists())
+            if body == "first":
+                self.store.remove("demo", purge=True)
+        with self.assertRaisesRegex(StoreError, "no trashed copy"):
+            self.store.restore("demo", trash_path=str(elsewhere.parent / "trash" / "missing"))
+
+    def test_same_second_trash_counter_entries_are_listed_restored_and_purged(self):
+        # Keep reading the bare second and collision counter old versions wrote.
+        for index, suffix in enumerate(("", "-1"), start=1):
+            self.store.create("demo", "Fixture", body=f"v{index}")
+            removed = Path(self.store.remove("demo")["trash_path"])
+            legacy = removed.with_name(f"demo-2026-09-08_19-13-21Z{suffix}")
+            removed.rename(legacy)
+            modified = 1_700_000_000 + index
+            os.utime(legacy, (modified, modified))
         entries = sorted(p.name for p in self.store.trash_dir.iterdir())
         self.assertEqual(
             entries,

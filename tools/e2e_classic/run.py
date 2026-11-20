@@ -3,7 +3,7 @@
 Quality, Workspaces, Settings plus cross-cutting checks); see --help.
 
 Everything happens inside a private temp root: isolated HOME and
-SKILLS_MANAGER_DATA, an OS-selected loopback port, Chrome with its sandbox ON.
+SKILLS_MANAGER_DATA, an OS-selected loopback port, and a sandboxed browser.
 The unauthenticated service is bound to 127.0.0.1 only: that binding is its
 sole security boundary, so never forward or tunnel the port.
 """
@@ -88,6 +88,8 @@ def main():
     parser = argparse.ArgumentParser(description='Create isolated fixtures and run the classic-UI Playwright suite.')
     parser.add_argument('--output-dir', required=True, type=Path,
                         help='Existing or new directory; a fresh private run folder is created inside it')
+    parser.add_argument('--browser', choices=('chromium', 'firefox'), default='chromium',
+                        help='Use trusted system Chrome (default) or Playwright-managed Firefox')
     args = parser.parse_args()
     args.output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     mode = stat.S_IMODE(args.output_dir.stat().st_mode)
@@ -102,18 +104,22 @@ def main():
     env = {k: v for k, v in os.environ.items()
            if k not in ('VERCEL_OIDC_TOKEN', 'SKILLS_MANAGER_REGISTRY_TOKEN')}
     env.update(HOME=str(home), SKILLS_MANAGER_DATA=str(data), PYTHONDONTWRITEBYTECODE='1',
-               BROWSER_TEST_ROOT=str(root), BROWSER_TEST_HOME=str(home),
-               XDG_DATA_HOME=str(root / 'xdg'), XDG_CONFIG_HOME=str(root / 'xdgc'))
+               BROWSER_TEST_ROOT=str(root), BROWSER_TEST_HOME=str(home), BROWSER_TEST_ENGINE=args.browser,
+               XDG_DATA_HOME=str(root / 'xdg'), XDG_CONFIG_HOME=str(root / 'xdgc'),
+               XDG_STATE_HOME=str(root / 'xdgs'), CODEX_HOME=str(home / '.codex'),
+               GEMINI_CLI_SYSTEM_DEFAULTS_PATH=str(home / 'gemini-system-defaults.json'),
+               GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(home / 'gemini-system-settings.json'))
     server_env = dict(env, PATH=str(root / 'fakebin') + os.pathsep + env.get('PATH', ''))
     subprocess.run([sys.executable, '-m', 'skillsmgr', 'create', 'global-skill', '-d',
                     'Use this global fixture when checking the classic Library.', '--body', 'Global body.'],
                    cwd=REPO, env=server_env, check=True, stdout=subprocess.DEVNULL)
     node = _node()
-    requested = env.get('CHROME_BIN')
-    chrome = trusted_executable('chrome', which=lambda _: requested) if requested else _chrome()
-    if not chrome:
-        raise RuntimeError('CHROME_BIN must identify a trusted Chrome executable')
-    env['CHROME_BIN'] = chrome
+    if args.browser == 'chromium':
+        requested = env.get('CHROME_BIN')
+        chrome = trusted_executable('chrome', which=lambda _: requested) if requested else _chrome()
+        if not chrome:
+            raise RuntimeError('CHROME_BIN must identify a trusted Chrome executable')
+        env['CHROME_BIN'] = chrome
     server_code = (
         'import os; from pathlib import Path; '
         'from skillsmgr.store import Store; from skillsmgr.webapp import WebAppServer; '

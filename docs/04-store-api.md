@@ -68,13 +68,24 @@ write paths, so the condition has one name wherever a user meets it.
 - `search(self, term) -> list[dict]` — searches name, description, body, and category through the bounded wildcard scorer described in @docs/02-modules.md; invalid query complexity raises `ValueError`. Scope adapters use `list()` plus **one** `SELECT name, body` over the `_index_rows` read seam when they need body-aware ranking, so ranking costs no per-row document read; see the `search_all()` entry in @docs/02-modules.md. CLI global and merged searches pass their requested Store through that adapter, so `--data-dir` remains authoritative.
 - `add(self, src, name=None) -> dict` — install an existing skill directory (or SKILL.md file) from `src`; `name` overrides the destination name. Manager sidecars (`.skillsmgr-provenance.json`, `.skillsmgr-source-lock.json`) are dropped at any depth: an added folder is external intake, and that evidence describes a different install (R2). The caller's folder is not modified.
 - `remove(self, name, purge=False) -> dict` — trash by default; `purge=True` deletes permanently.
-- `restore(self, name, snapshot=None) -> dict` — from trash, or from a validated
-  snapshot under `<data>/snapshots/global/<name>/`; the current content is saved
-  first when rolling back.
+- `restore(self, name, snapshot=None, *, trash_path=None) -> dict` — restore the
+  matching `trash_list()` entry, or the newest copy when no path is supplied.
+  `trash_path` may be the listed path or the physical path `remove()` returned
+  through a linked trash folder; it is only compared against listed children.
+  The index and history commit together. If either write fails, the Store
+  attempts to move the tree back to its original trash path. Transfers across
+  volumes (`EXDEV`) stage the complete copy, verify its names and bytes, publish
+  it, then retire the original; if the original cannot be retired, the copy is
+  withdrawn so only the original remains. If rollback fails,
+  the Store reports the problem and keeps the restored tree for review.
+  A snapshot ID rolls back the document using `<data>/snapshots/global/<name>/`
+  after saving the current content.
 - `disable(self, name) -> dict` / `enable(self, name) -> dict` — rename `SKILL.md` <-> `SKILL.md.disabled`; trashed skills may be disallowed until restored.
 - `trash_list(self) -> list[dict]` / `purge_trash(self) -> dict` — only exact
-  canonical skill names with valid timestamp suffixes are recognized in trash;
-  malformed, symlinked, and prefix-collision directories are ignored. `purged`
+  canonical skill names with valid timestamp suffixes are recognized in trash.
+  New removal paths use a numeric serial after the UTC stamp so old Restore
+  actions fail after the selected entry moves. Legacy paths remain readable.
+  Malformed, symlinked, and prefix-collision directories are ignored. `purged`
   lists each purged skill once even when several timestamped copies existed.
 - `stats(self) -> dict` — counts and summary.
 - `export(self, dest=None, full=False) -> Path` / `backup(self, dest=None, full=False) -> Path` — slim skills-only archive by default; `full=True` adds validated trash and templates.

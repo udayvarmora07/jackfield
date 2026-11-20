@@ -4751,9 +4751,9 @@
       "lineno": 1674
     },
     "skillsmgr/store.py::Store.restore": {
-      "complexity": 10,
-      "end_lineno": 1825,
-      "lineno": 1771
+      "complexity": 8,
+      "end_lineno": 1828,
+      "lineno": 1793
     },
     "skillsmgr/store.py::Store.resync": {
       "complexity": 1,
@@ -4939,6 +4939,11 @@
       "complexity": 3,
       "end_lineno": 212,
       "lineno": 200
+    },
+    "skillsmgr/store.py::_trash_source": {
+      "complexity": 5,
+      "end_lineno": 447,
+      "lineno": 435
     },
     "skillsmgr/store.py::_unique_dest": {
       "complexity": 1,

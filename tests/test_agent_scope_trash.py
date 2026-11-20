@@ -170,6 +170,49 @@ class AgentScopeTrashTests(unittest.TestCase):
         rows = scopes.scope_trash_list("agents")
         self.assertEqual([row["name"] for row in rows], ["demo"])
 
+    def test_same_second_remove_does_not_reuse_a_restored_agent_trash_path(self):
+        before = "---\nname: demo\ndescription: Demo skill\n---\nfirst version\n"
+        after = before.replace("first version", "second version")
+        endpoint = "/api/trash/demo?scope=agents"
+        self.write_skill(before)
+        with (
+            mock.patch("skillsmgr.clock.stamp", return_value=OLD_STAMP),
+            mock.patch("skillsmgr.clock.monotonic_ns", return_value=12345),
+            mock.patch("skillsmgr.clock.randbelow", side_effect=[1, 2]),
+        ):
+            old_path = self.remove_skill()["trash_path"]
+            status, payload = self.request("POST", endpoint, {"trash_path": old_path})
+            self.assertEqual(status, 200, payload)
+            document = self.skills_dir / "demo" / "SKILL.md"
+            document.write_text(after, encoding="utf-8")
+            new_path = self.remove_skill()["trash_path"]
+        self.assertNotEqual(new_path, old_path)
+        status, payload = self.request("POST", endpoint, {"trash_path": old_path})
+        self.assertEqual(status, 400, payload)
+        self.assertFalse(document.exists())
+        self.assertTrue(Path(new_path).is_dir())
+        status, payload = self.request("POST", endpoint, {"trash_path": new_path})
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(document.read_text(encoding="utf-8"), after)
+
+    def test_name_only_restore_keeps_same_second_removals_in_order(self):
+        before = "---\nname: demo\ndescription: Demo skill\n---\nfirst version\n"
+        after = before.replace("first version", "second version")
+        with (
+            mock.patch("skillsmgr.clock.stamp", return_value=OLD_STAMP),
+            mock.patch("skillsmgr.clock.monotonic_ns", side_effect=[12345, 12346]),
+            mock.patch("skillsmgr.clock.randbelow", side_effect=[999_999, 0]),
+        ):
+            self.write_skill(before)
+            older = self.remove_skill()["trash_path"]
+            self.write_skill(after)
+            newer = self.remove_skill()["trash_path"]
+        rows = scopes.scope_trash_list("agents")
+        self.assertEqual([row["trash_path"] for row in rows], [newer, older])
+        scopes.restore_trashed("agents", "demo")
+        self.assertEqual((self.skills_dir / "demo" / "SKILL.md").read_text(encoding="utf-8"), after)
+        self.assertTrue(Path(older).is_dir())
+
     def test_symlinked_trash_entry_is_never_listed_or_restored(self):
         target = Path(self.tmp.name) / "outside"
         target.mkdir(exist_ok=True)

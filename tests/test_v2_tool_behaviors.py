@@ -41,6 +41,45 @@ def run_node(body):
 
 @unittest.skipUnless(shutil.which("node"), "Node is required for frontend behavior checks")
 class ToolBehaviorTests(unittest.TestCase):
+    def test_recovery_and_catalog_reads_discard_superseded_results(self):
+        out = run_node(r"""
+          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
+          const h=mount(ctx.appDef,{m:{agents:[{id:'codex',name:'Codex',writable:true}]}});
+          const reads=[];
+          handler=url=>new Promise((resolve,reject)=>reads.push({url,resolve,reject}));
+          const older=[h.loadTrash(),h.loadAgentTrash(),h.loadCatalog()];
+          const newer=[h.loadTrash(),h.loadAgentTrash(),h.loadCatalog()];
+          reads[3].resolve([{name:'current-global'}]);
+          reads[4].resolve([{name:'current-agent'}]);
+          reads[5].resolve({tags:{skill:['current']},profiles:{}});
+          await Promise.all(newer);
+          reads[0].resolve([{name:'old-global'}]);
+          reads[1].reject(Error('old agent failure'));
+          reads[2].reject(Error('old catalog failure'));
+          await Promise.all(older);
+          return {trash:h.trash,agentTrash:h.agentTrash,tags:h.catalog.tags,
+            errors:[h.trashError,h.agentTrashErrors,h.catalogError],loading:[h.trashLoading,h.agentTrashLoading]};
+        """)
+        self.assertEqual(out['trash'], [{'name': 'current-global'}])
+        self.assertEqual(out['agentTrash'], [{'name': 'current-agent', 'scopeLabel': 'Codex'}])
+        self.assertEqual(out['tags'], {'skill': ['current']})
+        self.assertEqual(out['errors'], ['', [], ''])
+        self.assertEqual(out['loading'], [False, False])
+
+    def test_inventory_history_error_belongs_to_latest_refresh(self):
+        out = run_node(r"""
+          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
+          const h=mount(ctx.appDef);
+          const history=[];
+          handler=async url=>url==='/api/history?limit=8'
+            ? new Promise((resolve,reject)=>history.push({resolve,reject})) : [];
+          const older=h.refresh(),newer=h.refresh();
+          history[1].resolve([{name:'current'}]);await newer;
+          history[0].reject(Error('old history failure'));await older;
+          return {rows:h.history,error:h.historyError};
+        """)
+        self.assertEqual(out, {'rows': [{'name': 'current'}], 'error': ''})
+
     def test_history_collapses_runs_of_one_action_in_one_minute(self):
         out = run_node(r"""
           const h=mount(ctx.window.SkillsV2ToolCenter,{page:'recovery-extra'});

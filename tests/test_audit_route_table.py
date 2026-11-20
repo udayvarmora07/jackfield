@@ -371,6 +371,36 @@ class RouteTableTestCase(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(raw)["name"], "restorable")
 
+    def test_trash_restore_selects_the_requested_global_copy(self):
+        name = "restorable"
+        self.store.create(name, "Older fixture.", body="Older version.")
+        older = self.store.remove(name)["trash_path"]
+        self.store.create(name, "Newer fixture.", body="Newer version.")
+        newer = self.store.remove(name)["trash_path"]
+        os.utime(older, (1_700_000_000, 1_700_000_000))
+        os.utime(newer, (1_700_000_060, 1_700_000_060))
+
+        endpoint = f"/api/trash/{name}?scope=global"
+        status, _, _ = self.request("POST", endpoint, {"trash_path": older})
+        self.assertEqual(status, 200)
+        self.assertIn("Older version.", (self.store.skills_dir / name / "SKILL.md").read_text())
+        self.assertFalse(Path(older).exists())
+        self.assertTrue(Path(newer).exists())
+        self.store.remove(name)
+        self.assertEqual(self.request("POST", endpoint, {"trash_path": str(Path(older).with_name("missing"))})[0], 400)
+        self.assertTrue(Path(newer).exists())
+        self.assertFalse((self.store.skills_dir / name).exists())
+
+    def test_trash_restore_accepts_a_skill_named_purge(self):
+        self.store.create("purge", "Use this fixture to verify recovery.")
+        selected = self.store.remove("purge")["trash_path"]
+        other = self.store.remove("demo")["trash_path"]
+        status, raw, _ = self.request("POST", "/api/trash/purge?scope=global", {"trash_path": selected})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["name"], "purge")
+        self.assertTrue(Path(other).exists())
+        self.assertTrue((self.store.skills_dir / "purge" / "SKILL.md").is_file())
+
     # -- boundaries that are not the route table's business ------------------
 
     def test_a_read_with_a_foreign_host_is_403_not_a_silent_success(self):
