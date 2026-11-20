@@ -179,7 +179,7 @@ class DocumentationConsistencyTests(unittest.TestCase):
         )
 
     def test_command_inventory_is_derived_from_parser_source(self):
-        self.assertEqual(check_docs._command_inventory(), (29, 11, 3, 43))
+        self.assertEqual(check_docs._command_inventory(), (33, 24, 3, 60))
 
     # -- checks added by the 2026-09-11 documentation truth pass -------------
     # Each of these caught real drift that the older gate could not see.

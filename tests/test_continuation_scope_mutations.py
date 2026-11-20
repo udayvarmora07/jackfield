@@ -360,8 +360,11 @@ class ScopeMutationTests(unittest.TestCase):
             store.init_db()
             context.set_active_store(store)
             self.addCleanup(context.set_active_store, None)
-            scopes.create_skill("agents", "demo", "new source")
+            source = Path(scopes.create_skill("agents", "demo", "new source")["path"])
             target = Path(scopes.create_skill("codex", "demo", "old target")["path"])
+            # Same companion in both copies, so cleanup deletes rather than
+            # moving the replaced copy to trash (see test_sync_preserves_companions).
+            (source / "extra").write_text("old auxiliary")
             (target / "extra").write_text("old auxiliary")
             real_rmtree = shutil.rmtree
 

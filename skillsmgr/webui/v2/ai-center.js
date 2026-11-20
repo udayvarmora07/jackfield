@@ -230,10 +230,15 @@
           const catalog = await api("/api/catalog");
           if (request !== this.profileRequest || key !== this.profileInputKey() || this.page !== "ai-profile" || !unchanged() || !this.profileProposalValid) return;
           const name = this.profileName.trim(); const exists = Object.prototype.hasOwnProperty.call((catalog && catalog.profiles) || {}, name);
-          const action = exists ? "Replace the saved profile named \"" + name + "\" with this suggestion?" : "Save the profile \"" + name + "\"?";
+          const previous = exists ? catalog.profiles[name] : null;
+          const clearing = previous?.native?.off?.length ? " This also clears its saved native off list." : "";
+          const action = exists ? "Replace the saved profile named \"" + name + "\" with this suggestion?" + clearing : "Save the profile \"" + name + "\"?";
           if (!confirm(action)) return;
           if (request !== this.profileRequest || key !== this.profileInputKey() || this.page !== "ai-profile" || !unchanged() || !this.profileProposalValid) return;
-          const saved = await post("/api/catalog/profiles", { name, description: this.profileDescription.trim(), skills: [...this.profileSkills], targets: [this.profileScope] });
+          const saved = await post("/api/catalog/profiles", {
+            name, description: this.profileDescription.trim(), skills: [...this.profileSkills],
+            targets: [this.profileScope], native: {off: []}, expected_profile: previous,
+          });
           if (request === this.profileRequest && key === this.profileInputKey() && this.page === "ai-profile") {
             this.note = (exists ? "Updated" : "Saved") + " profile \"" + name + "\". The suggestion did not apply any settings or change skill files.";
             this.$emit("changed", saved);

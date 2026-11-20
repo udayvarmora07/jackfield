@@ -23,6 +23,28 @@ from skillsmgr.webapp import WebAppServer
 
 
 class CatalogContractTests(unittest.TestCase):
+    def test_optional_native_off_list_survives_older_profile_clients(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            native = {"off": ["review", "deploy", "review"]}
+            self.assertEqual(load_catalog(tmp)["version"], 1)
+            catalog = save_profile(tmp, "ship", {"skills": ["deploy"], "native": native, "expected_profile": None})
+            self.assertEqual(catalog["version"], 2)
+            profile = catalog["profiles"]["ship"]
+            self.assertEqual(profile["native"], {"off": ["deploy", "review"]})
+            with self.assertRaisesRegex(ValueError, "reload"):
+                save_profile(tmp, "ship", {"native": {"off": []}, "expected_profile": None})
+            old_client = save_profile(tmp, "ship", {"description": "Edited", "skills": ["deploy"]})
+            self.assertEqual(old_client["profiles"]["ship"]["native"], profile["native"])
+            with self.assertRaisesRegex(ValueError, "reload"):
+                save_profile(tmp, "ship", {"native": {"off": []}, "expected_profile": profile})
+            self.assertEqual(load_catalog(tmp)["profiles"]["ship"]["native"], profile["native"])
+            for invalid in ({"off": ["../deploy"]}, {"on": ["deploy"]}, {"off": "deploy"}):
+                with self.assertRaises(ValueError):
+                    save_profile(tmp, "ship", {"native": invalid})
+            cleared = save_profile(tmp, "ship", {"native": {"off": []}})
+            self.assertNotIn("native", cleared["profiles"]["ship"])
+            self.assertEqual(cleared["version"], 1)
+
     def test_sidecar_tags_profiles_and_preview_are_filesystem_owned(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = Store(tmp)

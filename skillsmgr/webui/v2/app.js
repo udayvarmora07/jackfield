@@ -263,11 +263,27 @@ const app = createApp({
     },
     cur() { return this.queue[0] || null; },
     curSkill() { return this.cur && this.cur.skill && this.m ? this.m.byName.get(this.cur.skill) : null; },
+    curSyncCopies() { return this.cur?.key === "warn" ? (this.curSkill?.copies || []) : []; },
+    curSyncSource() {
+      const sources = this.curSyncCopies.filter((c) => c.scope === this.srcChoice);
+      return sources.length === 1 && sources[0].hash ? sources[0] : null;
+    },
+    curSyncTargets() {
+      if (!this.curSyncSource) return [];
+      const counts = new Map();
+      for (const copy of this.curSyncCopies) counts.set(copy.scope, (counts.get(copy.scope) || 0) + 1);
+      return this.curSyncCopies.filter((c) => counts.get(c.scope) === 1 && !c.readOnly && this.agentOf(c.scope).writable &&
+        c.state !== "broken" && c.hash && c.hash !== this.curSyncSource.hash);
+    },
+    curSyncLabel() {
+      if (!this.curSyncSource) return "Choose a source copy";
+      if (!this.curSyncTargets.length) return "No writable targets";
+      const target = this.curSyncTargets.length === 1 ? this.agentOf(this.curSyncTargets[0].scope).name : `${this.curSyncTargets.length} copies`;
+      return `Sync ${target} from ${this.agentOf(this.curSyncSource.scope).name}`;
+    },
     curChanges() {
-      const s = this.curSkill;
-      if (!s || !this.cur || this.cur.key !== "warn") return null;
-      const src = s.copies.find((c) => c.scope === (this.srcChoice || (s.ref.holders[0] || {}).scope));
-      const tgt = s.copies.find((c) => c.scope === this.cur.agents[0] && c !== src) || s.differing[0];
+      const src = this.curSyncSource;
+      const tgt = this.curSyncTargets[0];
       if (!src || !tgt || !this.bodyReady(src) || !this.bodyReady(tgt)) return null;
       return changes(stripFrontmatter(this.bodyOf(tgt)), stripFrontmatter(this.bodyOf(src))).slice(0, 60);
     },
@@ -520,7 +536,7 @@ const app = createApp({
     },
     toast(text, opts = {}) {
       if (opts.err) text = this.friendly(text);
-      const t = { id: ++this.toastSeq, text, err: !!opts.err, undo: opts.undo || null, onUndo: opts.onUndo || null };
+      const t = { id: ++this.toastSeq, text, err: !!opts.err, undo: opts.undo || null, onUndo: opts.onUndo || null, undoText: opts.undoText || "Undone" };
       this.toasts.push(t); this.live = text + (t.undo ? " Undo is available." : "");
       this.armToast(t, t.undo ? 20000 : (t.err ? 7000 : 4000));
     },
@@ -538,7 +554,7 @@ const app = createApp({
     async runUndo(t) {
       this.toasts = this.toasts.filter((x) => x.id !== t.id);
       this.busy = true;
-      try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Undone"); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
+      try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast(t.undoText); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
     },
     openDialog(d) { this.opener = document.activeElement; this.dialog = { cancel: "Cancel", ...d }; this.$nextTick(() => { const d = this.$refs.dlg; const b = d && (d.querySelector("input:not(.sr-only), select") || d.querySelector("button:not(.sr-only)")); if (b) b.focus(); }); },
     closeDialog() { if(this.busy)return;this.dialog = null; this.$nextTick(() => { if (this.opener && this.opener.isConnected) this.opener.focus(); }); },
@@ -583,7 +599,8 @@ const app = createApp({
         if (fresh.length === 1 && prior[t] && !prior[t].decode_error) undo.push([t, fresh[0], !!prior[t].disabled]);
         else manualRecovery = true;
       }
-      return { synced, skipped: res.skipped || [], undo, manualRecovery };
+      return { synced, skipped: res.skipped || [], undo, manualRecovery,
+        replaced_to_trash: res.replaced_to_trash, retained_backup: res.retained_backup };
     },
     async restoreSyncText(name, scope, snapshot, wasDisabled) {
       const target = `/api/skills/${encodeURIComponent(name)}`;
@@ -629,7 +646,11 @@ const app = createApp({
         const r = await this.doSync(name, from, tos);
         const undo = this.undoFor(name, [r]);
         await this.refresh();
-        this.toast(r.synced.length ? `${label} ${join(r.synced.map((id) => this.agentOf(id).name))}.${this.skipText(r.skipped)}${r.manualRecovery ? ' Undo is unavailable for this sync; recovery needs your backup or retained snapshots.' : ''}` : "Nothing was changed." + this.skipText(r.skipped), { err: !r.synced.length, undo: r.synced.length ? undo : null, onUndo });
+        const message = r.synced.length ? `${label} ${join(r.synced.map((id) => this.agentOf(id).name))}.` : "Nothing was changed.";
+        this.toast(message + this.skipText(r.skipped) + Domain.syncRecoveryNotice([r]) +
+          (r.manualRecovery ? " Text Undo is unavailable. Check Recovery or your backup." : ""),
+        { err: !r.synced.length, undo: r.synced.length ? undo : null, onUndo,
+          undoText: "Undone. Text and on/off state restored. Supporting files are unchanged." });
         return r.synced.length ? r : null;
       } catch (e) { this.toast(e.message, { err: true }); return null; } finally { this.busy = false; }
     },
@@ -1001,22 +1022,22 @@ const app = createApp({
         const summary = ok ? `${plural(ok, "skill")} now ${ok === 1 ? "matches" : "match"} in ${inf.agent.name}.` : "No skills were confirmed as synced.";
         const skipped = results.flatMap((r) => r.skipped);
         const recovery = results.some((r) => r.manualRecovery) ? " Use your backup or retained snapshots for recovery." : "";
-        this.toast(summary + this.skipText(skipped) + failure + recovery, { err: !!failure || !!skipped.length, undo });
+        this.toast(summary + this.skipText(skipped) + failure + recovery + Domain.syncRecoveryNotice(results),
+          { err: !!failure || !!skipped.length, undo,
+            undoText: "Undone. Text and on/off state restored. Supporting files are unchanged." });
       } finally { this.busy = false; }
     },
 
     /* ----- inbox ----- */
     async fixCurrent() {
       const p = this.cur; if (!p || this.busy) return null;
-      if (p.key === "warn" && !this.srcChoice) return null; /* nothing chosen yet: same as the disabled button */
+      if (p.key === "warn" && !this.curSyncTargets.length) return null;
       /* Undo of a fix puts the item back in the queue, since the file is back. */
       const back = () => { if (!this.m.problems.some((item) => item.id === p.id)) return; this.dismissed = this.dismissed.filter((id) => id !== p.id); this.done = Math.max(0, this.done - 1); };
       let ok = false;
       if (p.key === "warn") {
-        const s = this.curSkill, src = this.srcChoice;
-        const srcHash = (s.copies.find((c) => c.scope === src) || {}).hash;
-        const tos = s.copies.filter((c) => !c.readOnly && c.state !== "broken" && c.hash && c.hash !== srcHash).map((c) => c.scope);
-        ok = !!(await this.runSync(p.skill, src, tos, `${p.skill} now matches in`, back));
+        const tos = this.curSyncTargets.map((c) => c.scope);
+        ok = !!(await this.runSync(p.skill, this.curSyncSource.scope, tos, `${p.skill} now matches in`, back));
       } else if (p.key === "bad") {
         if (!p.fixable) return this.fixBad(p);
         ok = !!(await this.fixBad(p, back));

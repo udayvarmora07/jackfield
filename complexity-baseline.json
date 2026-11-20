@@ -4016,9 +4016,9 @@
       "lineno": 1432
     },
     "skillsmgr/scopes.py::sync_skill": {
-      "complexity": 34,
-      "end_lineno": 1337,
-      "lineno": 1212
+      "complexity": 31,
+      "end_lineno": 1374,
+      "lineno": 1253
     },
     "skillsmgr/scopes.py::toggle_skill": {
       "complexity": 5,
@@ -4911,9 +4911,9 @@
       "lineno": 459
     },
     "skillsmgr/store.py::_sweep_abandoned_artifacts": {
-      "complexity": 13,
-      "end_lineno": 524,
-      "lineno": 484
+      "complexity": 12,
+      "end_lineno": 588,
+      "lineno": 548
     },
     "skillsmgr/store.py::_sync_parent_directory": {
       "complexity": 3,

@@ -539,6 +539,18 @@ def _stale_snapshots(data_dir: Path) -> list[str]:
 TRANSACTION_ARTIFACT_GRACE_SECONDS = 300
 
 
+def _under_trash_copy(parts: tuple[str, ...]) -> bool:
+    """Recovery payloads can contain files whose names resemble staging files."""
+    return len(parts) > 2 and parts[0] == "trash" and _TRASH_TS_RE.search(parts[1]) is not None
+
+
+def _disposable_artifact(path: Path, data_dir: Path) -> bool:
+    parts = path.relative_to(data_dir).parts
+    if _under_trash_copy(parts) or any(".skillsmgr-backup" in part for part in parts):
+        return False  # A parked backup may hold the only copy of companion files.
+    return _is_transaction_artifact(path.name) or _is_temporary_file(path.name)
+
+
 def _sweep_abandoned_artifacts(
     data_dir: Path, *, now: float | None = None
 ) -> tuple[list[str], list[str]]:
@@ -555,7 +567,7 @@ def _sweep_abandoned_artifacts(
     failed: list[str] = []
     removed: set[Path] = set()
     for path in sorted(data_dir.rglob("*"), key=lambda item: len(item.parts)):
-        if not (_is_transaction_artifact(path.name) or _is_temporary_file(path.name)):
+        if not _disposable_artifact(path, data_dir):
             continue
         if any(parent in removed for parent in path.parents):
             continue
@@ -584,7 +596,7 @@ def _sweep_abandoned_artifacts(
 
 def _doctor_artifacts(data_dir: Path, trash_dir: Path, templates_dir: Path) -> dict:
     """Return leftover transaction/temp/snapshot artifacts and directory counts."""
-    paths = list(data_dir.rglob("*"))
+    paths = _artifact_inventory(data_dir)
     trash_names = (
         {name for path in trash_dir.iterdir() if (name := _trash_entry_name(path))}
         if trash_dir.is_dir()
@@ -608,6 +620,10 @@ def _doctor_artifacts(data_dir: Path, trash_dir: Path, templates_dir: Path) -> d
             len(list(templates_dir.glob("*.md"))) if templates_dir.is_dir() else 0
         ),
     }
+
+
+def _artifact_inventory(data_dir: Path) -> list[Path]:
+    return [path for path in data_dir.rglob("*") if not _under_trash_copy(path.relative_to(data_dir).parts)]
 
 
 def _doctor_record_differs(scanned: dict, indexed: dict) -> bool:

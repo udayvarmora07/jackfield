@@ -8,6 +8,8 @@ paths at runtime; missing dirs show count 0.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
 import shutil
@@ -20,6 +22,7 @@ from . import paths
 from . import path_safety
 from .diagnostics import diagnose as _diagnose
 from .frontmatter import FrontmatterError, dump_frontmatter, parse_frontmatter
+from .file_reads import read_regular_file
 from .documents import (
     ACTIVE_DOCUMENT,
     DOCUMENT_NAMES,
@@ -969,7 +972,7 @@ def remove_skill(scope_id: str, name: str, *, purge: bool = False) -> dict:
     trash = _scope_trash_dir(scope)
     trash.mkdir(parents=True, exist_ok=True)
     target = path_safety.new_trash_path(trash, f"{scope_id}__{name}")
-    shutil.move(str(skill_dir), str(target))
+    _move_scoped_recovery(scope, scope_id, name, skill_dir, target, skill_dir)
     return {"name": name, "action": "trashed", "scope": scope_id, "trash_path": str(target)}
 
 
@@ -983,6 +986,122 @@ MAX_SCOPE_TRASH_ROWS = 500
 _TRASH_TAIL_RE = re.compile(
     r"^(?P<name>.+)-(?P<stamp>\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}Z)(?:-(?P<copy>\d+))?$"
 )
+
+_TRASH_ORIGIN_SUFFIX = ".origin.json"
+_MAX_TRASH_ORIGIN_BYTES = 4096
+
+
+def _origin_sidecar(entry: Path) -> Path:
+    return entry.with_name(entry.name + _TRASH_ORIGIN_SUFFIX)
+
+
+def _origin_relative(scope: Scope, name: str, destination: Path) -> str:
+    root = scope.base.resolve()
+    try:
+        relative = destination.relative_to(root)
+    except ValueError:
+        try:
+            relative = destination.relative_to(scope.base)
+        except ValueError as exc:
+            raise StoreError("recovery destination is outside its scope") from exc
+    parts = relative.parts
+    if not parts or parts[-1] != name or any(part in ("", ".", "..") or "\\" in part for part in parts):
+        raise StoreError("invalid original recovery destination")
+    path_safety.contained_entry_under(root, *parts)
+    return "/".join(parts)
+
+
+def _move_scoped_recovery(scope: Scope, scope_id: str, name: str, source: Path,
+                          target: Path, destination: Path) -> None:
+    """Record the original location before parking an agent-scope tree."""
+    relative = _origin_relative(scope, name, destination)
+    record = {"version": 1, "scope": scope_id, "name": name,
+              "trash_name": target.name, "relative": relative}
+    encoded = json.dumps(record, ensure_ascii=True, sort_keys=True).encode("ascii")
+    if len(encoded) > _MAX_TRASH_ORIGIN_BYTES:
+        raise StoreError("original recovery destination is too long")
+    sidecar = _origin_sidecar(target)
+    fd = os.open(sidecar, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        move_trash_tree(source, target)
+    except BaseException:
+        sidecar.unlink(missing_ok=True)
+        raise
+
+
+def _origin_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate recovery metadata key")
+        result[key] = value
+    return result
+
+
+def _origin_parts(raw: bytes, scope_id: str, name: str, trash_name: str) -> list[str]:
+    record = json.loads(raw.decode("utf-8"), object_pairs_hook=_origin_object)
+    if not isinstance(record, dict) or type(record.get("version")) is not int or record["version"] != 1:
+        raise ValueError("invalid version")
+    if (record.get("scope"), record.get("name"), record.get("trash_name")) != (scope_id, name, trash_name):
+        raise ValueError("recovery origin identity mismatch")
+    relative = record.get("relative")
+    if not isinstance(relative, str) or not relative or "\\" in relative:
+        raise ValueError("invalid recovery path")
+    parts = relative.split("/")
+    if any(part in ("", ".", "..") for part in parts) or parts[-1] != name:
+        raise ValueError("invalid recovery path")
+    return parts
+
+
+def _safe_origin_parents(root: Path, parts: list[str]) -> None:
+    current = root
+    for part in parts[:-1]:
+        current = current / part
+        info = current.lstat()
+        if not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode):
+            raise ValueError("unsafe recovery parent")
+
+
+def _original_recovery_path(scope: Scope, scope_id: str, name: str, source: Path) -> Path | None:
+    sidecar = _origin_sidecar(source)
+    try:
+        raw = read_regular_file(sidecar, _MAX_TRASH_ORIGIN_BYTES, follow_symlinks=False)
+    except FileNotFoundError:
+        return None  # Legacy trash entries did not carry an origin.
+    except (OSError, ValueError) as exc:
+        raise StoreError("cannot safely read recovery origin metadata") from exc
+    try:
+        parts = _origin_parts(raw, scope_id, name, source.name)
+        root = scope.base.resolve()
+        destination = path_safety.contained_entry_under(root, *parts)
+        _safe_origin_parents(root, parts)
+        return destination
+    except (OSError, ValueError, UnicodeError, TypeError, RecursionError) as exc:
+        raise StoreError("invalid or unsafe recovery origin metadata") from exc
+
+
+def _recovery_destination(scope: Scope, scope_id: str, name: str, entry: dict) -> tuple[Path, Path | None]:
+    source = _validated_scope_trash_entry(scope, scope_id, name, entry)
+    original = _original_recovery_path(scope, scope_id, name, source)
+    return (original if original is not None else safe_scope_skill_path(scope, name)), original
+
+
+def _recheck_recovery_origin(scope: Scope, scope_id: str, name: str, source: Path, original: Path | None) -> None:
+    if _original_recovery_path(scope, scope_id, name, source) != original:
+        raise StoreError("recovery origin changed; refresh and retry")
+
+
+def _retire_origin_metadata(source: Path, original: Path | None) -> None:
+    if original is None:
+        return
+    try:
+        _origin_sidecar(source).unlink()
+    except OSError as exc:
+        _diagnose("recovery succeeded but its origin metadata was retained", exc)
 
 
 def _agent_scope(scope_id: str) -> Scope:
@@ -1187,7 +1306,7 @@ def restore_trashed(scope_id: str, name: str, trash_path: str | None = None) -> 
     scope = _agent_scope(scope_id)
     candidates = [row for row in scope_trash_list(scope_id) if row["name"] == name]
     entry = _select_trash_entry(candidates, trash_path, scope_id, name)
-    skill_dir = safe_scope_skill_path(scope, name)
+    skill_dir, original = _recovery_destination(scope, scope_id, name, entry)
     with _scope_mutation_lock(skill_dir):
         _check_mutation_documents(skill_dir)
         if skill_dir.exists() or skill_dir.is_symlink():
@@ -1199,6 +1318,7 @@ def restore_trashed(scope_id: str, name: str, trash_path: str | None = None) -> 
         # both the root and the exact child while holding it so a replaced root
         # or entry cannot redirect this rename to a symlinked external tree.
         source = _validated_scope_trash_entry(scope, scope_id, name, entry)
+        _recheck_recovery_origin(scope, scope_id, name, source, original)
         try:
             move_trash_tree(source, skill_dir)
         except FileNotFoundError:
@@ -1212,6 +1332,7 @@ def restore_trashed(scope_id: str, name: str, trash_path: str | None = None) -> 
             raise StoreError(
                 f"could not restore '{name}' in scope '{scope_id}': {exc}"
             ) from exc
+        _retire_origin_metadata(source, original)
     return {"name": name, "scope": scope_id, "action": "restored", "path": str(skill_dir)}
 
 
@@ -1297,6 +1418,7 @@ def sync_skill(
 
     synced: list[str] = []
     skipped: list[dict] = []
+    recovery: dict[str, dict[str, str]] = {}
     failures: list[tuple[str, str]] = []
     snapshot_data_dir = _global_store().data_dir
     target_roots: set[Path] = set()
@@ -1356,14 +1478,9 @@ def sync_skill(
                 failures.append((sid, reason))
                 skipped.append({"scope": sid, "reason": f"failed: {reason}"})
                 continue
-            if backup.exists() or backup.is_symlink():
-                try:
-                    if backup.is_symlink():
-                        backup.unlink()
-                    else:
-                        shutil.rmtree(backup)
-                except OSError:
-                    _diagnose("sync completed but backup cleanup failed", OSError("backup retained for manual review"))
+            disposition, path = _retire_sync_backup(scope, sid, name, backup, dest)
+            if disposition:
+                recovery.setdefault(disposition, {})[sid] = path
             synced.append(sid)
     if failures and not synced:
         failed_scope, reason = failures[0]
@@ -1373,7 +1490,90 @@ def sync_skill(
         # index, so reconcile the row (reactivating it when a stale 'trashed'
         # row predated the sync) through the public resync seam.
         _global_store().resync()
-    return {"name": name, "from_scope": from_scope, "synced": synced, "skipped": skipped}
+    return {"name": name, "from_scope": from_scope, "synced": synced, "skipped": skipped, **recovery}
+
+
+_MAX_SYNC_COMPANION_ENTRIES = 256
+_MAX_SYNC_COMPANION_BYTES = 16 * 1024 * 1024
+
+
+def _companion_entries(root: Path) -> dict[str, object]:
+    """Compare companion bytes, directory entries, modes and symbolic links."""
+    def refuse_read_error(error):
+        raise error
+
+    entries: dict[str, object] = {}
+    remaining = _MAX_SYNC_COMPANION_BYTES
+    for dirpath, dirnames, filenames in os.walk(root, onerror=refuse_read_error, followlinks=False):
+        current = Path(dirpath)
+        for name in dirnames + filenames:
+            path = current / name
+            relative = path.relative_to(root).as_posix()
+            if relative in DOCUMENT_NAMES:
+                continue
+            if len(entries) >= _MAX_SYNC_COMPANION_ENTRIES:
+                raise ValueError("too many companion entries to compare")
+            mode = path.lstat().st_mode
+            if stat.S_ISLNK(mode):
+                entries[relative] = ("link", os.readlink(path))
+            elif stat.S_ISDIR(mode):
+                entries[relative] = ("dir", stat.S_IMODE(mode))
+            elif stat.S_ISREG(mode):
+                contents = read_regular_file(path, remaining, follow_symlinks=False)
+                remaining -= len(contents)
+                entries[relative] = ("file", stat.S_IMODE(mode), hashlib.sha256(contents).digest())
+            else:
+                raise ValueError("cannot confirm a special-file companion survived")
+    return entries
+
+
+def _companions_survive(replaced_tree: Path, installed: Path) -> bool:
+    """True only when the installed tree still contains every old companion."""
+    try:
+        original = _companion_entries(replaced_tree)
+        if not original:
+            return True
+        live = _companion_entries(installed)
+        return all(live.get(key) == value for key, value in original.items())
+    except (OSError, ValueError):
+        return False
+
+
+def _sync_trash_path(scope: Scope, scope_id: str, name: str) -> Path:
+    if scope_id == "global":
+        trash = _global_store().trash_dir
+        trash.mkdir(parents=True, exist_ok=True)
+        return path_safety.new_trash_path(trash, name)
+    trash = _scope_trash_dir(scope)
+    trash.mkdir(parents=True, exist_ok=True)
+    return path_safety.new_trash_path(trash, f"{scope_id}__{name}")
+
+
+def _retire_sync_backup(scope: Scope, scope_id: str, name: str, backup: Path, installed: Path) -> tuple[str, str]:
+    """Delete the replaced tree, or move it to trash when the sync dropped or changed its files.
+
+    The text snapshot only covers the skill document. Scripts and references
+    that existed only in the replaced copy would otherwise be lost for good,
+    so that tree goes to the scope's trash where Recovery can restore it.
+    """
+    if not (backup.exists() or backup.is_symlink()):
+        return "", ""
+    try:
+        if backup.is_symlink():
+            backup.unlink()
+            return "", ""
+        if _companions_survive(backup, installed):
+            shutil.rmtree(backup)
+            return "", ""
+        target = _sync_trash_path(scope, scope_id, name)
+        if scope_id == "global":
+            move_trash_tree(backup, target)
+        else:
+            _move_scoped_recovery(scope, scope_id, name, backup, target, installed)
+        return "replaced_to_trash", str(target)
+    except (OSError, ValueError, StoreError) as exc:
+        _diagnose("sync completed but the replaced copy was kept for manual review", exc)
+        return "retained_backup", str(backup)
 
 
 def list_snapshots_for(scope_id: str, name: str) -> list[str]:

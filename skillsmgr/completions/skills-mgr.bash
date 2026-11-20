@@ -2,7 +2,7 @@
 _skills_mgr_table() {
     candidates='' value_options=''
     case "$grammar_path" in
-        '') candidates='ai init list ls create add view edit open remove rm disable enable validate search import export backup restore doctor stats trash templates history db sync scopes tokens install update webui gui -h --help --version --data-dir --color --no-color'; value_options='--data-dir' ;;
+        '') candidates='ai init list ls create add view edit open remove rm disable enable validate search import export backup restore doctor stats trash templates history db sync scopes tokens install update usage lock native-profile archive webui gui -h --help --version --data-dir --color --no-color'; value_options='--data-dir' ;;
         'ai') candidates='trigger-test -h --help'; value_options='' ;;
         'ai/trigger-test') candidates='-h --help --scope --saved --repeats --seed --run --baseline --fail-on-regression --json'; value_options='--scope --repeats --seed --baseline' ;;
         'init') candidates='-h --help --json'; value_options='' ;;
@@ -44,6 +44,23 @@ _skills_mgr_table() {
         'update/preview') candidates='-h --help --from --snapshot --scope --target-path --external-scan --external-scan-llm --json'; value_options='--from --snapshot --scope --target-path' ;;
         'update/apply') candidates='-h --help --scope --target-path --yes --json'; value_options='--scope --target-path' ;;
         'update/snapshots') candidates='-h --help --scope --target-path --json'; value_options='--scope --target-path' ;;
+        'usage') candidates='--help -h disable enable report'; value_options='' ;;
+        'usage/enable') candidates='--agent --help --json -h'; value_options='--agent' ;;
+        'usage/disable') candidates='--agent --help --json --purge -h'; value_options='--agent' ;;
+        'usage/report') candidates='--agent --days --help --json --refresh -h'; value_options='--agent --days' ;;
+        'lock') candidates='--help -h undo verify write'; value_options='' ;;
+        'lock/verify') candidates='--help --json --project -h'; value_options='--project' ;;
+        'lock/write') candidates='--dry-run --help --json --plan-id --project --source -h'; value_options='--plan-id --project --source' ;;
+        'lock/undo') candidates='--help --json --plan-id --project -h'; value_options='--plan-id --project' ;;
+        'native-profile') candidates='--help -h apply preview undo'; value_options='' ;;
+        'native-profile/preview') candidates='--agent --help --json --off --profile --project -h'; value_options='--agent --off --profile --project' ;;
+        'native-profile/apply') candidates='--agent --help --json --off --plan-id --profile --project -h'; value_options='--agent --off --plan-id --profile --project' ;;
+        'native-profile/undo') candidates='--backup-id --help --json -h'; value_options='--backup-id' ;;
+        'archive') candidates='--help -h candidates pin undo-pin unpin'; value_options='' ;;
+        'archive/candidates') candidates='--days --help --json --scope -h'; value_options='--days --scope' ;;
+        'archive/pin') candidates='--help --json --note --plan-id --scope -h'; value_options='--note --plan-id --scope' ;;
+        'archive/unpin') candidates='--help --json --plan-id --scope -h'; value_options='--plan-id --scope' ;;
+        'archive/undo-pin') candidates='--help --json --plan-id -h'; value_options='--plan-id' ;;
         'webui') candidates='-h --help --host --port --no-browser'; value_options='--host --port' ;;
         'gui') candidates='-h --help --host --port --no-browser'; value_options='--host --port' ;;
     esac

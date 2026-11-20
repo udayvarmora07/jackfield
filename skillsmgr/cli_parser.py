@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import argparse
 import difflib
+from pathlib import Path
 
 from . import __version__
+from . import cli_lifecycle as lifecycle
 from .tokens import WINDOWS
 
 _WINDOW_HELP = "context window: " + ", ".join(f"{name} ({size:,})" for name, size in WINDOWS.items())
@@ -59,6 +61,79 @@ def _add_ai_parser(sub, commands) -> None:
     p.add_argument("--fail-on-regression", action="store_true", help="with --run: require a comparable baseline and fail on observed loss")
     p.add_argument("--json", action="store_true", help="versioned JSON evidence (includes prompt text)")
     p.set_defaults(func=commands["cmd_ai"])
+
+
+def _lifecycle_action(parser, handler):
+    parser.add_argument("--json", action="store_true")
+    parser.set_defaults(func=handler)
+    return parser
+
+
+def _native_flags(parser):
+    parser.add_argument("--project", required=True, type=Path)
+    parser.add_argument("--agent", required=True)
+    request = parser.add_mutually_exclusive_group(required=True)
+    request.add_argument("--off", action="append", metavar="NAME")
+    request.add_argument("--profile", metavar="NAME", help="use the saved profile's native off list")
+
+
+def _register_lifecycle_commands(sub):
+    usage = sub.add_parser("usage", help="manage opt-in transcript counts")
+    usage_sub = usage.add_subparsers(dest="usage_action", required=True)
+    p = _lifecycle_action(usage_sub.add_parser("enable", help="grant consent for specified agents"), lifecycle._usage)
+    p.add_argument("--agent", action="append", required=True)
+    p = _lifecycle_action(usage_sub.add_parser("disable", help="revoke consent"), lifecycle._usage)
+    select = p.add_mutually_exclusive_group()
+    select.add_argument("--agent", action="append")
+    select.add_argument("--purge", action="store_true", help="revoke all consent and erase aggregate counts")
+    p = _lifecycle_action(usage_sub.add_parser("report", help="show counts and coverage"), lifecycle._usage)
+    p.add_argument("--agent", action="append")
+    p.add_argument("--days", type=int, default=90)
+    p.add_argument("--refresh", action="store_true", help="scan previously consented transcript roots")
+
+    lock = sub.add_parser("lock", help="verify or update a Vercel project skill lockfile")
+    lock_sub = lock.add_subparsers(dest="lock_action", required=True)
+    p = _lifecycle_action(lock_sub.add_parser("verify", help="check locked skills against installed files"), lifecycle._lock_verify)
+    p.add_argument("--project", required=True, type=Path)
+    p = _lifecycle_action(lock_sub.add_parser("write", help="preview or apply edits to named skill entries"), lifecycle._lock_write)
+    p.add_argument("--project", required=True, type=Path)
+    p.add_argument("names", nargs="+")
+    p.add_argument("--source", action="append", default=[], metavar="NAME=PATH")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", help="print the preview (default)")
+    mode.add_argument("--plan-id", help="apply the matching preview")
+    p = _lifecycle_action(lock_sub.add_parser("undo", help="restore the preimage if the lockfile still matches"), lifecycle._lock_undo)
+    p.add_argument("--project", required=True, type=Path)
+    p.add_argument("--plan-id", required=True)
+
+    native = sub.add_parser("native-profile", help="review project-specific native skill settings")
+    native_profile_sub = native.add_subparsers(dest="native_action", required=True)
+    p = _lifecycle_action(native_profile_sub.add_parser("preview", help="show a settings change or a manual alternative"), lifecycle._native)
+    _native_flags(p)
+    p = _lifecycle_action(native_profile_sub.add_parser("apply", help="apply a matching settings preview"), lifecycle._native)
+    _native_flags(p)
+    p.add_argument("--plan-id", required=True)
+    p = _lifecycle_action(native_profile_sub.add_parser("undo", help="restore the recorded preimage"), lifecycle._native)
+    p.add_argument("--backup-id", required=True)
+
+    archive = sub.add_parser("archive", help="review lifecycle evidence and manage pins")
+    archive_sub = archive.add_subparsers(dest="archive_action", required=True)
+    p = _lifecycle_action(archive_sub.add_parser("candidates", help="review observed activity and pins"), lifecycle._candidates)
+    add_scope_arg(p)
+    p.add_argument("--days", type=int, default=90)
+    p = _lifecycle_action(archive_sub.add_parser("pin", help="preview or apply a pin"), lifecycle._pin)
+    _pin_flags(p)
+    p.add_argument("--note", default="")
+    p = _lifecycle_action(archive_sub.add_parser("unpin", help="preview or remove a pin"), lifecycle._pin)
+    _pin_flags(p)
+    p = _lifecycle_action(archive_sub.add_parser("undo-pin", help="restore the previous pin state"), lifecycle._undo_pin)
+    p.add_argument("--plan-id", required=True)
+
+
+def _pin_flags(parser):
+    parser.add_argument("name")
+    add_scope_arg(parser)
+    parser.add_argument("--plan-id", help="apply the matching preview")
 
 
 class _SuggestingParser(argparse.ArgumentParser):
@@ -117,6 +192,7 @@ def build_parser(commands) -> argparse.ArgumentParser:
 
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
     _add_ai_parser(sub, commands)
+    _register_lifecycle_commands(sub)
 
     p = sub.add_parser("init", help="create the data directories and database")
     p.add_argument("--json", action="store_true")

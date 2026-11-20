@@ -17,7 +17,8 @@ from .validator import validate_skill_name
 
 CATALOG_DIRNAME = "catalog"
 CATALOG_FILENAME = "metadata.json"
-CATALOG_VERSION = 1
+CATALOG_VERSION = 2
+_LEGACY_CATALOG_VERSION = 1
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 _MAX_TAGS_PER_SKILL = 32
 _MAX_PROFILE_SKILLS = 1000
@@ -33,7 +34,7 @@ def catalog_path(data_dir: str | Path) -> Path:
 
 
 def empty_catalog() -> dict:
-    return {"version": CATALOG_VERSION, "tags": {}, "profiles": {}}
+    return {"version": _LEGACY_CATALOG_VERSION, "tags": {}, "profiles": {}}
 
 
 def _identifier(value: object, label: str) -> str:
@@ -62,12 +63,21 @@ def _string_list(value: object, label: str, limit: int) -> list[str]:
     return sorted(set(result), key=str.casefold)
 
 
+def _profile_native(value: object) -> dict:
+    if not isinstance(value, dict) or value.keys() - {"off"}:
+        raise CatalogError("native profile settings accept only an off list")
+    names = _string_list(value.get("off", []), "native off", _MAX_PROFILE_SKILLS)
+    for name in names:
+        validate_skill_name(name)
+    return {"off": names} if names else {}
+
+
 def normalize_catalog(raw: object) -> dict:
     if raw is None:
         return empty_catalog()
     if not isinstance(raw, dict):
         raise CatalogError("catalog must be a JSON object")
-    if raw.get("version", CATALOG_VERSION) != CATALOG_VERSION:
+    if raw.get("version", _LEGACY_CATALOG_VERSION) not in (_LEGACY_CATALOG_VERSION, CATALOG_VERSION):
         raise CatalogError(f"unsupported catalog version: {raw.get('version')!r}")
     tags_raw = raw.get("tags", {})
     profiles_raw = raw.get("profiles", {})
@@ -101,7 +111,12 @@ def normalize_catalog(raw: object) -> dict:
             "skills": skills,
             "targets": targets,
         }
-    return {"version": CATALOG_VERSION, "tags": tags, "profiles": profiles}
+        if "native" in profile:
+            native = _profile_native(profile["native"])
+            if native:
+                profiles[profile_name]["native"] = native
+    version = CATALOG_VERSION if any("native" in profile for profile in profiles.values()) else _LEGACY_CATALOG_VERSION
+    return {"version": version, "tags": tags, "profiles": profiles}
 
 
 def load_catalog(data_dir: str | Path) -> dict:
@@ -142,35 +157,43 @@ def update_tags(data_dir: str | Path, names: list[str], operation: str, values: 
             raise CatalogError(f"invalid tagged skill name: {name!r}") from exc
     names = sorted(clean_names, key=str.casefold)
     values = sorted({_tag(value) for value in values}, key=str.casefold)
-    catalog = load_catalog(data_dir)
-    for name in names:
-        current = set(catalog["tags"].get(name, []))
-        if operation == "add":
-            current.update(values)
-        elif operation == "remove":
-            current.difference_update(values)
-        else:
-            current = set(values)
-        if current:
-            catalog["tags"][name] = sorted(current, key=str.casefold)
-        else:
-            catalog["tags"].pop(name, None)
-    return save_catalog(data_dir, catalog)
+    with mutation_lock(catalog_path(data_dir)):
+        catalog = load_catalog(data_dir)
+        for name in names:
+            current = set(catalog["tags"].get(name, []))
+            if operation == "add":
+                current.update(values)
+            elif operation == "remove":
+                current.difference_update(values)
+            else:
+                current = set(values)
+            if current:
+                catalog["tags"][name] = sorted(current, key=str.casefold)
+            else:
+                catalog["tags"].pop(name, None)
+        return save_catalog(data_dir, catalog)
 
 
 def save_profile(data_dir: str | Path, name: str, profile: dict) -> dict:
     name = _identifier(name, "profile name")
-    catalog = load_catalog(data_dir)
     normalized = normalize_catalog({"version": CATALOG_VERSION, "profiles": {name: profile}})["profiles"][name]
-    catalog["profiles"][name] = normalized
-    return save_catalog(data_dir, catalog)
+    with mutation_lock(catalog_path(data_dir)):
+        catalog = load_catalog(data_dir)
+        previous = catalog["profiles"].get(name)
+        if profile.get("expected_profile", previous) != previous:
+            raise CatalogError("the saved profile changed; reload it before saving")
+        if "native" not in profile and previous and "native" in previous:
+            normalized["native"] = previous["native"]
+        catalog["profiles"][name] = normalized
+        return save_catalog(data_dir, catalog)
 
 
 def delete_profile(data_dir: str | Path, name: str) -> dict:
     name = _identifier(name, "profile name")
-    catalog = load_catalog(data_dir)
-    catalog["profiles"].pop(name, None)
-    return save_catalog(data_dir, catalog)
+    with mutation_lock(catalog_path(data_dir)):
+        catalog = load_catalog(data_dir)
+        catalog["profiles"].pop(name, None)
+        return save_catalog(data_dir, catalog)
 
 
 def plan_hash(operation: str, targets: list[dict], options: dict | None = None) -> str:

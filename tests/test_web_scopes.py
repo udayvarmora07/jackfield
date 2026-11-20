@@ -348,11 +348,14 @@ class TestAgentScopeCrud(ScopedHomeTestCase):
 
     def test_remove_trash_goes_to_sibling_trash(self):
         scopes.create_skill("agents", "ademo", "Agent demo skill")
-        scopes.remove_skill("agents", "ademo")
+        removed = scopes.remove_skill("agents", "ademo")
         self.assertEqual(scopes.scan_scope("agents"), [])
         trash = Path(self._tmp.name) / ".agents" / "trash"
         self.assertTrue(trash.is_dir())
-        self.assertEqual(len(list(trash.iterdir())), 1)
+        copies = [path for path in trash.iterdir() if path.is_dir()]
+        self.assertEqual([path.resolve() for path in copies], [Path(removed["trash_path"])])
+        self.assertEqual([row["trash_path"] for row in scopes.scope_trash_list("agents")],
+                         [removed["trash_path"]])
 
     def test_unknown_scope_raises(self):
         with self.assertRaises(StoreError):

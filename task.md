@@ -8,6 +8,24 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## Claude Code recovery hardening handoff (2026-11-20)
+
+- [x] Complete forced-Sync companion preservation and show affected v2 Inbox
+  targets before overwrite. Report exact Recovery and retained backup paths.
+- [x] Add CLI-only transcript consent, cached aggregate reports and manual
+  refresh for supported structured agent events.
+- [x] Read project locks v1/v2, verify installed trees offline, and support
+  reviewed v2 writes and guarded undo.
+- [x] Add native project CLI preview/apply/undo for supported JSON settings,
+  and read-only Codex launch and Command Code patch handoffs.
+- [x] Add lifecycle evidence and reversible pins.
+- [ ] Implement archive apply and restore once continuous coverage, consumer
+  mapping and edit/install evidence can establish staleness.
+- [x] Connect native settings previews to optional off lists in manager-saved
+  profiles while keeping the browser enable-only action separate.
+
+See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
+
 ## Sync map and Recovery continuation (2026-11-20)
 
 - [x] Add a Sync map review filter that combines with name search and covers
@@ -250,13 +268,6 @@ queue. The other eleven entries follow.
 
 - [ ] Human perceptual review and screen-reader validation of v2. Automated
   forced-colors, keyboard and actual 200%/400% browser-zoom results are recorded separately.
-
-- [ ] Deferred (docs/35): per-project profiles that translate one toggle into each agent's
-  native setting (⚠); Codex's switch is user-level only and must say so.
-
-- [ ] Deferred (docs/35): Hermes-Curator-style stale → archive with pin/restore/dry-run (⚠).
-
-- [ ] Deferred (docs/35): transcript-based usage counts (⚠) and project skill lockfile (⚠).
 
 - [ ] Owner's call, deferred (docs/35): docs/27 monetization questions MON-Q1…MON-Q5 (services-first year; widen scope to MCP + AGENTS.md; public top-skills report; zh-CN UI; which docs/14 tiers stay). Proposals only, nothing approved.
 

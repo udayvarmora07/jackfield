@@ -205,20 +205,19 @@ def validate_cli_combinations(args) -> None:
             raise StoreError("update mutations cannot use --scope all; choose one exact scope")
 
 
-# Commands that only read. They never create the data layout, the index file
-# or the schema, so `doctor` can report a lost index instead of rebuilding it
-# before it looks.
-_READ_ONLY_COMMANDS = frozenset(
-    {"list", "ls", "view", "search", "stats", "doctor", "history", "scopes", "tokens", "ai"}
+# Commands that do not need a SQLite index, including standalone sidecar writes.
+_NO_INDEX_COMMANDS = frozenset(
+    {"list", "ls", "view", "search", "stats", "doctor", "history", "scopes", "tokens",
+     "ai", "usage", "lock", "native-profile", "archive"}
 )
 
 
 def _is_read_only(args) -> bool:
-    return getattr(args, "command", None) in _READ_ONLY_COMMANDS
+    return getattr(args, "command", None) in _NO_INDEX_COMMANDS
 
 
 def _ensure_index_for(store: Store, args) -> None:
-    """Bootstrap the index, unless this command only reads.
+    """Bootstrap the index for commands that need it.
 
     A read command must not bootstrap: `skills-mgr doctor` recreating the index
     before it audits is how a lost index could never be reported -- the exact
@@ -1177,8 +1176,16 @@ def cmd_sync(args, store: Store) -> int:
     print(f"synced {result['name']} from {result['from_scope']} to: {synced}")
     if skipped:
         for entry in skipped:
-            print(f"  skipped {entry.get('scope')}: {entry.get('reason')}")
+            print(f"  skipped {_display(entry.get('scope'))}: {_display(entry.get('reason'))}")
+    _report_sync_recovery(result)
     return EXIT_OK
+
+
+def _report_sync_recovery(result: dict) -> None:
+    for key, message in (("replaced_to_trash", "Previous copy moved to Recovery"),
+                         ("retained_backup", "Previous copy kept as a backup")):
+        for scope, path in result.get(key, {}).items():
+            print(f"  {message} ({_display(scope)}) at {_display(path)}")
 
 
 def cmd_scopes(args, store: Store) -> int:

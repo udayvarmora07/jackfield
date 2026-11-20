@@ -41,7 +41,7 @@
     data() { return {
       busy:false,error:'',result:null,sequence:0,readTokens:{},loading:{},qualityEnvelope:null, tab:'registry', source:'',op:'browse',view:'all-time',stale:false, pageNo:0,review:null,trust:false,
       runnerPreview:'',runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
-      catalog:null,profile:{name:'',description:'',skills:'',targets:''},profilePreview:null,plan:null,planTargets:[],
+      catalog:null,profile:{name:'',description:'',skills:'',targets:'',nativeOff:''},profileBase:null,profilePreview:null,plan:null,planTargets:[],
       templates:null,templateName:'',templateBody:'',templatePreview:null,creating:false,skill:{name:'',description:'',category:'',version:'',license:'',compatibility:'',allowed_tools:'',body:'',scope:'global'},
       quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',projectRoots:[],projectCatalog:null,workspace:null,consumer:'',
       documentBaseline:null,baselineRaw:null,baselineError:'',baselineMessage:'',baselineSaving:false,discoveryName:'',
@@ -125,7 +125,7 @@
       precedenceTone(a){const s=String((a.precedence||{}).status||'');return !s||/unknown|undocumented/.test(s)?'off':'ok';},
       toggleProfileSkill(name,checked){const set=new Set(this.profileNames);if(checked)set.add(name);else set.delete(name);this.profile.skills=[...set].join(', ');},
       addProfileName(){const n=this.profileExtra.trim();if(!n)return;this.toggleProfileSkill(n,true);this.profileExtra='';},
-      newProfile(){this.sequence++;this.profile={name:'',description:'',skills:'',targets:''};this.profilePreview=null;this.plan=null;},
+      newProfile(){this.sequence++;this.profile={name:'',description:'',skills:'',targets:'',nativeOff:''};this.profileBase=null;this.profilePreview=null;this.plan=null;},
       pretty(v){return JSON.stringify(v,null,2)},
       listingVerdict(l){const s=String((l||{}).status||'');
         if(s==='over_budget_estimate')return{text:'Over the listing budget (estimate)',tone:'warn'};
@@ -193,10 +193,28 @@
       this.result=await api('/api/import',{method:'PUT',body:f});
       this.$emit('changed')})},
       loadCatalog(){this.read('/api/catalog','catalog')},
-      async saveProfile(){await this.task(async()=>{this.catalog=await api('/api/catalog/profiles',json({name:this.profile.name.trim(),description:this.profile.description.trim(),skills:this.profile.skills.split(',').map(x=>x.trim()).filter(Boolean),targets:this.profile.targets.split(',').map(x=>x.trim()).filter(Boolean)}));
-      this.result={message:'Profile metadata saved.'};
-      this.$emit('changed')})},
-      editProfile(name,p){this.sequence++;this.profile={name,description:p.description||'',skills:(p.skills||[]).join(', '),targets:(p.targets||[]).join(', ')};
+      async saveProfile() {
+        const split = value => value.split(',').map(x => x.trim()).filter(Boolean);
+        const form = this.profile;
+        const name = form.name.trim();
+        const previous = this.profileBase?.name === name ? this.profileBase.value : null;
+        if (Object.hasOwn(this.catalog?.profiles || {}, name) && previous === null) {
+          this.error = 'A saved profile has this name. Open it with Edit to make changes.';
+          return;
+        }
+        const data = {
+          name, description: form.description.trim(), expected_profile: previous,
+          skills: split(form.skills), targets: split(form.targets), native: {off: split(form.nativeOff)},
+        };
+        await this.task(async () => {
+          this.catalog = await api('/api/catalog/profiles', json(data));
+          this.profileBase = {name, value: this.catalog.profiles[name]};
+          this.result = {message:'Profile metadata saved.'};
+          this.$emit('changed');
+        });
+      },
+      editProfile(name,p){this.sequence++;this.profile={name,description:p.description||'',skills:(p.skills||[]).join(', '),targets:(p.targets||[]).join(', '),nativeOff:(p.native?.off||[]).join(', ')};
+      this.profileBase={name,value:p};
       this.profilePreview=null;
       this.plan=null},
       async previewProfile(name){this.plan=null;
@@ -507,19 +525,19 @@ ${scanPanel('(review.inspection||{}).external_scan')}
         <p class="lede">A named set of skills you want switched on together, for example “frontend work”. Applying one only turns on copies that already exist — it never installs or turns anything off.</p>
         <div class="tp-split">
           <section class="tp-list" aria-labelledby="tp-prof-h">
-            <div class="tp-sec-h"><h2 id="tp-prof-h">Saved profiles</h2><button type="button" class="btn btn-soft btn-sm" @click="newProfile">New profile</button></div>
+            <div class="tp-sec-h"><h2 id="tp-prof-h">Saved profiles</h2><button type="button" class="btn btn-soft btn-sm" :disabled="busy" @click="newProfile">New profile</button></div>
             <template v-if="catalog">
               <p v-if="!Object.keys(catalog.profiles||{}).length" class="tp-empty">No profiles yet. Fill in the profile details to create one.</p>
               <ul class="tp-rows"><li class="v2-tool-row tp-prof" :class="{on: profile.name===name}" v-for="(p,name) in catalog.profiles" :key="name">
                 <span class="tp-row-main"><strong>{{name}}</strong><small>{{pl((p.skills||[]).length,'skill')}}<template v-if="p.description"> · {{p.description}}</template></small></span>
-                <span class="tp-acts"><button class="btn btn-line btn-sm" @click="previewProfile(name)">Preview</button><button class="btn btn-soft btn-sm" @click="editProfile(name,p)">Edit</button><button class="btn btn-danger btn-sm" :disabled="busy" @click="deleteProfile(name)" :aria-label="'Delete '+name">Delete</button></span>
+                <span class="tp-acts"><button class="btn btn-line btn-sm" @click="previewProfile(name)">Preview</button><button class="btn btn-soft btn-sm" :disabled="busy" @click="editProfile(name,p)">Edit</button><button class="btn btn-danger btn-sm" :disabled="busy" @click="deleteProfile(name)" :aria-label="'Delete '+name">Delete</button></span>
               </li></ul>
             </template>
             <p v-else class="tp-acts"><button class="btn btn-soft" @click="loadCatalog">Retry profiles</button></p>
           </section>
 
           <form class="card tp-panel" @submit.prevent="saveProfile" aria-labelledby="tp-pform-h">
-            <h2 id="tp-pform-h">{{ catalog && (catalog.profiles||{})[profile.name] ? 'Edit profile' : 'Profile details' }}</h2>
+            <h2 id="tp-pform-h">{{ profileBase?.name === profile.name.trim() ? 'Edit profile' : 'Profile details' }}</h2>
             <div class="tp-grid2">
               <label class="tp-field">Name <input class="field" v-model="profile.name" required></label>
               <label class="tp-field">Description <input class="field" v-model="profile.description" placeholder="Optional"></label>
@@ -542,6 +560,10 @@ ${scanPanel('(review.inspection||{}).external_scan')}
               <div class="tp-checks"><label v-for="s in scopes" :key="s.id" class="tp-check"><input type="checkbox" :checked="profile.targets.split(',').map(t=>t.trim()).includes(s.id)" @change="toggleProfileTarget(s.id,$event.target.checked)">{{scopeLabel(s.id)}}</label></div>
               <p class="tp-fine">None ticked means every agent. You see the exact copies before anything changes.</p>
             </fieldset>
+            <label class="tp-field">Native off list
+              <input class="field" v-model="profile.nativeOff" aria-describedby="tp-native-off">
+            </label>
+            <p id="tp-native-off" class="tp-fine">Optional comma-separated names for the CLI's <code>native-profile preview --profile</code> command.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy||!profile.name.trim()">Save profile</button></div>
           </form>
         </div>

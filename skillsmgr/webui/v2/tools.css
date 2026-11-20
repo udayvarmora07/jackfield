@@ -53,7 +53,7 @@
 .tp-sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .tp-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tp-empty { padding: 18px 20px; border: 1px dashed var(--line-2); border-radius: var(--r-lg); color: var(--muted); font-size: var(--fs-ui); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.tp-more summary { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; color: var(--ink-2); font-size: var(--fs-ui); font-weight: 700; }
+.tp-more summary { display: list-item; line-height: 1.5; padding-block: 6px; min-height: 32px; cursor: pointer; color: var(--ink-2); font-size: var(--fs-ui); font-weight: 700; }
 .tp-more summary:hover { color: var(--ink); }
 .tp-more[open] > summary { margin-bottom: 4px; }
 .evidence-limits { margin-top: 20px; }

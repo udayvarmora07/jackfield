@@ -544,16 +544,27 @@ stated beside the setting and in every result.
 | POST | `/api/rebuild` | Store.db_rebuild |
 | POST | `/api/resync` | Store.resync |
 | GET | `/api/scopes` | `list_scopes()`: id/label/path/kind/writable/availability/recursive/supported/consumer/exists/count/tokens |
-| POST | `/api/sync` | body `{name, from_scope, to_scopes[], force}` → `{synced[], skipped[]}` |
+| POST | `/api/sync` | body `{name, from_scope, to_scopes[], force}` → `{synced[], skipped[]}` and optional scope-to-path maps `replaced_to_trash` and `retained_backup` |
 | GET | `/api/catalog` | manager-owned tags and saved profiles from the filesystem sidecar |
 | POST | `/api/catalog/tags` | body `{names[], operation: add\|remove\|replace, tags[]}` → normalized catalog |
-| POST | `/api/catalog/profiles` | body `{name, description?, skills[], targets[]}` → normalized catalog |
+| POST | `/api/catalog/profiles` | body `{name, description?, skills[], targets[], native?: {off[]}}` → normalized catalog. The off list is metadata for CLI previews. Browser profile application still uses the enable-only batch plan |
 | GET | `/api/catalog/profiles/<name>/preview` | read-only profile membership states: observed, disabled, divergent, or missing, with observed `{name, scope, path}` instances |
 | DELETE | `/api/catalog/profiles/<name>` | removes only the saved profile metadata |
 | POST | `/api/batch/preview` | body `{operation, targets[], options?}` → backend re-resolves exact physical targets and returns target count, plan hash, before-state evidence, and recovery/partial-failure policy |
 | POST | `/api/batch/execute` | body `{operation, targets[], options?, plan_id}` → per-target results; stale or widened plans are rejected. The plan id binds each target's `content_hash` and `disabled` state and, for `sync`, the observed destination copies, so a document rewritten, toggled or overwritten after the preview is a clean `stale` 400 (2026-11-07) |
 | GET | `/api/workspaces?project=DIR` | read-only adapter catalog, configured `managed_roots` choices and contained project-root observation; outside paths are redacted |
 | POST | `/api/install` | Legacy body `{source, runner?, scope?, agents[], skills[], copy?, list_only?, run?}` builds/runs `skills add`; `{preview: true, trust_confirmed?, registry_hash?, description?}` returns the offline bridge plan with no request/execution. Registry body uses one of `{browse: true, page?, per_page?, view?, allow_stale?}`, `{search: QUERY, limit?, owner?, allow_stale?}`, `{curated: true, allow_stale?}`, `{fetch: true, source: ID, registry_hash?, allow_stale?, external_scan?}` for a read-only review, or `{fetch: true, review_id: ID, trust_confirmed: true}` for a no-network commit. Browse/search/curated return bounded catalog data. Fetch is global-store-only, writes a private expiring review artifact after full validation/risk evidence, and only the separate reviewed commit writes credential-free `.skillsmgr-provenance.json` and calls `Store.add`. Cache state is returned under `_registry`; stale fallback is opt-in. |
+
+When forced Sync replaces a copy whose supporting files differ, the previous
+folder enters that scope's Recovery and the result includes its path in
+`replaced_to_trash`. If the move fails, `retained_backup` names the preserved
+folder. Resync preserves both retained backups and Recovery payloads.
+New agent-scope Recovery entries record their original relative location.
+Restore refuses unsafe or missing destination parents so nested skills
+return to the folder they came from. v2 Inbox shows the affected
+scopes and paths before Sync. Its Undo restores the skill document and its
+on/off state. For the full earlier folder, move the current copy to trash
+first and restore the exact earlier entry from Recovery.
 
 ### Trash
 

@@ -43,11 +43,11 @@
 | docs/33 D-AI-1…7 (AI features) | Deferred. D-AI-4 is a hard blocker: the web server is unauthenticated on loopback, so any route that spends an API key can be driven by any local process. A CLI-only first slice (D-AI-5) is the safe start once the owner wants AI features at all. |
 | docs/29 D-3 (lockfile reader in `doctor`) | Already answered in practice: R11 shipped the read-only lock reader inside `doctor --hygiene`, with no new command. |
 | docs/29 D-4, D-5/MON-Q2, D-6/MON-Q3, D-9/MON-Q4, D-10/MON-Q1, MON-Q5 | Owner's call: target user, scope widening to MCP/AGENTS.md, a public data report, zh-CN, services-first year, pricing tiers. |
-| docs/29 D-8, transcript usage counts | Deferred. This needs a privacy decision: it reads conversation transcripts. |
-| Per-project profiles (native toggles) | Deferred. It writes to other tools' settings files, which is a step past the read-only native observations shipped so far (R4, D-1). Do the read side for every agent first. |
+| docs/29 D-8, transcript usage counts | Approved 2026-11-20 with CLI-only per-agent consent. See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md. |
+| Per-project profiles (native toggles) | Approved 2026-11-20. Supported direct writes and read-only handoffs are in @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md. |
 | Microsoft APM `apm.yml` interop | Resolved on 2026-11-20. APM owns validation, resolution and package writes. Skills Manager reports file metadata and links to the APM audit reference. See @docs/53-apm-and-interface-decisions-2026-11-20.md. |
-| Project skill lockfile | Deferred. The existing R11 reader covers the `skills` CLI lockfiles. |
-| Stale → archive (Curator-style) | Deferred. It needs usage evidence (D-8) to define "stale" honestly. |
+| Project skill lockfile | Approved 2026-11-20. Vercel format compatibility, offline verification and guarded v2 writes are in @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md. |
+| Stale → archive (Curator-style) | Approved 2026-11-20. Evidence and pins are implemented. Archive moves need complete observation coverage. See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md. |
 
 ## Human review
 

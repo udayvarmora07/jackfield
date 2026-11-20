@@ -49,7 +49,8 @@ _GEMINI_SYSTEM_SOURCES = (
 _GEMINI_REASON = (
     'Environment variables and CLI arguments rank above these settings files '
     'and are not observed. Gemini documents disabling by exact skill name; '
-    'case sensitivity is not documented.'
+    'case sensitivity is not documented. Workspace settings may be ignored '
+    'in untrusted workspaces.'
 )
 _GEMINI_NON_LINUX = 'Documented settings path is Linux-only; not observed here.'
 #: Codex ``[[skills.config]]`` entries (docs/34, "Codex").  Only the user file
@@ -86,6 +87,124 @@ def _load(path: Path | None) -> tuple[str, dict | None]:
     except (OSError, UnicodeError, ValueError, RecursionError):
         return 'unavailable', None
 
+
+
+def _jsonc_text(text: str) -> str:
+    """Remove JSONC comments and trailing commas without changing string contents."""
+    result = []
+    i = 0
+    quoted = False
+    while i < len(text):
+        char = text[i]
+        if quoted:
+            result.append(char)
+            if char == '\\' and i + 1 < len(text):
+                i += 1
+                result.append(text[i])
+            elif char == '"':
+                quoted = False
+        elif char == '"':
+            quoted = True
+            result.append(char)
+        elif text.startswith('//', i):
+            i = text.find('\n', i)
+            if i < 0:
+                break
+            result.append('\n')
+        elif text.startswith('/*', i):
+            end = text.find('*/', i + 2)
+            if end < 0:
+                raise ValueError('unterminated comment')
+            result.append(' ')
+            i = end + 1
+        else:
+            result.append(char)
+        i += 1
+    # Commas inside strings remain untouched; scan the comment-free text.
+    text = ''.join(result)
+    result = []
+    i = 0
+    quoted = False
+    while i < len(text):
+        char = text[i]
+        if quoted:
+            result.append(char)
+            if char == '\\' and i + 1 < len(text):
+                i += 1
+                result.append(text[i])
+            elif char == '"':
+                quoted = False
+        elif char == '"':
+            quoted = True
+            result.append(char)
+        elif char == ',':
+            j = i + 1
+            while j < len(text) and text[j] in ' \t\r\n':
+                j += 1
+            if j == len(text) or text[j] not in '}]':
+                result.append(char)
+        else:
+            result.append(char)
+        i += 1
+    return ''.join(result)
+
+
+def _load_jsonc(path: Path | None) -> tuple[str, dict | None]:
+    if path is None:
+        return 'unobserved', None
+    try:
+        data = read_regular_file(path, MAX_CONFIG_BYTES)
+        value = json.loads(_jsonc_text(data.decode('utf-8')), object_pairs_hook=_unique_object)
+        return ('ok', value) if isinstance(value, dict) else ('unavailable', None)
+    except FileNotFoundError:
+        return 'missing', None
+    except (OSError, UnicodeError, ValueError, RecursionError):
+        return 'unavailable', None
+
+
+def _prepare_opencode(config: dict) -> tuple[str, object]:
+    status, legacy = _prepare_rules('opencode', config)
+    if status != 'ok':
+        return status, None
+    if 'permissions' not in config:
+        return 'ok', ('legacy', legacy)
+    rules = config['permissions']
+    if not isinstance(rules, list):
+        return 'invalid', None
+    if len(rules) > MAX_OPENCODE_RULES:
+        return 'unavailable', None
+    selected = []
+    for item in rules:
+        if not isinstance(item, dict) or not isinstance(item.get('action'), str):
+            return 'invalid', None
+        if item['action'] != 'skill':
+            continue
+        resource, effect = item.get('resource'), item.get('effect')
+        if (not isinstance(resource, str) or len(resource) > MAX_PATTERN
+                or not isinstance(effect, str) or effect not in _OPENCODE_VALUES):
+            return 'invalid', None
+        selected.append((resource, effect))
+    return 'ok', ('v2', (legacy, selected))
+
+
+def _match_opencode(rules: tuple, name: str) -> dict:
+    dialect, value = rules
+    if dialect == 'legacy':
+        return _match_rules('opencode', value, name)
+    legacy, selected = value
+    result = _match_rules('opencode', legacy, name)
+    for pattern, effect in selected:
+        if _glob_match(pattern, name):
+            result = {'declared': effect, 'matched_pattern': json.dumps(pattern, ensure_ascii=True)[1:-1]}
+    return result
+
+
+def _prepare_commandcode(config: dict) -> tuple[str, object]:
+    names = config.get('disabledSkills', [])
+    if isinstance(names, list) and len(names) > MAX_GEMINI_DISABLED:
+        return 'unavailable', None
+    names = _gemini_names(names)
+    return ('ok', names) if names is not None else ('invalid', None)
 
 def _glob_match(pattern: str, text: str) -> bool:
     """Match only * and ?; bracket syntax is literal."""
@@ -318,8 +437,17 @@ def observe_native_states(consumer: str, names: list[str], *, home: Path | None 
         reason = _CLAUDE_REASON
     elif consumer == 'opencode':
         files = [('user', home / '.config/opencode/opencode.json'),
-                 ('project', project / 'opencode.json' if project else None)]
-        reason = 'Environment, remote, .opencode, and managed settings are not observed; cross-file rule merging is not inferred.'
+                 ('project', project / 'opencode.json' if project else None),
+                 ('user-jsonc', home / '.config/opencode/opencode.jsonc'),
+                 ('project-jsonc', project / 'opencode.jsonc' if project else None),
+                 ('project-dotdir', project / '.opencode/opencode.json' if project else None),
+                 ('project-dotdir-jsonc', project / '.opencode/opencode.jsonc' if project else None)]
+        reason = 'Ancestor, environment, remote, per-agent, and managed settings are not observed; cross-file rule merging is not inferred.'
+    elif consumer == 'commandcode':
+        files = [('user', home / '.commandcode/settings.json'),
+                 ('project', project / '.commandcode/settings.json' if project else None),
+                 ('project-local', project / '.commandcode/settings.local.json' if project else None)]
+        reason = 'Layer merging and other settings sources are not verified; declarations are not effective state.'
     elif consumer == 'codex':
         states = observe_codex_states([(name, None) for name in names], home=home)
         return dict(zip(names, states))
@@ -327,10 +455,15 @@ def observe_native_states(consumer: str, names: list[str], *, home: Path | None 
         reason = 'native settings observation is unsupported for this consumer'
     prepared = []
     for source, path in files:
-        status, config = _load(path)
+        status, config = (_load_jsonc(path) if consumer == 'opencode' else _load(path))
         rules = None
         if config is not None:
-            status, rules = _prepare_rules(consumer, config)
+            if consumer == 'opencode':
+                status, rules = _prepare_opencode(config)
+            elif consumer == 'commandcode':
+                status, rules = _prepare_commandcode(config)
+            else:
+                status, rules = _prepare_rules(consumer, config)
         prepared.append((source, status, rules))
     return {name: _observation(consumer, name, reason, prepared) for name in names}
 
@@ -341,7 +474,13 @@ def _observation(consumer: str, name: str, reason: str, prepared: list) -> dict:
     for source, status, rules in prepared:
         entry = {'source': source, 'status': status}
         if status == 'ok':
-            entry.update(_match_rules(consumer, rules, name))
+            if consumer == 'opencode':
+                entry.update(_match_opencode(rules, name))
+            elif consumer == 'commandcode':
+                if name in rules:
+                    entry['declared'] = 'disabled'
+            else:
+                entry.update(_match_rules(consumer, rules, name))
         result['sources'].append(entry)
     # ``unobserved`` means the caller supplied no project context, not that a
     # file was unreadable -- so it must not suppress a declaration that *was*

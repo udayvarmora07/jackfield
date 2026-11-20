@@ -2,7 +2,7 @@
 
 The filesystem remains the source of truth.  This module never writes, caches,
 or contacts the network: it only parses ``skills-lock.json`` (project lock,
-version 1) and ``.skill-lock.json`` (global lock, version 3), compares each
+versions 1 and 2) and ``.skill-lock.json`` (global lock, version 3), compares each
 declared skill with its installed copy, and reports what the recorded hashes
 say.  A hash mismatch is evidence that bytes or ordering differ -- never proof
 of tampering or of an available update.
@@ -29,7 +29,7 @@ MAX_HASH_FILES = 2_000
 MAX_HASH_BYTES = 64 * 1024 * 1024
 MAX_STRING = 512
 
-PROJECT_LOCK_VERSION = 1
+PROJECT_LOCK_VERSION = 2
 GLOBAL_LOCK_VERSION = 3
 PROJECT_LOCK_FILENAME = "skills-lock.json"
 GLOBAL_LOCK_FILENAME = ".skill-lock.json"
@@ -39,12 +39,14 @@ _APM_PROJECT_FILES = (("apm.yml", "apm-manifest"), (APM_LOCK_FILENAME, "apm-lock
 _SKIP_DIRS = frozenset({".git", "node_modules"})
 _SANITIZE_RE = re.compile(r"[^a-z0-9._]+")
 _LOCK_VERSIONS = {"project": PROJECT_LOCK_VERSION, "global": GLOBAL_LOCK_VERSION}
-_VERSION_KINDS = {value: key for key, value in _LOCK_VERSIONS.items()}
+_VERSION_KINDS = {1: "project", 2: "project", 3: "global"}
 _ENTRY_FIELDS = (
     "source",
     "sourceType",
     "sourceUrl",
     "ref",
+    "commit",
+    "skillName",
     "skillPath",
     "version",
     "via",
@@ -183,8 +185,8 @@ def _directory_files(root: Path):
                         is_symlink = entry.is_symlink()
                         is_dir = entry.is_dir(follow_symlinks=False)
                         is_file = entry.is_file(follow_symlinks=False)
-                    except OSError:
-                        continue
+                    except OSError as exc:
+                        raise LockfileError("cannot inspect a skill folder entry") from exc
                     if is_symlink:
                         continue
                     if is_dir:
@@ -193,8 +195,8 @@ def _directory_files(root: Path):
                         continue
                     if is_file:
                         yield Path(entry.path)
-        except OSError:
-            continue
+        except OSError as exc:
+            raise LockfileError("cannot read a skill folder directory") from exc
 
 
 def computed_folder_hash(directory: str | Path, order: str = "codepoint") -> str:
@@ -231,6 +233,59 @@ def computed_folder_hash(directory: str | Path, order: str = "codepoint") -> str
         digest.update(relative.encode("utf-8"))
         digest.update(data)
     return digest.hexdigest()
+
+
+def portable_folder_hash(directory: str | Path) -> str:
+    """Hash a project skill using the upstream version 2 portable format."""
+    root = Path(directory).expanduser()
+    if not root.is_dir() or root.is_symlink():
+        raise LockfileError("skill folder is not a readable directory")
+    root = root.resolve(strict=True)
+    budget = _HashBudget()
+    files = []
+    _collect_portable_files(root, root, "", frozenset(), budget, files)
+    digest = hashlib.sha256()
+    for name, data in sorted(files, key=lambda item: item[0]):
+        digest.update(name + b"\0" + str(len(data)).encode("ascii") + b"\0" + data)
+    return digest.hexdigest()
+
+
+def _collect_portable_files(root, directory, prefix, ancestors, budget, files):
+    if directory in ancestors:
+        return
+    branch = ancestors | {directory}
+    try:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                budget.add(0)
+                if entry.name == "metadata.json":
+                    continue
+                path = Path(entry.path)
+                try:
+                    target = path.resolve(strict=True)
+                except (FileNotFoundError, RuntimeError):
+                    if entry.is_symlink():
+                        continue
+                    raise
+                if not target.is_relative_to(root):
+                    continue
+                relative = prefix + entry.name
+                if target.is_dir():
+                    if entry.name not in {".git", "__pycache__", "__pypackages__"}:
+                        _collect_portable_files(root, target, relative + "/", branch, budget, files)
+                elif target.is_file():
+                    size = target.stat().st_size
+                    budget.add(size)
+                    data = read_regular_file(target, MAX_HASH_BYTES, follow_symlinks=False)
+                    if len(data) > size:
+                        budget.add(len(data) - size)
+                    if b"\0" not in data:
+                        data = data.replace(b"\r\n", b"\n")
+                    files.append((relative.replace("\\", "/").encode("utf-8"), data))
+    except (OSError, ValueError) as exc:
+        if isinstance(exc, LockfileError):
+            raise
+        raise LockfileError("cannot safely read skill folder") from exc
 
 
 def _git_blob_digest(data: bytes) -> bytes:
@@ -313,7 +368,7 @@ def _lock_kind(version: object, kind: str | None) -> str | None:
     if isinstance(version, bool) or not isinstance(version, int):
         return None
     if kind is not None:
-        return kind if _LOCK_VERSIONS.get(kind) == version else None
+        return kind if _VERSION_KINDS.get(version) == kind else None
     return _VERSION_KINDS.get(version)
 
 
@@ -342,11 +397,20 @@ def _missing_lock(target: Path, kind: str) -> dict:
     }
 
 
+def _unique_lock_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise LockfileError("duplicate JSON key in lockfile")
+        result[key] = value
+    return result
+
+
 def _load_lock_document(target: Path, kind: str) -> tuple[dict | None, dict | None]:
     """Return ``(payload, invalid_record)``; exactly one of the two is set."""
     try:
         raw = read_regular_file(target, MAX_LOCK_BYTES, follow_symlinks=False)
-        data = json.loads(raw.decode("utf-8"))
+        data = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_lock_object)
     except FileNotFoundError:
         return None, _missing_lock(target, kind)
     except SymlinkNotAllowed:
@@ -355,7 +419,7 @@ def _load_lock_document(target: Path, kind: str) -> tuple[dict | None, dict | No
         return None, _invalid(target, kind, "lock path is not a regular file")
     except FileTooLarge:
         return None, _invalid(target, kind, f"lockfile exceeds {MAX_LOCK_BYTES} bytes")
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
         return None, _invalid(target, kind, f"lockfile cannot be read: {exc}")
     if not isinstance(data, dict):
         return None, _invalid(target, kind, "lockfile root is not an object")
@@ -428,6 +492,12 @@ def _computed_outcome(directory: Path, recorded: str) -> tuple[str, str]:
     return "mismatch_or_unverifiable", _ICU_ORDERING
 
 
+def _portable_outcome(directory: Path, recorded: str) -> tuple[str, str]:
+    if portable_folder_hash(directory) == recorded:
+        return "match", ""
+    return "differs_from_recorded_tree", "the local folder differs from the recorded portable hash"
+
+
 def _tree_outcome(directory: Path, recorded: str) -> tuple[str, str]:
     if skill_folder_tree_sha(directory) == recorded:
         return "match", ""
@@ -441,18 +511,25 @@ def _tree_outcome(directory: Path, recorded: str) -> tuple[str, str]:
 
 def _hash_outcome(directory: Path, entry: dict, mode: str) -> tuple[str, str]:
     """Return ``(hash_status, hash_reason)`` for one installed copy."""
-    recorded_key = "computedHash" if mode == "computed" else "skillFolderHash"
+    if _unsafe_portable_root(directory, mode):
+        return "unverifiable", "symlinked installed root"
+    recorded_key = "computedHash" if mode in {"computed", "portable"} else "skillFolderHash"
     recorded = entry.get(recorded_key, "")
     if not isinstance(recorded, str) or not recorded.strip():
         return "not_recorded", "the lockfile does not record a hash for this skill"
     recorded = recorded.strip().lower()
-    outcome = _computed_outcome if mode == "computed" else _tree_outcome
+    outcome = {"computed": _computed_outcome, "portable": _portable_outcome,
+               "tree": _tree_outcome}[mode]
     try:
         return outcome(directory, recorded)
     except LockfileTooLarge as exc:
         return "too_large", str(exc)
     except (LockfileError, OSError, RecursionError) as exc:
         return "unverifiable", _unverifiable_reason(exc)
+
+
+def _unsafe_portable_root(directory: Path, mode: str) -> bool:
+    return mode == "portable" and (directory.parent.is_symlink() or directory.parent.parent.is_symlink())
 
 
 def _unverifiable_reason(exc: BaseException) -> str:
@@ -674,10 +751,11 @@ def _lockfile_evidence(home, project_root, xdg_state_home) -> dict:
     else:
         project_path = Path(project_root).expanduser()
         project_installed = project_path / ".agents" / "skills"
+        project_document = read_lock(project_path / PROJECT_LOCK_FILENAME, kind="project")
         project_lock = _evaluated_lock(
-            read_lock(project_path / PROJECT_LOCK_FILENAME, kind="project"),
+            project_document,
             project_installed,
-            "computed",
+            _project_hash_mode(project_document),
         )
         signals = _apm_project_signals(project_path)
     return {
@@ -697,12 +775,17 @@ def _lockfile_evidence(home, project_root, xdg_state_home) -> dict:
     }
 
 
+def _project_hash_mode(document: dict) -> str:
+    return "portable" if document.get("version") == 2 else "computed"
+
+
 __all__ = [
     "LockfileError",
     "LockfileTooLarge",
     "sanitize_name",
     "safe_source_url",
     "computed_folder_hash",
+    "portable_folder_hash",
     "skill_folder_tree_sha",
     "read_lock",
     "lockfile_evidence",

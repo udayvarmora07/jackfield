@@ -2778,7 +2778,8 @@ createApp({
         this.closeModal("sync");
         const ok = (res.synced || []).length;
         const skip = (res.skipped || []).length;
-        this.toast(`Synced "${m.name}" to ${ok} scope(s)` + (skip ? `, skipped ${skip}.` : "."), ok ? "ok" : "info");
+        this.toast(`Synced "${m.name}" to ${ok} scope(s)` + (skip ? `, skipped ${skip}.` : ".") +
+          SkillManagerDomain.syncRecoveryNotice([res]), ok ? "ok" : "info");
         await this.loadScopes();
         await this.loadSkills();
       } catch (e) {

@@ -563,7 +563,7 @@ def check_surface_parity(root: Path = ROOT) -> list[str]:
             for name in names:
                 if receiver_name.endswith("_sub"):
                     # A nested action is documented as "<parent> <action>".
-                    parent = receiver_name[: -len("_sub")]
+                    parent = receiver_name[: -len("_sub")].replace("_", "-")
                     if f"{parent} {name}" not in text:
                         errors.append(f"docs/03-cli-surface.md: CLI command '{parent} {name}' is undocumented")
                 elif name not in documented_commands:

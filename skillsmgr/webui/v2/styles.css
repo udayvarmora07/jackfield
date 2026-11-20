@@ -30,7 +30,7 @@
   --ok-edge: #bfe5cc; --warn-edge: #f5cf9f; --bad-edge: #f6c3be;
   --d-ok: #5c9a6e; --d-warn: #d18a2c; --d-bad: #c9472f; --d-off: #b5ada2;
   --track: #e4e1da; --switch-off: #c9c3b8; --soft-hover: #e7e3db; --save-hover: #e9e6e0;
-  --ok-on-dark: #7ee0a8; --warn-on-dark: #f5c27a; --ver-text: #3f4148; --chip-text: #44474f;
+  --ok-on-dark: #7ee0a8; --warn-on-dark: #f5c27a; --error-on-toast: #ffb3a7; --ver-text: #3f4148; --chip-text: #44474f;
   --ink-fixed: #1b1d22;
   color-scheme: light;
 
@@ -446,6 +446,10 @@ button.map-state:hover { border-color: currentColor; }
 .toasts { position: fixed; z-index: 70; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: 0 20px 50px -10px rgb(0 0 0 / .4); font-weight: 600; font-size: var(--fs-ui); animation: rise .18s var(--ease); max-width: calc(100vw - 32px); }
 .toast .i { color: var(--ok-on-dark); }
+.toast.err .i { color: var(--error-on-toast); }
+.toast > span { overflow-wrap: anywhere; }
+.sync-targets { padding-inline-start: 20px; color: var(--ink-2); }
+.sync-targets code { display: block; overflow-wrap: anywhere; }
 .toast button { border: 0; border-radius: var(--r-sm); padding: 6px 12px; font-weight: 800; background: rgb(128 128 128 / .3); color: var(--on-ink); }
 .toast button:hover { background: rgb(255 255 255 / .24); }
 
@@ -554,7 +558,7 @@ button.map-state:hover { border-color: currentColor; }
   --ok-edge: #2c5a3f; --warn-edge: #6b4a1d; --bad-edge: #6b2f29;
   --d-ok: #63d18f; --d-warn: #f2ab4c; --d-bad: #ff8f80; --d-off: #8c8474;
   --track: #3a3529; --switch-off: #4a4437; --soft-hover: #35302a; --save-hover: #ffffff;
-  --ok-on-dark: #1f7a45; --warn-on-dark: #9a5300; --ver-text: #d8d2c3; --chip-text: #d3ccbd;
+  --ok-on-dark: #1f7a45; --warn-on-dark: #9a5300; --error-on-toast: #9f2520; --ver-text: #d8d2c3; --chip-text: #d3ccbd;
   --shadow: 0 1px 2px rgb(0 0 0 / .4); --shadow-lift: 0 1px 2px rgb(0 0 0 / .4), 0 24px 60px -30px rgb(0 0 0 / .8);
   color-scheme: dark;
 }

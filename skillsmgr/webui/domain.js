@@ -458,6 +458,14 @@ function formatTools(v) {
   return String(v);
 }
 
+function syncRecoveryNotice(results) {
+  const saved = results.some((result) => Object.keys(result.replaced_to_trash || {}).length);
+  const retained = results.flatMap((result) => Object.values(result.retained_backup || {}));
+  return (saved ? " The previous folder is in Recovery. Move the current copy to trash before restoring it." : "") +
+    (retained.length === 1 ? " A previous folder needs manual recovery at " + retained[0] + "." : "") +
+    (retained.length > 1 ? ` ${retained.length} previous folders need manual recovery. First backup location: ${retained[0]}.` : "");
+}
+
 window.SkillManagerDomain = Object.freeze({
   withJsonType,
   esc,
@@ -481,5 +489,6 @@ window.SkillManagerDomain = Object.freeze({
   parseFrontmatter,
   formatCompat,
   formatTools,
+  syncRecoveryNotice,
 });
 }());

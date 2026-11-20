@@ -7,6 +7,39 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Claude Code recovery hardening handoff
+
+Continued from Claude Code's `Skills Manager recovery hardening` after
+verifying that the recovery commits through `487de61` had reached `main`.
+That revision's GitHub CI run completed all 16 jobs successfully.
+
+- Forced Sync identifies the actual v2 Inbox targets, records the previous
+  folder in Recovery when its supporting files would change, and reports
+  a retained backup path when the move fails. Resync preserves Recovery
+  payloads and retained backups. New scoped Recovery entries record and
+  validate the original location of nested skills.
+- CLI-only usage consents record the selected roots, while usage reports
+  distinguish observed counts from parser coverage. Lifecycle reports
+  and reversible pins are available. Archive moves await continuous,
+  all-consumer observation evidence.
+- The CLI verifies Vercel project lockfiles offline and previews guarded
+  v2 updates with undo. Native project changes support reviewed settings
+  writes, a saved profile's off list, and read-only handoffs. See
+  @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
+
+Verification on Linux: the full Python 3.12 suite ran 2,332 tests with
+7 skipped. The 44-test recovery, CLI and profile subset passed on
+Python 3.11–3.14. The final lock and usage checks passed 66 tests. Both
+smokes, Ruff, complexity, design tokens and documentation gates passed.
+Chromium 158 and Firefox 151 each passed 47 v2 checks and 349 classic
+assertions. Agent-browser and agent-desktop independently confirmed the Inbox
+Sync action's source and destination on an isolated desktop fixture.
+The v2 lock hash matched Vercel's `skill-hash.ts` at `57217cf` on a
+fixture with nested links, Unicode names, binary bytes and CRLF. Both
+distribution artifacts passed package-data checks and all six installed
+CLI integration tests. Human perceptual and spoken screen-reader
+sign-off remain separate.
+
 ## 2026-11-20 — Recovery follow-ups from parallel review
 
 Four parallel subagents (Sonnet/Haiku) worked from this session's gaps: an

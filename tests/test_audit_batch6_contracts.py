@@ -193,18 +193,20 @@ class ConcurrentMutationResilienceTests(BatchSixCase):
         self.assertNotIsInstance(ctx.exception, FileNotFoundError)
 
     def test_resync_clears_abandoned_transaction_residue(self):
-        # The audit's repro: a cross-process move stranded ``.skillsmgr-tmp``
-        # files inside trash copies, and neither resync() nor doctor() could
-        # clear them, so doctor().ok stayed False until a human intervened.
+        # Sweep residue beside trash entries. The same filename inside a
+        # recovery tree may be the only surviving copy of a supporting file.
         store = self._store()
         store.create("residue", "A skill that will be trashed.")
         store.remove("residue")
         trash_dirs = sorted((store.data_dir / "trash").iterdir())
         self.assertTrue(trash_dirs, "the trash copy must exist for this regression")
-        stale = trash_dirs[-1] / ".SKILL.md.abc123.skillsmgr-tmp"
+        stale = store.trash_dir / ".SKILL.md.abc123.skillsmgr-tmp"
         stale.write_text("half-written", encoding="utf-8")
+        recovered = trash_dirs[-1] / stale.name
+        recovered.write_text("only copy of this file", encoding="utf-8")
         old = time.time() - 3600
         os.utime(stale, (old, old))
+        os.utime(recovered, (old, old))
 
         before = store.doctor()
         self.assertIn(
@@ -214,6 +216,7 @@ class ConcurrentMutationResilienceTests(BatchSixCase):
 
         store.resync()
         self.assertFalse(stale.exists(), "resync must clear abandoned residue")
+        self.assertEqual(recovered.read_text(encoding="utf-8"), "only copy of this file")
 
         after = store.doctor()
         self.assertEqual(after["transaction_artifacts"], [])

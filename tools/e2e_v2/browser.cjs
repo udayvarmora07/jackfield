@@ -78,11 +78,25 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Skip link keeps the current page and focuses its heading (SR-2)',async()=>{await go('skill/same-everywhere');await page.locator('a.skip').focus();await page.keyboard.press('Enter');await page.waitForTimeout(200);assert(page.url().endsWith('#/skill/same-everywhere'),page.url());assert.equal(await page.evaluate(()=>document.activeElement&&document.activeElement.id),'h1');});
   await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
+  await test('Inbox Sync preview follows the selected source and shows affected locations', async () => {
+    await go('inbox');
+    await page.locator('.qi').filter({hasText:'majority-minor'}).click();
+    const targets = page.getByRole('list', {name:'Copies that will be overwritten'});
+    assert.match(await targets.innerText(), /Codex/);
+    assert((await targets.innerText()).includes(path.dirname(file('.codex', 'majority-minor'))));
+    await page.getByRole('radio', {name:'Codex'}).check();
+    await page.locator('.vs header').last().filter({hasText:"Codex's copy"}).waitFor();
+    assert.match(await page.locator('[data-primary]').innerText(), /^Sync 3 copies from Codex$/);
+    assert.equal(await targets.locator('li').count(), 3);
+    assert.doesNotMatch(await targets.innerText(), /Codex/);
+  });
   await test('Delayed double click issues one sync and Undo restores bytes and queue',async()=>{
     await go('inbox');
     await page.locator('.qi').filter({hasText:'majority-minor'}).click();
     const target=file('.codex','majority-minor'), before=fs.readFileSync(target);
-    let count=0;
+    const companion = path.join(path.dirname(target), 'target-only.txt');
+    fs.writeFileSync(companion, 'previous copy only');
+    let count=0, retained;
     await page.route('**/api/sync',async route=>{
       count++;
       await new Promise(resolve=>setTimeout(resolve,400));
@@ -94,6 +108,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         page.locator('[data-primary]').dblclick({delay:25}),
       ]);
       assert.equal(response.status(),200);
+      const {replaced_to_trash: moved} = await response.json();
+      assert.equal(fs.readFileSync(path.join(moved.codex, 'target-only.txt'), 'utf8'), 'previous copy only');
+      const scopeTrash = path.join(home, '.codex', 'trash');
+      assert.equal(path.dirname(moved.codex), scopeTrash);
+      retained = moved.codex;
+      await page.locator('.toast').filter({hasText:/Recovery/}).waitFor();
       assert.notDeepEqual(fs.readFileSync(target),before);
       await page.locator('.toast button').filter({hasText:'Undo'}).last().click();
       await page.locator('.toast').filter({hasText:'Undone'}).waitFor();
@@ -101,7 +121,11 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert.deepEqual(fs.readFileSync(target),before);
       assert.match(await page.locator('main').innerText(),/majority-minor/);
       assert.match(await page.locator('.prog').innerText(),/^0 fixed/);
-    }finally{await page.unrouteAll({behavior:'wait'});}
+    }finally{
+      await page.unrouteAll({behavior:'wait'});
+      fs.rmSync(companion, {force:true});
+      if (retained) fs.rmSync(retained, {recursive:true, force:true});
+    }
   });
   await test('Stale file toggle reports error without resurrecting fixture',async()=>{await go('skill/same-everywhere');const f=file('.codex'),old=fs.readFileSync(f);fs.unlinkSync(f);try{await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();await page.waitForTimeout(600);assert(!fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));assert.match((await page.locator('.toast').allInnerTexts()).join(' '),/not installed|not found/i);}finally{fs.writeFileSync(f,old);}});
   await test('Native setting evidence is partial and file switch Undo preserves files',async()=>{await go('skill/same-everywhere');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/partial/i);assert.match(t,/loading is unknown/i);assert.match(t,/Declared setting: off/);assert.match(t,/Declared setting: deny/);const f=file('.codex');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();await page.waitForTimeout(500);assert(fs.existsSync(f+'.disabled'));await page.locator('.toast button').filter({hasText:'Undo'}).last().click();await page.waitForTimeout(600);assert(fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));});
@@ -472,8 +496,16 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await form.getByLabel('Description',{exact:true}).fill('Browser fixture profile.');
     await form.getByLabel('Filter skills',{exact:true}).fill('v2-browser-created');await form.locator('.tp-pick-list label').filter({hasText:'v2-browser-created'}).locator('input').check();
     await form.getByPlaceholder('Add a name not installed yet').fill('absent-member');await form.getByRole('button',{name:'Add',exact:true}).click();
+    await form.getByRole('textbox',{name:'Native off list',exact:true}).fill('same-everywhere');
     await form.getByRole('button',{name:'Save profile',exact:true}).click();
     const row=page.locator('.v2-tool-row').filter({has:page.locator('strong').filter({hasText:'v2-browser-profile'})});
+    await row.waitFor();
+    await page.getByRole('button',{name:'New profile',exact:true}).click();
+    await form.getByLabel('Name',{exact:true}).fill('v2-browser-profile');
+    await form.getByRole('button',{name:'Save profile',exact:true}).click();
+    await page.getByText('A saved profile has this name. Open it with Edit to make changes.').waitFor();
+    await row.getByRole('button',{name:'Edit',exact:true}).click();
+    assert.equal(await page.getByRole('textbox',{name:'Native off list',exact:true}).inputValue(),'same-everywhere');
     await row.getByRole('button',{name:'Preview',exact:true}).click();
     await page.getByText('absent-member',{exact:true}).waitFor();
     await page.getByRole('button',{name:'Review enable-only plan',exact:true}).click();
@@ -481,6 +513,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.getByRole('button',{name:'Execute reviewed plan',exact:true}).click();
     assert.equal((await response).status(),200);
     assert(fs.existsSync(path.join(root,'data/skills-manager/skills/v2-browser-created/SKILL.md')));
+    assert(fs.existsSync(file('.codex','same-everywhere')));
+    assert(!fs.existsSync(path.join(home,'.claude/settings.local.json')));
   });
   await test('V2 Workspace evidence and settings persist through navigation',async()=>{
     await go('tools/workspaces');await page.getByLabel('Project path',{exact:true}).fill(root);await page.getByRole('button',{name:'Inspect project',exact:true}).click();

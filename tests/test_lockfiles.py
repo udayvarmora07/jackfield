@@ -75,7 +75,7 @@ class ReadLockTests(unittest.TestCase):
 
     def test_wrong_version_is_invalid(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = self._lock(Path(tmp), {"version": 2, "skills": {}})
+            path = self._lock(Path(tmp), {"version": 99, "skills": {}})
             result = lockfiles.read_lock(path)
             self.assertEqual(result["state"], "invalid")
             self.assertIn("version", result["reason"])
@@ -113,6 +113,36 @@ class ReadLockTests(unittest.TestCase):
 
 
 class HashTests(unittest.TestCase):
+    def test_portable_hash_framing_normalization_and_exclusions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(root / "a.txt", b"one\r\ntwo\r\n")
+            _write(root / "b.bin", b"\x00\r\n")
+            _write(root / "metadata.json", b"ignored")
+            _write(root / "__pycache__" / "x", b"ignored")
+            _write(root / "node_modules" / "x", b"included")
+            body = (b"a.txt\x008\x00one\ntwo\n" + b"b.bin\x003\x00\x00\r\n" +
+                    b"node_modules/x\x008\x00included")
+            if os.name != "nt":
+                _write(root / "windows\\style.txt", b"path")
+                body += b"windows/style.txt\x004\x00path"
+            self.assertEqual(lockfiles.portable_folder_hash(root), hashlib.sha256(body).hexdigest())
+
+    def test_portable_hash_follows_only_confined_acyclic_links(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            _write(root / "dir" / "a", b"x")
+            _write(Path(tmp) / "outside", b"secret")
+            try:
+                (root / "link").symlink_to("dir", target_is_directory=True)
+                (root / "dir" / "cycle").symlink_to("..", target_is_directory=True)
+                (root / "external").symlink_to(Path(tmp) / "outside")
+                (root / "broken").symlink_to("missing")
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks are unavailable")
+            body = b"dir/a\x001\x00xlink/a\x001\x00x"
+            self.assertEqual(lockfiles.portable_folder_hash(root), hashlib.sha256(body).hexdigest())
+
     def test_computed_hash_matches_a_hand_computation_for_ascii_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -170,6 +200,19 @@ class HashTests(unittest.TestCase):
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_project_v2_uses_portable_hash_and_exposes_commit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            skill = project / ".agents" / "skills" / "one"
+            _write(skill / "SKILL.md", b"hello\r\n")
+            _write(project / "skills-lock.json", json.dumps({"version": 2, "skills": {
+                "one": {"source": "o/r", "commit": "abc123", "computedHash":
+                        lockfiles.portable_folder_hash(skill)}}}))
+            parsed = lockfiles.read_lock(project / "skills-lock.json")
+            self.assertEqual(parsed["entries"][0]["commit"], "abc123")
+            row = lockfiles.lockfile_evidence(Path(tmp), project)["project"]["entries"][0]
+            self.assertEqual(row["hash_status"], "match")
+
     def _home(self, root: Path) -> Path:
         home = root / "home"
         (home / ".agents" / "skills").mkdir(parents=True)

@@ -6,6 +6,13 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Added
 
+- CLI-only transcript usage consent and cached activity reports, archive
+  candidate review and reversible pins.
+- Offline Vercel project lock verification, previewed v2 writes and guarded undo.
+- Project native settings previews and guarded writes for supported Claude Code,
+  Gemini and OpenCode JSON, plus Codex launch and Command Code patch handoffs.
+  Native previews accept a list saved in v2 Profiles.
+
 - Sync map shows one row per skill across agent scopes, with name search and a
   **Needs review only** filter for divergent, unreadable, duplicate and
   uninspected copies. The Skills shelf remembers its density preference.
@@ -75,6 +82,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
   block or allow an install or update. SkillSpector is not a dependency.
 
 ### Fixed
+
+- Forced Sync preserves a previous folder in the target scope when it would
+  discard or change supporting files. Both interfaces surface recovery guidance.
+- v2 Inbox lists the affected locations for the selected Sync source.
 
 - Recovery and Undo restore the selected global trash entry in both web
   interfaces, even when several entries have the same name. Restoring a skill

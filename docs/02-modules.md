@@ -16,7 +16,18 @@ Entry point for `python3 -m skillsmgr`; delegates to `cli.main()`.
 
 ## `cli.py`, `cli_parser.py`, `cli_handlers.py`
 
-The stable `cli.py` adapter exposes `main()`, `build_parser()`, the public `COMMANDS` table, command handler names, and exit constants. `cli_parser.py` owns argparse construction (`prog="skills-mgr"`): 29 top-level commands + 11 subcommands (7 trash/templates/db actions, 3 update actions and 1 AI action) + 3 aliases (`ls`, `rm`, `gui`) = 43 invocable names (see @docs/03-cli-surface.md). `cli_handlers.py` owns command behavior and validates names/data before filesystem work (it also rejects a `--metadata` key containing a control character with a clean exit 1, and both edit paths fail closed on an unparseable document); `cli_output.py` owns JSON/errors/table rendering plus `sanitize_text()`/`truncate()`/`render_table()`, which strip C0/C1/DEL, Unicode line separators, format characters, and lone surrogates from untrusted display fields (`--json` and `view --raw` are deliberately exempt). Exit codes: 0 ok / 1 error / 2 usage / 130 interrupt. Public parser/handler adapters preserve existing imports and contract tests.
+The stable `cli.py` adapter exposes `main()`, `build_parser()`, the public `COMMANDS` table, command handler names, and exit constants. `cli_parser.py` owns argparse construction (`prog="skills-mgr"`): 33 top-level commands + 24 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 60 invocable names (see @docs/03-cli-surface.md). `cli_handlers.py` owns command behavior and validates names/data before filesystem work (it also rejects a `--metadata` key containing a control character with a clean exit 1, and both edit paths fail closed on an unparseable document); `cli_output.py` owns JSON/errors/table rendering plus `sanitize_text()`/`truncate()`/`render_table()`, which strip C0/C1/DEL, Unicode line separators, format characters, and lone surrogates from untrusted display fields (`--json` and `view --raw` are deliberately exempt). Exit codes: 0 ok / 1 error / 2 usage / 130 interrupt. Public parser/handler adapters preserve existing imports and contract tests.
+
+## Usage and reviewed project changes
+
+`cli_lifecycle.py` dispatches `usage`, `archive`, `lock`, and
+`native-profile` without bootstrapping the SQLite index. `usage.py` owns
+CLI-only consent, bounded event readers, and private daily aggregates.
+`lifecycle.py` reports usage evidence and manages reversible pins.
+`project_lock_commands.py` verifies Vercel lockfiles and binds v2 writes
+and undo to reviewed bytes. `native_profiles.py` handles native settings
+previews, guarded apply and undo, and read-only agent handoffs.
+See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
 
 ## `cli_ai.py`
 
@@ -615,19 +626,22 @@ Read-only evidence for lockfiles written by the open-source `skills` CLI
 returns a JSON-safe record; a missing file is `missing`, and malformed JSON, a
 non-object root, an unsupported version, a non-dict skill entry, a symlink, or a
 file above `MAX_LOCK_BYTES` (4 MiB) is `invalid` with a reason -- it never
-raises. Project locks must be version 1 and global locks version 3. At most
+raises for a malformed document. Project locks accept versions 1 and 2,
+and global locks use version 3. At most
 `MAX_LOCK_ENTRIES` (500) entries are kept with an `omitted` count.
 `sanitize_name()` reproduces the CLI's directory-name rule (lowercase, each run
 of characters outside `[a-z0-9._]` becomes `-`, strip leading/trailing `.`/`-`,
 truncate to 255, empty becomes `unnamed-skill`). `safe_source_url()` removes
 userinfo, query, and fragment from a `sourceUrl` so no credential is echoed.
-`computed_folder_hash(dir, order)` reproduces the project lock's `computedHash`
+`computed_folder_hash(dir, order)` approximates the v1 project's `computedHash`
 (relative path bytes followed by file bytes, no separators, under a plain
 codepoint or case-insensitive ordering; `.git` and `node_modules` are skipped
-and symlinks are not files). `skill_folder_tree_sha(dir)` computes the git tree
+and symlinks are not files). `portable_folder_hash(dir)` implements the v2
+portable hash with framed UTF-8 paths, normalized text line endings, and
+contained link traversal. `skill_folder_tree_sha(dir)` computes the git tree
 object SHA-1 used by the global lock's `skillFolderHash`, with blob/tree
 headers, git's byte-order entry sort (directories compared with a trailing
-`/`), executable/symlink modes, and `.git` skipped. Both hashers share a
+`/`), executable/symlink modes, and `.git` skipped. These hashers share a
 per-skill budget of `MAX_HASH_FILES` (2,000 files) and `MAX_HASH_BYTES` (64 MiB)
 and raise `LockfileTooLarge` above it. `lockfile_evidence(home,
 project_root=None, xdg_state_home=None)` compares each declared skill with its

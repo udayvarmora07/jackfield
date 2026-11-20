@@ -2,9 +2,64 @@
 
 **Version 0.6.0**
 
-**AI manifest**: Authoritative inventory of every command, alias, flag, and exit code of the `skills-mgr` CLI. Facts verified against the parser/handler modules (`cli_parser.py`, `cli_handlers.py`, `cli_output.py` behind the stable `cli.py` adapter) plus live invocations on 2026-09-22. The web UI must mirror this surface exactly (see @docs/08-web-ui.md). Do not add commands or flags without updating this doc and @docs/02-modules.md.
+**AI manifest**: Authoritative inventory of every command, alias, flag, and exit code of the `skills-mgr` CLI. Facts verified against the parser/handler modules (`cli_parser.py`, `cli_handlers.py`, `cli_output.py` behind the stable `cli.py` adapter) plus live invocations on 2026-09-22. Usage consent, archive lifecycle and reviewed project changes are CLI-only. See @docs/08-web-ui.md for the shared web surface. Do not add commands or flags without updating this doc and @docs/02-modules.md.
 
-**[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **29 top-level commands + 11 subcommands (7 trash/templates/db actions, 3 update actions and 1 AI action) + 3 aliases (`ls`, `rm`, `gui`) = 43 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
+**[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **33 top-level commands + 24 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 60 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
+
+## Usage, lifecycle and project controls
+
+### `usage`
+
+- `usage enable --agent AGENT [--agent AGENT ...] [--json]` grants consent
+  for exact transcript roots. Supported agents are `claude-code`, `codex`,
+  `opencode`, `gemini`, and `commandcode`.
+- `usage report [--agent AGENT ...] [--days N] [--refresh] [--json]` reads
+  stored aggregates by default. `--refresh` scans authorized roots. Days
+  defaults to 90 and accepts 1–400. Reports include coverage and separate
+  explicit and inferred counts. Changed roots require fresh consent.
+- `usage disable [--agent AGENT ... | --purge] [--json]` revokes selected
+  consent, or all consent when no agent is named. `--purge` also erases
+  cached usage data.
+
+### `lock`
+
+- `lock verify --project DIR [--json]` compares Vercel lock entries with
+  `DIR/.agents/skills` offline. Exit 1 signals drift or incomplete evidence.
+- `lock write NAME [NAME ...] --project DIR [--source NAME=PATH ...]`
+  `[--dry-run | --plan-id HASH] [--json]` defaults to preview. A new
+  entry requires an explicit project-relative source with bytes matching
+  the installed skill. Apply repeats the same arguments with the plan ID.
+  Writes support v2 and retain untouched entries and unknown fields.
+- `lock undo --project DIR --plan-id HASH [--json]` restores the preimage
+  if the current file still matches the recorded write.
+
+### `native-profile`
+
+- `native-profile preview --project DIR --agent AGENT`
+  `(--off NAME ... | --profile NAME) [--json]` reviews declarations for
+  one project. `--profile` reads the native off list saved in v2 Profiles.
+- `native-profile apply --project DIR --agent AGENT`
+  `(--off NAME ... | --profile NAME) --plan-id HASH [--json]` applies a matching preview
+  for supported Claude Code, Gemini, and OpenCode settings. Codex preview
+  provides launch arguments and Command Code preview gives a manual patch.
+- `native-profile undo --backup-id ID [--json]` restores the preimage if
+  the current settings still match the recorded write.
+
+### `archive`
+
+- `archive candidates [--scope SCOPE] [--days N] [--json]` combines
+  inventory, pins and cached usage. The default scope is `global`.
+  Reports distinguish observed activity from unknown coverage.
+- `archive pin NAME [--scope SCOPE] [--note TEXT] [--plan-id HASH] [--json]`
+  and `archive unpin NAME [--scope SCOPE] [--plan-id HASH] [--json]` preview
+  by default and mutate only with the matching plan ID.
+- `archive undo-pin --plan-id HASH [--json]` restores the previous pin
+  state if the current file still matches the recorded write.
+
+Archive eligibility needs continuous observation for all potential
+consumers. The current transcript parsers cannot establish that coverage.
+This version reports evidence and manages pins without moving skills.
+See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
 
 ## Read-only compatibility findings
 

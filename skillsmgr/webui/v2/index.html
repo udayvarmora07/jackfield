@@ -411,16 +411,19 @@
               <legend>Which copy should everyone use?</legend>
               <label v-for="g in curSkill.ref.groups" :key="g[0].hash"><input type="radio" name="src" :value="g[0].scope" v-model="srcChoice"> {{ join(g.map((c) => agentOf(c.scope).name)) }}<span class="kbd-hint" v-if="g[0].hash === curSkill.ref.hash && !curSkill.ref.ambiguous"> · held by the most places</span></label>
             </fieldset>
+            <ul class="sync-targets" v-if="curSyncTargets.length" aria-label="Copies that will be overwritten">
+              <li v-for="c in curSyncTargets" :key="c.scope"><b>{{ agentOf(c.scope).name }}</b><code v-if="c.path">{{ c.path }}</code></li>
+            </ul>
             <div class="vs" v-if="curChanges">
-              <div class="ver"><header><logo :agent="agentOf(cur.agents[0])" size="xs"></logo>{{ agentOf(cur.agents[0]).name }}'s copy<small>now</small></header><p v-for="(l, i) in curChanges.filter((x) => x.t !== 'add')" :key="'d' + i" :class="l.t">{{ plainLine(l.x) }}</p></div>
-              <div class="ver"><header><logo :agent="agentOf(srcChoice || curSkill.ref.holders[0].scope)" size="xs"></logo>{{ agentOf(srcChoice || curSkill.ref.holders[0].scope).name }}'s copy<small>will be used</small></header><p v-for="(l, i) in curChanges.filter((x) => x.t !== 'del')" :key="'a' + i" :class="l.t">{{ plainLine(l.x) }}</p></div>
+              <div class="ver"><header><logo :agent="agentOf(curSyncTargets[0].scope)" size="xs"></logo>{{ agentOf(curSyncTargets[0].scope).name }}'s copy<small>now</small></header><p v-for="(l, i) in curChanges.filter((x) => x.t !== 'add')" :key="'d' + i" :class="l.t">{{ plainLine(l.x) }}</p></div>
+              <div class="ver"><header><logo :agent="agentOf(curSyncSource.scope)" size="xs"></logo>{{ agentOf(curSyncSource.scope).name }}'s copy<small>will be used</small></header><p v-for="(l, i) in curChanges.filter((x) => x.t !== 'del')" :key="'a' + i" :class="l.t">{{ plainLine(l.x) }}</p></div>
             </div>
           </template>
           <div class="big-list" v-if="cur.space">
             <div class="big-row" v-for="s in curBig" :key="s.name"><span><b>{{ s.name }}</b><small>About {{ fmt(words(s.tokens)) }} words</small></span>
               <a class="link" :href="'#/skill/' + enc(s.name)" :aria-label="'Open ' + s.name">Open</a><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="turnOffIn(s, cur.agent)">Turn off in {{ agentOf(cur.agent).name }}</button></div></div>
           <div class="f-acts">
-            <button type="button" class="btn btn-ink btn-lg" data-primary :disabled="busy || (cur.key === 'warn' && !srcChoice)" @click="fixCurrent()">{{ cur.action }}</button>
+            <button type="button" class="btn btn-ink btn-lg" data-primary :disabled="busy || (cur.key === 'warn' && !curSyncTargets.length)" @click="fixCurrent()">{{ cur.key === 'warn' ? curSyncLabel : cur.action }}</button>
             <button type="button" class="btn btn-soft btn-lg" @click="skipCurrent()">Skip for now</button>
             <a class="link" v-if="cur.skill" :href="'#/skill/' + enc(cur.skill)">Open skill</a>
             <span class="keys"><span><kbd>Enter</kbd> {{ cur.key === 'info' ? 'Done' : 'Fix' }}</span><span><kbd>S</kbd> Skip</span></span>
@@ -478,7 +481,7 @@
   </div>
 
   <div class="sr-only" role="status" aria-live="polite">{{ live }}</div>
-  <div class="toasts"><div class="toast" role="status" v-for="t in toasts" :key="t.id" @focusin="holdToast(t, true)" @focusout="holdToast(t, false)" @mouseenter="holdToast(t, true)" @mouseleave="holdToast(t, false)"><ic :name="t.err ? 'bad' : 'ok'"></ic><span>{{ t.text }}</span><button type="button" v-if="t.undo" @click="runUndo(t)">Undo</button></div></div>
+  <div class="toasts"><div class="toast" :class="{ err: t.err }" role="status" v-for="t in toasts" :key="t.id" @focusin="holdToast(t, true)" @focusout="holdToast(t, false)" @mouseenter="holdToast(t, true)" @mouseleave="holdToast(t, false)"><ic :name="t.err ? 'bad' : 'ok'"></ic><span>{{ t.text }}</span><button type="button" v-if="t.undo" @click="runUndo(t)">Undo</button></div></div>
 </div>
 <script src="../static/vendor/vue.global.prod.js"></script>
 <script src="../domain.js"></script>

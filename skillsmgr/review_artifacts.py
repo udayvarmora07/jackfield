@@ -62,6 +62,8 @@ exception. Each module retains its own error type and message.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -76,6 +78,7 @@ from .path_safety import fchmod_private
 #: A review id is exactly 32 lowercase hexadecimal characters.  All three
 #: stores built paths from this shape before writing anything.
 REVIEW_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
+PLAN_TOKEN_PATTERN = re.compile(r"[0-9a-f]{32}\.[0-9a-f]{64}\Z")
 
 #: Keys that look like credentials.  A review must never persist one, because
 #: it is written to disk and read back by a separate transaction.
@@ -93,6 +96,24 @@ def new_review_id() -> str:
 def is_valid_review_id(review_id: object) -> bool:
     """Return whether *review_id* has the exact review-id shape."""
     return isinstance(review_id, str) and REVIEW_ID_PATTERN.fullmatch(review_id) is not None
+
+
+def _plan_token(nonce: str, binding: str) -> str:
+    digest = hashlib.sha256((nonce + binding).encode("ascii")).hexdigest()
+    return f"{nonce}.{digest}"
+
+
+def issue_plan_token(binding: str) -> str:
+    """Distinguish separate previews even when undo restores the same inputs."""
+    return _plan_token(new_review_id(), binding)
+
+
+def is_plan_token(token: object) -> bool:
+    return isinstance(token, str) and PLAN_TOKEN_PATTERN.fullmatch(token) is not None
+
+
+def matches_plan_token(token: str, binding: str) -> bool:
+    return is_plan_token(token) and hmac.compare_digest(token, _plan_token(token[:32], binding))
 
 
 def has_review_header(value: object) -> bool:
