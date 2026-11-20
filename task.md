@@ -19,6 +19,8 @@ records, not additional live work.
 - [x] Add native project CLI preview/apply/undo for supported JSON settings,
   and read-only Codex launch and Command Code patch handoffs.
 - [x] Add lifecycle evidence and reversible pins.
+- [x] Report primary document modification evidence in `archive candidates`
+  using one UTC date window for modifications and cached usage events.
 - [ ] Implement archive apply and restore once continuous coverage, consumer
   mapping and edit/install evidence can establish staleness.
 - [x] Connect native settings previews to optional off lists in manager-saved
@@ -247,11 +249,10 @@ Open for the maintainer:
 
 ## Remaining gated and deferred entries
 
-The 12 open entries include 11 pending and one in progress, with
-historical overlaps. The full dated context remains in the archive.
-One human visual sign-off
-entry is retained verbatim in the parity section below and remains part of this
-queue. The other eleven entries follow.
+The live checklist has 11 open entries, including one in progress and some
+overlap among human reviews. Archive moves and the `.specs/` decision are
+listed above. The tool-page visual sign-off is in the parity section below.
+The full dated context remains in the archive.
 
 - [ ] Owner's call: choose the next release version and candidate after 1.0.2.
   Product questions Q1–Q4 remain in docs/45 §7.
@@ -261,6 +262,8 @@ queue. The other eleven entries follow.
   HTTP portion completed 2026-11-17: DeepSeek V4.1 Flash via GOAT matched
   36/36 authored labels, using four skills, 12 prompts and three repeats.
   An offline OpenCode probe confirmed how to observe a successful skill load.
+  The retained HTTP artifacts passed an offline checksum recheck, and the
+  native harness dry run matched all 12 prompt records to the simulation.
   An attended same-model comparison remains open for the permitted models.
   See @docs/48-ai-http-study-2026-11-17.md.
 
@@ -276,7 +279,11 @@ queue. The other eleven entries follow.
   @docs/06-progress-log.md and @docs/32-continuation-verification-2026-11-06.md.
   Human visual and spoken screen-reader sign-off remain open.
 
-- [ ] Review the dated screenshot package for external use and run real
+- [x] Check the dated pilot screenshot package locally. All seven image
+  checksums and viewport labels match the manifest. Review notes are in
+  @docs/06-progress-log.md.
+
+- [ ] Approve the dated screenshot package for external use and run real
   consented participant sessions using the pilot kit in docs/25.
 
 - [ ] Run five consent-safe human usability sessions; automated work does not

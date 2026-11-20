@@ -49,7 +49,10 @@
 
 - `archive candidates [--scope SCOPE] [--days N] [--json]` combines
   inventory, pins and cached usage. The default scope is `global`.
-  Reports distinguish observed activity from unknown coverage.
+  The activity window includes today and the preceding `N - 1` UTC dates.
+  `in-use` indicates a cached usage event or a primary document modified in
+  that window. JSON `last_edit` is the observed document modification time
+  when available, and `used_by` lists the agents with cached events.
 - `archive pin NAME [--scope SCOPE] [--note TEXT] [--plan-id HASH] [--json]`
   and `archive unpin NAME [--scope SCOPE] [--plan-id HASH] [--json]` preview
   by default and mutate only with the matching plan ID.

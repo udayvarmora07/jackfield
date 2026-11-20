@@ -6,9 +6,11 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 from skillsmgr.catalog import save_profile
+from skillsmgr.clock import iso
 
 
 class LifecycleCliTests(unittest.TestCase):
@@ -113,8 +115,10 @@ class LifecycleCliTests(unittest.TestCase):
         document.parent.mkdir(parents=True, mode=0o700)
         self.data.chmod(0o700)
         document.write_text("---\nname: example\ndescription: Example.\n---\n", encoding="utf-8")
+        os.utime(document, (946684800, 946684800))
         review = self.command("archive", "candidates")
         self.assertEqual(review["skills"][0]["state"], "unknown")
+        self.assertEqual(review["skills"][0]["last_edit"], "2000-01-01T00:00:00Z")
         combined = self.command("archive", "candidates", "--scope", "all")
         self.assertIn(review["skills"][0], combined["skills"])
         plan = self.command("archive", "pin", "example")
@@ -124,3 +128,38 @@ class LifecycleCliTests(unittest.TestCase):
         self.command("archive", "undo-pin", "--plan-id", plan["plan_hash"])
         self.assertTrue(document.is_file())
         self.assertFalse(self.command("archive", "candidates")["skills"][0]["pinned"])
+
+    def test_candidates_report_recent_active_and_disabled_document_mtimes(self):
+        self.data_base.mkdir(mode=0o700)
+        self.data.mkdir(mode=0o700)
+        recent = int(time.time()) - 60
+        for name, filename in (("active", "SKILL.md"), ("disabled", "SKILL.md.disabled")):
+            document = self.data / "skills" / name / filename
+            document.parent.mkdir(parents=True)
+            document.write_text(f"---\nname: {name}\ndescription: Example.\n---\n", encoding="utf-8")
+            os.utime(document, (recent, recent))
+        rows = self.command("archive", "candidates", "--days", 2)["skills"]
+        self.assertEqual([(row["name"], row["state"], row["used_by"]) for row in rows],
+                         [("active", "in-use", []), ("disabled", "in-use", [])])
+        self.assertEqual([row["last_edit"] for row in rows], [iso(recent)] * 2)
+
+    def test_candidates_skip_symlink_document_and_directory_mtimes(self):
+        self.data_base.mkdir(mode=0o700)
+        self.data.mkdir(mode=0o700)
+        document = self.data / "skills" / "example" / "SKILL.md"
+        document.parent.mkdir(parents=True)
+        elsewhere = self.root / "elsewhere"
+        elsewhere.write_text("---\nname: example\ndescription: Example.\n---\n", encoding="utf-8")
+        target = document.parent.with_name("target")
+        target.mkdir()
+        (target / "SKILL.md").write_text("---\nname: target\ndescription: Example.\n---\n", encoding="utf-8")
+        try:
+            document.symlink_to(elsewhere)
+            target.with_name("alias").symlink_to(target, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks unavailable")
+        rows = {row["name"]: row for row in self.command("archive", "candidates")["skills"]}
+        self.assertIsNotNone(rows["target"]["last_edit"])
+        for name in ("example", "alias"):
+            self.assertIsNone(rows[name]["last_edit"])
+            self.assertEqual(rows[name]["state"], "unknown")

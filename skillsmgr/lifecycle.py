@@ -201,7 +201,7 @@ def _day(value):
         return None
 
 
-def _usage_index(report, cutoff):
+def _usage_index(report, cutoff, today):
     index = {}
     rows = report.get("counts", []) if isinstance(report, dict) else []
     if not isinstance(rows, list) or len(rows) > MAX_USAGE_ROWS:
@@ -212,11 +212,11 @@ def _usage_index(report, cutoff):
         by_day = row.get("by_day")
         if not isinstance(by_day, dict) or len(by_day) > 400:
             continue
-        recent = any(_day(day) is not None and _day(day) >= cutoff and
-                     isinstance(count, int) and not isinstance(count, bool) and count > 0
-                     for day, count in by_day.items())
-        if recent:
-            index.setdefault(row["name"], set()).add(str(row.get("agent", "unknown")))
+        for day, count in by_day.items():
+            observed = _day(day)
+            if observed is not None and cutoff <= observed <= today and type(count) is int and count > 0:
+                index.setdefault(row["name"], set()).add(str(row.get("agent", "unknown")))
+                break
     return index
 
 
@@ -226,10 +226,11 @@ def candidate_report(skills, usage_report, *, data_dir, days=90, now=None):
     now = now or datetime.now(timezone.utc)
     if not isinstance(now, datetime) or now.tzinfo is None:
         raise StoreError("current time must include a timezone")
-    cutoff = (now.astimezone(timezone.utc) - timedelta(days=days)).date()
+    today = now.astimezone(timezone.utc).date()
+    cutoff = today - timedelta(days=days - 1)
     root = _root(data_dir)
     _, pins = _load(root)
-    usage = _usage_index(usage_report, cutoff)
+    usage = _usage_index(usage_report, cutoff, today)
     selected = list(itertools.islice(iter(skills), MAX_SKILLS + 1))
     rows = []
     for skill in selected[:MAX_SKILLS]:
@@ -239,7 +240,7 @@ def candidate_report(skills, usage_report, *, data_dir, days=90, now=None):
         key = _key(scope, name)
         agents = sorted(usage.get(name, ()))
         edited = _day(skill.get("last_edit"))
-        active = bool(agents) or (edited is not None and edited >= cutoff)
+        active = bool(agents) or (edited is not None and cutoff <= edited <= today)
         rows.append({"scope": scope, "name": name, "state": "in-use" if active else "unknown",
                      "pinned": key in pins["pins"], "last_edit": skill.get("last_edit"),
                      "used_by": agents, "reason": "recent activity" if active else

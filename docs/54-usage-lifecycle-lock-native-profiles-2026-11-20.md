@@ -83,6 +83,14 @@ possible consumer and edit/install period. The report therefore emits
 pending eligibility evidence. Text and disk state of skills are untouched
 by pin changes.
 
+**[SPEC]** The read-only preview reports the primary document's filesystem
+modification time as `last_edit` for active and disabled copies. Linked,
+malformed or unavailable documents have no timestamp evidence. A recent
+modification or cached usage event is positive activity evidence. Both use the
+last `N` UTC dates including today. A modification time covers one file and
+can be preserved by a copy, so it cannot establish install age, the age of
+supporting files, or an uninterrupted edit history.
+
 **[SPEC]** Future eligibility and moves:
 - `state` is **`unknown | in-use | stale-candidate`**, never a boolean.
   Stale-candidate needs all of: usage consent, a parser and a coverage

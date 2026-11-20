@@ -83,6 +83,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Fixed
 
+- `archive candidates` now shows observed primary document modification times
+  for active and disabled copies. It checks modifications and cached usage
+  over the same UTC date window.
+
 - Forced Sync preserves a previous folder in the target scope when it would
   discard or change supporting files. Both interfaces surface recovery guidance.
 - v2 Inbox lists the affected locations for the selected Sync source.

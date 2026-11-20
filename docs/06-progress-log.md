@@ -7,6 +7,34 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Lifecycle evidence and remaining-task review
+
+- `archive candidates` now shows the primary document modification time
+  for active and disabled copies. The CLI skips linked or malformed documents
+  and keeps the scan independent of the SQLite index. Recent mtime and cached
+  usage use the same UTC date window. Archive apply and restore still require
+  continuous usage coverage, verified consumer mapping and edit/install
+  evidence. See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
+- Reviewed the dated `2359e7a` pilot ZIP locally. All seven PNGs matched the
+  manifest hashes and viewport dimensions, and the files contained only PNG
+  header, image data and end chunks. Visual review found synthetic names and
+  no visible personal paths or account identifiers. The captures document the
+  named checkpoint and predate the later Inbox overwrite preview. External
+  approval and consented sessions remain with the maintainer.
+- Rechecked the ten retained HTTP study artifact hashes. The native harness
+  joined all twelve saved prompts to the DeepSeek simulation in dry-run mode,
+  including verification of the captured listing fingerprint. This is
+  offline input validation. The same-model native run remains an attended
+  study. See @docs/48-ai-http-study-2026-11-17.md.
+
+Linux verification ran 2,335 unit cases on each of Python 3.11–3.14, with
+7/7/7/6 skips and no failures. Both smokes, compile, CLI help, Ruff, Bandit,
+complexity, documentation, design tokens and offline AI evidence checks
+passed. The pinned wheel and sdist passed package-data checks and eight
+lifecycle tests each after clean installs. Synthetic CLI checks covered an
+empty library, two concurrent reports of a single skill, and a 10,001-skill
+library truncated at 10,000 rows.
+
 ## 2026-11-20 — Claude Code recovery hardening handoff
 
 Continued from Claude Code's `Skills Manager recovery hardening` after

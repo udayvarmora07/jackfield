@@ -36,6 +36,19 @@ class LifecycleTests(unittest.TestCase):
         row = self.report([{"name": "a", "agents": ["codex"], "last_edit": "2020-01-01"}], usage)["skills"][0]
         self.assertEqual(row["state"], "unknown")
 
+    def test_observations_share_the_requested_utc_day_window(self):
+        skills = [{"name": "today", "last_edit": "2026-11-20T00:00:00Z"},
+                  {"name": "yesterday", "last_edit": "2026-11-19T23:59:59Z"},
+                  {"name": "future", "last_edit": "2026-11-21T00:00:00Z"},
+                  {"name": "usage-today"}, {"name": "usage-yesterday"}, {"name": "usage-future"}]
+        usage = {"counts": [{"name": f"usage-{name}", "agent": "codex", "by_day": {day: 1}}
+                            for name, day in (("today", "2026-11-20"), ("yesterday", "2026-11-19"),
+                                              ("future", "2026-11-21"))]}
+        report = lifecycle.candidate_report(skills, usage, data_dir=self.data, days=1, now=self.now)
+        self.assertEqual(report["cutoff"], "2026-11-20")
+        self.assertEqual([row["state"] for row in report["skills"]],
+                         ["in-use", "unknown", "unknown", "in-use", "unknown", "unknown"])
+
     def test_ten_thousand_cap_and_truncation(self):
         rows = ({"name": f"s{i}"} for i in range(10_001))
         report = self.report(rows)

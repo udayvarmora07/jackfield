@@ -1,6 +1,11 @@
 """CLI entry points for opt-in usage and exact project previews."""
 
+import stat
+from pathlib import Path
+
 from .cli_output import print_json, sanitize_text
+from .clock import iso
+from .documents import ACTIVE_DOCUMENT, DISABLED_DOCUMENT
 
 
 def _preview_output(result, *, json_output):
@@ -142,6 +147,26 @@ def _native_off(args, store):
     return off
 
 
+def _candidate_mtime(record):
+    if record.get("malformed") or record.get("read_only"):
+        return None
+    name = DISABLED_DOCUMENT if record["disabled"] else ACTIVE_DOCUMENT
+    # The loader's provenance keeps the named entry, even when the global
+    # scope row's path has already resolved an in-library directory alias.
+    document = Path(record["provenance"]["path"]) / name
+    try:
+        # Use the chosen on-disk document. Skip links, including links in an
+        # ancestor, and files that can no longer be inspected after scanning.
+        if document.resolve(strict=True) != document:
+            return None
+        info = document.lstat()
+        if stat.S_ISREG(info.st_mode):
+            return iso(info.st_mtime)
+    except (OSError, RuntimeError, ValueError, OverflowError):
+        return None
+    return None
+
+
 def _candidate_rows(records):
     from .validator import validate_skill_name
 
@@ -150,7 +175,7 @@ def _candidate_rows(records):
             validate_skill_name(record["name"])
         except ValueError:
             continue
-        yield {"scope": record["scope"], "name": record["name"]}
+        yield {"scope": record["scope"], "name": record["name"], "last_edit": _candidate_mtime(record)}
 
 
 def _candidates(args, store):
@@ -166,8 +191,12 @@ def _candidates(args, store):
         print_json(result)
         return
     for row in result["skills"]:
-        print(sanitize_text(row["scope"]), sanitize_text(row["name"]), row["state"],
-              "(pinned)" if row["pinned"] else "")
+        parts = [sanitize_text(row["scope"]), sanitize_text(row["name"]), row["state"]]
+        if row["pinned"]:
+            parts.append("(pinned)")
+        if row["last_edit"]:
+            parts.append(f'document modified {row["last_edit"]}')
+        print(*parts)
     if result["truncated"]:
         print(f'Showing the first {result["limit"]} skills.')
     print("Archive eligibility requires complete coverage. Current reports show partial evidence.")
