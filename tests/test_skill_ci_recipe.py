@@ -112,7 +112,13 @@ class SkillCiRecipeTests(unittest.TestCase):
     def test_a_terminated_run_still_removes_its_data_directory(self):
         self._skill("alpha")
         slow = self.base / "slow-mgr"
-        slow.write_text("#!/bin/sh\nexec sleep 30\n", encoding="utf-8")
+        # The stub runs only after the recipe armed its EXIT trap, so its
+        # marker (kept outside base) is the point where SIGTERM must clean up.
+        # Signalling on the mktemp directory alone could land before the trap.
+        markers = tempfile.TemporaryDirectory()
+        self.addCleanup(markers.cleanup)
+        started = Path(markers.name) / "started"
+        slow.write_text(f"#!/bin/sh\ntouch '{started}'\nexec sleep 30\n", encoding="utf-8")
         slow.chmod(0o700)
         before = {p.name for p in self.base.iterdir()}
         process = subprocess.Popen(
@@ -120,8 +126,9 @@ class SkillCiRecipeTests(unittest.TestCase):
             cwd=str(self.base), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         deadline = __import__("time").monotonic() + 10
-        while {p.name for p in self.base.iterdir()} == before and __import__("time").monotonic() < deadline:
+        while not started.exists() and __import__("time").monotonic() < deadline:
             __import__("time").sleep(0.05)
+        self.assertTrue(started.exists(), "the stub manager never started")
         process.send_signal(signal.SIGTERM)
         process.wait(timeout=30)
         self.assertNotEqual(process.returncode, 0)

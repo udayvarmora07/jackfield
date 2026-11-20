@@ -4905,11 +4905,6 @@
       "end_lineno": 327,
       "lineno": 321
     },
-    "skillsmgr/store.py::_stage_sibling": {
-      "complexity": 2,
-      "end_lineno": 190,
-      "lineno": 177
-    },
     "skillsmgr/store.py::_stale_snapshots": {
       "complexity": 6,
       "end_lineno": 472,
@@ -5321,7 +5316,7 @@
       "lineno": 1158
     },
     "skillsmgr/webapp.py::WebAppHandler._route_trash_post": {
-      "complexity": 5,
+      "complexity": 4,
       "end_lineno": 1437,
       "lineno": 1422
     },

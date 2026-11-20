@@ -618,6 +618,15 @@ MAX_BODY_BYTES = MAX_UPLOAD_BYTES
 MAX_HISTORY_LIMIT = 200
 
 
+def _is_bare_purge(target: str, qs: dict[str, list[str]], body: dict) -> bool:
+    """Emptying the trash is irreversible, so only the bare request purges.
+
+    A scope, a snapshot or any JSON body addresses one entry: that is a
+    restore, including for a skill named "purge".
+    """
+    return target == "purge" and not (qs.keys() & {"scope", "snapshot"}) and not body
+
+
 class WebAppHandler(BaseHTTPRequestHandler):
     server_version = "skillsmgr-webui"
 
@@ -1492,15 +1501,15 @@ class WebAppHandler(BaseHTTPRequestHandler):
             return False
         if len(parts) != 3:
             self._send_error(404, "unknown endpoint", code="unknown_endpoint")
-        # An explicit scope or snapshot identifies a restore, including for a
-        # skill named "purge".
-        elif parts[2] == "purge" and not (qs.keys() & {"scope", "snapshot"}):
-            self._send_json(self.store.purge_trash())
         else:
-            self._restore_trash_post(parts[2], qs)
+            body = self._body_json()
+            if _is_bare_purge(parts[2], qs, body):
+                self._send_json(self.store.purge_trash())
+            else:
+                self._restore_trash_post(parts[2], qs, body)
         return True
 
-    def _restore_trash_post(self, name: str, qs: dict[str, list[str]]) -> None:
+    def _restore_trash_post(self, name: str, qs: dict[str, list[str]], body: dict) -> None:
         """Restore one name from the global store or an agent's trash folder.
 
         A ``snapshot`` query rolls back the document. Otherwise ``trash_path``
@@ -1511,7 +1520,7 @@ class WebAppHandler(BaseHTTPRequestHandler):
         if snapshot:
             self._send_json(scopes.restore_snapshot(scope, name, snapshot))
             return
-        trash_path = self._body_json().get("trash_path")
+        trash_path = body.get("trash_path")
         if trash_path is not None and not isinstance(trash_path, str):
             raise StoreError("trash_path must be a string")
         result = (self.store.restore(name, trash_path=trash_path) if scope == "global"

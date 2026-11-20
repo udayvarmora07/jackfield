@@ -8,6 +8,7 @@ import tarfile
 import tempfile
 import unittest
 import zipfile
+from contextlib import redirect_stderr
 from pathlib import Path
 from unittest import mock
 
@@ -338,12 +339,27 @@ class PackageDataBuildToolTests(unittest.TestCase):
         traceback instead of the gate's own verdict.
         """
 
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / "broken-1.0-py3-none-any.whl").write_bytes(b"this is not a zip")
-            (root / "broken-1.0.tar.gz").write_bytes(b"this is not a gzip stream")
-            code = check_package_data.run_check(check_package_data.ROOT, dist_dir=root)
-            self.assertEqual(code, 1)
+        real_inspect = check_package_data.inspect_archive
+
+        def wheel_passes(path, *args):
+            # Let the sdist case reach its own reader: the wheel is read first.
+            return object() if path.suffix == ".whl" else real_inspect(path, *args)
+
+        cases = (("wheel", real_inspect, "not a zip"), ("sdist", wheel_passes, "gzip"))
+        for label, inspector, reason in cases:
+            with self.subTest(label), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "broken-1.0-py3-none-any.whl").write_bytes(b"this is not a zip")
+                (root / "broken-1.0.tar.gz").write_bytes(b"this is not a gzip stream")
+                stderr = io.StringIO()
+                with (
+                    redirect_stderr(stderr),
+                    mock.patch.object(check_package_data, "inspect_archive", side_effect=inspector),
+                ):
+                    code = check_package_data.run_check(check_package_data.ROOT, dist_dir=root)
+                self.assertEqual(code, 1)
+                self.assertIn("FAIL:", stderr.getvalue())
+                self.assertIn(reason, stderr.getvalue().lower())
 
 
 if __name__ == "__main__":

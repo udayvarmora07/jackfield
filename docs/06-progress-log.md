@@ -7,6 +7,40 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Recovery follow-ups from parallel review
+
+Four parallel subagents (Sonnet/Haiku) worked from this session's gaps: an
+agent-scope implementation in an isolated worktree, a hostile review of
+`9ca8ff6..4d83e86`, an investigation of a stray CI log line, and a flake hunt
+under CPU contention. Their diffs and claims were re-checked before landing.
+
+- Agent-scope `restore_trashed` now shares the global copy, verify, publish,
+  retire helper (moved to `atomic_io.move_trash_tree`). The global default
+  restore orders by trash stamp and serial with mtime as the last tiebreak,
+  so an mtime bump on an older entry no longer changes which copy returns.
+  An entry that vanishes during selection is skipped; other inspection
+  errors become `StoreError`.
+- Review found that `POST /api/trash/purge` with a `{"trash_path": ...}` body
+  and no `?scope=` emptied the whole trash (`purge` is a valid skill name).
+  Only a bare request purges now; a regression covers both body shapes.
+  The shipped UIs always send `?scope=`, so neither was exposed.
+- Not changed, recorded for later: Windows directory renames that fail with
+  a held handle no longer fall back to copy and delete (only `EXDEV` does);
+  new trash names add 26 characters, which matters near MAX_PATH; a crash
+  between publishing and retiring leaves both copies until resync.
+- The stray `FAIL: File is not a zip file` was a negative-path test writing to
+  stderr. It is now captured, and the test asserts the reason for both the
+  wheel and the sdist reader, which it previously never reached.
+- Flake hunt (18 timing modules, 15 runs each under load): the fidelity
+  descendant test failed 4/15 (`State: R` with SIGKILL pending) and the
+  skill CI recipe test 1/15 (SIGTERM between `mktemp -d` and `trap`). The
+  first now polls up to 5 s, the simulator test uses its short timeout only
+  for the timeout case, and the recipe test signals after the stub starts.
+  Both modules then passed 10/10 under six busy loops, and on Python 3.11.
+- Ladder on the integrated tree: Ruff 0.16.8, compile, complexity (one stale
+  baseline entry removed, `_route_trash_post` ratcheted 5 → 4), docs, design
+  tokens, unit suite on 3.12 and 3.11, both smokes, v2 and classic e2e.
+
 ## 2026-11-20 — Recovery across linked and cross-volume trash
 
 - Global Recovery accepts either the listed trash path or the physical path

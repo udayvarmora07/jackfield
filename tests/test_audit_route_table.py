@@ -401,6 +401,19 @@ class RouteTableTestCase(unittest.TestCase):
         self.assertTrue(Path(other).exists())
         self.assertTrue((self.store.skills_dir / "purge" / "SKILL.md").is_file())
 
+    def test_purge_path_with_a_body_but_no_scope_restores_and_never_empties(self):
+        # A documented restore body without ?scope= must not empty the trash.
+        self.store.create("purge", "Use this fixture to verify recovery.")
+        selected = self.store.remove("purge")["trash_path"]
+        other = self.store.remove("demo")["trash_path"]
+        status, raw, _ = self.request("POST", "/api/trash/purge", {"trash_path": selected})
+        self.assertEqual(status, 200, raw)
+        self.assertEqual(json.loads(raw)["name"], "purge")
+        self.assertTrue(Path(other).exists())
+        status, raw, _ = self.request("POST", "/api/trash/purge", {"unexpected": True})
+        self.assertEqual(status, 400, raw)
+        self.assertTrue(Path(other).exists())
+
     # -- boundaries that are not the route table's business ------------------
 
     def test_a_read_with_a_foreign_host_is_403_not_a_silent_success(self):

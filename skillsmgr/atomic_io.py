@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
+import shutil
 import tempfile
 import threading
 import time
@@ -19,6 +21,7 @@ except ImportError:  # pragma: no cover - POSIX
 from collections import OrderedDict
 from pathlib import Path
 
+from .diagnostics import diagnose as _diagnose
 from .errors import LockTimeoutError
 from . import paths
 from .path_safety import mkdir_private
@@ -471,3 +474,63 @@ def _digest_member(digest, root: Path, path: Path, separator: str = "/") -> None
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
+
+
+def stage_sibling(dest: Path) -> Path:
+    """Return an unused staging path beside *dest* for an atomic install.
+
+    The name is what ``_is_transaction_artifact`` recognises, so a crash that
+    leaves the staging directory behind is reported by ``doctor()`` instead of
+    masquerading as a real skill directory.
+    """
+    base = dest.parent / f"{dest.name}.skillsmgr-stage"
+    candidate = base
+    counter = 1
+    while candidate.exists():
+        candidate = Path(f"{base}.{counter}")
+        counter += 1
+    return candidate
+
+
+def move_trash_tree(source: Path, destination: Path) -> None:
+    """Move to an exact unoccupied path, including between mounted volumes."""
+    if os.path.lexists(destination):
+        raise FileExistsError(f"the destination is occupied: {destination}")
+    try:
+        os.rename(source, destination)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        # Copy beside the destination first. A failed copy cannot publish an
+        # incomplete directory or remove the original.
+        with tempfile.TemporaryDirectory(prefix=".trash-transfer.skillsmgr-stage.", dir=destination.parent) as stage:
+            staged = Path(stage) / source.name
+            shutil.copytree(source, staged, symlinks=True)
+            # Verify names and bytes before anything is published or retired.
+            if tree_content_hash(staged) != tree_content_hash(source):
+                raise OSError(errno.EIO, f"the copy of {source} did not match the original")
+            os.rename(staged, destination)
+        # The destination now holds the complete tree. Remove the old path
+        # atomically, then clean up the parked copy outside the live layout.
+        # If the original cannot be parked, withdraw the published copy so
+        # exactly one tree remains: the untouched original.
+        parked = stage_sibling(source)
+        try:
+            os.rename(source, parked)
+        except OSError:
+            discard_published_copy(destination)
+            raise
+        try:
+            shutil.rmtree(parked)
+        except OSError as cleanup_error:
+            _diagnose(f"trash transfer completed but left a staged tree at {parked}", cleanup_error)
+
+
+def discard_published_copy(destination: Path) -> None:
+    """Remove a cross-volume copy whose original could not be retired."""
+    try:
+        withdrawn = stage_sibling(destination)
+        os.rename(destination, withdrawn)
+        shutil.rmtree(withdrawn)
+    except OSError as cleanup_error:
+        _diagnose(f"cross-volume move left a duplicate copy at {destination}", cleanup_error)

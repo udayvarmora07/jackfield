@@ -3,6 +3,7 @@ import importlib.util
 import hashlib
 import json
 import os
+import re
 import stat
 import tempfile
 import time
@@ -197,10 +198,17 @@ print(json.dumps({'type':'result','subtype':'success','is_error':False}))
         self.assertEqual(report['cases'][0]['reason'], 'timeout')
         pid = int(pidfile.read_text())
         status = Path('/proc') / str(pid) / 'status'
-        try:
-            child_status = status.read_text()
-        except (FileNotFoundError, ProcessLookupError):
-            return  # Reaping may remove the entry before the status read.
+        # SIGKILL to the group is asynchronous: under load the child can still
+        # be R/S for a moment. It must stop promptly, not instantly.
+        deadline = time.monotonic() + 5
+        while True:
+            try:
+                child_status = status.read_text()
+            except (FileNotFoundError, ProcessLookupError):
+                return  # Reaped: the entry is gone.
+            if re.search(r'State:\t[ZX]', child_status) or time.monotonic() > deadline:
+                break
+            time.sleep(0.05)
         # Z (zombie) or X (dead, mid-reap) both mean the child stopped running.
         self.assertRegex(child_status, r'State:\t[ZX]')
 
@@ -277,7 +285,7 @@ class FidelityStudyTests(unittest.TestCase):
                 fake.write_text('#!/usr/bin/env python3\n' + script + '\n')
                 fake.chmod(stat.S_IRWXU)
                 with self.subTest(reason=reason), patch.dict(os.environ, {'PATH': directory + os.pathsep + os.environ['PATH']}), \
-                     patch.object(study, 'SIM_TIMEOUT', 0.25):
+                     patch.object(study, 'SIM_TIMEOUT', 0.25 if reason == 'timeout' else 10):
                     with self.assertRaises(ValueError) as error:
                         study.CliRouter(root).ask_json('system', 'prompt', max_output=150)
                     self.assertIn(reason, str(error.exception))

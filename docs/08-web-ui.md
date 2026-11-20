@@ -561,7 +561,7 @@ stated beside the setting and in every result.
 |---|---|---|
 | GET | `/api/trash` | Global Store trash by default; `?scope=<agent>` lists that agent's bounded trash |
 | POST | `/api/trash/<name>` | Restore the newest copy in the requested scope, or pass the listed `trash_path` in JSON to select an entry. Both UIs pass the scope and selected path. Use `?scope=global` when restoring a global skill named `purge`. Use `?snapshot=ID&scope=SCOPE` to roll back a snapshot. |
-| POST | `/api/trash/purge` | Purge global trash. The purge action has no `scope` or `snapshot` parameter. |
+| POST | `/api/trash/purge` | Purge global trash. Only a bare request purges: any `scope` or `snapshot` parameter, or any JSON body (such as `trash_path`), makes it a restore of a skill named `purge`. |
 
 Treat `trash_path` as an opaque value from the current listing or removal
 response. A later removal in the same second gets a fresh path, so a Restore

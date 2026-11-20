@@ -87,6 +87,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
   it accepts the listed or the returned path, and a cross-volume restore or
   rollback copies, verifies and then retires the original, leaving the
   original intact if any step fails.
+- Agent-scope Recovery also restores across volumes, and the default global
+  restore picks the copy trashed last even if an older entry's timestamp
+  changed. `POST /api/trash/purge` with a JSON body now restores a skill named
+  `purge` instead of emptying the trash.
 - Changing the selected Sync map copy clears previous repair selections.
   Older v2 responses no longer replace newer trash, history or catalog reads.
 

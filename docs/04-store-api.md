@@ -69,12 +69,12 @@ write paths, so the condition has one name wherever a user meets it.
 - `add(self, src, name=None) -> dict` — install an existing skill directory (or SKILL.md file) from `src`; `name` overrides the destination name. Manager sidecars (`.skillsmgr-provenance.json`, `.skillsmgr-source-lock.json`) are dropped at any depth: an added folder is external intake, and that evidence describes a different install (R2). The caller's folder is not modified.
 - `remove(self, name, purge=False) -> dict` — trash by default; `purge=True` deletes permanently.
 - `restore(self, name, snapshot=None, *, trash_path=None) -> dict` — restore the
-  matching `trash_list()` entry, or the newest copy when no path is supplied.
+  matching `trash_list()` entry, or, with no path, the copy trashed last (by trash stamp and serial; mtime only breaks ties).
   `trash_path` may be the listed path or the physical path `remove()` returned
   through a linked trash folder; it is only compared against listed children.
   The index and history commit together. If either write fails, the Store
   attempts to move the tree back to its original trash path. Transfers across
-  volumes (`EXDEV`) stage the complete copy, verify its names and bytes, publish
+  volumes (`EXDEV`) stage the complete copy, verify regular-file names and bytes (links are copied as links), publish
   it, then retire the original; if the original cannot be retired, the copy is
   withdrawn so only the original remains. If rollback fails,
   the Store reports the problem and keeps the restored tree for review.

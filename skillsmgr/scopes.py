@@ -33,7 +33,7 @@ from .documents import (
 )
 from .loader import load_skill, scan_dir
 from . import root_discovery as _root_discovery
-from .atomic_io import atomic_write_text, mutation_lock
+from .atomic_io import atomic_write_text, move_trash_tree, mutation_lock
 from .context import active_store
 from .read_flights import coalesced_read
 from .store import (
@@ -1175,8 +1175,10 @@ def restore_trashed(scope_id: str, name: str, trash_path: str | None = None) -> 
     """Move one trashed agent-scope skill back where the agent reads it.
 
     The destination must be free (a symlink counts as occupied), and the move
-    is a rename on the same filesystem under the per-skill mutation lock the
-    other scoped writes use — never a copy.
+    is a rename under the per-skill mutation lock the other scoped writes use.
+    When trash and scope sit on different volumes the tree is copied beside the
+    destination, verified byte for byte, published, and only then retired; a
+    failure leaves just the untouched trashed original.
     """
     try:
         name = validate_skill_name(name)
@@ -1198,7 +1200,7 @@ def restore_trashed(scope_id: str, name: str, trash_path: str | None = None) -> 
         # or entry cannot redirect this rename to a symlinked external tree.
         source = _validated_scope_trash_entry(scope, scope_id, name, entry)
         try:
-            os.rename(source, skill_dir)
+            move_trash_tree(source, skill_dir)
         except FileNotFoundError:
             # The advisory lock excludes cooperating writers, but this trash
             # folder is a plain directory another tool may edit.

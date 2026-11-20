@@ -7,6 +7,7 @@ and the scope-aware ``/api/trash`` routes exist.
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import shutil
@@ -279,6 +280,64 @@ class AgentScopeTrashTests(unittest.TestCase):
         self.assertTrue(entry.is_symlink())
         self.assertTrue((outside / "SKILL.md").is_file())
         self.assertFalse((self.skills_dir / "demo").exists())
+
+    # -- cross-volume restore -------------------------------------------
+
+    def _cross_volume_rename(self, entry, live, *, refuse_park=False):
+        real_rename = os.rename
+
+        def rename(source, destination):
+            if {Path(source), Path(destination)} == {entry, live}:
+                raise OSError(errno.EXDEV, "fixture cross-volume rename")
+            if refuse_park and Path(source) == entry:
+                raise PermissionError(errno.EACCES, "fixture park refused")
+            return real_rename(source, destination)
+
+        return mock.patch("skillsmgr.atomic_io.os.rename", side_effect=rename)
+
+    def test_restore_across_volumes_copies_verifies_and_retires_the_original(self):
+        entry = self.write_trash_entry(OLD_STAMP, "cross volume\n")
+        (entry / "nested").mkdir()
+        (entry / "nested" / "companion.bin").write_bytes(b"\x00\xff")
+        live = self.skills_dir / "demo"
+        with self._cross_volume_rename(entry, live):
+            result = scopes.restore_trashed("agents", "demo")
+        self.assertEqual(result["action"], "restored")
+        self.assertEqual((live / "SKILL.md").read_text("utf-8"), "cross volume\n")
+        self.assertEqual((live / "nested" / "companion.bin").read_bytes(), b"\x00\xff")
+        self.assertFalse(entry.exists())
+        self.assertEqual([p.name for p in self.skills_dir.iterdir()], ["demo"])
+        self.assertEqual(list(self.trash.iterdir()), [])
+
+    def test_cross_volume_restore_refuses_a_copy_that_does_not_match(self):
+        entry = self.write_trash_entry(OLD_STAMP, "original bytes\n")
+        live = self.skills_dir / "demo"
+        real_copytree = shutil.copytree
+
+        def corrupt_copy(source, destination, **kwargs):
+            result = real_copytree(source, destination, **kwargs)
+            (Path(destination) / "SKILL.md").write_bytes(b"truncated")
+            return result
+
+        with (
+            self._cross_volume_rename(entry, live),
+            mock.patch("skillsmgr.atomic_io.shutil.copytree", side_effect=corrupt_copy),
+        ):
+            with self.assertRaisesRegex(StoreError, "did not match"):
+                scopes.restore_trashed("agents", "demo")
+        self.assertEqual((entry / "SKILL.md").read_text("utf-8"), "original bytes\n")
+        self.assertEqual(list(self.skills_dir.iterdir()), [])
+
+    def test_cross_volume_restore_keeps_only_the_original_if_it_cannot_be_retired(self):
+        entry = self.write_trash_entry(OLD_STAMP, "original bytes\n")
+        live = self.skills_dir / "demo"
+        with self._cross_volume_rename(entry, live, refuse_park=True):
+            with self.assertRaisesRegex(StoreError, "could not restore 'demo'"):
+                scopes.restore_trashed("agents", "demo")
+        self.assertEqual((entry / "SKILL.md").read_text("utf-8"), "original bytes\n")
+        self.assertEqual(list(self.skills_dir.iterdir()), [])
+        scopes.restore_trashed("agents", "demo")
+        self.assertEqual((live / "SKILL.md").read_text("utf-8"), "original bytes\n")
 
     # -- restore selection ----------------------------------------------
 

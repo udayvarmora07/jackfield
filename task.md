@@ -30,6 +30,15 @@ records, not additional live work.
 - [x] Accept trash paths returned through a linked global trash folder, and
   make restore and rollback work across volumes (EXDEV: copy, verify, retire
   the original; withdraw the copy and keep the original if retiring fails).
+- [x] Agent-scope Recovery restores across volumes with the same staged,
+  verified copy; the global default restore follows trash stamp and serial
+  rather than directory mtime; a trash entry that vanishes mid-selection is
+  skipped instead of escaping as a raw error.
+- [x] `POST /api/trash/purge` empties the trash only as a bare request; a JSON
+  body or `scope`/`snapshot` parameter makes it a restore of `purge`.
+- [x] Remove three timing races from the suite (fidelity descendant state,
+  simulator timeout, skill CI recipe signal before trap) and make the
+  corrupt-artifact package test check its reason on both archive readers.
 
 ## All-scope list request speed (2026-11-19)
 

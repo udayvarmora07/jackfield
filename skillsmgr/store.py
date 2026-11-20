@@ -9,7 +9,6 @@ skills via :meth:`Store.resync` / :meth:`Store.db_rebuild`.
 
 from __future__ import annotations
 
-import errno
 import io
 import json
 import os
@@ -31,6 +30,7 @@ from . import path_safety
 from . import __version__
 from .diagnostics import diagnose as _diagnose
 from .atomic_io import atomic_write_text, mutation_lock, tree_content_hash
+from .atomic_io import move_trash_tree, stage_sibling
 from .atomic_io import register_lock_root as _register_lock_root
 from . import archive as _archive
 from .path_safety import mkdir_private
@@ -84,6 +84,10 @@ CREATE INDEX IF NOT EXISTS idx_skills_status ON skills(status);
 # New removals add a numeric serial after ``Z``. Keep accepting bare stamps
 # and historical counters on either side of an optional ``Z``.
 _TRASH_TS_RE = re.compile(r"-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(?:-\d+)?Z?(?:-\d+)?$")
+# Same shape with the pieces captured, for ordering only (never for validity).
+_TRASH_ORDER_RE = re.compile(
+    r"-(?P<stamp>\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})(?:-(?P<early>\d+))?Z?(?:-(?P<late>\d+))?$"
+)
 
 SNAPSHOT_KEEP = 5
 _SNAPSHOT_ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}Z?(?:-\d+)?$")
@@ -173,20 +177,8 @@ def _trash_lock_dir(trash_dir: Path) -> Path:
     return trash_dir / ".trash-lock"
 
 
-def _stage_sibling(dest: Path) -> Path:
-    """Return an unused staging path beside *dest* for an atomic install.
-
-    The name is what ``_is_transaction_artifact`` recognises, so a crash that
-    leaves the staging directory behind is reported by ``doctor()`` instead of
-    masquerading as a real skill directory.
-    """
-    base = dest.parent / f"{dest.name}.skillsmgr-stage"
-    candidate = base
-    counter = 1
-    while candidate.exists():
-        candidate = Path(f"{base}.{counter}")
-        counter += 1
-    return candidate
+_stage_sibling = stage_sibling
+_move_trash_tree = move_trash_tree
 
 
 def _has_trash_copy(trash_dir: Path, name: str) -> bool:
@@ -431,6 +423,35 @@ def _trash_entry_name(path: Path) -> str | None:
         return None
 
 
+def _trash_order_key(path: Path, mtime: float) -> tuple[str, int, float]:
+    """Order trash entries by trashed time, then serial; mtime only breaks ties.
+
+    A rename keeps the directory's mtime, so mtime alone mis-orders entries once
+    anything touches an older one. The fixed-width stamp sorts chronologically
+    as text; the serial is the monotonic counter (or a legacy ``-N`` collision
+    counter before or after the ``Z``).
+    """
+    match = _TRASH_ORDER_RE.search(path.name)
+    if match is None:
+        return ("", 0, mtime)
+    serial = match.group("late") or match.group("early") or "0"
+    return (match.group("stamp"), int(serial), mtime)
+
+
+def _trash_oldest_first(paths: list[Path], name: str) -> list[Path]:
+    """Order entries oldest to newest, skipping any another tool just removed."""
+    dated: list[tuple[tuple[str, int, float], Path]] = []
+    for path in paths:
+        try:
+            mtime = path.stat().st_mtime
+        except FileNotFoundError:
+            continue  # removed after the listing; nothing left to restore
+        except OSError as exc:
+            raise StoreError(f"could not inspect the trashed copy of '{name}': {exc}") from exc
+        dated.append((_trash_order_key(path, mtime), path))
+    return [path for _, path in sorted(dated, key=lambda pair: pair[0])]
+
+
 def _trash_source(trash_dir: Path, name: str, trash_path: str | None) -> Path:
     """Select a valid trash child while the caller holds the trash lock."""
     if not trash_dir.is_dir():
@@ -438,58 +459,14 @@ def _trash_source(trash_dir: Path, name: str, trash_path: str | None) -> Path:
     actual_root = trash_dir.resolve()
     # Match the listed path or the physical path returned by remove() when
     # the trash root is linked. The incoming path is only a string comparison.
-    candidates = sorted(
-        (path for path in trash_dir.iterdir()
-         if trash_path in (None, str(path), str(actual_root / path.name)) and _trash_entry_name(path) == name),
-        key=lambda path: path.stat().st_mtime,
-    )
+    matched = [
+        path for path in trash_dir.iterdir()
+        if trash_path in (None, str(path), str(actual_root / path.name)) and _trash_entry_name(path) == name
+    ]
+    candidates = _trash_oldest_first(matched, name)
     if not candidates:
         raise StoreError(f"no trashed copy of '{name}' found")
     return candidates[-1]
-
-
-def _move_trash_tree(source: Path, destination: Path) -> None:
-    """Move to an exact unoccupied path, including between mounted volumes."""
-    if os.path.lexists(destination):
-        raise FileExistsError(f"the destination is occupied: {destination}")
-    try:
-        os.rename(source, destination)
-    except OSError as exc:
-        if exc.errno != errno.EXDEV:
-            raise
-        # Copy beside the destination first. A failed copy cannot publish an
-        # incomplete directory or remove the original.
-        with tempfile.TemporaryDirectory(prefix=".trash-transfer.skillsmgr-stage.", dir=destination.parent) as stage:
-            staged = Path(stage) / source.name
-            shutil.copytree(source, staged, symlinks=True)
-            # Verify names and bytes before anything is published or retired.
-            if tree_content_hash(staged) != tree_content_hash(source):
-                raise OSError(errno.EIO, f"the copy of {source} did not match the original")
-            os.rename(staged, destination)
-        # The destination now holds the complete tree. Remove the old path
-        # atomically, then clean up the parked copy outside the live layout.
-        # If the original cannot be parked, withdraw the published copy so
-        # exactly one tree remains: the untouched original.
-        parked = _stage_sibling(source)
-        try:
-            os.rename(source, parked)
-        except OSError:
-            _discard_published_copy(destination)
-            raise
-        try:
-            shutil.rmtree(parked)
-        except OSError as cleanup_error:
-            _diagnose(f"trash transfer completed but left a staged tree at {parked}", cleanup_error)
-
-
-def _discard_published_copy(destination: Path) -> None:
-    """Remove a cross-volume copy whose original could not be retired."""
-    try:
-        withdrawn = _stage_sibling(destination)
-        os.rename(destination, withdrawn)
-        shutil.rmtree(withdrawn)
-    except OSError as cleanup_error:
-        _diagnose(f"cross-volume move left a duplicate copy at {destination}", cleanup_error)
 
 
 @contextmanager

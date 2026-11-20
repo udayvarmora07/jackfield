@@ -598,6 +598,66 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         self.assertEqual(list(self.store.skills_dir.iterdir()), [])
         self.assertEqual(list(self.store.trash_dir.iterdir()), [trash_path])
 
+    def _vanishing_stat(self, vanished):
+        """Make *vanished* disappear after the name check but before the mtime sort.
+
+        ``_trash_entry_name`` probes the entry with ``lstat`` and one ``stat``
+        (``is_symlink`` / ``is_dir``); the entry then vanishes, so the next
+        ``stat`` — the mtime read — is the one that fails.
+        """
+        real_stat = Path.stat
+        probes = []
+
+        def stat(path, *args, **kwargs):
+            if path == vanished and kwargs.get("follow_symlinks", True):
+                probes.append(path)
+                if len(probes) > 1:
+                    raise FileNotFoundError(errno.ENOENT, "fixture: entry vanished", str(path))
+            return real_stat(path, *args, **kwargs)
+
+        return mock.patch.object(Path, "stat", stat)
+
+    def test_restore_default_follows_trash_order_not_directory_mtime(self):
+        self.store.create("demo", "A useful skill", body="First copy")
+        older = Path(self.store.remove("demo")["trash_path"])
+        self.store.create("demo", "A useful skill", body="Second copy")
+        newer = Path(self.store.remove("demo")["trash_path"])
+        later = newer.stat().st_mtime + 1000
+        os.utime(older, (later, later))
+        self.store.restore("demo")
+        self.assertEqual(self.store.get("demo")["body"], "Second copy\n")
+        self.assertEqual(list(self.store.trash_dir.iterdir()), [older])
+
+    def test_trash_order_key_reads_every_legacy_suffix_form(self):
+        from skillsmgr.store import _trash_order_key
+        names = [
+            "demo-2026-09-08_19-13-21Z",
+            "demo-2026-09-08_19-13-21Z-1",
+            "demo-2026-09-08_19-13-21-2Z",
+            "demo-2026-09-08_19-13-22Z",
+            "demo-2026-09-08_19-13-22-0000000000000000005000001",
+        ]
+        keys = [_trash_order_key(Path(n), 0.0) for n in names]
+        self.assertEqual(keys, sorted(keys))
+        self.assertEqual(len(set(keys)), 5)
+
+    def test_restore_skips_a_trash_entry_that_vanishes_before_it_is_inspected(self):
+        self.store.create("demo", "A useful skill", body="First copy")
+        first = Path(self.store.remove("demo")["trash_path"])
+        self.store.create("demo", "A useful skill", body="Second copy")
+        second = Path(self.store.remove("demo")["trash_path"])
+        self.assertNotEqual(first, second)
+        with self._vanishing_stat(second):
+            self.store.restore("demo")
+        self.assertEqual(self.store.get("demo")["body"], "First copy\n")
+
+    def test_restore_of_only_vanished_trash_entry_is_a_clean_store_error(self):
+        self.store.create("demo", "A useful skill", body="Selected copy")
+        trash_path = Path(self.store.remove("demo")["trash_path"])
+        with self._vanishing_stat(trash_path):
+            with self.assertRaisesRegex(StoreError, "no trashed copy of 'demo' found"):
+                self.store.restore("demo")
+
     def _cross_volume_rename(self, trash_path, live, *, refuse_park=False):
         real_rename = os.rename
 
