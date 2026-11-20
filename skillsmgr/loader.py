@@ -11,12 +11,13 @@ import hashlib
 import os
 import stat
 import threading
+import time
 from collections import OrderedDict
 from pathlib import Path
 
 from .frontmatter import FrontmatterError, parse_frontmatter
 from .observations import document_observations
-from . import path_safety
+from . import documents, path_safety
 from .documents import (
     ACTIVE_DOCUMENT,
     DISABLED_DOCUMENT,
@@ -55,7 +56,34 @@ def required_field_gaps(data: dict) -> list[str]:
     return gaps
 
 
+# Windows reader retry: see ``documents.WINDOWS_READ_ATTEMPTS``.  The probe
+# retries only ``PermissionError`` (the "delete pending" state); an *absent*
+# document is never retried, so a genuine husk in a scan costs nothing extra.
+
+
 def _probe_document(skill_dir: Path) -> tuple[str | None, int, str | None, bool]:
+    """:func:`_probe_once`, riding out a momentary replace on Windows."""
+    attempts = documents.WINDOWS_READ_ATTEMPTS if documents.IS_WINDOWS else 1
+    for attempt in range(1, attempts + 1):
+        try:
+            return _probe_once(skill_dir)
+        except _UnreadableDocument as exc:
+            if not exc.transient or attempt == attempts:
+                return exc.result
+            time.sleep(documents.WINDOWS_READ_DELAY)
+    raise AssertionError("unreachable")  # pragma: no cover
+
+
+class _UnreadableDocument(Exception):
+    """The probe's "cannot be read" row; ``transient`` for a PermissionError."""
+
+    def __init__(self, candidate: Path, disabled: int, exc: OSError):
+        super().__init__()
+        self.result = (None, disabled, f"{candidate} cannot be read ({exc.strerror or exc})", False)
+        self.transient = isinstance(exc, PermissionError)
+
+
+def _probe_once(skill_dir: Path) -> tuple[str | None, int, str | None, bool]:
     """Pick a skill's document, reporting unreadable files and the conflict state.
 
     Returns ``(text, disabled, read_error, conflict)``.  One such entry used to
@@ -84,11 +112,11 @@ def _probe_document(skill_dir: Path) -> tuple[str | None, int, str | None, bool]
         except (FileNotFoundError, NotADirectoryError):
             continue
         except OSError as exc:
-            return None, disabled, f"{candidate} cannot be read ({exc.strerror or exc})", False
+            raise _UnreadableDocument(candidate, disabled, exc)
         try:
             text, decode_error = read_skill_text(candidate)
         except OSError as exc:
-            return None, disabled, f"{candidate} cannot be read ({exc.strerror or exc})", False
+            raise _UnreadableDocument(candidate, disabled, exc)
         other = DISABLED_DOCUMENT if not disabled else ACTIVE_DOCUMENT
         # ``os.path.isfile`` answers the same "is the other document a regular
         # file" with one ``stat``; ``Path.is_file`` built a second ``Path`` and

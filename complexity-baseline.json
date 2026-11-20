@@ -5556,7 +5556,7 @@
       "lineno": 1786
     },
     "skillsmgr/webapp.py::_list_page": {
-      "complexity": 4,
+      "complexity": 2,
       "end_lineno": 426,
       "lineno": 417
     },

@@ -127,12 +127,15 @@
         <section class="cat" v-for="g in groups" :key="g.id" role="group" :aria-label="grouping === 'letter' && sortBy === 'name' ? 'Skills starting with ' + g.id : g.id">
           <div class="cat-h"><h2 class="h2" :id="'cat-' + g.key">{{ g.id }}</h2><span>{{ plural(g.items.length, 'skill') }}</span></div>
           <div class="shelf">
-            <a v-for="s in g.shown" :key="s.name" :class="['card sk', 'st-' + s.status.key, { faded: s.status.key === 'off' }]" :href="'#/skill/' + enc(s.name)" :aria-label="s.name + '. ' + s.status.label + '. ' + s.description">
-              <div class="sk-top"><small class="kbd-hint">{{ s.status.key === 'off' ? 'Off everywhere' : 'In ' + plural(s.tools.length, 'tool') }}</small>
-                <span v-if="s.status.key !== 'ok'" :class="['pill', s.status.key]"><ic :name="s.status.icon"></ic>{{ s.status.label }}</span></div>
+            <a v-for="s in g.shown" :key="s.name" :class="['card sk', 'st-' + s.status.key, { faded: s.status.key === 'off' }]" :href="'#/skill/' + enc(s.name)">
               <div class="sk-b"><b>{{ s.name }}</b><p>{{ s.description || 'No description yet.' }}</p><span class="instance-tags"><span v-for="tag in skillTags(s.name)" :key="tag">{{tag}}</span></span>
                 <div class="sk-f"><span class="dots"><i v-for="c in s.tools" :key="c.scope" :class="{ 'is-off': c.state === 'off', 'is-bad': c.state === 'broken' }" :style="{ background: agentOf(c.scope).color }" :title="agentOf(c.scope).name"></i></span>
                   </div></div>
+              <!-- After the body in the DOM so the link's accessible name starts
+                   with the skill name and equals its visible text (WCAG 2.5.3);
+                   CSS order keeps it visually on top. -->
+              <div class="sk-top"><small class="kbd-hint">{{ s.status.key === 'off' ? 'Off everywhere' : s.tools.length ? 'In ' + plural(s.tools.length, 'tool') : 'Only in your library' }}</small>
+                <span v-if="s.status.key !== 'ok'" :class="['pill', s.status.key]"><ic :name="s.status.icon"></ic>{{ s.status.label }}</span></div>
             </a>
           </div>
           <div class="more-row" v-if="g.items.length > g.shown.length"><button type="button" class="btn btn-line" @click="showMore(g.id)">Show {{ Math.min(g.items.length - g.shown.length, 96) }} more of {{ g.items.length }}</button></div>

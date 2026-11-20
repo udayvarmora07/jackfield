@@ -653,6 +653,21 @@ class BodyLazyLoadTests(unittest.TestCase):
         for text in out.values():
             self.assertNotIn(". —", text, "a token clause must not follow a full stop with a dash")
 
+    def test_shelf_card_name_is_its_visible_text_starting_with_the_skill(self):
+        # axe label-content-name-mismatch (WCAG 2.5.3): the card's aria-label
+        # left out visible text ("Off everywhere", tags).  The card now has no
+        # aria-label, and the name block precedes the status row in the DOM.
+        html = (V2 / "index.html").read_text(encoding="utf-8")
+        card = re.search(r'<a v-for="s in g\.shown"[^>]*>(.*?)</a>', html, re.S)
+        self.assertIsNotNone(card)
+        self.assertNotIn("aria-label", card.group(0).split(">", 1)[0])
+        body = card.group(1)
+        self.assertLess(body.index('class="sk-b"'), body.index('class="sk-top"'))
+        css = (V2 / "styles.css").read_text(encoding="utf-8")
+        self.assertRegex(css, r"\.sk-top \{ order: -1;")
+        # A library-only skill is never "In 0 tools".
+        self.assertIn("'Only in your library'", body)
+
     def test_every_ai_tool_has_its_own_heading_while_ai_is_off(self):
         # The unconfigured fallback heading map once lacked "ai-concise", so
         # that page alone was titled "AI assist" until a model was connected.

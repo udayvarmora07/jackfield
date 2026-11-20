@@ -8,6 +8,9 @@ the layout and the one-document invariant have a single owner.
 
 from __future__ import annotations
 
+import os
+import time
+
 from pathlib import Path
 
 from .errors import SkillNotFound, StoreError
@@ -67,19 +70,45 @@ def document_path(skill_dir: Path) -> Path | None:
     return None
 
 
+#: Windows only.  A document another thread is replacing is briefly in the
+#: "delete pending" state: ``stat``/``open`` raise ``PermissionError`` (so
+#: ``is_file()`` is False) until the replace lands.  A reader then answered a
+#: healthy skill with "no readable SKILL.md" -- a transient HTTP 404 under
+#: concurrent writes.  Readers retry for at most ~100 ms; the writer side is
+#: ``atomic_io._replace``.  POSIX never takes this path.
+WINDOWS_READ_ATTEMPTS = 10
+WINDOWS_READ_DELAY = 0.01
+IS_WINDOWS = os.name == "nt"
+
+
 def document_text(skill_dir: Path, *, lossy: bool = True) -> str:
     """The document's text, or ``""`` when absent or unreadable.
 
     Invalid UTF-8 is read with replacement characters, unless ``lossy`` is
-    false, in which case such a document also reads as ``""``.
+    false, in which case such a document also reads as ``""``.  On Windows an
+    absent or unreadable document is re-checked briefly (see
+    ``WINDOWS_READ_ATTEMPTS``): this reads one named skill, so a genuinely
+    missing document costs at most that bound.
     """
+    attempts = WINDOWS_READ_ATTEMPTS if IS_WINDOWS else 1
+    for attempt in range(1, attempts + 1):
+        text = _read_document_once(skill_dir, lossy)
+        if text is not None:
+            return text
+        if attempt < attempts:
+            time.sleep(WINDOWS_READ_DELAY)
+    return ""
+
+
+def _read_document_once(skill_dir: Path, lossy: bool) -> str | None:
+    """One read for :func:`document_text`; ``None`` when absent or unreadable."""
     document = document_path(skill_dir)
     if document is None:
-        return ""
+        return None
     try:
         text, decode_error = read_skill_text(document)
     except OSError:
-        return ""
+        return None
     return "" if decode_error and not lossy else text
 
 

@@ -29,7 +29,7 @@ from .loader import scan_dir
 from .tokens import DEFAULT_WINDOW, aggregate, estimate, window_name
 from .diagnostics import diagnose as _diagnose
 from .launcher_security import trusted_executable
-from .web_security import RequestError, validate_request
+from .web_security import RequestError, require_same_user, validate_request
 from .web_serialization import json_bytes, parse_json_object
 from .adapters import project_observation, workspaces_payload
 from .catalog import delete_profile, enrich_rows, load_catalog, profile_preview, save_profile, update_tags
@@ -456,16 +456,28 @@ def _body_param(qs: dict[str, list[str]]) -> bool:
     return text == "1"
 
 
+# ``body=0`` is the list-view opt-in.  Besides the body it drops the two parsed
+# frontmatter maps: neither UI reads them from list rows (the detail request
+# still returns them), and on the maintainer's 2,082-row library they were 18%
+# of the body-less ``scope=all`` response (896 KB of 4.8 MB).
+_LIST_VIEW_OMITTED = ("body", "portable_frontmatter", "frontmatter_extensions")
+
+
 def _list_page(rows: list, qs: dict[str, list[str]]) -> tuple[list, int]:
     include_body = _body_param(qs)
     page, total = _page_rows(rows, qs)
     if not include_body:
-        # Coalesced reads give every caller independent rows, so removing a
-        # response field cannot alter another request's document snapshot.
-        for row in page:
-            if isinstance(row, dict):
-                row.pop("body", None)
+        _omit_list_view_fields(page)
     return page, total
+
+
+def _omit_list_view_fields(page: list) -> None:
+    # Coalesced reads give every caller independent rows, so removing a
+    # response field cannot alter another request's document snapshot.
+    for row in page:
+        if isinstance(row, dict):
+            for key in _LIST_VIEW_OMITTED:
+                row.pop(key, None)
 
 
 def _scope_summary(store: Store) -> list[dict]:
@@ -853,7 +865,15 @@ class WebAppHandler(BaseHTTPRequestHandler):
             self._send_error(500, "internal error")
 
 
+    def _require_same_user_once(self) -> None:
+        # One handler serves one connection (keep-alive included), and a
+        # socket's owner cannot change, so the /proc lookup runs once.
+        if not getattr(self, "_peer_user_checked", False):
+            require_same_user(self.client_address, self.connection.getsockname())
+            self._peer_user_checked = True
+
     def _validate_request(self) -> None:
+        self._require_same_user_once()
         validate_request(
             self.headers,
             self.server.allowed_hosts,  # type: ignore[attr-defined]

@@ -142,11 +142,14 @@ done.
   as bogus link escapes with blank descriptions; document-less dot-folders
   are now honest husks ("Not a skill" kept). Toggle-toast punctuation and the
   unconfigured "Shorten a skill" heading fixed (2026-11-20, docs/06).
-- [ ] Owner's call: `~/.agents/skills/agent-only` and `demo` (2026-10-09) look
-  like fixtures a past test run leaked into the real shared root (the suite now
-  isolates `HOME`); delete or keep?
-- [ ] Windows residual: concurrent HTTP reads can see a transient 404 while a
-  document replace is in flight (stress test skipped on Windows in PR #22).
+- [x] Leaked 2026-10-09 test fixtures `agent-only`/`demo` moved to agent trash
+  (`~/.agents/trash`, `~/.codex/trash`, `~/.commandcode/trash`; restorable from
+  Recovery); the two dangling `~/.claude/skills` links to them
+  (`agent-only -> ~/.agents/skills/agent-only`, `demo -> ~/.codex/skills/demo`)
+  were removed (2026-11-20).
+- [x] Windows residual: concurrent HTTP reads saw a transient 404 during a
+  replace. Readers now retry delete-pending documents (≤100 ms); the stress test
+  runs on Windows again and passed on py3.11/3.14 (2026-11-20).
 - [ ] Compatibility note: tree hashes now use `/` separators on every OS, so a
   manifest from an archive exported on Windows by an earlier version will not
   verify; POSIX-exported archives are unaffected.
@@ -162,22 +165,23 @@ done.
   provenance/tree-hash ordering and separators; precise skips for POSIX-only tests.
 - [x] CI: new `e2e` job runs `tools/e2e_v2` and `tools/e2e_classic` headless on
   Ubuntu with Playwright from the hash-verified `tools/e2e_deps` lockfile.
-- [ ] Windows: readers racing a document replace can get a transient
-  `PermissionError` (writer retries now); decide whether reads should retry too.
+- [x] Windows: readers racing a document replace now retry too (decided and
+  implemented 2026-11-20; see docs/06).
 - [/] Parallel sessions: all-scope list performance (`list-perf`) lands as a PR
   for review; CI portability is PR #22.
 
 Open for the maintainer:
 
 - [x] Issue #14 F-2: `localhost:<port>` is accepted as a Host alias for a loopback bind (maintainer approved 2026-11-19).
-- [ ] ADR-001 revisit: loopback is reachable by every local OS user, and
-  `POST /api/install {"run": true}` executes the npm runner; a per-user token
-  file (0600) would close that without a remote attack surface.
+- [x] ADR-001 revisit (2026-11-20): on Linux a connection owned by another OS
+  user is refused (kernel socket owner via `/proc/net/tcp`, no token, no client
+  change). macOS/Windows unchanged — per-user token file still the option there.
 - [ ] `.specs/` (40 MB evidence) and history purge: keep, move, or rewrite history?
-- [ ] `GET /api/skills?scope=all` sends ~4.8 MB for ~2,100 records; `portable_frontmatter`
-  (17%) is read by neither UI. Trim it from list rows, or add an opt-in field set?
-- [ ] Card `aria-label`s fail axe's experimental label-content-name-mismatch
-  (weight 0); decide whether accessible names should mirror visible card text.
+- [x] `body=0` list rows also omit `portable_frontmatter`/`frontmatter_extensions`
+  (896 KB of 4.8 MB on the maintainer's library; detail route unchanged; 2026-11-20).
+- [x] Shelf cards: accessible name is the visible text, skill name first (no
+  aria-label; CSS order keeps the layout); axe 4.7 clean. Library-only cards say
+  "Only in your library" instead of "In 0 tools" (2026-11-20).
 
 ## Remaining gated and deferred entries
 

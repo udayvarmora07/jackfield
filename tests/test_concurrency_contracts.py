@@ -172,7 +172,6 @@ class ConcurrencyContractTests(unittest.TestCase):
         self.assertEqual(calls, 1)
         self.assertTrue(all([row["name"] for row in result] == ["demo"] for result in rows))
 
-    @unittest.skipIf(os.name == "nt", "Windows gives a reader racing an in-flight replace a transient sharing violation / missing file (seen as HTTP 404); the advisory lock only orders writers")
     def test_concurrent_http_requests_observe_complete_documents_and_cleanup(self):
         skill_file, old_text, new_text = self._documents()
         expected_texts = {old_text, new_text}

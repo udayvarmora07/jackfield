@@ -14,6 +14,7 @@ from unittest import mock
 
 from skillsmgr import context
 from skillsmgr import scopes
+from skillsmgr import webapp
 from skillsmgr.store import Store
 from smoke_fixtures import start_server, stop_server
 
@@ -73,10 +74,15 @@ class PerformanceHTTPTests(unittest.TestCase):
                 if scope == "codex":
                     self.assertIn("ONLY_IN_THE_BODY", full[0]["body"])
                 self.assertTrue(all("body" not in row for row in light))
-                # Read-time timestamps can change between requests.
+                # body=0 is the list view: it also drops the parsed frontmatter
+                # maps (2026-11-20).  Every other field is unchanged; read-time
+                # timestamps can change between requests.
+                omitted = set(webapp._LIST_VIEW_OMITTED) | {"observed_at"}
+                self.assertTrue(all(not (omitted - {"observed_at"}) & set(row) for row in light))
+
                 def stable(rows):
                     return [{key: value for key, value in row.items()
-                             if key not in ("body", "observed_at")} for row in rows]
+                             if key not in omitted} for row in rows]
                 self.assertEqual(stable(full), stable(explicit))
                 self.assertEqual(stable(full), stable(light))
                 if scope in ("all", "codex"):

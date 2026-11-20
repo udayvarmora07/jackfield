@@ -1,6 +1,6 @@
 # ADR-001 — Localhost Mutation Token Decision
 
-**Version 1.1.0**
+**Version 1.2.0**
 
 **AI manifest:** Decision record for the localhost state-changing request boundary.
 
@@ -17,6 +17,20 @@ the boundary is now strictly larger, and no token is needed to make a browser pa
 rejectable. The F-2 `localhost`-alias over-rejection was closed on 2026-11-19 by
 accepting exactly `localhost:<port>`; that alias is resolved locally and is not
 a reason to add a secret.
+
+**Update (2026-11-20) — other local users.** The open revisit was that loopback
+is reachable by *every* OS account on the machine, and the API reads the whole
+library and can run the configured install runner. Rather than introduce the
+token this ADR rejected (a secret lifecycle plus a new client contract), the
+server now asks the kernel who owns the client socket: on Linux the
+`/proc/net/tcp[6]` row whose local address is the client endpoint carries its
+owner's uid, and a uid other than the server's is a `403` before any route runs
+(`web_security.require_same_user`, once per connection, ~0.2 ms). When ownership
+cannot be determined — another OS, no `/proc`, the row not found — behaviour is
+unchanged. **[?]** macOS and Windows have no stdlib equivalent; a per-user token
+file remains the option there if multi-user hosts matter. Verification:
+`tests/test_peer_user.py` (fabricated tables for the foreign-uid branch, a real
+loopback socket for the lookup, and an HTTP round trip through the handler).
 
 ## Context
 

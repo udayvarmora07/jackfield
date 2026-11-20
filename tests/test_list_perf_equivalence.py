@@ -268,7 +268,8 @@ class ListEndpointEquivalenceTests(ListPerfCase):
         out = []
         for row in rows:
             row = dict(row)
-            row.pop("body", None)
+            for key in ("body", "portable_frontmatter", "frontmatter_extensions"):
+                row.pop(key, None)  # the body=0 list view omits these
             row.pop("observed_at", None)  # a per-request wall-clock stamp
             out.append(row)
         return out
@@ -282,6 +283,13 @@ class ListEndpointEquivalenceTests(ListPerfCase):
         self.assertEqual(expected, self._stable(json.loads(raw)))
         self.assertEqual(str(len(expected)), headers["X-Total-Count"])
         self.assertNotIn("body", json.loads(raw)[0])
+        self.assertNotIn("portable_frontmatter", json.loads(raw)[0])
+        self.assertNotIn("frontmatter_extensions", json.loads(raw)[0])
+
+    def test_the_default_list_keeps_the_frontmatter_maps(self):
+        status, _, raw = self.request("GET", "/api/skills?scope=all")
+        self.assertEqual(200, status)
+        self.assertIn("portable_frontmatter", json.loads(raw)[0])
 
     def test_compact_spelling_parses_to_the_default_spelling(self):
         _, _, raw = self.request("GET", _LIST)

@@ -7,6 +7,34 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Open-queue pass: peer-user check, list payload, card names, Windows reads
+
+**[NOTE]** Work on the agent-actionable entries of the "Open for the maintainer"
+list, done unattended at the maintainer's request.
+
+- **ADR-001 revisit (Linux).** `web_security.require_same_user` refuses a
+  loopback connection whose client socket another OS user owns, read from
+  `/proc/net/tcp[6]` once per connection (~0.2 ms). Unknown ownership keeps the
+  old behaviour, so macOS/Windows and restricted `/proc` are unaffected; no
+  token, no client contract change. ADR-001 v1.2.0. `tests/test_peer_user.py`.
+- **List payload.** `GET /api/skills?body=0` (both UIs' list request) also drops
+  `portable_frontmatter` and `frontmatter_extensions`: 896 KB of the 4.8 MB
+  body-less `scope=all` response on the maintainer's 2,082 rows, read by no
+  list. The detail route and `body=1`/absent are unchanged.
+  `test_performance_http`'s projection contract now names the omitted set.
+- **Shelf cards (WCAG 2.5.3).** The card link's `aria-label` omitted visible
+  text, failing axe's label-content-name-mismatch. The label is gone; the name
+  block precedes the status row in the DOM and `.sk-top { order: -1 }` keeps the
+  layout. axe 4.7: no violations on the Skills page. A library-only card said
+  "In 0 tools"; it now says "Only in your library".
+- **Windows reads racing a replace.** `documents.document_text` (the raw route)
+  and `loader._probe_document` retry for ≤100 ms on Windows when a document is
+  momentarily delete-pending (PermissionError / `is_file()` False). An absent
+  document is never retried in scans. `tests/test_windows_read_retry.py`
+  patches the platform flag so the branch runs everywhere.
+- **Housekeeping.** Leaked 2026-10-09 fixtures `agent-only`/`demo` trashed from
+  the maintainer's agent roots (restorable); two dangling Claude links removed.
+
 ## 2026-11-20 — Scope scan no longer blanks non-canonical names
 
 **[NOTE]** Found by exploratory testing of the v2 Skills page against the
