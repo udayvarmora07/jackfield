@@ -140,15 +140,16 @@ done.
   directory identity.
 - [x] v2 interface pass (2026-11-20): type-scale tokens (Large text now scales
   everything), spacing rhythm, axe 0 violations, Home layout, copy (docs/06).
-- [ ] Owner's call (design, from the measured reference study): (a) a 13px/500
-  "chrome" default for rows, tabs and filters with 15px kept for reading — every
-  measured product UI does this, but it re-densifies every screen; (b) an
-  alpha-based ink ramp (`rgba(27,29,34, .90/.62/.45/.27)`, borders at .08) to
-  replace hand-picked greys. Both need a human perceptual pass, so not applied.
-- [ ] UI follow-ups from the reference study (`~/design-refs/`): Sync map as a
-  skills × agents matrix, Skills shelf density toggle. (Sticky A–Z headers done.)
-  (Repeated history rows now collapse; radii 6/8/12 and a constant 1.5px icon
-  stroke landed 2026-11-20.)
+- [x] Resolved design-study proposals. Retain existing type sizes and solid
+  palette tokens. The 13 px/500 trial saved no toolbar height or wrapping at
+  the measured widths. Corrected skill-reader label contrast and recorded
+  the comparison in @docs/53-apm-and-interface-decisions-2026-11-20.md.
+- [x] Resolved Microsoft APM scope. Quality reports file presence and links
+  to the upstream audit. APM owns YAML validation, resolution and package
+  import/export. See @docs/53-apm-and-interface-decisions-2026-11-20.md.
+- [x] UI follow-ups from the reference study (`~/design-refs/`): searchable
+  skills × agent scopes matrix with a copy and repair panel, plus a remembered
+  Comfortable/Compact Skills shelf preference (2026-11-20).
 - [x] Scope scan: non-canonical names (`Upper-Case`, `.hidden`) were blanked
   as bogus link escapes with blank descriptions; document-less dot-folders
   are now honest husks ("Not a skill" kept). Toggle-toast punctuation and the
@@ -178,8 +179,8 @@ done.
   Ubuntu with Playwright from the hash-verified `tools/e2e_deps` lockfile.
 - [x] Windows: readers racing a document replace now retry too (decided and
   implemented 2026-11-20; see docs/06).
-- [/] Parallel sessions: all-scope list performance (`list-perf`) lands as a PR
-  for review; CI portability is PR #22.
+- [x] Parallel sessions: all-scope list performance and CI portability merged
+  as PRs #23 and #22.
 
 Open for the maintainer:
 
@@ -196,11 +197,11 @@ Open for the maintainer:
 
 ## Remaining gated and deferred entries
 
-The 13 open entries include 12 pending and one in progress, with
+The 12 open entries include 11 pending and one in progress, with
 historical overlaps. The full dated context remains in the archive.
 One human visual sign-off
 entry is retained verbatim in the parity section below and remains part of this
-queue; the other twelve entries follow.
+queue. The other eleven entries follow.
 
 - [ ] Owner's call: choose the next release version and candidate after 1.0.2.
   Product questions Q1–Q4 remain in docs/45 §7.
@@ -220,11 +221,6 @@ queue; the other twelve entries follow.
 
 - [ ] Deferred (docs/35): per-project profiles that translate one toggle into each agent's
   native setting (⚠); Codex's switch is user-level only and must say so.
-
-- [ ] Deferred (docs/35): interoperate with Microsoft APM `apm.yml` instead of
-  a new lockfile. Presence checks for the manifest and resolved lock are
-  implemented in the existing hygiene report. Interoperability still needs
-  decisions about supported fields, validation and export.
 
 - [ ] Deferred (docs/35): Hermes-Curator-style stale → archive with pin/restore/dry-run (⚠).
 

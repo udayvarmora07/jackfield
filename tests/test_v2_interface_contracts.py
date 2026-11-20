@@ -668,6 +668,18 @@ class BodyLazyLoadTests(unittest.TestCase):
         # A library-only skill is never "In 0 tools".
         self.assertIn("'Only in your library'", body)
 
+    def test_shelf_density_is_a_remembered_two_way_choice(self):
+        app = (V2 / "app.js").read_text(encoding="utf-8")
+        html = (V2 / "index.html").read_text(encoding="utf-8")
+        css = (V2 / "styles.css").read_text(encoding="utf-8")
+        self.assertIn('density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable")', app)
+        self.assertIn('density(value) {try{localStorage.setItem("skillsmgr-v2-density",value);}catch(e){}}', app)
+        self.assertIn('aria-label="Card density"', html)
+        self.assertIn("""<div :class="['shelf', { compact: density === 'compact' }]">""", html)
+        # Compact keeps the card's text edge aligned with its status row (16px).
+        self.assertIn(".shelf.compact .sk-b { padding: 2px 16px 12px; }", css)
+        self.assertIn(".sk-top { order: -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px 0;", css)
+
     def test_shelf_letter_headers_stick_below_the_top_bar(self):
         css = (V2 / "styles.css").read_text(encoding="utf-8")
         top = re.search(r"\.top \{ position: sticky; top: 0; z-index: (\d+); height: (\d+)px;", css)
@@ -789,6 +801,8 @@ class InterfaceSourceTests(unittest.TestCase):
             for fg in ("--ink", "--ink-2", "--muted"):
                 for bg in ("--bg", "--surface", "--sunken"):
                     self.assertGreaterEqual(ratio(t[fg], t[bg]), 4.5, f"{name} {fg} on {bg}")
+            for bg in ("--paper", "--tree-bg"):
+                self.assertGreaterEqual(ratio(t["--muted"], t[bg]), 4.5, f"{name} reader text on {bg}")
             for fg, bg in (("--ok", "--ok-bg"), ("--warn", "--warn-bg"), ("--bad", "--bad-bg"), ("--off", "--off-bg")):
                 self.assertGreaterEqual(ratio(t[fg], t[bg]), 4.5, f"{name} {fg} on {bg}")
             self.assertGreaterEqual(ratio(t["--line-strong"], t["--surface"]), 3.0, f"{name} control boundary")

@@ -53,6 +53,7 @@
 | @docs/49-read-only-compatibility-followups-2026-11-17.md | Grouped folders, project declarations, plugin intent and lockfile ambiguity boundaries | Before changing the read-only diagnostics |
 | @docs/50-rust-size-and-performance-assessment-2026-11-17.md | Measured size/performance, Rust/native/hybrid tradeoffs and migration gates | Before changing language, runtime or UI stack |
 | @docs/52-list-request-performance-2026-11-19.md | Profile and measured speed-ups of the all-scope list request, rejected options, equivalence pins | Before touching the list route, path containment helpers or response serialization |
+| @docs/53-apm-and-interface-decisions-2026-11-20.md | APM audit handoff, v2 type-scale comparison and contrast measurements | Before extending APM support or changing the v2 type scale or palette |
 | @docs/archive/06-progress-log-2026-09.md | Verbatim archived entries, 2026-09-04 … 2026-09-22 (160 entries) | Only when the resident log's pointer is not enough |
 | @docs/archive/06-progress-log-2026-08.md | Verbatim archived entries, 2026-08-13 … 2026-08-16 (+2 undated) | Only for the pre-web-UI GTK4 era |
 | @docs/07-context-strategy.md | Hot/warm/cold loading model, compaction anchors | Long sessions, context management |

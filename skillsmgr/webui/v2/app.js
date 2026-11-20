@@ -26,6 +26,7 @@ const PATHS = {
   warn: '<path d="M12 3.5 2.8 19.5h18.4L12 3.5Z"/><path d="M12 10v4M12 17v.01"/>',
   bad: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
   off: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+  dash: '<path d="M7 12h10"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.01"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
@@ -46,6 +47,14 @@ const PATHS = {
 
 const CAP = 48;
 const FALLBACK_AGENT = { id: "", name: "Unknown", color: "#55585f", initials: "?", path: "" };
+const MAP_STATES = {
+  on: { icon: "ok", label: "Enabled on disk" },
+  warn: { icon: "warn", label: "Copies differ" },
+  bad: { icon: "bad", label: "Can't be read" },
+  off: { icon: "off", label: "Turned off on disk" },
+  link: { icon: "share", label: "Linked copy" },
+  missing: { icon: "dash", label: "No copy listed" },
+};
 
 function parseRoute() {
   const h = location.hash.replace(/^#\/?/, "");
@@ -62,13 +71,14 @@ const app = createApp({
   data() {
     return { refreshGen: 0, historyGen: 0,
       route: parseRoute(), m: null, loading: true, loadError: "", history: [], busy: false,
-      records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
+      records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "",
       query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name",
       front: null, skipped: [], dismissed: [], done: 0, srcChoice: "",
       bodies: {}, bodyInflight: {}, bodyErrors: {},
       treeQuery: "", edit: null, highlight: true, compareWith: "",
       mapSelId: "", mapPicked: [], peek: null,
+      mapQuery: "", mapPage: 0, mapSkillName: "", mapOrigin: null,
       trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", dropDepth: 0, importForce: false,
       theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
       dialog: null, toasts: [], live: "", toastSeq: 0, skillHistory: [], opener: null,
@@ -201,19 +211,29 @@ const app = createApp({
       const n = this.skill ? this.skill.differing.length : 0;
       return n === 1 ? `Make ${this.agentOf(this.skill.differing[0].scope).name}'s copy match` : `Make ${n} copies match`;
     },
-    mapBad() { return this.agentInfos.filter((i) => i.key !== "ok").length; },
-    slots() {
-      /* Agents sit on an ellipse around the hub, starting just right of top. */
-      const n = this.agentInfos.length;
-      return this.agentInfos.map((_, i) => {
-        const ang = (Math.PI * 2 * (i + 0.5)) / n - Math.PI / 2;
-        return [Math.round(50 + 34 * Math.cos(ang)), Math.round(Math.min(90, Math.max(34, 60 + 30 * Math.sin(ang))))];
-      });
+    mapStates() { return MAP_STATES; },
+    mapSkills() {
+      const query = this.mapQuery.trim().toLowerCase();
+      return this.m ? this.m.skills.filter((s) => s.status.key !== "note" && s.name.toLowerCase().includes(query)) : [];
+    },
+    mapPageIndex() { return Math.min(this.mapPage, Math.max(0, Math.ceil(this.mapSkills.length / CAP) - 1)); },
+    mapStart() { return this.mapPageIndex * CAP; },
+    mapEnd() { return Math.min(this.mapStart + CAP, this.mapSkills.length); },
+    mapRows() {
+      return this.mapSkills.slice(this.mapStart, this.mapEnd).map((skill) => ({
+        skill, cells: this.agentInfos.map((inf) => this.mapCell(skill, inf.id)),
+      }));
     },
     mapSel() {
       const infos = this.agentInfos;
       if (!infos.length) return null;
       return infos.find((i) => i.id === this.mapSelId) || infos.find((i) => i.key === "bad") || infos.find((i) => i.key === "warn") || infos[0];
+    },
+    mapDetail() {
+      const skill = this.mapSkillName && this.m && this.m.byName.get(this.mapSkillName);
+      if (!skill || skill.status.key === "note" || !this.mapSel || this.mapSel.id !== this.mapSelId) return null;
+      const cell = this.mapCell(skill, this.mapSel.id);
+      return cell.state === "missing" ? null : { skill, ...cell };
     },
     peekLines() {
       if (!this.peek || !this.mapSel) return null;
@@ -269,10 +289,13 @@ const app = createApp({
   },
   watch: {
     libraryView(value) {try{localStorage.setItem("skillsmgr-v2-library-view",value);}catch(e){}},
+    density(value) {try{localStorage.setItem("skillsmgr-v2-density",value);}catch(e){}},
     cur: { immediate: true, handler(c) { this.srcChoice = c && c.key === "warn" && this.m && this.m.byName.get(c.skill) ? (this.m.byName.get(c.skill).ref.ambiguous ? "" : (this.m.byName.get(c.skill).ref.holders[0] || {}).scope || "") : ""; if (c && c.key === "warn" && this.curSkill) this.ensureBodies(this.curSkill.copies); } },
     "route.name"() { this.compareWith = ""; this.loadSkillHistory(); this.primeBodies(); },
+    "route.page"(page) { if (page !== "map") this.mapOrigin = null; },
     skill(s) { if (!s && this.edit) this.edit = null; if (s) this.ensureBodies(s.copies); },
-    mapSel() { this.ensureMapBodies(); },
+    mapSel() { if (this.route.page === "map") this.ensureMapBodies(); },
+    mapQuery() { this.mapPage = 0; },
   },
   methods: {
     enc: encodeURIComponent, plural, join, words, titleCase, shortPath, plainLine, renderDoc,
@@ -853,16 +876,51 @@ const app = createApp({
     },
 
     /* ----- sync map ----- */
-    wireColor(k) { return { ok: "#22a05a", warn: "#d97706", bad: "#dc2626" }[k]; },
-    mid(i, _axis, dir) {
-      const [x, y] = this.slots[i], mx = (x + 50) / 2, my = (y + 56) / 2;
-      return [mx + dir * (x - 50) * 0.08, my + dir * (y - 56) * 0.08];
+    mapCell(skill, scope) {
+      const copies = skill.copies.filter((copy) => copy.scope === scope);
+      if (copies.length !== 1) {
+        return copies.length ? { state: "warn", label: "Multiple copies listed" } : { state: "missing", label: MAP_STATES.missing.label };
+      }
+      const [copy] = copies;
+      if (copy.state === "broken") return { state: "bad", label: MAP_STATES.bad.label, copy };
+      if (copy.state === "link") return { state: "link", label: "Link target not inspected", copy };
+      const differs = copy.hash && skill.ref.hash && copy.hash !== skill.ref.hash;
+      const comparison = copy.hash && skill.ref.ambiguous ? "Copies differ (no majority)" : differs ? "Different copy" : "";
+      const label = copy.state === "off" ? MAP_STATES.off.label : copy.readOnly ? "Linked copy (read-only)" : MAP_STATES.on.label;
+      const state = comparison ? "warn" : copy.state === "off" ? "off" : copy.readOnly ? "link" : "on";
+      const detail = comparison || (copy.hash && skill.ref.holders.length > 1 ? "Matches reference content" : "");
+      return { state, label: detail ? `${label} · ${detail}` : label, copy };
     },
-    tagFor(inf, plain) {
-      return inf.key === "bad" ? `${plural(inf.broken.length, "skill")} can't be read` : inf.key === "warn" ? `${plural(inf.differing.length, "copy", "copies")} ${inf.differing.length === 1 ? "differs" : "differ"}` : "matches";
+    tagFor(inf) {
+      return inf.key === "bad" ? `${plural(inf.broken.length, "skill")} can't be read` : inf.key === "warn" ? `${plural(inf.differing.length, "copy", "copies")} ${inf.differing.length === 1 ? "differs" : "differ"}` : "No copy differences flagged";
     },
-    selectMap(id) { this.mapSelId = id; this.mapPicked = this.mapDefaults(id); this.peek = null; },
-    mapDefaults(id) { const i = this.m.info(id); return i ? i.differing.filter((s) => !s.ref.ambiguous && s.copies.some((c) => c.scope === id && !c.readOnly)).map((s) => s.name) : []; },
+    selectMap(id, event, name = "") {
+      if (id !== this.mapSelId) {
+        this.mapPicked = name ? [] : this.mapDefaults(id);
+        this.peek = null;
+      }
+      this.mapSelId = id;
+      this.mapSkillName = name;
+      this.mapOrigin = event.currentTarget;
+      this.$nextTick(() => this.$refs.mapHeading?.focus());
+    },
+    backToMap() {
+      const target = this.mapOrigin?.isConnected ? this.mapOrigin : this.$refs.mapSearch;
+      target?.focus();
+    },
+    moveMapPage(step) {
+      this.mapPage = this.mapPageIndex + step;
+      this.$refs.matrix.scrollTop = 0;
+      this.$refs.matrix.focus();
+    },
+    mapSyncable(skill, scope) {
+      const cell = this.mapCell(skill, scope);
+      return this.agentOf(scope).writable && !!cell.copy && !cell.copy.readOnly && !skill.ref.ambiguous;
+    },
+    mapDefaults(id) {
+      const info = this.m.info(id);
+      return info ? info.differing.slice(0, 12).filter((s) => this.mapSyncable(s, id)).map((s) => s.name) : [];
+    },
     togglePick(n) { this.mapPicked = this.mapPicked.includes(n) ? this.mapPicked.filter((x) => x !== n) : [...this.mapPicked, n]; },
     togglePeek(s) { const next = this.peek === s.name ? null : s.name; this.peek = next; if (next) { const mine = s.copies.find((c) => c.scope === this.mapSel.id); return this.ensureBodies([mine, s.ref.holders[0]]); } return undefined; },
     diffCount(s, scope) {
@@ -872,16 +930,32 @@ const app = createApp({
     },
     brokenShort(s, scope) { const c = s.copies.find((x) => x.scope === scope); return (BROKEN_WHY[c && c.kind] || BROKEN_WHY.invalid)[0]; },
     async syncPicked() {
-      const inf = this.mapSel, picked = this.mapPicked.filter((n) => inf.differing.some((s) => s.name === n && s.copies.some((c) => c.scope === inf.id && !c.readOnly)));
+      const inf = this.mapSel;
+      if (this.busy || !inf) return;
+      const picked = inf.differing.slice(0, 12).filter((s) => this.mapPicked.includes(s.name) && this.mapSyncable(s, inf.id));
       if (!picked.length) return;
-      this.busy = true; const results = [];
+      const results = [];
+      let failure = "";
+      this.busy = true;
       try {
-        for (const n of picked) { const s = this.m.byName.get(n); const r = await this.doSync(n, s.ref.holders[0].scope, [inf.id]); r.name = n; results.push(r); }
+        for (const s of picked) {
+          try {
+            const result = await this.doSync(s.name, s.ref.holders[0].scope, [inf.id]);
+            results.push({ ...result, name: s.name });
+          } catch (e) {
+            failure = ` Sync stopped at ${s.name}. ${this.friendly(e.message)}`;
+            break;
+          }
+        }
         const undo = this.undoFor("", results);
-        await this.refresh(); this.mapPicked = this.mapDefaults(inf.id);
+        await this.refresh();
+        if (this.mapSel?.id === inf.id) this.mapPicked = this.mapDefaults(inf.id);
         const ok = results.filter((r) => r.synced.length).length;
-        this.toast(`${plural(ok, "skill")} now ${ok === 1 ? "matches" : "match"} in ${inf.agent.name}.${results.some((r) => r.manualRecovery) ? ' Undo is unavailable for this sync; recovery needs your backup or retained snapshots.' : ''}`, { undo });
-      } catch (e) { this.toast(e.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
+        const summary = ok ? `${plural(ok, "skill")} now ${ok === 1 ? "matches" : "match"} in ${inf.agent.name}.` : "No skills were confirmed as synced.";
+        const skipped = results.flatMap((r) => r.skipped);
+        const recovery = results.some((r) => r.manualRecovery) ? " Use your backup or retained snapshots for recovery." : "";
+        this.toast(summary + this.skipText(skipped) + failure + recovery, { err: !!failure || !!skipped.length, undo });
+      } finally { this.busy = false; }
     },
 
     /* ----- inbox ----- */

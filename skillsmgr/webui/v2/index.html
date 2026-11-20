@@ -127,14 +127,14 @@
         <select class="field" id="tag-f" v-model="tagFilter"><option value="">All tags</option><option value="__untagged">Untagged</option><option v-for="tag in catalogTags" :key="tag" :value="tag">{{tag}}</option></select>
         <span class="count" aria-live="polite">{{ visible.length === shelfTotal ? fmt(visible.length) + ' skills' : 'Showing ' + fmt(visible.length) + ' of ' + fmt(shelfTotal) }}</span>
       </div>
-      <div class="instance-filters"><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading">Refresh files</button></div>
+      <div class="instance-filters"><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><div class="seg" role="group" aria-label="Card density" v-if="libraryView==='shelf'"><button type="button" :aria-pressed="density==='comfortable'" @click="density='comfortable'">Comfortable</button><button type="button" :aria-pressed="density==='compact'" @click="density='compact'">Compact</button></div><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading">Refresh files</button></div>
       <p class="state-note err" role="alert" v-if="catalogError">Tags and profiles are unavailable: {{catalogError}} <button class="btn btn-line btn-sm" @click="loadCatalog()">Retry</button></p>
       <div class="ribbon" v-if="careCount && filter !== 'care'"><ic name="warn"></ic><span><b>{{ plural(careCount, 'skill needs', 'skills need') }} a little care.</b> Cards with a badge have a problem.</span><a class="btn btn-ink btn-sm" href="#/inbox">Fix them in Inbox</a></div>
       <library-tools v-if="libraryView==='instances'" :records="records" :scopes="scopes" :names="visibleNames" :agent-filter="agentFilter" :catalog="catalog" @changed="refresh()" @inspect="openRecord($event)" @source="openSource($event)" @removed="removedBatch($event)"></library-tools>
       <template v-else-if="groups.length">
         <section class="cat" v-for="g in groups" :key="g.id" role="group" :aria-label="grouping === 'letter' && sortBy === 'name' ? 'Skills starting with ' + g.id : g.id">
           <div class="cat-h"><h2 class="h2" :id="'cat-' + g.key">{{ g.id }}</h2><span>{{ plural(g.items.length, 'skill') }}</span></div>
-          <div class="shelf">
+          <div :class="['shelf', { compact: density === 'compact' }]">
             <a v-for="s in g.shown" :key="s.name" :class="['card sk', 'st-' + s.status.key, { faded: s.status.key === 'off' }]" :href="'#/skill/' + enc(s.name)">
               <div class="sk-b"><b translate="no">{{ s.name }}</b><p>{{ s.description || 'No description yet.' }}</p><span class="instance-tags"><span v-for="tag in skillTags(s.name)" :key="tag">{{tag}}</span></span>
                 <div class="sk-f"><span class="dots"><i v-for="c in s.tools" :key="c.scope" :class="{ 'is-off': c.state === 'off', 'is-bad': c.state === 'broken' }" :style="{ background: agentOf(c.scope).color }" :title="agentOf(c.scope).name"></i></span>
@@ -253,57 +253,83 @@
 
     <!-- ========== SYNC MAP ========== -->
     <div class="mapwrap" v-else-if="route.page === 'map'">
-      <section class="canvas" aria-label="Sync map">
-        <div class="intro">
-          <div><h1 class="h1" id="h1" tabindex="-1">Sync map</h1>
-            <p class="lede">{{ agentInfos.length - mapBad }} of {{ agentInfos.length }} agents match. <b class="warn" v-if="mapBad">{{ plural(mapBad, 'agent needs', 'agents need') }} a look.</b><b v-else>Nothing needs fixing.</b> Click an agent to see why.</p></div>
-          <div class="legend" aria-hidden="true">
-            <span><svg viewBox="0 0 28 8"><path d="M0 4h28" stroke="#22a05a" stroke-width="3"/></svg>Matches</span>
-            <span><svg viewBox="0 0 28 8"><path d="M0 4h28" stroke="#d97706" stroke-width="3" stroke-dasharray="5 4"/></svg>Copies differ</span>
-            <span><svg viewBox="0 0 28 8"><path d="M0 4h10M18 4h10" stroke="#dc2626" stroke-width="3"/></svg>Can't be read</span>
+      <section class="map-main" aria-labelledby="h1">
+        <header class="map-intro">
+          <h1 class="h1" id="h1" tabindex="-1">Sync map</h1>
+          <p class="lede">Compare copies on disk across agent scopes.</p>
+        </header>
+        <div class="map-toolbar">
+          <label for="map-search" class="sr-only">Find a skill in Sync map</label>
+          <input id="map-search" ref="mapSearch" class="field" type="search" v-model="mapQuery" placeholder="Find a skill…">
+          <a class="link map-total" href="#/skills">{{ plural(shelfTotal, 'skill') }} in Skills</a>
+        </div>
+        <ul class="map-legend" aria-label="Copy states" v-if="agentInfos.length && mapRows.length">
+          <li v-for="(status, state) in mapStates" :key="state"><span :class="['map-state', 'map-' + state]"><ic :name="status.icon"></ic></span>{{ status.label }}</li>
+        </ul>
+        <div class="map-scroll" v-if="agentInfos.length && mapRows.length" ref="matrix" role="region" aria-label="Scrollable skill copies table" tabindex="0">
+          <table class="map-table" aria-label="Skill copies by agent">
+            <thead>
+              <tr>
+                <th scope="col">Skill</th>
+                <th scope="col" v-for="inf in agentInfos" :key="inf.id">
+                  <button type="button" class="map-agent" :aria-pressed="inf.id === mapSel.id" aria-controls="map-details" :title="tagFor(inf)" @click="selectMap(inf.id, $event)">
+                    <logo :agent="inf.agent" size="xs"></logo>{{ inf.agent.name }}
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in mapRows" :key="row.skill.name">
+                <th scope="row"><a :href="'#/skill/' + enc(row.skill.name)" translate="no">{{ row.skill.name }}</a></th>
+                <td v-for="(cell, col) in row.cells" :key="agentInfos[col].id">
+                  <button v-if="cell.state !== 'missing'" type="button" :class="['map-state', 'map-' + cell.state]"
+                    :aria-label="row.skill.name + ', ' + agentInfos[col].agent.name + ': ' + cell.label"
+                    :title="cell.label" aria-controls="map-details" @click="selectMap(agentInfos[col].id, $event, row.skill.name)">
+                    <ic :name="mapStates[cell.state].icon"></ic>
+                  </button>
+                  <span v-else class="map-state map-missing" :title="cell.label"><ic name="dash"></ic><span class="sr-only">{{ cell.label }}</span></span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else-if="!agentInfos.length" class="state-note">No agent scope folders were found.</p>
+        <p v-else-if="mapQuery.trim()" class="state-note" role="status">No skills match this search.</p>
+        <p v-else class="state-note">Add a skill to compare its copies.</p>
+        <footer class="map-pages" v-if="agentInfos.length && mapRows.length">
+          <span role="status">{{ fmt(mapStart + 1) }}–{{ fmt(mapEnd) }} of {{ fmt(mapSkills.length) }} skills</span>
+          <div v-if="mapSkills.length > mapEnd - mapStart || mapStart">
+            <button type="button" class="btn btn-line btn-sm" :disabled="!mapStart" @click="moveMapPage(-1)">Previous</button>
+            <button type="button" class="btn btn-line btn-sm" :disabled="mapEnd === mapSkills.length" @click="moveMapPage(1)">Next</button>
           </div>
-        </div>
-        <svg class="wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <template v-for="(inf, i) in agentInfos" :key="inf.id">
-            <line v-if="inf.key !== 'bad'" x1="50" y1="56" :x2="slots[i][0]" :y2="slots[i][1]" :stroke="wireColor(inf.key)" stroke-width="4" :stroke-dasharray="inf.key === 'warn' ? '10 8' : null" vector-effect="non-scaling-stroke"/>
-            <template v-else>
-              <line x1="50" y1="56" :x2="mid(i, 0, -1)[0]" :y2="mid(i, 1, -1)[1]" :stroke="wireColor('bad')" stroke-width="4" vector-effect="non-scaling-stroke"/>
-              <line :x1="mid(i, 0, 1)[0]" :y1="mid(i, 1, 1)[1]" :x2="slots[i][0]" :y2="slots[i][1]" :stroke="wireColor('bad')" stroke-width="4" vector-effect="non-scaling-stroke"/>
-            </template>
-          </template>
-        </svg>
-        <span v-for="(inf, i) in agentInfos" :key="'t' + inf.id" :class="['tagw', inf.key]" :style="{ left: (slots[i][0] + 50) / 2 + '%', top: (slots[i][1] + 56) / 2 + '%' }">{{ tagFor(inf) }}</span>
-        <button type="button" class="node" v-for="(inf, i) in agentInfos" :key="'n' + inf.id" :style="{ left: slots[i][0] + '%', top: slots[i][1] + '%' }" :aria-pressed="inf.id === mapSel.id" :aria-label="inf.agent.name + ': ' + tagFor(inf, true)" @click="selectMap(inf.id)">
-          <logo :agent="inf.agent" size="sm"></logo><span><b>{{ inf.agent.name }}</b><small>{{ plural(inf.mine.length, 'skill') }}</small></span></button>
-        <a class="hub" href="#/skills" :aria-label="'All skills: ' + shelfTotal"><b class="num">{{ fmt(shelfTotal) }}</b><span>skills in total</span><em>across your agents</em></a>
+        </footer>
       </section>
-      <div class="maplist">
-        <h2 class="h1 maplist-h">Sync map</h2>
-        <div class="mlist" style="margin-top:16px">
-          <button type="button" class="mrow" v-for="inf in agentInfos" :key="inf.id" :style="{ width: '100%', background: inf.id === mapSel.id ? 'var(--sunken)' : 'var(--surface)', borderLeft: 0, borderRight: 0, borderBottom: 0, textAlign: 'left' }" @click="selectMap(inf.id)">
-            <logo :agent="inf.agent" size="xs"></logo><span><b>{{ inf.agent.name }}</b><small>{{ plural(inf.mine.length, 'skill') }}</small></span><span :class="['pill', inf.key]">{{ tagFor(inf) }}</span></button>
+      <aside class="mpanel" id="map-details" aria-labelledby="map-heading" v-if="mapSel">
+        <div class="map-panel-head">
+          <h2 id="map-heading" tabindex="-1" ref="mapHeading">{{ mapSel.agent.name }}</h2>
+          <button v-if="mapOrigin" type="button" class="btn btn-line btn-sm" @click="backToMap()">Back to map</button>
         </div>
-      </div>
-      <aside class="mpanel" aria-live="polite" v-if="mapSel">
-        <span class="crumb">All skills → {{ mapSel.agent.name }}</span>
+        <section class="map-copy" v-if="mapDetail">
+          <h3 translate="no">{{ mapDetail.skill.name }}</h3>
+          <p>{{ mapDetail.label }}</p>
+          <a v-if="mapDetail.copy" class="link" :href="'#/skill/' + enc(mapDetail.skill.name)" @click.exact.left.prevent="openRecord(mapDetail.copy.record)">Open this copy</a>
+          <a v-else class="link" :href="'#/skill/' + enc(mapDetail.skill.name)">See skill copies</a>
+        </section>
         <template v-if="mapSel.key === 'ok'">
-          <div><h2>{{ mapSel.agent.name }} matches</h2><p class="sub" style="font-size:15px">All {{ plural(mapSel.mine.length, 'skill') }} match what your other agents hold.</p></div>
-          <div class="flow"><logo :agent="mapSel.agent" size="xs"></logo>{{ mapSel.agent.name }}<span class="ar ok"></span>the rest</div>
+          <p class="sub">{{ mapSel.mine.length ? 'No unreadable or differing copies flagged in this scope.' : 'No skill copies listed in this scope.' }}</p>
           <div class="cta"><a class="btn btn-line" href="#/skills" @click="pickAgent(mapSel.id)" style="flex:1">See {{ mapSel.agent.name }}'s skills</a></div>
         </template>
         <template v-else>
-          <div><h2>{{ mapSel.broken.length ? mapSel.agent.name + " can't read " + plural(mapSel.broken.length, 'skill') : mapSel.agent.name + ' has ' + plural(mapSel.differing.length, 'different copy', 'different copies') }}</h2>
-            <p class="sub" style="font-size:15px">{{ mapSel.agent.name }} may behave differently from your other agents until these are sorted out.</p></div>
-          <div class="flow"><logo :agent="mapSel.agent" size="xs"></logo>{{ mapSel.agent.name }}<span :class="['ar', mapSel.key]"></span>the rest</div>
+          <p :class="['pill', mapSel.key]">{{ tagFor(mapSel) }}</p>
           <div class="mlist" v-if="mapSel.broken.length"><div class="mrow" v-for="s in mapSel.broken.slice(0, 8)" :key="s.name"><span class="bad"><ic name="bad"></ic></span><span><b>{{ s.name }}</b><small>{{ brokenShort(s, mapSel.id) }}</small></span><a class="btn btn-soft btn-sm" :href="'#/skill/' + enc(s.name)">Open</a></div>
             <div class="mrow" v-if="mapSel.broken.length > 8"><span></span><span><small>and {{ mapSel.broken.length - 8 }} more. See the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/inbox">Inbox</a></div></div>
           <div class="mlist" v-if="mapSel.differing.length">
-            <div class="mrow" v-for="s in mapSel.differing.slice(0, 12)" :key="s.name"><input type="checkbox" :checked="mapPicked.includes(s.name)" :disabled="s.ref.ambiguous" :aria-label="'Make ' + s.name + ' match'" @change="togglePick(s.name)"><span><b>{{ s.name }}</b><small>{{ s.ref.ambiguous ? 'Split evenly. Choose in the Inbox' : diffCount(s, mapSel.id) === null ? 'Comparing copies…' : plural(diffCount(s, mapSel.id), 'line') + ' different from the reference copy' }}</small></span><button type="button" class="peek" :aria-pressed="peek === s.name" @click="togglePeek(s)" :aria-label="'Show changes in ' + s.name">{{ peek === s.name ? 'Hide' : 'Peek' }}</button></div>
+            <div class="mrow" v-for="s in mapSel.differing.slice(0, 12)" :key="s.name"><input type="checkbox" :checked="mapPicked.includes(s.name)" :disabled="busy || !mapSyncable(s, mapSel.id)" :aria-label="'Make ' + s.name + ' match'" @change="togglePick(s.name)"><span><b>{{ s.name }}</b><small>{{ s.ref.ambiguous ? 'No majority. Choose in the Inbox' : !mapSyncable(s, mapSel.id) ? 'Review this copy in Skills' : diffCount(s, mapSel.id) === null ? 'Comparing copies…' : plural(diffCount(s, mapSel.id), 'line') + ' different from the reference copy' }}</small></span><button type="button" class="peek" :aria-pressed="peek === s.name" @click="togglePeek(s)" :aria-label="'Show changes in ' + s.name">{{ peek === s.name ? 'Hide' : 'Peek' }}</button></div>
             <div class="mrow" v-if="mapSel.differing.length > 12"><span></span><span><small>and {{ mapSel.differing.length - 12 }} more. Use the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/inbox">Inbox</a></div></div>
           <div class="minidiff" v-if="peekLines" role="region" :aria-label="'Differences in ' + peek"><div class="h">{{ peek }}: what will change in {{ mapSel.agent.name }}</div>
             <div v-for="(l, i) in peekLines" :key="i" :class="l.t"><span class="sr-only" v-if="l.t === 'add'">Added: </span><span class="sr-only" v-else-if="l.t === 'del'">Removed: </span>{{ plainLine(l.x) }}</div></div>
           <p class="backup" v-if="mapSel.differing.length"><ic name="undo" cls="i-s"></ic>Sync also copies whether the skill is on or off, and its supporting files. Undo restores only the text and the on/off state.</p>
-          <div class="cta" v-if="mapSel.differing.some((s) => !s.ref.ambiguous)"><button type="button" class="btn btn-ink btn-lg" :disabled="!mapPicked.length || busy" @click="syncPicked()">Make {{ plural(mapPicked.length, 'skill') }} match in {{ mapSel.agent.name }}</button></div>
+          <div class="cta" v-if="mapSel.differing.slice(0, 12).some((s) => mapSyncable(s, mapSel.id))"><button type="button" class="btn btn-ink btn-lg" :disabled="!mapPicked.length || busy" @click="syncPicked()">{{ mapPicked.length ? 'Make ' + plural(mapPicked.length, 'skill') + ' match in ' + mapSel.agent.name : 'Select skills to sync' }}</button></div>
           <div class="cta" v-else-if="mapSel.differing.length"><a class="btn btn-line btn-lg" href="#/inbox" style="flex:1">Choose which copies to keep in the Inbox</a></div>
         </template>
       </aside>

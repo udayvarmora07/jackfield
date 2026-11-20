@@ -686,9 +686,19 @@ service. Never forward, tunnel or publish its port.
 
 The maintainer-selected v2 uses warm paper, Jakarta UI text, Newsreader headings
 and the existing measured dark palette. Its primary navigation is **Home**,
-**Skills**, **Sync map**, **Inbox**, **Recovery**, **Tools**. Home, the document
-reader, copy comparison and the Inbox retain their established compositions.
-Tools provides secondary navigation and contextual links from exact instances.
+**Skills**, **Sync map**, **Inbox**, **Recovery**, **Tools**. Tools provides
+secondary navigation and contextual links from exact instances.
+
+**[SPEC] Shelf density and Sync map.** The Skills shelf remembers Comfortable
+or Compact in the browser. The Sync map lists skills by agent scope, shows
+observed file and content states, filters by skill name and displays 48 rows
+per page. A scope heading opens the existing comparison and repair panel.
+An observed cell also identifies the selected skill and scope in that panel.
+When several copies share the same name and scope, the cell links to the
+skill's copies. An empty cell means the scan returned no copy in that scope.
+The map reports evidence from disk. Effective agent loading is unknown.
+The direct sync action applies only to selected eligible rows shown in the
+panel. Tied and read-only copies require review in Skills or the Inbox.
 
 Home also shows Claude Code and Codex listing-budget estimates in a side card.
 The card reads the existing `GET /api/doctor?scope=all&hygiene=1` report after
@@ -775,7 +785,8 @@ with Ctrl/Cmd K and from the desktop header.
 `apm.yml` and `apm.lock.yaml` files are present. The API reports them
 separately under `unavailable_signals` in the hygiene report's `lockfiles`
 section. Quality displays them under its unavailable-evidence disclosure.
-The check reads file metadata only.
+The check reads file metadata only. When either signal appears, Quality
+links to Microsoft's APM audit reference.
 
 ## Classic frontend map (`/classic/`, app.js)
 

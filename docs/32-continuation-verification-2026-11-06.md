@@ -131,7 +131,8 @@ confirm each says what it fixes. 3) Press `/`, type "same", choose "Needs
 care", hear the count and "pressed". 4) Open a skill with differing copies and
 Tab to its switches; hear which copy differs; toggle one and reach Undo.
 5) Press `?`, then Escape; focus returns. 6) New skill: type "Bad Name" and hear
-the error. 7) Sync map: open the red agent and Tab through Peek buttons.
+the error. 7) Sync map: open an agent column or a copy cell, Tab through the
+repair panel and check that Back to map returns focus to the opener.
 8) Inbox: Tab to "Open skill" and press Enter; it must open the skill and
 change nothing. 9) At phone width, Tab to the logo and the bottom-nav Inbox.
 10) Use "Skip to content" on a skill page and stay on that page.

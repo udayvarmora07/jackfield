@@ -86,6 +86,9 @@
         }
         return [...groups.values()];
       },
+      hasApmSignals(){
+        return (this.quality?.lockfiles?.unavailable_signals||[]).some(({signal}) => signal === 'apm-manifest' || signal === 'apm-lock');
+      },
       claudeListing(){const l=this.quality&&this.quality.claude_listing;return l&&Number(l.instances_observed)>0?l:null;},
       documentScan(){try{return BASELINES.snapshot(this.qualityEnvelope)}catch(e){return null;}},
       documentComparison(){if(!this.documentScan)return {status:'unavailable',changed:[],partial:true};return BASELINES.compare(this.documentScan,this.documentBaseline);},
@@ -691,7 +694,11 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             </li>
           </ul>
           <p v-if="!findings.length" class="tp-empty">Nothing matches this filter.</p>
-          <details v-if="unavailableSignals.length" class="tp-more evidence-limits"><summary>{{unavailableSignals.length}} kinds of evidence are unavailable</summary><p v-for="(signal,i) in unavailableSignals" :key="i">{{human(signal.signal)}} — {{signal.explanation}} <span v-if="signal.count>1">({{signal.count}} instances)</span></p></details>
+          <details v-if="unavailableSignals.length" class="tp-more evidence-limits">
+            <summary>{{unavailableSignals.length}} kinds of evidence are unavailable</summary>
+            <p v-for="(signal,i) in unavailableSignals" :key="i">{{human(signal.signal)}} — {{signal.explanation}} <span v-if="signal.count>1">({{signal.count}} instances)</span></p>
+            <p v-if="hasApmSignals"><a class="link" href="https://microsoft.github.io/apm/reference/cli/audit/" target="_blank" rel="noopener noreferrer">Audit the project with Microsoft APM</a></p>
+          </details>
         </template>
         <p v-else-if="loading.qualityEnvelope" class="tp-empty">Reading hygiene evidence…</p>
         <p v-else class="tp-empty">Hygiene evidence is unavailable. <button type="button" class="btn btn-soft btn-sm" @click="loadQuality">Retry</button></p>

@@ -7,6 +7,38 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-20 — Shelf density and Sync map matrix
+
+- The Skills shelf remembers its card density. Compact uses a tighter grid and
+  one-line description previews. Exact instances uses its existing layout.
+- Sync map shows one skill per row and one observed agent scope per column,
+  with name search, sticky table headers and 48 rows per page. Cells use glyphs
+  and accessible labels for file and content states. Copy details open the
+  existing repair panel and can return keyboard focus to the selected cell.
+  Same-name copies within one scope are flagged for review.
+- Map sync acts on selected eligible rows visible in the repair panel. A
+  double-click sent one sync request in the disposable browser fixture.
+  Undo restored the original file content. If a later copy fails, the panel
+  reports the failure and retains Undo for completed copies with snapshots.
+- Browser regression cases cover density after reload, observed states, focus
+  return, mobile table scrolling, empty and single-row inventories, and
+  filtering and paging a 10,000-skill fixture.
+- The 13 px control-label trial saved no toolbar height at seven widths.
+  The proposed translucent ink ramp fell below the text threshold on several
+  surfaces. Kept the measured scale and palette, improved reader group and
+  heading contrast, and added both reader surfaces to the contrast test.
+- Quality links to Microsoft APM's audit reference when project metadata
+  includes an APM manifest or lock. APM retains ownership of manifest
+  validation and package import/export. The research and decisions are in
+  @docs/53-apm-and-interface-decisions-2026-11-20.md.
+- Verification on the updated tree ran 2,238 unit tests with seven skips,
+  43 v2 cases in Chrome, 42 in Firefox and 342 classic browser assertions.
+  Chrome covered actual 200% and 400% zoom. Both smokes, package checks
+  and offline AI verification passed. Axe reported zero violations in the
+  sampled light desktop and dark phone Sync map. Linux AT-SPI exposed the
+  search field, table and named copy buttons. Spoken sign-off remains
+  a human review item.
+
 ## 2026-11-20 — Two residuals closed: legacy Windows archives, repo credential helpers
 
 - **Legacy Windows archives import again.** Tree hashes join names with `/` on

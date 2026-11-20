@@ -76,7 +76,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Disabled Enter does not sync a tied copy',async()=>{await go('inbox');await page.locator('.qi').filter({hasText:'split-even'}).click();let f=file('.codex','split-even'), bytes=fs.readFileSync(f),posts=0;const observe=req=>{if(req.method()==='POST'&&req.url().endsWith('/api/sync'))posts++;};page.on('request',observe);assert(await page.locator('[data-primary]').isDisabled());await page.locator('#h1').focus();await page.keyboard.press('Enter');await page.waitForTimeout(300);assert.deepEqual(fs.readFileSync(f),bytes);page.off('request',observe);assert.equal(posts,0);});
   await test('Keyboard: Enter on Open skill navigates and never runs the fix (SR-1)',async()=>{await go('inbox');if(!(await page.locator('#focus-t').innerText()).includes('damaged-fm'))await page.locator('.qi').filter({hasText:'damaged-fm'}).click();const f=file('.codex','damaged-fm'),bytes=fs.readFileSync(f);let posts=0;const observe=req=>{if(req.method()==='POST'&&req.url().endsWith('/api/sync'))posts++;};page.on('request',observe);try{await page.locator('.f-acts a.link').filter({hasText:'Open skill'}).focus();await page.keyboard.press('Enter');await page.waitForTimeout(500);assert(page.url().includes('#/skill/damaged-fm'),page.url());assert.equal(posts,0);assert.deepEqual(fs.readFileSync(f),bytes);}finally{page.off('request',observe);}});
   await test('Skip link keeps the current page and focuses its heading (SR-2)',async()=>{await go('skill/same-everywhere');await page.locator('a.skip').focus();await page.keyboard.press('Enter');await page.waitForTimeout(200);assert(page.url().endsWith('#/skill/same-everywhere'),page.url());assert.equal(await page.evaluate(()=>document.activeElement&&document.activeElement.id),'h1');});
-  await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.locator('.node').filter({hasText:'Codex'}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
+  await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
   await test('Delayed double click issues one sync and Undo restores bytes and queue',async()=>{
     await go('inbox');
@@ -193,15 +193,123 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   });
   await test('Sync map totals, singular grammar and top-link target size',async()=>{
     await go('skills');const total=Number((await page.locator('.seg button').first().innerText()).match(/\d+/)?.[0]);
-    await go('map');assert.equal(Number((await page.locator('.hub .num').innerText()).replace(/,/g,'')),total);
+    await go('map');assert.equal(Number((await page.locator('.map-total').innerText()).match(/^([\d,]+)/)[1].replace(/,/g,'')),total);
     assert.doesNotMatch(await page.locator('main').innerText(),/1 copy differ(?!s)/);
     await page.setViewportSize({width:1280,height:900});
     const box=await page.locator('.top .tabs a[href="#/tools"]').boundingBox();assert(box.height>=24);assert(box.width>=24);
   });
+  await test('Shelf density persists across reload and is scoped to Shelf', async () => {
+    await go('skills');
+    const compact = page.getByRole('button', {name:'Compact', exact:true});
+    const card = page.locator('.shelf .sk').first();
+    const before = await card.boundingBox();
+    try {
+      await compact.click();
+      await go('skills');
+      assert.equal(await compact.getAttribute('aria-pressed'), 'true');
+      assert((await card.boundingBox()).height < before.height);
+      await page.getByRole('button', {name:'Exact instances', exact:true}).click();
+      assert.equal(await compact.count(), 0);
+      await page.getByRole('button', {name:'Shelf', exact:true}).click();
+      assert.equal(await compact.getAttribute('aria-pressed'), 'true');
+    } finally {
+      await page.evaluate(() => localStorage.removeItem('skillsmgr-v2-density'));
+    }
+  });
+  await test('Sync map reads copy states, searches, and returns keyboard focus from details', async () => {
+    await page.setViewportSize({width:320,height:760});
+    try {
+      await go('map');
+      const table = page.getByRole('table', {name:'Skill copies by agent'});
+      const codexCopy = table.getByRole('button', {name:/majority-minor, Codex:.*Different copy/});
+      await table.getByRole('button', {name:/damaged-one, Codex: Can't be read/}).waitFor();
+      await table.getByRole('button', {name:/target-disabled, Codex: Turned off on disk.*no majority/}).waitFor();
+      await table.getByRole('button', {name:/same-everywhere, Codex:.*Matches reference content/}).waitFor();
+      assert((await table.getByRole('row').filter({hasText:'sole-copy'}).getByText('No copy listed').count()) > 0);
+      assert(await page.locator('.map-scroll').evaluate(el => el.scrollWidth > el.clientWidth));
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      const search = page.getByRole('searchbox', {name:'Find a skill in Sync map'});
+      await search.fill('majority-minor');
+      assert.equal(await table.getByRole('row').count(), 2);
+      await codexCopy.focus();
+      await page.keyboard.press('Enter');
+      assert(await page.getByRole('heading', {name:'Codex', exact:true}).evaluate(el => el === document.activeElement));
+      const details = page.locator('#map-details');
+      assert.match(await details.innerText(), /majority-minor[\s\S]*Different copy/);
+      assert(await details.getByRole('button', {name:'Select skills to sync'}).isDisabled());
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Enter');
+      assert(await codexCopy.evaluate(el => el === document.activeElement));
+      await codexCopy.click();
+      await details.getByRole('link', {name:'Open this copy'}).click();
+      await page.waitForURL(url => url.hash === '#/skill/majority-minor');
+      await go('map');
+      await search.fill('no-such-fixture');
+      await page.getByText('No skills match this search.').waitFor();
+      assert.equal(await table.count(), 0);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    } finally {
+      await page.setViewportSize({width:1280,height:900});
+    }
+  });
+  await test('Sync map bounds rows and resets pagination on search', async () => {
+    const list = /[/]api[/]skills[?]scope=all(?:&body=0)?$/;
+    const records = await (await page.request.get(base+'/api/skills?scope=all')).json();
+    const row = records.find(record => record.scope === 'codex' && record.name === 'same-everywhere');
+    const many = Array.from({length:10000}, (_, i) => ({
+      ...row, name:'fixture-'+String(i).padStart(5,'0'), path:undefined, physical_path:undefined, body:undefined,
+    }));
+    try {
+      await page.route(list, route => route.fulfill({json:many}));
+      await go('map');
+      const table = page.getByRole('table', {name:'Skill copies by agent'});
+      assert.equal(await table.locator('tbody tr').count(), 48);
+      await page.getByRole('button', {name:'Next', exact:true}).click();
+      assert.equal(await table.locator('tbody th').first().innerText(), 'fixture-00048');
+      await page.getByRole('searchbox', {name:'Find a skill in Sync map'}).fill('fixture-09999');
+      assert.deepEqual(await table.locator('tbody th').allInnerTexts(), ['fixture-09999']);
+    } finally {
+      await page.unrouteAll({behavior:'wait'});
+    }
+  });
+  await test('Sync map keeps Undo when a later copy fails to sync', async () => {
+    const name = 'zz-map-failure-fixture';
+    const target = file('.codex', 'majority-minor');
+    const before = fs.readFileSync(target);
+    const additions = ['.claude', '.codex', '.agents'].map(scope => file(scope, name));
+    const syncCalls = [];
+    const syncRoute = '**/api/sync';
+    try {
+      for (const [i, filename] of additions.entries()) {
+        fs.mkdirSync(path.dirname(filename));
+        fs.writeFileSync(filename, `---\nname: ${name}\ndescription: Exercise partial sync.\n---\n${i === 1 ? 'Different.' : 'Reference.'}\n`);
+      }
+      await page.route(syncRoute, route => {
+        const requested = route.request().postDataJSON().name;
+        syncCalls.push(requested);
+        return requested === name ? route.fulfill({status:503, json:{error:'Fixture sync interrupted'}}) : route.continue();
+      });
+      await go('map');
+      await page.getByRole('button', {name:'Codex', exact:true}).click();
+      await page.getByRole('button', {name:'Make 2 skills match in Codex', exact:true}).click();
+      const toast = page.locator('.toast').filter({hasText:'Fixture sync interrupted'});
+      await toast.waitFor();
+      assert.deepEqual(syncCalls, ['majority-minor', name]);
+      assert.match(await toast.innerText(), /1 skill now matches in Codex/);
+      assert.notDeepEqual(fs.readFileSync(target), before);
+      await toast.getByRole('button', {name:'Undo', exact:true}).click();
+      await page.locator('.toast').filter({hasText:'Undone'}).waitFor();
+      assert.deepEqual(fs.readFileSync(target), before);
+    } finally {
+      await page.unroute(syncRoute);
+      fs.writeFileSync(target, before);
+      for (const filename of additions) fs.rmSync(path.dirname(filename), {recursive:true, force:true});
+    }
+  });
   await test('Responsive layouts in both themes',async()=>{for(const [label,w,h] of [['desktop',1280,900],['phone',390,844]])for(const t of ['light','dark']){await page.setViewportSize({width:w,height:h});await go('home');await theme(t);for(const r of ['home','skills','skill/same-everywhere','map','inbox','recovery']){await go(r);assert.equal(await page.locator('html').getAttribute('data-theme'),t);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1),false,`${label} ${t} ${r}`);await page.screenshot({path:path.join(root,`${label}-${t}-${r.replace('/','-')}.png`)});}}});
   await test('Phone dark Sync map sampled text contrast',async()=>{
     await page.setViewportSize({width:390,height:844});await go('map');await theme('dark');
-    const samples=await page.locator('.maplist .mrow').evaluateAll(rows=>rows.map(row=>{
+    const samples=await page.locator('.map-table .map-state').evaluateAll(rows=>rows.map(row=>{
       const style=getComputedStyle(row),rgb=value=>value.match(/[0-9.]+/g).slice(0,3).map(Number);
       const lum=value=>rgb(value).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((n,v,i)=>n+v*[.2126,.7152,.0722][i],0);
       const foreground=style.color,background=style.backgroundColor,a=lum(foreground),b=lum(background);
@@ -215,7 +323,14 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const selected=records.find(r=>r.name==='library-fixture');assert(selected);
     for(const fixture of [[],[selected]]){
       await page.route(/[/]api[/]skills[?]scope=all(?:&body=0)?$/,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fixture)}));
-      try{await go('skills');assert.equal(await page.locator('.sk').count(),fixture.length);}finally{await page.unrouteAll({behavior:'wait'});}
+      try {
+        await go('skills');
+        assert.equal(await page.locator('.sk').count(),fixture.length);
+        await go('map');
+        assert.equal(await page.locator('.map-table tbody tr').count(),fixture.length);
+      } finally {
+        await page.unrouteAll({behavior:'wait'});
+      }
     }
   });
   await test('Forced colors focus indicator',async()=>{await page.emulateMedia({forcedColors:'active'});await go('skills');await page.keyboard.press('Tab');assert(await page.evaluate(()=>matchMedia('(forced-colors: active)').matches && document.activeElement!==document.body && getComputedStyle(document.activeElement).outlineStyle!=='none'));await page.screenshot({path:path.join(root,'forced-colors.png')});await page.emulateMedia({forcedColors:'none'});});
@@ -376,9 +491,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await evidence.locator('summary').click();
     await manifest.waitFor();
     assert.equal(await evidence.getByText(/apm\.lock\.yaml is present/).count(),0);
+    const apmAudit=evidence.getByRole('link',{name:'Audit the project with Microsoft APM'});
+    assert.equal(await apmAudit.getAttribute('href'),'https://microsoft.github.io/apm/reference/cli/audit/');
     await page.getByRole('button',{name:'Clear project',exact:true}).click();
     await evidence.locator('summary').waitFor();
     assert.equal(await manifest.count(),0);
+    assert.equal(await apmAudit.count(),0);
   });
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
     for(const width of [320,768,1280])for(const mode of ['light','dark']){
