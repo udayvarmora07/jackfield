@@ -32,6 +32,12 @@ dependency), so only patterns were ported, rewritten from scratch.
   Windows dark-mode selects.
 - **Browser surfaces (impeccable craft floor):** text selection uses the
   highlighter token, the caret is brand, scrollbars are quiet.
+- CI hygiene: `65f3a62` went red on Windows / Python 3.11 only, three
+  unrelated tests erroring in `TemporaryDirectory.cleanup` with WinError 32 on
+  a `locks/*.lock` file (the lock code closes its handle on every release; the
+  prior seven runs on the same code were green). `tests/test_00_portable_
+  environment.py` now retries Windows temp cleanup for up to 2 s; a genuinely
+  leaked handle still fails. Windows-only regression test.
 - Not ported on purpose: the app already has a switch, tabs, toasts, dialogs
   and a command palette that pass axe and the browser suites; replacing them
   would churn tested markup for little gain. The ports remain a spec to diff.
