@@ -668,6 +668,15 @@ class BodyLazyLoadTests(unittest.TestCase):
         # A library-only skill is never "In 0 tools".
         self.assertIn("'Only in your library'", body)
 
+    def test_shelf_letter_headers_stick_below_the_top_bar(self):
+        css = (V2 / "styles.css").read_text(encoding="utf-8")
+        top = re.search(r"\.top \{ position: sticky; top: 0; z-index: (\d+); height: (\d+)px;", css)
+        sticky = re.search(r"\.cat > \.cat-h \{ position: sticky; top: (\d+)px; z-index: (\d+); background: var\(--bg\)", css)
+        self.assertIsNotNone(top)
+        self.assertIsNotNone(sticky)
+        self.assertEqual(sticky.group(1), top.group(2))  # flush under the bar
+        self.assertLess(int(sticky.group(2)), int(top.group(1)))  # never above it
+
     def test_every_ai_tool_has_its_own_heading_while_ai_is_off(self):
         # The unconfigured fallback heading map once lacked "ai-concise", so
         # that page alone was titled "AI assist" until a model was connected.

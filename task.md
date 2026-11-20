@@ -141,7 +141,7 @@ done.
 - [x] v2 interface pass (2026-11-20): type-scale tokens (Large text now scales
   everything), spacing rhythm, axe 0 violations, Home layout, copy (docs/06).
 - [ ] UI follow-ups from the reference study (`~/design-refs/`): Sync map as a
-  skills × agents matrix, Skills shelf density toggle, sticky A–Z headers.
+  skills × agents matrix, Skills shelf density toggle. (Sticky A–Z headers done.)
   (Repeated history rows now collapse; radii 6/8/12 and a constant 1.5px icon
   stroke landed 2026-11-20.)
 - [x] Scope scan: non-canonical names (`Upper-Case`, `.hidden`) were blanked

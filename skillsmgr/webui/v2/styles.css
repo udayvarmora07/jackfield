@@ -214,6 +214,10 @@ select.field { padding-right: 34px; appearance: none; background-image: url("dat
 .ribbon .btn { margin-left: auto; }
 .cat { margin-top: 36px; }
 .cat-h { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+/* Letter headers stay in view while their group scrolls (references: Things,
+   Apple lists), so a long shelf keeps its place. They sit under the sticky top
+   bar and never above dialogs (z-index below .top's 40). */
+.cat > .cat-h { position: sticky; top: 66px; z-index: 5; background: var(--bg); padding: 10px 0 8px; margin-bottom: 6px; }
 .cat-h span { color: var(--muted); font-weight: 600; }
 .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 20px; }
 .sk { display: flex; flex-direction: column; overflow: hidden; text-decoration: none; position: relative; transition: border-color .12s var(--ease), box-shadow .12s var(--ease); }

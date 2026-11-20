@@ -21,6 +21,8 @@ and icons render at a constant ~1.5px stroke.
 - Recovery history collapses consecutive rows with one action in one minute
   ("6 skills · Create", names in a native `<details>`); single events are
   unchanged. `tests/test_v2_tool_behaviors.py`.
+- Skills shelf letter headers are sticky under the 66px top bar (z-index
+  below it), so a long shelf keeps its place; contract-tested.
 - Sync copy rewritten in plain words ("whether the skill is on or off, and its
   supporting files"), replacing "file enabled state and companion files".
 - Kept on purpose: the three font families and the serif page titles (the
