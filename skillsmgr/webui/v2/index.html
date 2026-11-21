@@ -14,14 +14,14 @@
 </head>
 <body>
 <div id="app" v-cloak>
-  <a class="skip" href="#main" @click.prevent="skipToContent()">Skip to content</a>
+  <a class="skip" href="#main" :inert="!!dialog" @click.prevent="skipToContent()">Skip to content</a>
   <header class="top" :inert="!!dialog">
     <a class="brand" href="#/home" aria-label="Skills Manager home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect class="cl" x="0" y="2" width="8" height="8" rx="1"/><rect class="cl" x="10" y="2" width="8" height="8" rx="1"/><rect class="cl" x="20" y="2" width="8" height="8" rx="1"/><rect class="cl" x="4" y="12" width="8" height="8" rx="1"/><rect class="cl" x="14" y="12" width="8" height="8" rx="1"/><rect class="fl" x="24" y="12" width="8" height="8" rx="1"/><rect class="cl" x="0" y="22" width="8" height="8" rx="1"/><rect class="cl" x="10" y="22" width="8" height="8" rx="1"/><rect class="cl" x="20" y="22" width="8" height="8" rx="1"/></svg><span class="brand-t">Skills Manager</span></a>
     <nav class="tabs" ref="tabs" aria-label="Main" @scroll.passive="updateTabsClip">
       <a href="#/home" :aria-current="route.page === 'home' ? 'page' : null">Home</a>
       <a href="#/skills" :aria-current="route.page === 'skills' || route.page === 'skill' ? 'page' : null">Skills</a>
       <a href="#/map" :aria-current="route.page === 'map' ? 'page' : null">Sync map</a>
-      <a href="#/inbox" :aria-current="route.page === 'inbox' ? 'page' : null">Inbox <span class="badge" v-if="inboxCount" aria-hidden="true">{{ inboxCount > 99 ? '99+' : inboxCount }}</span><span class="sr-only" v-if="inboxCount">, {{ plural(inboxCount, 'item') }}</span></a>
+      <a href="#/inbox" :aria-current="route.page === 'inbox' ? 'page' : null" :aria-label="inboxLabel">Inbox <span class="badge" v-if="inboxCount" aria-hidden="true">{{ inboxCount > 99 ? '99+' : inboxCount }}</span></a>
       <a href="#/recovery" :aria-current="route.page === 'recovery' ? 'page' : null">Recovery</a>
       <a href="#/tools" :aria-current="route.page === 'tools' ? 'page' : null">Tools</a>
     </nav>
@@ -453,7 +453,7 @@
     <a href="#/home" :aria-current="route.page === 'home' ? 'page' : null"><ic name="home"></ic>Home</a>
     <a href="#/skills" :aria-current="route.page === 'skills' || route.page === 'skill' ? 'page' : null"><ic name="list"></ic>Skills</a>
     <a href="#/map" :aria-current="route.page === 'map' ? 'page' : null"><ic name="map"></ic>Map</a>
-    <a href="#/inbox" :aria-current="route.page === 'inbox' ? 'page' : null"><span class="bn-ic"><ic name="inbox"></ic><span class="badge" v-if="inboxCount" aria-hidden="true">{{ inboxCount > 99 ? '99+' : inboxCount }}</span></span>Inbox<span class="sr-only" v-if="inboxCount">, {{ inboxCount }} items</span></a>
+    <a href="#/inbox" :aria-current="route.page === 'inbox' ? 'page' : null" :aria-label="inboxLabel"><span class="bn-ic"><ic name="inbox"></ic><span class="badge" v-if="inboxCount" aria-hidden="true">{{ inboxCount > 99 ? '99+' : inboxCount }}</span></span>Inbox</a>
     <a href="#/recovery" :aria-current="route.page === 'recovery' ? 'page' : null"><ic name="undo"></ic>Recovery</a>
     <a href="#/tools" :aria-current="route.page === 'tools' ? 'page' : null"><ic name="tools"></ic>Tools</a>
   </nav>

@@ -145,6 +145,10 @@ another scope (`shared-root`), and scopes omitted by the row limit
 Shared physical roots only reuse an equivalent completed scan. A flat root
 and a grouped or recursive root are scanned separately even if they resolve
 to the same directory. Project-root aliases participate in this inventory.
+When the preview reuses an equivalent scan, each consolidated row's
+`pinned_scopes` lists the represented scopes with a pin for that name.
+`pinned` is true if any represented scope has a pin. Pin and unpin
+still apply to the named scope.
 The rows include `relative_path` where the folder can be attributed to the
 scope root. Skipped documents with unaddressable names make inventory partial.
 `used_by` and its explanation identify cached matches by name. A name match

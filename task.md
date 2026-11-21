@@ -30,6 +30,8 @@ records, not additional live work.
   using one UTC date window for modifications and cached usage events.
 - [ ] Implement archive apply and restore once continuous coverage, consumer
   mapping and edit/install evidence can establish staleness.
+- [x] Show pins from every equivalent scope when the archive preview coalesces
+  copies under a shared root.
 - [x] Make opted-in usage reflect persisted OpenCode 2.3.2 activations, report
   the requested UTC date window, and recover from interrupted bounded scans.
 - [x] Read OpenCode's configured database and explicit activations, keep cached
@@ -377,6 +379,9 @@ tracked above. The tool-page visual sign-off is in the parity section below.
   See @docs/48-ai-http-study-2026-11-17.md.
 
 - [ ] Human spoken screen-reader sign-off using the docs/32 walkthrough.
+- [x] Rehearse the v2 walkthrough with keyboard input and Chromium's
+  accessibility tree. Fix Inbox names and keep the page skip link outside
+  the accessibility tree while a v2 dialog is open.
 
 - [ ] Human perceptual review and screen-reader validation of v2. Automated
   forced-colors, keyboard and actual 200%/400% browser-zoom results are recorded separately.

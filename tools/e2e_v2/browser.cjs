@@ -76,6 +76,34 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Disabled Enter does not sync a tied copy',async()=>{await go('inbox');await page.locator('.qi').filter({hasText:'split-even'}).click();let f=file('.codex','split-even'), bytes=fs.readFileSync(f),posts=0;const observe=req=>{if(req.method()==='POST'&&req.url().endsWith('/api/sync'))posts++;};page.on('request',observe);assert(await page.locator('[data-primary]').isDisabled());await page.locator('#h1').focus();await page.keyboard.press('Enter');await page.waitForTimeout(300);assert.deepEqual(fs.readFileSync(f),bytes);page.off('request',observe);assert.equal(posts,0);});
   await test('Keyboard: Enter on Open skill navigates and never runs the fix (SR-1)',async()=>{await go('inbox');if(!(await page.locator('#focus-t').innerText()).includes('damaged-fm'))await page.locator('.qi').filter({hasText:'damaged-fm'}).click();const f=file('.codex','damaged-fm'),bytes=fs.readFileSync(f);let posts=0;const observe=req=>{if(req.method()==='POST'&&req.url().endsWith('/api/sync'))posts++;};page.on('request',observe);try{await page.locator('.f-acts a.link').filter({hasText:'Open skill'}).focus();await page.keyboard.press('Enter');await page.waitForTimeout(500);assert(page.url().includes('#/skill/damaged-fm'),page.url());assert.equal(posts,0);assert.deepEqual(fs.readFileSync(f),bytes);}finally{page.off('request',observe);}});
   await test('Skip link keeps the current page and focuses its heading (SR-2)',async()=>{await go('skill/same-everywhere');await page.locator('a.skip').focus();await page.keyboard.press('Enter');await page.waitForTimeout(200);assert(page.url().endsWith('#/skill/same-everywhere'),page.url());assert.equal(await page.evaluate(()=>document.activeElement&&document.activeElement.id),'h1');});
+  await test('Navigation names the Inbox count and stays outside the dialog tab order', async () => {
+    await go('home');
+    const badge = page.locator('.tabs a[href="#/inbox"] .badge');
+    const count = Number(await badge.innerText());
+    assert(count > 1, 'fixture includes multiple Inbox entries');
+    const inbox = page.getByRole('link', {name: `Inbox, ${count} items`, exact: true});
+    const skipLink = page.getByRole('link', {name: 'Skip to content', exact: true});
+    try {
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({width, height: 900});
+        await inbox.waitFor();
+        assert.equal(await inbox.count(), 1);
+      }
+    } finally {
+      await page.setViewportSize({width: 1280, height: 900});
+    }
+    const shortcuts = page.getByRole('button', {name: 'Keyboard shortcuts', exact: true});
+    await shortcuts.click();
+    await page.getByRole('dialog', {name: 'Keyboard shortcuts'}).waitFor();
+    assert(await page.locator('a.skip').evaluate(element => {
+      const focused = document.activeElement;
+      element.focus();
+      return element.inert && document.activeElement === focused;
+    }));
+    await page.keyboard.press('Escape');
+    assert.equal(await skipLink.count(), 1);
+    assert(await shortcuts.evaluate(element => document.activeElement === element));
+  });
   await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
   await test('Repeated Reader Sync clicks issue one request', async () => {

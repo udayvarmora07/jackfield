@@ -87,6 +87,7 @@ const app = createApp({
   },
   computed: {
     inboxCount() { return this.m ? this.queue.length : 0; },
+    inboxLabel() { return this.inboxCount ? "Inbox, " + plural(this.inboxCount, "item") : "Inbox"; },
     agentInfos() { return this.m ? this.m.infos.filter((i) => !i.agent.library) : []; },
     sharedSkills() { return this.m ? [...this.m.skills].sort((a, b) => b.tools.length - a.tools.length || a.name.localeCompare(b.name)).slice(0, 3) : []; },
     /* Categories only help when the skills actually carry them; otherwise the

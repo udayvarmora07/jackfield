@@ -168,3 +168,23 @@ output directory.
 The regression suites and captures exercise synthetic fixtures. The human
 walkthrough above remains the procedure for spoken sign-off.
 [Playwright browser installation](https://playwright.dev/docs/browsers#firefox)
+
+## 2026-11-21 — Keyboard and accessibility tree preflight
+
+**[NOTE]** The current [synthetic fixture](25-design-partner-pilot-kit.md#launch-the-synthetic-fixture)
+contains the divergent `majority-minor` copy for step 4 and the malformed
+`damaged-fm` copy for step 8. In step 7, use the `majority-minor` Codex cell
+and check that **Back to map** returns to that cell. Use a 390 px wide browser
+viewport for the phone step. The default interface now opens v2 at `/v2/`,
+and the classic interface is under `/classic/`.
+
+Chromium keyboard input and accessibility-tree inspection verified theme
+names, distinct **Fix it** links, the **Needs care** pressed state, the
+differing-copy label and Undo, Escape focus restoration, invalid name
+feedback, map focus restoration, and **Skip to content** on a skill page.
+**Open skill** navigated with the malformed document's bytes unchanged.
+Desktop and phone exposed the same **Inbox, 7 items** name. Opening the
+shortcuts dialog hid the page skip link from the accessibility tree and
+Escape restored its availability.
+
+**[?]** Human listening and perceptual sign-offs remain open.

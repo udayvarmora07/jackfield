@@ -72,6 +72,8 @@
   The text view includes nested folders so same-name copies can be told apart.
   Scopes that resolve to the same directory are scanned separately when their
   discovery rules differ. The preview includes discovered project-root aliases.
+  A row that represents several equivalent scopes reports a pin if any of
+  those scopes has one. JSON `pinned_scopes` identifies the scopes with a pin.
   The JSON `archive_readiness` field lists the documented readers for the
   selected scope IDs, including matched project-root conventions and readers
   of other selected scopes observed at the same physical root. These are

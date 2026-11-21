@@ -276,6 +276,37 @@ class LifecycleCliTests(unittest.TestCase):
         self.assertIn("folder team/demo", rendered)
         self.assertIn("folder another/demo", rendered)
 
+    def test_candidates_include_pins_from_equivalent_shared_scopes(self):
+        home = self.root / "home"
+        root = home / ".claude" / "skills"
+        skill = root / "example"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("---\nname: example\ndescription: Example.\n---\n", encoding="utf-8")
+        alias = home / ".codex" / "skills"
+        alias.parent.mkdir()
+        try:
+            alias.symlink_to(root, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks unavailable")
+
+        args = ("archive", "pin", "example", "--scope", "codex")
+        plan = self.command(*args)
+        self.command(*args, "--plan-id", plan["plan_hash"])
+
+        review = ("archive", "candidates", "--scope", "all")
+        row, = self.command(*review, cwd=self.project)["skills"]
+        self.assertEqual(row["scope"], "claude-code")
+        self.assertTrue(row["pinned"])
+        self.assertEqual(row["pinned_scopes"], ["codex"])
+        rendered = self.command(*review, cwd=self.project, json_output=False)
+        self.assertIn("(pinned via codex)", rendered)
+
+        alias.rename(alias.with_name("previous-skills"))
+        alias.mkdir()
+        row, = self.command(*review, cwd=self.project)["skills"]
+        self.assertFalse(row["pinned"])
+        self.assertEqual(row["pinned_scopes"], [])
+
     def test_candidates_marks_inventory_partial_when_a_skill_name_is_unaddressable(self):
         skill = self.root / "home" / ".claude" / "skills" / "UpperCase"
         skill.mkdir(parents=True)

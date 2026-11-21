@@ -7,6 +7,25 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-21 — Rehearse the v2 screen-reader walkthrough
+
+- The desktop and phone Inbox links now use the same accessible name and
+  pluralize the current count. The page skip link is inert while a v2 dialog
+  is open and works again on dismissal.
+- Chromium's accessibility tree and keyboard input verified the walkthrough
+  on the synthetic pilot. The evidence and fixture instructions are in
+  @docs/32-continuation-verification-2026-11-06.md. Spoken sign-off remains open.
+- All 51 v2 browser scenarios passed, including the tool routes at widths of
+  320, 768 and 1280 pixels in both themes. Both smoke tests and clean installs
+  of the rebuilt wheel and source distribution passed.
+
+## 2026-11-21 — Preserve shared-root pin evidence in the archive preview
+
+- When equivalent scope scans resolve to one physical root, the consolidated
+  archive row includes pins from the represented scopes and shows which
+  scopes supplied them. A regression verifies that a Codex pin appears on a
+  coalesced Claude Code row and no longer appears there after the roots diverge.
+
 ## 2026-11-21 — Record hosted rehearsal and fidelity preflight
 
 - GitHub-hosted macOS and Windows passed exact wheel and source distribution

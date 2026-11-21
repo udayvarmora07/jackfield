@@ -250,7 +250,16 @@ def _usage_index(report, cutoff, today):
     return index
 
 
-def candidate_report(skills, usage_report, *, data_dir, days=90, now=None):
+def _coalesced_scopes(inventory):
+    scopes = {}
+    for scope, evidence in inventory.items():
+        canonical = evidence.get("canonical_scope")
+        if canonical is not None:
+            scopes.setdefault(canonical, []).append(scope)
+    return scopes
+
+
+def candidate_report(skills, usage_report, *, data_dir, days=90, now=None, inventory=None):
     if type(days) is not int or not 1 <= days <= 400:
         raise StoreError("days must be between 1 and 400")
     now = now or datetime.now(timezone.utc)
@@ -262,12 +271,17 @@ def candidate_report(skills, usage_report, *, data_dir, days=90, now=None):
     _, pins = _load(root)
     usage = _usage_index(usage_report, cutoff, today)
     selected = list(itertools.islice(iter(skills), MAX_SKILLS + 1))
+    # The inventory is populated as the skill iterator scans each scope.
+    coalesced = _coalesced_scopes(inventory or {})
     rows = []
     for skill in selected[:MAX_SKILLS]:
         if not isinstance(skill, dict):
             raise StoreError("invalid skill record")
         scope, name = skill.get("scope", "global"), skill.get("name")
-        key = _key(scope, name)
+        _key(scope, name)
+        pinned_scopes = sorted(
+            peer for peer in (scope, *coalesced.get(scope, ())) if f"{peer}/{name}" in pins["pins"]
+        )
         agents = sorted(usage.get(name, ()))
         edited = _day(skill.get("last_edit"))
         observations = []
@@ -277,7 +291,8 @@ def candidate_report(skills, usage_report, *, data_dir, days=90, now=None):
             observations.append("recent cached usage for the same name")
         rows.append({"scope": scope, "name": name, "relative_path": skill.get("relative_path"),
                      "state": "in-use" if observations else "unknown",
-                     "pinned": key in pins["pins"], "last_edit": skill.get("last_edit"),
+                     "pinned": bool(pinned_scopes), "pinned_scopes": pinned_scopes,
+                     "last_edit": skill.get("last_edit"),
                      "used_by": agents, "reason": " and ".join(observations) if observations else
                      "complete consumer, usage and edit coverage is not established"})
     return {"days": days, "cutoff": cutoff.isoformat(), "skills": rows,

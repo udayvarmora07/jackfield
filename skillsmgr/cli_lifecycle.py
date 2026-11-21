@@ -290,7 +290,7 @@ def _candidates(args, store):
                      if scope.kind == "project" and scope.base.is_relative_to(workspace)}
     result = lifecycle.candidate_report(
         _candidate_inventory(descriptors, inventory, observed_roots, _scan_candidate_scope), usage_report,
-        data_dir=store.data_dir, days=args.days,
+        data_dir=store.data_dir, days=args.days, inventory=inventory,
     )
     readiness = lifecycle.archive_readiness(inventory, usage_report["coverage"],
                                             project_paths=project_paths, observed_roots=observed_roots)
@@ -304,7 +304,10 @@ def _candidates(args, store):
         if row["relative_path"] and row["relative_path"] != row["name"]:
             parts.append("folder " + sanitize_text(row["relative_path"]))
         if row["pinned"]:
-            parts.append("(pinned)")
+            if row["pinned_scopes"] == [row["scope"]]:
+                parts.append("(pinned)")
+            else:
+                parts.append("(pinned via " + sanitize_text(", ".join(row["pinned_scopes"])) + ")")
         if row["last_edit"]:
             parts.append(f'document modified {row["last_edit"]}')
         if row["used_by"]:
