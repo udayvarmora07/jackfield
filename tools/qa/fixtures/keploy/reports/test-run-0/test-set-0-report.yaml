@@ -1,0 +1,33 @@
+version: api.keploy.io/v1beta1
+name: test-set-0-report
+status: FAILED
+success: 1
+failure: 1
+total: 2
+test_set: test-set-0
+created_at: 1795240800
+tests:
+  - kind: Http
+    name: test-set-0
+    status: PASSED
+    test_case_id: list-library
+    req:
+      method: GET
+      url: http://127.0.0.1/api/skills
+    result:
+      status_code:
+        normal: true
+        expected: 200
+        actual: 200
+  - kind: Http
+    name: test-set-0
+    status: FAILED
+    test_case_id: restore-skill
+    req:
+      method: POST
+      url: http://127.0.0.1/api/trash/recovery-fixture
+    result:
+      status_code:
+        normal: false
+        expected: 200
+        actual: 404

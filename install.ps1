@@ -32,6 +32,7 @@ Set-StrictMode -Version 3
 $Dist = 'skill-control-plane'
 $Command = 'skills-mgr'
 $SourceArchive = 'https://github.com/udayvarmora07/skills-manager/archive/refs/heads/main.tar.gz'
+$VenvOwner = "skill-control-plane venv 1`n"
 
 function Say([string]$Text) { Write-Host "skills-mgr install: $Text" }
 function Fail([string]$Text) { throw "skills-mgr install: error: $Text" }
@@ -71,17 +72,112 @@ function Find-Python {
 
 function Get-Exe([string]$Dir, [string]$Name) {
     $exe = Join-Path $Dir "$Name.exe"
-    if (Test-Path $exe) { return $exe }
+    if (Test-Path -LiteralPath $exe -PathType Leaf) { return $exe }
     return (Join-Path $Dir $Name)
 }
 
 function Get-VenvBin([string]$Root) {
-    if (Test-Path (Join-Path $Root 'Scripts')) { return (Join-Path $Root 'Scripts') }
+    if (Test-Path -LiteralPath (Join-Path $Root 'Scripts') -PathType Container) { return (Join-Path $Root 'Scripts') }
     return (Join-Path $Root 'bin')
 }
 
-function Test-Venv([string]$Root) {
-    (Test-Path (Join-Path $Root 'pyvenv.cfg'))
+function Get-PathItem([string]$Path) {
+    Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+}
+
+function Test-PlainFile([string]$Path) {
+    $item = Get-PathItem $Path
+    return ($item -is [System.IO.FileInfo] -and -not ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint))
+}
+
+function Test-PlainDirectory([string]$Path) {
+    $item = Get-PathItem $Path
+    return ($item -is [System.IO.DirectoryInfo] -and -not ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint))
+}
+
+function Test-MarkedVenv {
+    return ((Test-PlainFile $OwnerPath) -and (Get-PathItem $OwnerPath).Length -eq $VenvOwner.Length -and
+            [System.IO.File]::ReadAllText($OwnerPath) -ceq $VenvOwner)
+}
+
+function Test-ProductMetadata([string]$Path) {
+    if (-not (Test-PlainFile $Path) -or (Get-PathItem $Path).Length -gt 1048576) { return $false }
+    foreach ($line in [System.IO.File]::ReadLines($Path)) {
+        if (-not $line) { break }
+        if ($line -match '^Name: ') { return ($line -eq "Name: $Dist") }
+    }
+    return $false
+}
+
+function Test-LegacyVenv {
+    # Previous releases kept no ownership record. Only their dedicated app
+    # directory is eligible, with both the launcher and distribution metadata.
+    if ($Prefix -ne $DefaultPrefix -or -not (Test-PlainFile $VenvConfig)) { return $false }
+    $bin = Get-VenvBin $Prefix
+    if (-not (Test-PlainDirectory $bin) -or -not (Test-PlainFile (Get-Exe $bin $Command))) { return $false }
+    $lib = Join-Path $Prefix 'Lib'
+    $site = Join-Path $lib 'site-packages'
+    if (-not (Test-PlainDirectory $lib) -or -not (Test-PlainDirectory $site)) { return $false }
+    foreach ($metadata in (Get-ChildItem -LiteralPath $site -Directory -Filter 'skill_control_plane-*.dist-info' -ErrorAction SilentlyContinue)) {
+        if ($metadata.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { continue }
+        if (Test-ProductMetadata (Join-Path $metadata.FullName 'METADATA')) { return $true }
+    }
+    return $false
+}
+
+function Write-VenvOwner {
+    Say "recording virtual environment ownership in $OwnerPath"
+    if ($DryRun) { return }
+    $marker = [System.IO.File]::Open($OwnerPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write)
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($VenvOwner)
+        $marker.Write($bytes, 0, $bytes.Length)
+    } finally { $marker.Dispose() }
+}
+
+function Open-VenvLock {
+    if ($DryRun) { return $null }
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Prefix.ToUpperInvariant()))
+    } finally { $sha.Dispose() }
+    $mutex = [System.Threading.Mutex]::new($false, 'SkillsManager-Venv-' + [System.BitConverter]::ToString($digest))
+    try {
+        if ($mutex.WaitOne(0)) { return $mutex }
+    } catch [System.Threading.AbandonedMutexException] {
+        return $mutex
+    } catch {
+        $mutex.Dispose()
+        throw
+    }
+    $mutex.Dispose()
+    Fail "could not lock $Prefix; another installer is using this directory"
+}
+
+function Close-VenvLock($Mutex) {
+    if ($Mutex) {
+        try { $Mutex.ReleaseMutex() }
+        finally { $Mutex.Dispose() }
+    }
+}
+
+function Remove-OwnedVenv {
+    $mutex = Open-VenvLock
+    try {
+        $current = Get-PathItem $Prefix
+        if (-not $current) { return $false }
+        if ($current -isnot [System.IO.DirectoryInfo] -or
+            ($current.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -or
+            (-not (Test-MarkedVenv) -and -not (Test-LegacyVenv))) {
+            Say "leaving $Prefix alone: ownership could not be verified"
+            return $false
+        }
+        Write-Host "+ remove virtual environment $Prefix"
+        # Directory.Delete treats the path literally and does not recurse
+        # through reparse points on Windows, including in .NET Framework.
+        if (-not $DryRun) { [System.IO.Directory]::Delete($Prefix, $true) }
+        return $true
+    } finally { Close-VenvLock $mutex }
 }
 
 if ($Help) {
@@ -104,11 +200,14 @@ if ($Method -and @('uv', 'pipx', 'venv') -notcontains $Method) {
     Fail "-Method must be uv, pipx or venv, got '$Method'"
 }
 
-if (-not $Prefix) {
-    $base = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME '.local/share' }
-    $Prefix = Join-Path $base 'skill-control-plane/venv'
-}
+$installBase = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME '.local/share' }
+$DefaultPrefix = [System.IO.Path]::GetFullPath((Join-Path $installBase 'skill-control-plane/venv'))
+if (-not $Prefix) { $Prefix = $DefaultPrefix }
 $Prefix = [System.IO.Path]::GetFullPath($Prefix)
+if ($Prefix -eq [System.IO.Path]::GetPathRoot($Prefix)) { Fail '-Prefix needs a virtual environment directory' }
+$Prefix = $Prefix.TrimEnd([char[]] @([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar))
+$VenvConfig = Join-Path $Prefix 'pyvenv.cfg'
+$OwnerPath = Join-Path $Prefix '.skills-manager-install'
 
 $Spec = $Dist
 if ($Source) { $Spec = $SourceArchive }
@@ -129,13 +228,13 @@ if ($Uninstall) {
     if ((-not $Method -or $Method -eq 'pipx') -and (Have 'pipx')) {
         if ((& pipx list --short 2>$null) -match "^$Dist ") { Invoke-Step 'pipx' @('uninstall', $Dist); $removed = $true }
     }
-    if ((-not $Method -or $Method -eq 'venv') -and (Test-Venv $Prefix)) {
-        Write-Host "+ Remove-Item -Recurse -Force $Prefix"
-        if (-not $DryRun) { Remove-Item -Recurse -Force $Prefix }
-        $removed = $true
+    if (-not $Method -or $Method -eq 'venv') {
+        $ErrorActionPreference = 'Stop'
+        if (Remove-OwnedVenv) { $removed = $true }
     }
-    if ($removed) { Say "removed. Your skills and the manager's data directory were not touched." }
-    else { Say 'nothing installed by this script was found' }
+    if (-not $removed) { Say 'nothing installed by this script was found' }
+    elseif ($DryRun) { Say 'dry run: nothing was changed' }
+    else { Say "removed. Your skills and the manager's data directory were not touched." }
     return
 }
 
@@ -166,16 +265,39 @@ switch ($Method) {
             Fail 'no Python 3.11 or newer found. Install one from python.org, or install uv (https://docs.astral.sh/uv/) and run this again: uv fetches Python for you.'
         }
         Say "using $python"
-        if ((Test-Path $Prefix) -and -not (Test-Venv $Prefix)) {
-            Fail "$Prefix exists and is not a virtual environment; refusing to touch it"
-        }
-        if (-not (Test-Path $Prefix)) { Invoke-Step $python @('-m', 'venv', $Prefix) }
-        $bin = Get-VenvBin $Prefix
-        $venvPython = Get-Exe $bin 'python'
-        $pipArgs = @('-m', 'pip', 'install', '--upgrade', '--disable-pip-version-check', $Spec)
-        if ($WithTiktoken) { $pipArgs += 'tiktoken' }
-        Invoke-Step $venvPython $pipArgs
-        $installed = Get-Exe $bin $Command
+        $mutex = Open-VenvLock
+        try {
+            $current = Get-PathItem $Prefix
+            if ($current) {
+                if ($current -isnot [System.IO.DirectoryInfo] -or ($current.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+                    Fail "$Prefix is not an ordinary directory; choose another -Prefix"
+                }
+                if (-not (Test-MarkedVenv)) {
+                    if (-not (Test-LegacyVenv)) { Fail "$Prefix does not belong to Skills Manager; choose another -Prefix" }
+                    Write-VenvOwner
+                }
+            } else {
+                if (-not $DryRun) { [void] [System.IO.Directory]::CreateDirectory($Prefix) }
+                Write-VenvOwner
+            }
+            if (-not (Test-PlainFile $VenvConfig)) {
+                if (Get-PathItem $VenvConfig) { Fail "$VenvConfig is not a regular file" }
+                Invoke-Step $python @('-m', 'venv', $Prefix)
+            }
+            $bin = Get-VenvBin $Prefix
+            if (-not $DryRun -and -not (Test-PlainDirectory $bin)) { Fail "$bin is not an ordinary directory" }
+            $venvPython = Get-Exe $bin 'python'
+            $pipArgs = @('-m', 'pip', 'install', '--upgrade', '--disable-pip-version-check', $Spec)
+            if ($WithTiktoken) { $pipArgs += 'tiktoken' }
+            Invoke-Step $venvPython $pipArgs
+            $installed = Get-Exe $bin $Command
+            if (-not $DryRun) {
+                if (-not (Test-PlainFile $installed)) { Fail "the package did not install a $Command launcher" }
+                $installedVersion = & $installed --version
+                if ($LASTEXITCODE -ne 0) { Fail "$installed failed its version check" }
+                Say "installed: $installedVersion"
+            }
+        } finally { Close-VenvLock $mutex }
     }
 }
 
@@ -185,7 +307,7 @@ if (-not $installed) {
     $cmd = Get-Command $Command -ErrorAction SilentlyContinue
     if ($cmd) { $installed = $cmd.Source }
 }
-if ($installed) {
+if ($installed -and $Method -ne 'venv') {
     Say ('installed: ' + (& $installed --version))
 }
 if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {

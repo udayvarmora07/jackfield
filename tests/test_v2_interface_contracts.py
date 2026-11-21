@@ -721,6 +721,31 @@ class BodyLazyLoadTests(unittest.TestCase):
         app = (V2 / "app.js").read_text(encoding="utf-8")
         self.assertIn('api("/api/skills?scope=all&body=0")', app)
 
+    def test_archive_receipt_keeps_server_details_and_blocks_file_changes_during_upload(self):
+        out = self._app_with_stub("""
+        return {imported:['good'], skipped:['failed: Recovery files retained at /fixture/backup'],
+          skipped_full:['templates/existing.md'], restored_trash:['copy'],
+          restored_templates:['one.md','two.md'], restored_catalog:true};""", """
+        const methods=ctx.options.methods;
+        const file={name:'receipt.tar.gz'};
+        ctx.document={getElementById(){return null;}};
+        const c={importFile:file,importFull:true,importForce:true,busy:false,
+          refresh:async()=>{},friendly:message=>message,archiveImportSummary:methods.archiveImportSummary};
+        const ongoing=methods.doImport.call(c);
+        methods.pickImport.call(c,[{name:'different.zip'}]);
+        const unchanged=c.importFile===file;
+        await methods.doImport.call(c);
+        await ongoing;
+        return {result:c.importResult, summary:methods.archiveImportSummary(c.importResult),
+          unchanged,busy:c.busy,file:c.importFile,announced:c.live,calls};""")
+        self.assertTrue(out["unchanged"])
+        self.assertFalse(out["busy"])
+        self.assertIsNone(out["file"])
+        self.assertEqual(len(out["calls"]), 1)
+        self.assertEqual(out["summary"], "1 skill imported. Restored 1 trash entry, 2 templates, catalog metadata. 2 skipped.")
+        self.assertEqual(out["announced"], out["summary"])
+        self.assertEqual(out["result"]["skipped"], ["failed: Recovery files retained at /fixture/backup"])
+
 
 @unittest.skipUnless(NODE, "node is required")
 class TransportTests(unittest.TestCase):

@@ -248,13 +248,16 @@ class ReleaseWorkflowSplitTests(unittest.TestCase):
 
     def test_post_publish_pypi_verification_runs_without_a_write_token(self):
         jobs = _job_blocks(_workflow_text("release.yml"))
-        holders = [name for name, body in jobs.items() if "skill-control-plane==" in body]
-        self.assertEqual(len(holders), 1, "exactly one job verifies the published distribution")
-        body = jobs[holders[0]]
+        holders = [name for name, body in jobs.items() if "tools/verify_published.py" in body]
+        self.assertEqual(holders, ["postpublish-verify"])
+        body = jobs["postpublish-verify"]
         self.assertIn("contents: read", body)
         self.assertNotIn("contents: write", body)
         self.assertNotIn("id-token: write", body)
-        self.assertIn("SKILLS_MANAGER_DATA=$(mktemp -d)", body)
+        self.assertNotIn("pip install", body)
+        self.assertIn("needs: publish-pypi", body)
+        self.assertIn("needs: postpublish-verify", jobs["github-release"])
+        self.assertNotIn("run:", jobs["github-release"])
 
 
 # ------------------------------------------------------------------------ SEC-8

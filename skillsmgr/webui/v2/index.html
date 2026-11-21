@@ -181,7 +181,7 @@
               <h1 class="doc-title" id="h1" tabindex="-1">{{ titleCase(skill.name) }}</h1>
               <p class="doc-lead">{{ skill.description || 'No description yet.' }}</p>
               <div class="inline-note bad" v-if="skill.status.key === 'bad'"><b>Problem:</b> {{ brokenText }}<br><button type="button" class="btn btn-ink btn-sm" @click="fixSkillBad()">{{ brokenAction }}</button></div>
-              <div class="inline-note warn" v-if="skill.status.key === 'warn' && cmp"><b>{{ agentOf(cmp.scope).name }} has a different copy.</b> The highlighted lines are not in it. Sync also copies whether the skill is on or off, and its supporting files. Undo restores only the text and the on/off state.<br><button type="button" class="btn btn-ink btn-sm" @click="syncDiffering()" :disabled="skill.ref.ambiguous">{{ matchLabel }}</button></div>
+              <div class="inline-note warn" v-if="skill.status.key === 'warn' && cmp"><b>{{ agentOf(cmp.scope).name }} has a different copy.</b> The highlighted lines are not in it. Sync copies the on/off state and supporting files too. Undo restores the text and on/off state. If supporting files change, find the previous folder in Recovery.<br><button type="button" class="btn btn-ink btn-sm" @click="syncDiffering()" :disabled="busy || skill.ref.ambiguous">{{ matchLabel }}</button></div>
               <p class="state-note" v-if="readCopyPath && refCopy.path===readCopyPath">Reading the exact copy in {{agentOf(refCopy.scope).name}} · {{shortPath(refCopy.path)}}</p><p class="state-note" role="status" v-if="docPending">Loading document…</p><p class="state-note err" role="alert" v-if="docError">{{ docError }}</p><div class="state-note" v-if="docWhy"><b>{{ docWhy.title }}</b> {{ docWhy.text }}</div><div class="doc" v-if="!docPending && !docError && !docWhy" v-html="docHtml"></div>
             </article>
             <aside class="margin" aria-label="About this skill">
@@ -190,7 +190,7 @@
                 <p v-if="skill.ref.ambiguous">Your copies are split evenly, so the app can't tell which is the reference. Open the Inbox to choose one.</p>
                 <label class="hl" v-if="skill.differing.length > 1">Compare with <select class="field" style="height:32px;font-size:13px" :value="cmp ? cmp.scope : ''" @change="compareWith = $event.target.value"><option v-for="c in skill.differing" :key="c.scope" :value="c.scope">{{ agentOf(c.scope).name }}</option></select></label>
                 <label class="hl"><input type="checkbox" v-model="highlight"> Highlight what's missing</label>
-                <button type="button" class="btn btn-ink btn-sm" @click="syncDiffering()" :disabled="skill.ref.ambiguous">{{ matchLabel }}</button></div>
+                <button type="button" class="btn btn-ink btn-sm" @click="syncDiffering()" :disabled="busy || skill.ref.ambiguous">{{ matchLabel }}</button></div>
               <div class="note bad" v-if="skill.status.key === 'bad'"><h2 class="note-h">Problem</h2><p>{{ brokenText }}</p><button type="button" class="btn btn-ink btn-sm" @click="fixSkillBad()">{{ brokenAction }}</button></div>
               <div class="note" v-if="skill.status.key === 'off'"><h2 class="note-h">Turned off</h2><p>Every observed document copy is disabled on disk.</p><button type="button" class="btn btn-ink btn-sm" @click="allOn()">Turn on everywhere</button></div>
               <div class="note ok" v-if="skill.status.key === 'ok'"><h2 class="note-h">Status</h2><p>Readable copies match. Agent loading is not checked.</p></div>
@@ -330,7 +330,7 @@
             <div class="mrow" v-if="mapSel.differing.length > 12"><span></span><span><small>and {{ mapSel.differing.length - 12 }} more. Use the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/inbox">Inbox</a></div></div>
           <div class="minidiff" v-if="peekLines" role="region" :aria-label="'Differences in ' + peek"><div class="h">{{ peek }}: what will change in {{ mapSel.agent.name }}</div>
             <div v-for="(l, i) in peekLines" :key="i" :class="l.t"><span class="sr-only" v-if="l.t === 'add'">Added: </span><span class="sr-only" v-else-if="l.t === 'del'">Removed: </span>{{ plainLine(l.x) }}</div></div>
-          <p class="backup" v-if="mapSel.differing.length"><ic name="undo" cls="i-s"></ic>Sync also copies whether the skill is on or off, and its supporting files. Undo restores only the text and the on/off state.</p>
+          <p class="backup" v-if="mapSel.differing.length"><ic name="undo" cls="i-s"></ic>Sync copies the on/off state and supporting files too. Undo restores the text and on/off state. If supporting files change, find the previous folder in Recovery.</p>
           <div class="cta" v-if="mapSel.differing.slice(0, 12).some((s) => mapSyncable(s, mapSel.id))"><button type="button" class="btn btn-ink btn-lg" :disabled="!mapSelected.length || busy" @click="syncPicked()">{{ mapSelected.length ? 'Make ' + plural(mapSelected.length, 'skill') + ' match in ' + mapSel.agent.name : 'Select skills to sync' }}</button></div>
           <div class="cta" v-else-if="mapSel.differing.length"><a class="btn btn-line btn-lg" href="#/inbox" style="flex:1">Choose which copies to keep in the Inbox</a></div>
         </template>
@@ -340,7 +340,7 @@
     <!-- ========== RECOVERY ========== -->
     <div class="page" v-else-if="route.page === 'recovery'">
       <h1 class="h1" id="h1" tabindex="-1">Recovery</h1>
-      <p class="lede">Bring back skills you removed, keep a copy of your library, or load one from another computer.</p>
+      <p class="lede">Restore skill copies, keep a backup of your library, or load a backup from another computer.</p>
       <div class="rec-grid">
         <section class="card rec-card" aria-labelledby="rec-trash">
           <h2 id="rec-trash">Trash <span class="sub num">{{ trash.length }}</span></h2>
@@ -354,13 +354,13 @@
         </section>
         <section class="card rec-card" aria-labelledby="rec-agent-trash">
           <h2 id="rec-agent-trash">Agent trash <span class="sub num">{{ agentTrash.length }}</span></h2>
-          <p class="sub">Skills you removed from an agent's folder go to that agent's own trash folder. Restoring puts the folder back where the agent reads it.</p>
+          <p class="sub">Find removed skills and previous copies saved by Sync. To restore a folder, set aside any copy already at its original location.</p>
           <ul class="rec-list" v-if="agentTrash.length">
             <li v-for="t in agentTrash" :key="t.trash_path"><span><b>{{ t.name }}</b><small>{{ t.scopeLabel }} · {{ fmt(Math.max(1, Math.round(t.size_bytes / 1024))) }} KB · removed {{ fmtDate(t.trashed_at) }}</small></span>
               <button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="restoreAgentTrash(t)">Restore</button></li>
           </ul>
           <p class="state-note" v-else-if="agentTrashLoading" role="status">Reading agent trash…</p>
-          <p class="state-note" v-else-if="!agentTrashErrors.length">No removed skills are waiting in an agent's trash folder.</p>
+          <p class="state-note" v-else-if="!agentTrashErrors.length">No skill copies are waiting in agent trash.</p>
           <p class="state-note err" v-for="e in agentTrashErrors" :key="e.scope" role="alert">{{ e.message }}
             <button class="btn btn-line btn-sm" @click="loadAgentTrash()">Retry</button></p>
         </section>
@@ -369,6 +369,8 @@
           <p class="sub">Saves the skills in your library as one file you can keep or move. Skills that only live in an agent's folder are not included.</p>
           <div class="rec-acts"><button type="button" class="btn btn-ink" :disabled="busy" @click="exportBackup(false)"><ic name="arrow" cls="i-s"></ic>Download a backup</button>
             <button type="button" class="btn btn-line" :disabled="busy" @click="exportBackup(true)">Include trash and templates</button></div>
+          <p class="state-note" v-if="exportPending" role="status">Preparing backup…</p>
+          <p class="state-note err" v-if="exportError" role="alert">{{ exportError }}</p>
         </section>
         <section class="card rec-card" aria-labelledby="rec-import">
           <h2 id="rec-import">Load from a backup</h2>
@@ -383,12 +385,19 @@
             <span class="smdz-hint">.tar.gz, .tgz, .tar or .zip</span>
             <span class="smdz-status" role="status">{{ importReject || (importFile ? importFile.name + ' is ready to load.' : '') }}</span>
           </label>
-          <label class="hl-row"><input type="checkbox" v-model="importForce"> Replace skills that already exist</label>
-          <label class="hl-row"><input type="checkbox" v-model="importFull"> Full manager archive: include global trash, templates and catalog metadata</label>
+          <label class="hl-row"><input type="checkbox" v-model="importForce" :disabled="busy"> Replace matching entries</label>
+          <label class="hl-row"><input type="checkbox" v-model="importFull" :disabled="busy"> Full manager archive: include global trash, templates and catalog metadata</label>
           <div class="rec-acts"><button type="button" class="btn btn-ink" :disabled="!importFile || busy" @click="doImport()">Load skills</button></div>
+          <p class="state-note err import-outcome" v-if="importError" role="alert">{{ importError }}</p>
+          <div class="state-note import-outcome" v-if="importResult">
+            <p role="status">{{ archiveImportSummary(importResult) }}</p>
+            <details v-if="importResult.skipped?.length || importResult.skipped_full?.length">
+              <summary>Skipped entries</summary>
+              <ul><li v-for="entry in (importResult.skipped || []).concat(importResult.skipped_full || [])">{{ entry }}</li></ul>
+            </details>
+          </div>
         </section>
       </div>
-      <p class="state-note" v-if="importResult" role="status">{{(importResult.imported || []).length}} imported · {{(importResult.skipped || []).length}} skipped. Global store only.</p>
       <tool-center page="recovery-extra" :records="records" :scopes="scopes" :target="toolTarget" @changed="refresh()" @inspect="inspectRecord($event)"></tool-center>
     </div>
 
@@ -405,7 +414,7 @@
           <span :class="['pill', cur.key === 'info' ? '' : cur.key]" :style="cur.key === 'info' ? 'background:var(--sunken);color:var(--ink-2)' : null"><ic :name="cur.key === 'info' ? 'info' : cur.key"></ic>{{ cur.key === 'bad' ? cur.short : cur.key === 'warn' ? 'Copies differ' : cur.space ? 'Suggestion' : cur.noteOnly ? 'Not a skill' : 'For your information' }}</span>
           <h2 id="focus-t">{{ cur.title }}</h2>
           <p class="why">{{ cur.text }}<template v-if="cur.space"> Here are its largest skills:</template></p>
-          <p class="sub" v-if="cur.key === 'warn' || (cur.key === 'bad' && cur.fixable)">Sync also copies whether the skill is on or off, and its supporting files. Undo restores only the text and the on/off state.</p>
+          <p class="sub" v-if="cur.key === 'warn' || (cur.key === 'bad' && cur.fixable)">Sync copies the on/off state and supporting files too. Undo restores the text and on/off state. If supporting files change, find the previous folder in Recovery.</p>
           <template v-if="cur.key === 'warn'">
             <fieldset class="srcpick" v-if="curSkill.ref.groups.length">
               <legend>Which copy should everyone use?</legend>

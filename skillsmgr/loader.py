@@ -696,7 +696,9 @@ def _scan_degraded(collector, reason: str) -> None:
         collector.append({"section": "scope-scan", "reason": "additional scan failures omitted", "truncated": True})
 
 
-def _diagnostic_document_dirs(root: Path, collector, include_husks: bool = False) -> set[Path]:
+def _diagnostic_document_dirs(
+    root: Path, collector, include_husks: bool = False, *, stop_at_skill: bool = False,
+) -> set[Path]:
     """Walk without following directory links, surfacing suppressed walk errors."""
     def onerror(_exc):
         _scan_degraded(collector, "recursive directory enumeration failed")
@@ -704,12 +706,19 @@ def _diagnostic_document_dirs(root: Path, collector, include_husks: bool = False
     candidates = set()
     needs_rescan = False
     for directory, dirs, files in os.walk(root, onerror=onerror, followlinks=False):
+        folder = Path(directory)
+        if stop_at_skill and folder == root:
+            # Retain the flat scan's handling of top-level skill aliases.
+            candidates.update(folder / name for name in dirs if (folder / name).is_symlink())
+            continue
         has_file = any(name in DOCUMENT_NAMES for name in files)
         if has_file:
-            candidates.add(Path(directory))
+            candidates.add(folder)
+            if stop_at_skill:
+                dirs.clear()
         elif include_husks and any(name in DOCUMENT_NAMES for name in dirs):
             needs_rescan = True
-    if needs_rescan:
+    if needs_rescan and collector is not None:
         # Internal sentinel remains visible even if other collector events hit
         # their cap, so callers cannot accidentally treat this scan as complete.
         collector.append({'section': 'scope-scan', 'reason': DOCTOR_RESCAN_EVENT})
@@ -765,12 +774,15 @@ def scan_dir(
     annotate_paths: bool = False,
     link_roots: tuple[Path, ...] = (),
     collector: list[dict] | None = None,
+    stop_at_skill: bool = False,
 ) -> list[dict]:
     """Scan a skill root, optionally walking nested skill directories.
 
     Recursive discovery is opt-in because consumers differ: some treat a root
     as a flat directory while Cursor/OpenCode-style project roots can organize
     skills below category or nested project directories.
+    With `stop_at_skill`, a recursive scan finds grouped skills and skips the
+    children of each skill folder, including folders with a disabled document.
 
     A directory whose document is unreadable is *kept* and marked ``malformed``
     (issue #13): the filesystem is the source of truth, so a skill that exists
@@ -823,8 +835,12 @@ def scan_dir(
         return entries
     if recursive:
         try:
-            candidates = sorted(_diagnostic_document_dirs(root, collector, include_husks) if collector is not None
-                                else _document_dirs(root.rglob("*")))
+            if collector is not None or stop_at_skill:
+                candidates = sorted(_diagnostic_document_dirs(
+                    root, collector, include_husks, stop_at_skill=stop_at_skill,
+                ))
+            else:
+                candidates = sorted(_document_dirs(root.rglob("*")))
         except OSError:
             _scan_degraded(collector, "recursive directory enumeration failed")
             try:
@@ -840,6 +856,8 @@ def scan_dir(
             return entries
     reuse = document_reuse_worthwhile(len(candidates))
     for child in candidates:
+        if child == root:
+            continue
         # A candidate enumerated from ``root`` itself is a direct child, and
         # its relative parts are its own name; only a deeper candidate (a
         # recursive root) needs the general form.  pathlib's ``relative_to``

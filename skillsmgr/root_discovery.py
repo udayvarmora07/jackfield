@@ -74,5 +74,7 @@ def project_scope_specs() -> tuple[tuple[str, str, bool, str | None], ...]:
         ("Project .claude", ".claude/skills", False, "claude-code"),
         ("Project .cursor", ".cursor/skills", True, "cursor"),
         ("Project .opencode", ".opencode/skills", True, "opencode"),
+        ("Project .gemini", ".gemini/skills", False, "gemini"),
+        ("Project .commandcode", ".commandcode/skills", True, "commandcode"),
         ("Project skills", "skills", False, None),
     )

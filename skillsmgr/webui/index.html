@@ -931,7 +931,9 @@
         <section class="profile-preview" aria-labelledby="recovery-actions-title">
           <h2 id="recovery-actions-title">Recovery actions</h2>
           <p class="hint">Trash restore and snapshot rollback are global Store operations. Full migration archives include global skills, trash, and templates; import remains explicit and can overwrite only when selected.</p>
-          <div class="detail-actions recovery-actions"><button class="btn btn-primary" type="button" @click="openHistory('global')">Review history and snapshots</button><button class="btn btn-secondary" type="button" @click="openImport(true)">Import full archive</button><button class="btn btn-secondary" type="button" @click="exportArchive(true)">Export full backup</button><button v-if="selectedTrash" class="btn btn-secondary" type="button" @click="restoreTrash" :disabled="busy">Restore {{ selectedTrash.name }}</button></div>
+          <div class="detail-actions recovery-actions"><button class="btn btn-primary" type="button" @click="openHistory('global')">Review history and snapshots</button><button class="btn btn-secondary" type="button" @click="openImport(true)">Import full archive</button><button class="btn btn-secondary" type="button" @click="exportArchive(true)" :disabled="busy">Export full backup</button><button v-if="selectedTrash" class="btn btn-secondary" type="button" @click="restoreTrash" :disabled="busy">Restore {{ selectedTrash.name }}</button></div>
+          <p class="hint" v-if="exportPending" role="status">Preparing backup…</p>
+          <p class="banner banner-error" v-if="exportError" role="alert">{{ exportError }}</p>
         </section>
         <section class="profile-preview" aria-labelledby="recovery-trash-title"><div class="section-label-row"><h2 id="recovery-trash-title">Global trash</h2><span class="hint">{{ formatNumber(trashCount) }} item{{ trashCount === 1 ? '' : 's' }}</span></div><ul v-if="trashSkills.length" class="profile-members"><li v-for="item in filteredTrash" :key="item.trash_path"><strong>{{ item.name }}</strong><span class="hint">{{ formatDate(item.modified) }}</span><code>{{ item.trash_path }}</code><button class="btn btn-secondary" type="button" @click="selectedTrash = item">Select for restore</button></li></ul><p v-else class="hint">Global trash is empty. Existing history and archive transfer actions remain available above.</p><div v-if="trashSkills.length" class="detail-actions notice-list"><button class="btn btn-danger-ghost" type="button" @click="confirmPurge" :disabled="busy">Purge all {{ formatNumber(trashCount) }} item{{ trashCount === 1 ? '' : 's' }} permanently</button></div></section>
       </div>
@@ -1514,33 +1516,42 @@
   <!-- Import -->
   <div v-if="modals.import" class="overlay" data-modal="import" @mousedown.self="closeModal('import')">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" tabindex="-1">
-      <h2 id="import-modal-title" class="sr-only">Import archive</h2>
-      <div class="modal-head"><h2>Import archive</h2></div>
+      <div class="modal-head"><h2 id="import-modal-title">Import archive</h2></div>
       <div class="modal-body">
-        <p>Import skills from a Skills Manager <code>.tar.gz</code> export or a compatible <code>.zip</code> archive.</p>
-        <div v-if="!modals.import.file" class="dropzone" @click="pickImportFile" @dragover.prevent @drop.prevent="onDropImport"
-             role="button" tabindex="0" aria-label="Choose archive" @keydown.enter.prevent="pickImportFile" @keydown.space.prevent="pickImportFile">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-          <p style="margin:4px 0 0;">Choose a file or drop it here</p>
-          <p style="margin:0;font-size:12px;color:var(--text-muted);">.tar.gz, .tar, .zip</p>
+        <div v-if="modals.import.result" class="import-outcome">
+          <p ref="importSummary" tabindex="-1">{{ archiveImportSummary(modals.import.result) }}</p>
+          <details v-if="modals.import.result.skipped?.length || modals.import.result.skipped_full?.length">
+            <summary>Skipped entries</summary>
+            <ul><li v-for="entry in (modals.import.result.skipped || []).concat(modals.import.result.skipped_full || [])">{{ entry }}</li></ul>
+          </details>
         </div>
-        <div v-else class="form-field full">
-          <label>{{ modals.import.file.name }} ({{ formatBytes(modals.import.file.size) }})</label>
-          <button class="btn btn-secondary" @click="modals.import.file = null">Choose different file</button>
-        </div>
-        <label v-if="modals.import.file" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px;cursor:pointer;">
-          <input type="checkbox" name="import-force" v-model="modals.import.force" style="accent-color:var(--accent);">
-          Overwrite existing skills
-        </label>
-        <label v-if="modals.import.file" style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:14px;cursor:pointer;">
-          <input type="checkbox" name="import-full" v-model="modals.import.full" style="accent-color:var(--accent);">
-          Full migration (restore trash and templates)
-        </label>
-        <input ref="importInput" type="file" name="import-archive" accept=".tar.gz,.tgz,.tar,.zip" style="display:none" @change="onImportPicked">
+        <template v-else>
+          <p>Import skills from a Skills Manager <code>.tar.gz</code> export or a compatible <code>.zip</code> archive.</p>
+          <div v-if="!modals.import.file" class="dropzone" @click="pickImportFile" @dragover.prevent @drop.prevent="onDropImport"
+               role="button" tabindex="0" aria-label="Choose archive" @keydown.enter.prevent="pickImportFile" @keydown.space.prevent="pickImportFile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            <p style="margin:4px 0 0;">Choose a file or drop it here</p>
+            <p style="margin:0;font-size:12px;color:var(--text-muted);">.tar.gz, .tar, .zip</p>
+          </div>
+          <div v-else class="form-field full">
+            <label>{{ modals.import.file.name }} ({{ formatBytes(modals.import.file.size) }})</label>
+            <button class="btn btn-secondary" :disabled="busy" @click="modals.import.file = null">Choose different file</button>
+          </div>
+          <label v-if="modals.import.file" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px;cursor:pointer;">
+            <input type="checkbox" name="import-force" v-model="modals.import.force" :disabled="busy" style="accent-color:var(--accent);">
+            Replace matching entries
+          </label>
+          <label v-if="modals.import.file" style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:14px;cursor:pointer;">
+            <input type="checkbox" name="import-full" v-model="modals.import.full" :disabled="busy" style="accent-color:var(--accent);">
+            Full migration (restore trash, templates and catalog metadata)
+          </label>
+          <input ref="importInput" type="file" name="import-archive" accept=".tar.gz,.tgz,.tar,.zip" style="display:none" @change="onImportPicked">
+          <p v-if="modals.import.error" role="alert">{{ modals.import.error }}</p>
+        </template>
       </div>
       <div class="modal-foot">
-        <button class="btn btn-secondary" @click="closeModal('import')">Cancel</button>
-        <button class="btn btn-primary" :disabled="busy || !modals.import.file" @click="doImport">Import archive</button>
+        <button class="btn btn-secondary" @click="closeModal('import')">{{ modals.import.result ? 'Done' : 'Cancel' }}</button>
+        <button v-if="!modals.import.result" class="btn btn-primary" :disabled="busy || !modals.import.file" @click="doImport">Import archive</button>
       </div>
     </div>
   </div>

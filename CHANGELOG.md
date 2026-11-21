@@ -83,6 +83,66 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Fixed
 
+- Usage reports keep only observed events in their UTC window. Opted-in
+  OpenCode 2.3.2 reports read persisted tool activations from a checkpointed
+  database. Codex counts distinct skills read in one call, and capped text
+  scans can retry uncounted records.
+- OpenCode usage honors the configured database path and counts explicit
+  skill activation messages. Usage reports with mismatched cache and
+  consent roots suppress the stale counts.
+- Capped JSONL refreshes reuse their last saved position after an unfinished
+  append and keep reporting partial coverage for earlier skipped records.
+- Transcript refreshes keep evidence gathered before the byte or time limit.
+  Long JSONL sessions can be read over successive refreshes, and bounded
+  OpenCode scans prioritize newly inserted rows.
+- Capped text-transcript refreshes can reach later files across multiple
+  runs. Directories have a separate metadata budget, and busy sources
+  take turns going first when selected agents exhaust the shared budget.
+- AI and registry clients close HTTP error responses as soon as they finish
+  reading the error details.
+- Archive previews list documented scope readers and the evidence still
+  required to establish inactivity.
+- Archive previews expose incomplete inventory scans, include reader hints
+  for project scopes, and label cached usage as a name match.
+- Repeated clicks in the v2 skill reader issue one Sync request. The reader,
+  Sync map and Inbox point to Recovery for the previous folder when supporting
+  files change. Scrolled controls clear the sticky header and phone navigation.
+- Both release jobs use the reviewed PyPI publish action v1.14.3.
+- Release verification installs both distributions and exercises full-folder
+  recovery. The GitHub release waits until public PyPI downloads match the
+  tested wheel and source package.
+- Full-backup restore rolls back trash, templates and catalog metadata after
+  interrupted installs and failed index writes. Forced imports keep originals
+  in a reported recovery directory when rollback is blocked. Restoring the
+  catalog preserves files beside its metadata.
+- TAR backups support larger libraries within bounded member, directory and
+  byte limits. Export verifies the archive before replacing an existing
+  backup. Round trips preserve hardlinked file contents and omit local
+  provenance and source-lock metadata.
+- Same-second automatic backups keep distinct filenames. Archive preflight
+  rejects file/directory conflicts and refuses reserved names and case
+  aliases on Windows.
+- Backups check the primary document bytes before replacing an earlier archive
+  and refuse output paths that would overwrite the library or index. Archive
+  manifest and catalog decoder failures surface as preflight errors.
+- Backups preserve the previous archive if a supporting folder cannot be read
+  or the source changes during capture. Both Recovery views offer a retry
+  after a source-change conflict. Full restore checks recorded skill
+  checksums before replacing library or recovery data.
+- Forced full imports reject incompatible metadata destinations before changing
+  skills. If an import history write fails, the corresponding skill and index
+  revert together and the import reports the failure for that skill.
+- Both Recovery interfaces keep archive import results visible, including
+  restored metadata and the reasons entries were skipped.
+- Full imports finish restoring trash, templates and catalog before changing
+  active skills. Duplicate manifest payload entries fail preflight.
+- Pin and unpin undo remains available when a write is interrupted just
+  after the pin file is replaced. An older pending receipt cannot undo a
+  later change to the same skill.
+- Project lock and native settings undo receipts are usable as soon as
+  the staged file reaches its destination. They refuse a later replacement
+  even when its contents match.
+
 - On Windows, Undo accepts the writable mode of a newly created project lock,
   and portable lock hashes preserve binary file bytes. Codex usage scans keep
   backslashes in quoted transcript command paths and preserve CRLF byte offsets.

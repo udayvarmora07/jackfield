@@ -7,6 +7,7 @@ pinned exactly.  ``time.sleep`` inside the client is replaced, so retry waits
 are recorded rather than slept.
 """
 import http.server
+import io
 import json
 import tempfile
 import threading
@@ -14,6 +15,7 @@ import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from skillsmgr import ai, ai_skills
 from skillsmgr.atomic_io import register_lock_root
@@ -149,6 +151,21 @@ class RetryTests(TransportBase):
         with self.assertRaises(ai.AiError) as caught:
             self.run_one()
         self.assertNotIn(SECRET, str(caught.exception))
+
+
+class ProviderResponseCleanupTests(unittest.TestCase):
+    def test_closes_final_and_retryable_http_errors(self):
+        for status, error_type in ((401, ai.AiError), (503, ai._Transient)):
+            with self.subTest(status=status):
+                body = io.BytesIO(b'{"error":"provider detail"}')
+                url = "https://example.invalid/v1/chat/completions"
+                error = HTTPError(url, status, "provider failure", {"retry-after": "3"}, body)
+                with patch.object(ai._OPENER, "open", side_effect=error):
+                    with self.assertRaisesRegex(error_type, "provider detail") as caught:
+                        ai._post_once(url, {}, {}, 1.0)
+                self.assertTrue(body.closed)
+                if status == 503:
+                    self.assertEqual(caught.exception.retry_after, 3.0)
 
 
 class CachingTests(TransportBase):

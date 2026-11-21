@@ -26,6 +26,7 @@ set -eu
 DIST="skill-control-plane"
 COMMAND="skills-mgr"
 SOURCE_ARCHIVE="https://github.com/udayvarmora07/skills-manager/archive/refs/heads/main.tar.gz"
+VENV_OWNER="skill-control-plane venv 1"
 
 usage() {
     cat <<'EOF'
@@ -104,6 +105,50 @@ venv_bin() {
     fi
 }
 
+owned_launcher() {
+    [ -L "$link" ] || return 1
+    target_path=$(readlink "$link") || return 1
+    case "$target_path" in
+        "$PREFIX/bin/$COMMAND"|"$PREFIX/Scripts/$COMMAND") return 0 ;;
+    esac
+    return 1
+}
+
+venv_config() {
+    [ ! -L "$PREFIX/pyvenv.cfg" ] && [ -f "$PREFIX/pyvenv.cfg" ]
+}
+
+marked_venv() {
+    [ ! -L "$marker" ] && [ -f "$marker" ] && printf '%s\n' "$VENV_OWNER" | cmp -s "$marker" -
+}
+
+legacy_venv() {
+    venv_config && owned_launcher && [ ! -L "$target_path" ] && [ -f "$target_path" ] && [ -x "$target_path" ]
+}
+
+check_launcher() {
+    if [ -L "$link" ]; then
+        owned_launcher || die "$link points to a different installation; pass --bin-dir"
+    elif [ -e "$link" ]; then
+        die "$link exists and is not a link; remove it or pass --bin-dir"
+    fi
+}
+
+mark_venv() {
+    say "recording virtual environment ownership in $marker"
+    if [ "$DRY_RUN" = 0 ]; then
+        (umask 077; set -C; printf '%s\n' "$VENV_OWNER" > "$marker")
+    fi
+}
+
+lock_venv() {
+    [ "$DRY_RUN" = 0 ] || return 0
+    lock_dir="$PREFIX.skills-manager-lock"
+    mkdir "$lock_dir" || die "could not lock $PREFIX; check for another installer using this directory"
+    trap 'rmdir "$lock_dir"' EXIT
+    trap 'exit 1' HUP INT TERM
+}
+
 install_uv() {
     set -- uv tool install --force --python '>=3.11'
     if [ "$WITH_TIKTOKEN" = 1 ]; then
@@ -128,11 +173,26 @@ install_venv() {
     python=$(find_python) || die "no Python 3.11 or newer found. Install one, or install uv
 (https://docs.astral.sh/uv/) and run this script again: uv fetches Python for you."
     say "using $python"
-    if [ -e "$PREFIX" ] && [ ! -f "$PREFIX/pyvenv.cfg" ]; then
-        die "$PREFIX exists and is not a virtual environment; refusing to touch it"
+    [ ! -L "$PREFIX" ] || die "$PREFIX is a link; choose a virtual environment directory"
+    check_launcher
+    run mkdir -p "$(dirname "$PREFIX")"
+    lock_venv
+    if [ -L "$PREFIX" ]; then
+        die "$PREFIX is a link; choose a virtual environment directory"
+    elif [ -e "$PREFIX" ]; then
+        if ! marked_venv; then
+            if [ ! -d "$PREFIX" ] || ! venv_config; then
+                die "$PREFIX exists and is not a virtual environment; refusing to touch it"
+            fi
+            legacy_venv || die "$PREFIX does not belong to Skills Manager; choose a different --prefix"
+            mark_venv
+        fi
+    else
+        run mkdir "$PREFIX"
+        mark_venv
     fi
-    if [ ! -e "$PREFIX" ]; then
-        run mkdir -p "$(dirname "$PREFIX")"
+    if ! venv_config; then
+        [ ! -e "$PREFIX/pyvenv.cfg" ] && [ ! -L "$PREFIX/pyvenv.cfg" ] || die "$PREFIX/pyvenv.cfg is not a regular file"
         if ! run "$python" -m venv "$PREFIX"; then
             die "could not create a virtual environment. On Debian or Ubuntu, install the
 python3-venv package, or install uv or pipx, then run this script again."
@@ -145,12 +205,15 @@ python3-venv package, or install uv or pipx, then run this script again."
     fi
     run "$@"
     target="$bin/$COMMAND"
-    link="$BIN_DIR/$COMMAND"
-    if [ -e "$link" ] && [ ! -L "$link" ]; then
-        die "$link exists and is not a link; remove it or pass --bin-dir"
+    if [ "$DRY_RUN" = 0 ]; then
+        [ -f "$target" ] && [ -x "$target" ] || die "the package did not install a $COMMAND launcher"
     fi
-    run mkdir -p "$BIN_DIR"
-    run ln -sf "$target" "$link"
+    check_launcher
+    if ! owned_launcher; then
+        run mkdir -p "$BIN_DIR"
+        # os.symlink refuses an occupied path, including a directory symlink.
+        run "$python" -I -c 'import os, sys; os.symlink(sys.argv[1], sys.argv[2])' "$target" "$link"
+    fi
 }
 
 uninstall() {
@@ -168,16 +231,24 @@ uninstall() {
         fi
     fi
     if [ "$METHOD" = "" ] || [ "$METHOD" = venv ]; then
-        link="$BIN_DIR/$COMMAND"
-        if [ -L "$link" ]; then
-            case "$(readlink "$link")" in
-                "$PREFIX"/*) run rm -f "$link" ;;
-                *) say "leaving $link alone: it does not point into $PREFIX" ;;
-            esac
+        if [ -e "$PREFIX" ] || [ -L "$PREFIX" ] || owned_launcher; then
+            if [ -d "$(dirname "$PREFIX")" ]; then
+                lock_venv
+            fi
         fi
-        if [ -f "$PREFIX/pyvenv.cfg" ]; then
+        if [ ! -L "$PREFIX" ] && { marked_venv || legacy_venv; }; then
+            if owned_launcher; then
+                run rm -f "$link"
+            fi
             run rm -rf "$PREFIX"
             removed=1
+        elif [ -e "$PREFIX" ] || [ -L "$PREFIX" ]; then
+            say "leaving $PREFIX alone: ownership could not be verified"
+        elif owned_launcher; then
+            run rm -f "$link"
+            removed=1
+        elif [ -L "$link" ]; then
+            say "leaving $link alone: it points to a different installation"
         fi
     fi
     if [ "$removed" = 0 ]; then
@@ -198,7 +269,10 @@ verify() {
     elif have "$COMMAND"; then
         found=$(command -v "$COMMAND")
     fi
-    if [ -n "$found" ] && [ -x "$found" ]; then
+    if [ "$METHOD" = venv ]; then
+        version_text=$("$found" --version) || die "$found failed its version check"
+        say "installed: $version_text"
+    elif [ -n "$found" ] && [ -x "$found" ]; then
         say "installed: $("$found" --version)"
     else
         say "installed, but $COMMAND is not on your PATH yet"
@@ -270,6 +344,10 @@ main() {
     esac
     case "$PREFIX" in /*) ;; *) PREFIX="$(pwd)/$PREFIX" ;; esac
     case "$BIN_DIR" in /*) ;; *) BIN_DIR="$(pwd)/$BIN_DIR" ;; esac
+    while [ "$PREFIX" != "${PREFIX%/}" ]; do PREFIX=${PREFIX%/}; done
+    case "$PREFIX" in ''|*/.|*/..) die "--prefix needs a virtual environment directory" ;; esac
+    marker="$PREFIX/.skills-manager-install"
+    link="$BIN_DIR/$COMMAND"
 
     if [ "$(id -u 2>/dev/null || echo 1)" = 0 ] && [ "$DRY_RUN" = 0 ]; then
         say "warning: running as root installs for root only; you probably want your own user"

@@ -14,15 +14,83 @@ records, not additional live work.
   targets before overwrite. Report exact Recovery and retained backup paths.
 - [x] Add CLI-only transcript consent, cached aggregate reports and manual
   refresh for supported structured agent events.
+- [x] Validate cached usage summaries and day buckets before using them as
+  archive evidence. Keep valid counts visible when only a scan summary is damaged.
 - [x] Read project locks v1/v2, verify installed trees offline, and support
   reviewed v2 writes and guarded undo.
 - [x] Add native project CLI preview/apply/undo for supported JSON settings,
   and read-only Codex launch and Command Code patch handoffs.
 - [x] Add lifecycle evidence and reversible pins.
+- [x] Keep pin undo recoverable after interrupted replacement, and refuse
+  stale receipts and damaged preimages.
+- [x] Recover interrupted native settings and project lock replacements
+  through existing undo commands with exact file checks.
+- [x] Honor project lockfile write protection during apply and undo.
 - [x] Report primary document modification evidence in `archive candidates`
   using one UTC date window for modifications and cached usage events.
 - [ ] Implement archive apply and restore once continuous coverage, consumer
   mapping and edit/install evidence can establish staleness.
+- [x] Make opted-in usage reflect persisted OpenCode 2.3.2 activations, report
+  the requested UTC date window, and recover from interrupted bounded scans.
+- [x] Read OpenCode's configured database and explicit activations, keep cached
+  evidence tied to its consented root, and show documented reader gaps in
+  archive previews.
+- [x] Report incomplete inventory, shared roots and project reader hints in
+  archive previews. Distinguish name-matched usage from document activity.
+- [x] Include project Gemini and Command Code folders in scoped inventory,
+  Workspaces and archive previews, with grouped Command Code discovery.
+- [x] Observe standalone Gemini documents in read-only discovery and surface
+  their presence in archive inventory diagnostics.
+- [x] Preserve grouped and recursive archive inventory across shared roots,
+  including project aliases. Report relative folders, partial observations of
+  unaddressable skill names, and reader hints from selected root aliases.
+- [x] Add developer HTTP regression contracts and a shared JUnit failure
+  summary for Hurl and exported Keploy reports.
+- [x] Run hash-pinned Hurl contracts in CI, verify scoped Recovery preserves
+  unrelated trash, and retain actionable JUnit failure reports.
+- [x] Verify the native open-source Keploy export against a synthetic saved
+  run, including the cgroup startup warning before JUnit XML.
+- [x] Rehearse the upgrade from published 1.0.2 and restore its full backup
+  into the 1.1.0 candidate using synthetic active, disabled and trashed skills.
+- [x] Automate the pinned-wheel upgrade, full restore and downgrade rehearsal
+  on the release artifacts. Add a manual cross-platform build and verification
+  run, with publishing gated by a matching version tag.
+- [x] Use the resolved Python interpreter to bootstrap clean installs in both
+  release verifiers when Python is invoked through a launcher symlink.
+- [x] Guard POSIX installer upgrade and uninstall with virtual environment
+  ownership checks. Preserve foreign launchers and existing environments.
+- [x] Guard Windows installer upgrade and uninstall with ownership checks.
+  Preserve linked prefixes and unmarked custom environments, and exercise
+  those checks under Windows PowerShell 5.1 in the hosted workflow.
+- [x] Make the README quickstart start with a read-only inventory and use a
+  temporary manager library for recovery practice. Resolve repository links
+  and images from PyPI and check them in the documentation gate.
+- [x] Protect managed consent and recovery receipts from backup destinations.
+  Use the checked output directory if its symlink changes during export.
+- [x] Refuse to publish a backup when a concurrent Trash or Restore action
+  changes the inventory or a supporting file changes during capture.
+- [x] Surface a retryable backup conflict in v2 and classic Recovery and
+  verify a retry downloads the full archive.
+- [x] Verify recorded skill checksums before a full restore can replace
+  library, trash, templates or catalog data.
+- [x] Refuse to publish slim or full backups when a supporting folder cannot
+  be read during capture or verification. Preserve the previous archive.
+- [/] Record the current candidate's hosted macOS and Windows rehearsal results.
+- [x] Resume budgeted JSONL refreshes across an unfinished append and retain
+  partial coverage when a record was skipped.
+- [x] Count the complete records that fit each bounded JSONL refresh. Keep
+  evidence from interrupted OpenCode reads and scan newly inserted rows first.
+- [x] Read JSONL session files larger than one refresh can handle, keeping
+  oversized records skipped when their tails fall in later refreshes and
+  applying the same budget when an agent selection is repeated.
+- [x] Resume capped text-transcript walks across projects and retain files
+  already counted when discovery reaches its deadline.
+- [x] Rotate the starting agent after a refresh exhausts the shared budget
+  and preserve the saved position of agents deferred to the next refresh.
+- [x] Close AI provider and registry HTTP error responses before returning
+  an error or retrying.
+- [x] Validate links to repository Markdown when the documentation checker
+  cannot use Git, with coverage for links through external symlinks.
 - [x] Connect native settings previews to optional off lists in manager-saved
   profiles while keeping the browser enable-only action separate.
 
@@ -40,8 +108,8 @@ See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
 - [x] Finish the current-tree verification ladder and record the results in
   @docs/06-progress-log.md.
 - [x] Correct the Windows lockfile mode, binary-read and Codex usage failures
-  seen in GitHub CI, and cover the Chrome profile cleanup race. Windows
-  runner confirmation for these changes is pending.
+  seen in GitHub CI, and cover the Chrome profile cleanup race. Both Windows
+  runners passed on `80f1dd8`.
 - [x] Replay the full v2 suite in Firefox and enable repeatable Firefox runs
   for the classic suite. Verify classic in both browser engines.
 - [x] Capture and label seven screenshots from the current v2 build with
@@ -59,6 +127,26 @@ See @docs/54-usage-lifecycle-lock-native-profiles-2026-11-20.md.
   skipped instead of escaping as a raw error.
 - [x] `POST /api/trash/purge` empties the trash only as a bare request; a JSON
   body or `scope`/`snapshot` parameter makes it a restore of `purge`.
+- [x] Roll back full-backup trash, templates and catalog metadata when a file
+  fails to install, a rename is interrupted, or trash index reconciliation
+  fails. Keep blocked rollback copies across retries.
+- [x] Restore the catalog metadata file without replacing companion files.
+- [x] Keep original skill folders through a blocked import rollback, index
+  resync and retry. Refuse forced imports through a linked alias.
+- [x] Restore larger TAR backups, validate their import budgets before
+  publication, and restore large template sets with a fixed lock count.
+- [x] Export hardlinked companion bytes and omit install evidence. Read
+  legacy archives whose valid full-tree hashes included that evidence.
+- [x] Prevent concurrent default backups from overwriting each other. Detect
+  file and directory collisions and Windows filename aliases before extraction.
+- [x] Preserve the previous backup when a skill disappears or its primary
+  document cannot be restored. Refuse output paths in managed data and
+  report metadata decoding errors before installing archive contents.
+- [x] Preflight incompatible full-import destinations before replacing skills.
+  Roll back a skill and its index row when import history cannot be written.
+- [x] Show full archive import results and skip reasons in both interfaces.
+- [x] Preserve active skills when full archive metadata restoration fails.
+  Reject duplicate trash and template entries in an archive manifest.
 - [x] Remove three timing races from the suite (fidelity descendant state,
   simulator timeout, skill CI recipe signal before trap) and make the
   corrupt-artifact package test check its reason on both archive readers.
@@ -243,8 +331,8 @@ Open for the maintainer:
 - [x] ADR-001 revisit (2026-11-20): on Linux a connection owned by another OS
   user is refused (kernel socket owner via `/proc/net/tcp`, no token, no client
   change). macOS/Windows unchanged — per-user token file still the option there.
-- [ ] `.specs/` (40 MB evidence) and history purge: keep, move, or rewrite history?
-  Current archive size and Markdown references are recorded in @docs/06-progress-log.md.
+- [x] Keep the tracked `.specs/` evidence and its Git history. Existing docs
+  link to it and the package manifest excludes it from distribution.
 - [x] `body=0` list rows also omit `portable_frontmatter`/`frontmatter_extensions`
   (896 KB of 4.8 MB on the maintainer's library; detail route unchanged; 2026-11-20).
 - [x] Shelf cards: accessible name is the visible text, skill name first (no
@@ -253,13 +341,16 @@ Open for the maintainer:
 
 ## Remaining gated and deferred entries
 
-The live checklist has 11 open entries, including one in progress and some
-overlap among human reviews. Archive moves and the `.specs/` decision are
-listed above. The tool-page visual sign-off is in the parity section below.
-The full dated context remains in the archive.
+The remaining work includes overlapping human reviews. Archive evidence is
+tracked above. The tool-page visual sign-off is in the parity section below.
 
-- [ ] Owner's call: choose the next release version and candidate after 1.0.2.
-  Product questions Q1–Q4 remain in docs/45 §7.
+- [x] Select 1.1.0 as the next release and set the working candidate to that
+  version. Keep the existing distribution and the tag-triggered publication
+  gate. Record product decisions Q1–Q4 in docs/45 §7.
+- [x] Check the pinned build toolchain's repeatability and document the
+  distinction between identical packaged content and identical archive bytes.
+- [x] Verify recovery from clean installs of both exact release artifacts.
+  Compare the published PyPI downloads before creating the GitHub release.
 
 - [/] Broader fidelity study with distractors, near misses, repeats and the
   product's configured HTTP transport; the two-case result does not validate it.
@@ -270,6 +361,8 @@ The full dated context remains in the archive.
   native harness dry run matched all 12 prompt records to the simulation.
   The repeatable OpenCode probe verifies the model-facing listing, completed
   skill call and follow-up request using a loopback-only fake provider.
+  Its saved-corpus replay verifies all 12 prompts, all four listing entries,
+  eight scripted skill calls and four scripted no-call cases in OpenCode.
   An attended same-model comparison remains open for the permitted models.
   See @docs/48-ai-http-study-2026-11-17.md.
 
@@ -278,7 +371,9 @@ The full dated context remains in the archive.
 - [ ] Human perceptual review and screen-reader validation of v2. Automated
   forced-colors, keyboard and actual 200%/400% browser-zoom results are recorded separately.
 
-- [ ] Owner's call, deferred (docs/35): docs/27 monetization questions MON-Q1…MON-Q5 (services-first year; widen scope to MCP + AGENTS.md; public top-skills report; zh-CN UI; which docs/14 tiers stay). Proposals only, nothing approved.
+- [x] Resolve docs/27 MON-Q1…MON-Q5. Start with a services pilot for multi-agent
+  operators. Keep the skills scope and English UI, defer the public catalog
+  report, and keep Pro and Team as hypotheses. See docs/27.
 
 - [ ] **Human perceptual review of the redesign. Not an agent's to do.**
   The automated browser checks and Orca diagnostic evidence are recorded in
@@ -292,11 +387,15 @@ The full dated context remains in the archive.
 - [x] Refresh the pilot package from `d2257c8` and rehearse Sync and Recovery
   with a synthetic divergent copy containing a supporting file.
 
-- [ ] Approve the dated screenshot package for external use and run real
-  consented participant sessions using the pilot kit in docs/25.
+- [x] Approve the nine synthetic screenshots from `d2257c8` for use as
+  dated product illustrations with their commit and viewport labels.
+
+- [x] Provide a fresh synthetic pilot launcher, rehearse Sync and full-folder
+  Recovery, and keep the Inbox Sync control clear of fixed navigation.
 
 - [ ] Run five consent-safe human usability sessions; automated work does not
-  fabricate participant evidence.
+  establish participant outcomes. Use the synthetic `--pilot` launcher and the
+  consent protocol in docs/25.
 
 ## Earlier completed batch (2026-11-17)
 

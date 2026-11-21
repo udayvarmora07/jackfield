@@ -84,7 +84,8 @@ class LocalClientContractTests(unittest.TestCase):
             with urllib.request.urlopen(request, timeout=10) as response:
                 return response.status, cls._decode(response.read())
         except urllib.error.HTTPError as exc:
-            return exc.code, cls._decode(exc.read())
+            with exc:
+                return exc.code, cls._decode(exc.read())
 
     @staticmethod
     def _decode(raw: bytes):

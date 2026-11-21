@@ -789,7 +789,10 @@ class RegistryClient:
                 if close:
                     close()
         except HTTPError as exc:
-            retry = exc.headers.get("Retry-After") if exc.headers else None
+            try:
+                retry = exc.headers.get("Retry-After") if exc.headers else None
+            finally:
+                exc.close()
             suffix = f"; retry after {retry}s" if retry else ""
             raise RegistryError(f"registry request failed with HTTP {exc.code}{suffix}") from exc
         except URLError as exc:

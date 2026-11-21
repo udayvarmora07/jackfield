@@ -73,13 +73,14 @@ const app = createApp({
       route: parseRoute(), m: null, loading: true, loadError: "", history: [], busy: false,
       records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "",
+      exportPending: false, exportError: "",
       query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name",
       front: null, skipped: [], dismissed: [], done: 0, srcChoice: "",
       bodies: {}, bodyInflight: {}, bodyErrors: {},
       treeQuery: "", edit: null, highlight: true, compareWith: "",
       mapSelId: "", mapPicked: [], peek: null,
       mapQuery: "", mapReviewOnly: false, mapPage: 0, mapSkillName: "", mapOrigin: null,
-      trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", dropDepth: 0, importForce: false,
+      trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", importError: "", dropDepth: 0, importForce: false,
       theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
       dialog: null, toasts: [], live: "", toastSeq: 0, skillHistory: [], opener: null,
     };
@@ -641,6 +642,7 @@ const app = createApp({
       await this.runSync(s.name, from, s.differing.filter((c) => !c.readOnly).map((c) => c.scope), `${s.name} now matches in`);
     },
     async runSync(name, from, tos, label, onUndo) {
+      if (this.busy) return null;
       this.busy = true;
       try {
         const r = await this.doSync(name, from, tos);
@@ -821,33 +823,39 @@ const app = createApp({
         onConfirm: async () => { this.busy = true; try { await api("/api/trash/purge", { method: "POST" }); await this.loadTrash(); this.toast("The trash was emptied."); } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; } } });
     },
     async exportBackup(full) {
-      this.busy = true;
+      if (this.busy) return;
+      this.busy = true; this.exportPending = true; this.exportError = "";
       try {
         const { blob, filename } = await Domain.apiBlob("/api/export" + (full ? "?full=1" : ""));
         const url = URL.createObjectURL(blob), a = document.createElement("a");
         a.href = url; a.download = filename || "skills-backup.tar.gz"; document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 2000);
-        this.toast("Backup downloaded.");
-      } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
+        this.toast("Backup download started.");
+      } catch (e) {
+        this.exportError = Domain.archiveDownloadError(e);
+        if (this.route.page !== "recovery") this.toast(this.exportError, { err: true });
+      } finally { this.busy = false; this.exportPending = false; }
     },
     /* The picker filters by `accept`; a dropped file is not, so check its name.
      * The server still decides whether the bytes are a real archive. */
     pickImport(list) {
+      if (this.busy) return;
       const file = (list && list[0]) || null;
       if (file && !/\.(tar\.gz|tgz|tar|zip)$/i.test(file.name)) { this.importFile = null; this.importReject = `${file.name} is not a backup file. Choose a .tar.gz, .tgz, .tar or .zip file.`; return; }
       this.importReject = ""; this.importFile = file;
     },
+    archiveImportSummary(result) { return Domain.archiveImportSummary(result); },
     async doImport() {
       const f = this.importFile; if (!f || this.busy) return;
-      this.busy = true; this.importResult = null;
+      this.busy = true; this.importResult = null; this.importError = "";
       try {
         const r = await api(`/api/import?filename=${encodeURIComponent(f.name)}&force=${this.importForce ? 1 : 0}&full=${this.importFull ? 1 : 0}`, { method: "PUT", body: f });
-        this.importResult=r;
-        await this.refresh(); this.importFile = null;
+        this.importResult = r;
+        this.live = this.archiveImportSummary(r);
+        this.importFile = null;
         const input = document.getElementById("imp-file"); if (input) input.value = "";
-        const n = (r.imported || []).length, k = (r.skipped || []).length;
-        this.toast(`${plural(n, "skill")} loaded.${k ? " " + plural(k, "was", "were") + " already there and kept." : ""}`, { err: !n && !k });
-      } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
+        await this.refresh();
+      } catch (e) { this.importError = this.friendly(e.message); } finally { this.busy = false; }
     },
     applyTheme() {
       const root = document.documentElement;

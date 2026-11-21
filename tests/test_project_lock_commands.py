@@ -66,7 +66,60 @@ class VerifyProjectLockTests(unittest.TestCase):
 
 
 class WriteProjectLockTests(unittest.TestCase):
-    def test_prepared_receipt_does_not_authorize_undo(self):
+    def test_read_only_lock_can_be_previewed_but_cannot_be_replaced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            skill = root / ".agents" / "skills" / "demo"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("hello")
+            lock = root / "skills-lock.json"
+            before = b'{"version":2,"skills":{"demo":{"source":"o/r"}}}'
+            lock.write_bytes(before)
+            lock.chmod(0o444)
+            data = Path(tmp) / "data"
+            data.mkdir(mode=0o700)
+            try:
+                plan = project_lock_commands.preview_project_lock_write(root, ["demo"])
+                self.assertTrue(plan["changed"])
+                with self.assertRaisesRegex(lockfiles.LockfileError, "not writable"):
+                    project_lock_commands.apply_project_lock_write(root, ["demo"], plan["plan_hash"], data_dir=data)
+                self.assertEqual(lock.read_bytes(), before)
+                self.assertFalse((data / "project-lock-backups").exists())
+                self.assertFalse((root / "skills-lock.json.lock").exists())
+            finally:
+                lock.chmod(0o600)
+
+    def test_undo_respects_lost_write_access_without_a_mode_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            skill = root / ".agents" / "skills" / "demo"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("hello")
+            lock = root / "skills-lock.json"
+            before = b'{"version":2,"skills":{"demo":{"source":"o/r"}}}'
+            lock.write_bytes(before)
+            data = Path(tmp) / "data"
+            data.mkdir(mode=0o700)
+            plan = project_lock_commands.preview_project_lock_write(root, ["demo"])
+            plan_id = plan["plan_hash"]
+            project_lock_commands.apply_project_lock_write(root, ["demo"], plan_id, data_dir=data)
+            after = lock.read_bytes()
+            receipt = data / "project-lock-backups" / (plan_id + ".json")
+            original_receipt = receipt.read_bytes()
+            access = os.access
+
+            def deny_lock_write(path, mode):
+                return False if path == lock and mode & os.W_OK else access(path, mode)
+
+            with mock.patch.object(project_lock_commands.os, "access", side_effect=deny_lock_write):
+                with self.assertRaisesRegex(lockfiles.LockfileError, "not writable"):
+                    project_lock_commands.undo_project_lock_write(root, plan_id, data_dir=data)
+            self.assertEqual(lock.read_bytes(), after)
+            self.assertEqual(receipt.read_bytes(), original_receipt)
+            project_lock_commands.undo_project_lock_write(root, plan_id, data_dir=data)
+            self.assertEqual(lock.read_bytes(), before)
+
+    def test_unpublished_receipt_refuses_a_later_matching_write(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "project"
             skill = root / ".agents" / "skills" / "demo"
@@ -78,13 +131,43 @@ class WriteProjectLockTests(unittest.TestCase):
             data.mkdir(mode=0o700)
             plan = project_lock_commands.preview_project_lock_write(root, ["demo"])
             after = project_lock_commands._write_plan(root, ["demo"], None)[2]
-            with mock.patch.object(project_lock_commands, "_atomic_bytes", side_effect=OSError("write failed")):
+            with mock.patch.object(project_lock_commands.os, "replace", side_effect=OSError("write failed")):
                 with self.assertRaises(OSError):
                     project_lock_commands.apply_project_lock_write(root, ["demo"], plan["plan_hash"], data_dir=data)
+            receipt = data / "project-lock-backups" / (plan["plan_hash"] + ".json")
+            self.assertTrue(receipt.is_file())
             lock.write_bytes(after)
-            with self.assertRaises(lockfiles.LockfileError):
+            with self.assertRaisesRegex(lockfiles.LockfileError, "different file"):
                 project_lock_commands.undo_project_lock_write(root, plan["plan_hash"], data_dir=data)
             self.assertEqual(lock.read_bytes(), after)
+
+    def test_completed_rename_can_be_undone_after_interruption(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            skill = root / ".agents" / "skills" / "demo"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("hello")
+            lock = root / "skills-lock.json"
+            before = b'{"version":2,"skills":{"demo":{"source":"o/r"}}}'
+            lock.write_bytes(before)
+            data = Path(tmp) / "data"
+            data.mkdir(mode=0o700)
+            plan = project_lock_commands.preview_project_lock_write(root, ["demo"])
+            replace = os.replace
+
+            def interrupt_after_replace(source, destination):
+                replace(source, destination)
+                if destination == lock:
+                    raise KeyboardInterrupt
+
+            with mock.patch.object(project_lock_commands.os, "replace", side_effect=interrupt_after_replace):
+                with self.assertRaises(KeyboardInterrupt):
+                    project_lock_commands.apply_project_lock_write(root, ["demo"], plan["plan_hash"], data_dir=data)
+            self.assertNotEqual(lock.read_bytes(), before)
+            self.assertTrue(project_lock_commands.undo_project_lock_write(root, plan["plan_hash"], data_dir=data)["restored"])
+            self.assertEqual(lock.read_bytes(), before)
+            with self.assertRaises(lockfiles.LockfileError):
+                project_lock_commands.undo_project_lock_write(root, plan["plan_hash"], data_dir=data)
 
     @unittest.skipIf(os.name == "nt", "POSIX permission bits")
     def test_permission_changes_invalidate_preview_and_undo(self):

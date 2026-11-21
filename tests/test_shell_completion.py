@@ -94,6 +94,8 @@ COMP_WORDS=(skills-mgr "$(touch "$2")"); COMP_CWORD=1; _skills_mgr_complete
             result = subprocess.run(["bash", "-c", code, "bash", str(SCRIPTS / "skills-mgr.bash"), str(marker)], capture_output=True, text=True, check=True)
             self.assertIn("restore", result.stdout.splitlines())
             self.assertIn("scope:agents", result.stdout.splitlines())
+            self.assertIn("scope:project-gemini", result.stdout.splitlines())
+            self.assertIn("target:project-commandcode", result.stdout.splitlines())
             lines = result.stdout.splitlines()
             self.assertEqual({line for line in lines if line.startswith("install:")}, {"install:global", "install:project"})
             self.assertNotIn("target:all", lines)
@@ -117,6 +119,8 @@ words=(skills-mgr '$(touch '"$2"')'); CURRENT=2; _skills_mgr_complete
             result = subprocess.run(["zsh", "-c", code, "zsh", str(SCRIPTS / "_skills-mgr"), str(marker)], capture_output=True, text=True, check=True)
             self.assertIn("restore", result.stdout.splitlines())
             self.assertIn("agents", result.stdout.splitlines())
+            self.assertIn("project-gemini", result.stdout.splitlines())
+            self.assertIn("project-commandcode", result.stdout.splitlines())
             self.assertFalse(marker.exists())
 
     def test_script_members_are_nonempty(self):

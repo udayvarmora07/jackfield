@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from tools.e2e_v2.run import _fixture_environment
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -50,3 +52,16 @@ class BrowserLauncherStartupTests(unittest.TestCase):
 
     def test_v2_publishes_complete_url(self):
         self.assert_complete_publication("tools/e2e_v2/run.py")
+
+    def test_v2_fixture_server_excludes_host_credentials_and_settings(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            inherited = {"OPENAI_API_KEY": "synthetic-test-key", "SKILLS_MANAGER_DATA": "host-data",
+                         "CODEX_HOME": "host-codex", "XDG_CONFIG_HOME": "host-config",
+                         "http_proxy": "http://invalid.example", "PYTHONPATH": "host-package-path"}
+            with mock.patch.dict(os.environ, inherited):
+                env = _fixture_environment(root, root / "home", root / "data")
+            for name in ("OPENAI_API_KEY", "http_proxy", "PYTHONPATH"):
+                self.assertNotIn(name, env)
+            for name in ("HOME", "CODEX_HOME", "XDG_CONFIG_HOME", "SKILLS_MANAGER_DATA", "TMPDIR"):
+                self.assertTrue(Path(env[name]).is_relative_to(root))

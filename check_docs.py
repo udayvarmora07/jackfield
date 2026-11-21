@@ -437,39 +437,80 @@ def check_house_style(root: Path = ROOT) -> list[str]:
     return errors
 
 
+def _markdown_anchor_ids(text: str) -> set[str]:
+    found: set[str] = set()
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        heading = re.match(r"^#{1,6}\s+(.*?)\s*$", line)
+        if heading:
+            slug = re.sub(r"[`*_]", "", heading.group(1).lower())
+            slug = re.sub(r"[^\w\s-]", "", slug)
+            found.add(slug.replace(" ", "-"))
+    return found
+
 def check_markdown_anchors(root: Path = ROOT) -> list[str]:
     """Check every local markdown link target and ``#anchor`` resolves."""
     errors: list[str] = []
     anchors: dict[Path, set[str]] = {}
-    markdown = _all_markdown(root)
-    for path in markdown:
-        found: set[str] = set()
-        fenced = False
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if line.lstrip().startswith("```"):
-                fenced = not fenced
-                continue
-            if fenced:
-                continue
-            heading = re.match(r"^#{1,6}\s+(.*?)\s*$", line)
-            if heading:
-                text = re.sub(r"[`*_]", "", heading.group(1).lower())
-                text = re.sub(r"[^\w\s-]", "", text)
-                found.add(text.replace(" ", "-"))
-        anchors[path.resolve()] = found
-
-    for path in markdown:
+    for path in _all_markdown(root):
         rel = _relative(path, root)
-        for match in re.finditer(r"\[[^\]]+\]\(([^)\s]+)\)", path.read_text(encoding="utf-8")):
+        source = path.resolve()
+        text = path.read_text(encoding="utf-8")
+        if source not in anchors:
+            anchors[source] = _markdown_anchor_ids(text)
+        for match in re.finditer(r"\[[^\]]+\]\(([^)\s]+)\)", text):
             target = match.group(1)
             if target.startswith(("http://", "https://", "mailto:")):
                 continue
             name, _, fragment = target.partition("#")
-            resolved = path if not name else (path.parent / name).resolve()
+            resolved = (path.parent / name).resolve() if name else source
             if not resolved.exists():
                 errors.append(f"{rel}: dead markdown link -> {target}")
-            elif fragment and resolved.suffix == ".md" and fragment not in anchors.get(resolved, set()):
-                errors.append(f"{rel}: dead markdown anchor -> {target}")
+            elif fragment and resolved.suffix == ".md":
+                if resolved not in anchors and _inside_root_regular_file(resolved, root):
+                    # When Git is unavailable, a linked document can be
+                    # outside the first-party discovery paths.
+                    try:
+                        anchors[resolved] = _markdown_anchor_ids(resolved.read_text(encoding="utf-8"))
+                    except (OSError, UnicodeError):
+                        anchors[resolved] = set()
+                if fragment not in anchors.get(resolved, set()):
+                    errors.append(f"{rel}: dead markdown anchor -> {target}")
+    return errors
+
+
+def check_public_readme_links(root: Path = ROOT) -> list[str]:
+    """The same README ships on PyPI, where repository-relative paths break."""
+    readme = root / "README.md"
+    if not readme.is_file():
+        return []
+    branch_urls = (
+        "https://github.com/udayvarmora07/skills-manager/blob/main/",
+        "https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/",
+    )
+    no_examples = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", readme.read_text(encoding="utf-8"))
+    targets = re.findall(r'\]\(([^)\s]+)\)|<img\b[^>]*?\bsrc="([^"]+)"', no_examples)
+    errors = []
+    for href, image in targets:
+        url = href or image
+        if not url.startswith(("http://", "https://", "mailto:", "#")):
+            errors.append(f"README.md: use an absolute URL on PyPI -> {url}")
+            continue
+        for base in branch_urls:
+            if not url.startswith(base):
+                continue
+            name, _, fragment = url.removeprefix(base).partition("#")
+            path = root / name
+            if not _inside_root_regular_file(path, root):
+                errors.append(f"README.md: dead repository URL -> {url}")
+            elif fragment and path.suffix == ".md" and fragment not in _markdown_anchor_ids(path.read_text(encoding="utf-8")):
+                errors.append(f"README.md: dead markdown anchor -> {url}")
+            break
     return errors
 
 
@@ -602,6 +643,7 @@ def _errors(root: Path = ROOT) -> list[str]:
     errors.extend(check_version_alignment(root))
     errors.extend(check_house_style(root))
     errors.extend(check_markdown_anchors(root))
+    errors.extend(check_public_readme_links(root))
     errors.extend(check_surface_parity(root))
 
     settings = root / ".commandcode/settings.json"

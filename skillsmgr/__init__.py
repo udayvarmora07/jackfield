@@ -1,3 +1,3 @@
 """skills-mgr: manage agentic AI skills (SKILL.md) from the command line."""
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"

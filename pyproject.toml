@@ -18,7 +18,7 @@ select = ["F"]
 
 [project]
 name = "skill-control-plane"
-version = "1.0.2"
+version = "1.1.0"
 description = "Local control plane for AI coding-agent skills: manage SKILL.md across agents from one CLI + web UI"
 readme = "README.md"
 requires-python = ">=3.11"

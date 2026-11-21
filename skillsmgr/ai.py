@@ -718,7 +718,8 @@ def _post_once(url: str, headers: dict, body: dict, timeout: float) -> dict:
         with _OPENER.open(request, timeout=timeout) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
     except urllib.error.HTTPError as exc:
-        failure = _http_failure(exc)
+        with exc:
+            failure = _http_failure(exc)
         raise failure from None
     except AiError:
         raise

@@ -1,21 +1,21 @@
 <div align="center">
 
-<img src="skillsmgr/webui/v2/logo.svg" width="72" height="72" alt="">
+<img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/skillsmgr/webui/v2/logo.svg" width="72" height="72" alt="">
 
 # skills-manager
 
-**One place to see, fix, sync and back up the `SKILL.md` skills of every AI coding agent on your machine.**
+**One place to inspect, sync and back up `SKILL.md` skills across your coding agents.**
 
 A local CLI and web UI for Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Command Code and anything that reads `~/.agents/skills`.
 No account, no telemetry, no runtime dependencies.
 
-<img src="docs/images/agents/claude-code.svg" width="28" height="28" alt="Claude Code" title="Claude Code"> <img src="docs/images/agents/codex.svg" width="28" height="28" alt="Codex" title="Codex"> <img src="docs/images/agents/cursor.svg" width="28" height="28" alt="Cursor" title="Cursor"> <img src="docs/images/agents/opencode.svg" width="28" height="28" alt="OpenCode" title="OpenCode"> <img src="docs/images/agents/gemini.svg" width="28" height="28" alt="Gemini CLI" title="Gemini CLI"> <img src="docs/images/agents/commandcode.svg" width="28" height="28" alt="Command Code" title="Command Code"> <img src="docs/images/agents/agents.svg" width="28" height="28" alt="Agent Skills (~/.agents/skills)" title="Agent Skills (~/.agents/skills)">
+<img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/claude-code.svg" width="28" height="28" alt="Claude Code" title="Claude Code"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/codex.svg" width="28" height="28" alt="Codex" title="Codex"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/cursor.svg" width="28" height="28" alt="Cursor" title="Cursor"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/opencode.svg" width="28" height="28" alt="OpenCode" title="OpenCode"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/gemini.svg" width="28" height="28" alt="Gemini CLI" title="Gemini CLI"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/commandcode.svg" width="28" height="28" alt="Command Code" title="Command Code"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/agents.svg" width="28" height="28" alt="Agent Skills (~/.agents/skills)" title="Agent Skills (~/.agents/skills)">
 
 [![CI](https://github.com/udayvarmora07/skills-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/udayvarmora07/skills-manager/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/skill-control-plane.svg)](https://pypi.org/project/skill-control-plane/)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](pyproject.toml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Dependencies: none](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](https://github.com/udayvarmora07/skills-manager/blob/main/pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/udayvarmora07/skills-manager/blob/main/LICENSE)
+[![Dependencies: none](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](https://github.com/udayvarmora07/skills-manager/blob/main/pyproject.toml)
 
 [Install](#install) · [Quickstart](#quickstart) · [Web UI](#the-web-ui) · [Recipes](#recipes) · [Privacy](#what-it-will-not-do-and-what-leaves-your-machine) · [Docs](#documentation-map) · [Contributing](#contributing)
 
@@ -59,7 +59,7 @@ No account, no telemetry, no runtime dependencies.
 - **Skills fail silently.** A byte-order mark, an unquoted `:` in the frontmatter or a listing over the agent's budget can make an agent skip or truncate a skill. Nothing tells you.
 - **Mistakes are hard to undo.** A bad edit or a deleted folder has no history and no trash.
 
-`skills-manager` takes inventory of the copies already on your machine. It shows where they differ and flags what an agent would likely drop. Every change goes through a reviewable, reversible step.
+`skills-manager` inventories copies in supported skill folders. It shows where they differ and flags what an agent may skip. Edits keep snapshots, and ordinary removals go to trash for recovery.
 
 **How it relates to other tools.** [Vercel's `skills` CLI](https://github.com/vercel-labs/skills) installs and updates skills from a source into many agents. This project manages the copies you already have: it inspects them, compares them, keeps them in sync and recovers them. The two work together, and `skills-mgr install` can call the `skills` CLI for you.
 
@@ -67,18 +67,23 @@ No account, no telemetry, no runtime dependencies.
 
 | | |
 |---|---|
-| **See everything** | One inventory across every agent's skill folder, with duplicates, drift and broken copies marked. |
+| **See your skill copies** | One inventory across supported agent folders, with duplicates, drift and broken copies marked. |
 | **Lint what agents silently skip** | `validate` and `doctor --hygiene` flag malformed frontmatter, oversized bodies, dead links, vague descriptions, ignored keys and listing-budget overflow for Claude Code and Codex. |
 | **Sync on purpose** | Copy a skill from one agent to others. Overwrites are explicit, and a snapshot of the old copy is kept. |
-| **Undo anything** | Removal goes to a trash, edits keep snapshots, and full backups are one command away. |
+| **Recover previous copies** | Restore from trash or an edit snapshot, and export a full backup. |
 | **Review before you update** | Updating from a folder or the [skills.sh](https://skills.sh) registry shows a diff, validation and advisory risk findings, then waits for your approval. |
-| **Explain agent behaviour** | `doctor --explain` shows which copy a given agent would load and which copies it shadows, with the vendor doc it relied on. |
+| **Explain agent behaviour** | `doctor --explain` identifies likely copies from documented discovery rules and flags ambiguous cases. |
 | **Budget context** | `tokens` shows how much of a model's context window your skills take. |
 | **Local web UI** | A full interface on `127.0.0.1`, vendored Vue, no build step, works offline. |
 | **Optional AI checks** | Bring your own key to test whether a skill gets picked, tighten descriptions and get review briefings. Off by default. |
 | **Zero dependencies** | Python standard library only. |
 
 ## Install
+
+PyPI installs the latest published version. Run `skills-mgr --version` and
+choose the matching GitHub tag for version-specific documentation. This guide
+also covers features in development on `main`.
+[Release history](https://github.com/udayvarmora07/skills-manager/releases)
 
 ### One command
 
@@ -147,41 +152,46 @@ Anywhere this README says `skills-mgr`, you can use `python3 -m skillsmgr`.
 
 ## Quickstart
 
-Five minutes, nothing is changed until step 3.
+Start by inventorying the folders and copies Skills Manager can see. These
+commands leave your skill files untouched.
 
 ```bash
-# 1. What agents and skill folders do you have?
 skills-mgr scopes
-
-# 2. Every skill, across every agent, in one table
 skills-mgr list --scope all
-
-# 3. Create a skill in the manager's own library
-skills-mgr create deploy-staging \
-  -d "Deploys the staging stack. Use when shipping a branch to staging."
-
-# 4. Copy it to the agents you use
-skills-mgr sync deploy-staging --to claude-code --to agents
-
-# 5. Prefer clicking? Open the local web UI
-skills-mgr webui
 ```
 
-Then try the health checks:
+### Try recovery with a sample skill
+
+The following commands create a separate manager library, move a sample skill
+to trash, and restore it. They act on the manager library under the temporary
+directory. Print the restored document to verify the sample is back.
+
+Linux and macOS:
 
 ```bash
-skills-mgr validate --all                 # lint against the Agent Skills spec
-skills-mgr doctor --hygiene --scope all   # duplicates, drift, parse risks, listing budgets
-skills-mgr tokens --scope all             # context-window footprint
+demo=$(mktemp -d)
+skills-mgr --data-dir "$demo" create demo-review -d "Reviews a sample change. Use when trying Skills Manager." --body "Check the sample diff before approval."
+skills-mgr --data-dir "$demo" remove demo-review --trash
+skills-mgr --data-dir "$demo" restore demo-review
+skills-mgr --data-dir "$demo" view demo-review --raw
 ```
 
-> **Want a sandbox first?** Point the tool at a throwaway directory and your real data stays untouched:
->
-> ```bash
-> export SKILLS_MANAGER_DATA="$(mktemp -d)"
-> ```
->
-> Agent scopes still read your real home folders. To isolate those too, also set `HOME` to a temporary directory.
+Windows (PowerShell):
+
+```powershell
+$demo = Join-Path ([System.IO.Path]::GetTempPath()) ('skillsmgr-demo-' + [guid]::NewGuid())
+[void] [System.IO.Directory]::CreateDirectory($demo)
+skills-mgr --data-dir "$demo" create demo-review -d "Reviews a sample change. Use when trying Skills Manager." --body "Check the sample diff before approval."
+skills-mgr --data-dir "$demo" remove demo-review --trash
+skills-mgr --data-dir "$demo" restore demo-review
+skills-mgr --data-dir "$demo" view demo-review --raw
+```
+
+`--data-dir` selects the manager library for a command. Agent scopes still
+refer to the real agent folders. The sample only uses the manager's global
+scope. You can delete the temporary directory when you finish.
+
+To inspect your real skills in the browser, use the [web UI](#the-web-ui).
 
 ## Core ideas in 60 seconds
 
@@ -208,7 +218,7 @@ skills-mgr tokens --scope all             # context-window footprint
 
 Project-local folders (for example `<project>/.claude/skills`) appear as extra scopes when present. `skills-mgr scopes` lists what exists on your machine.
 
-`list`, `view`, `search`, `doctor` and `stats` take `--scope`. `sync` copies between scopes, and `tokens` and `install` have their own `--scope` meanings. Details: [CLI reference](docs/03-cli-surface.md).
+`list`, `view`, `search`, `doctor` and `stats` take `--scope`. `sync` copies between scopes, and `tokens` and `install` have their own `--scope` meanings. Details: [CLI reference](https://github.com/udayvarmora07/skills-manager/blob/main/docs/03-cli-surface.md).
 
 ## The web UI
 
@@ -229,7 +239,7 @@ skills-mgr webui --port 9000     # another port
 
 Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> for the command palette and <kbd>?</kbd> for shortcuts. The classic interface is still at `/classic/`.
 
-> ⚠️ **The web UI has no login.** It binds to `127.0.0.1`, and that binding is its only security boundary. Any program on your machine can reach it. Never forward, tunnel or publish the port. See the [threat model](skills-manager-threat-model.md).
+> ⚠️ **The web UI has no login.** It binds to `127.0.0.1`, and that binding is its only security boundary. Any program on your machine can reach it. Never forward, tunnel or publish the port. See the [threat model](https://github.com/udayvarmora07/skills-manager/blob/main/skills-manager-threat-model.md).
 
 <details>
 <summary><b>Open it as a desktop window</b></summary>
@@ -245,7 +255,7 @@ python3 desktop_launcher.py
 <details>
 <summary><b>Build on top of it (REST API)</b></summary>
 
-The same server is a JSON REST API for local scripts and editor extensions. Call it at `127.0.0.1` or `localhost` (same port) from a host process, not from a web page. Contract: [docs/08-web-ui.md](docs/08-web-ui.md#local-client-integration-contract-non-browser-clients--issue-8).
+The same server is a JSON REST API for local scripts and editor extensions. Call it at `127.0.0.1` or `localhost` (same port) from a host process, not from a web page. Contract: [docs/08-web-ui.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/08-web-ui.md#local-client-integration-contract-non-browser-clients--issue-8).
 
 </details>
 
@@ -342,14 +352,14 @@ Or hand off to the `skills` CLI, previewing first:
 skills-mgr install vercel-labs/agent-skills --dry-run
 ```
 
-Background and limits: [ADR-005](docs/ADR-005-registry-network-and-provenance.md).
+Background and limits: [ADR-005](https://github.com/udayvarmora07/skills-manager/blob/main/docs/ADR-005-registry-network-and-provenance.md).
 
 </details>
 
 <details>
 <summary><b>Lint skills in CI</b></summary>
 
-A copy-paste pull-request check built on `skills-mgr validate --path`: [docs/36-skill-ci-recipe-2026-11-08.md](docs/36-skill-ci-recipe-2026-11-08.md).
+A copy-paste pull-request check built on `skills-mgr validate --path`: [docs/36-skill-ci-recipe-2026-11-08.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/36-skill-ci-recipe-2026-11-08.md).
 
 </details>
 
@@ -363,7 +373,7 @@ skills-mgr validate deploy-staging --evals
 skills-mgr validate deploy-staging --evals-run runs.json   # grades with/without-skill outputs
 ```
 
-Scores are written as files under the data directory. They are advisory and never block an install or edit. See [ADR-003](docs/ADR-003-registry-bridge-and-eval-harness.md).
+Scores are written as files under the data directory. They are advisory and never block an install or edit. See [ADR-003](https://github.com/udayvarmora07/skills-manager/blob/main/docs/ADR-003-registry-bridge-and-eval-harness.md).
 
 </details>
 
@@ -383,7 +393,7 @@ From the CLI or CI (estimate by default; `--run` sends):
 skills-mgr ai trigger-test --scope claude-code --saved --json
 ```
 
-Details: [AI CLI/CI contract](docs/42-ai-cli-ci-2026-11-09.md) and [AI features research](docs/39-ai-features-research-and-catalogue-2026-11-09.md).
+Details: [AI CLI/CI contract](https://github.com/udayvarmora07/skills-manager/blob/main/docs/42-ai-cli-ci-2026-11-09.md) and [AI features research](https://github.com/udayvarmora07/skills-manager/blob/main/docs/39-ai-features-research-and-catalogue-2026-11-09.md).
 
 ## What it will not do, and what leaves your machine
 
@@ -432,7 +442,7 @@ Network traffic happens **only** in these cases:
 - **Locking:** a CLI process and a web UI process on the same data directory exclude each other through advisory file locks.
 - **Safety:** every skill name is validated before it becomes a path, and every path is checked to stay inside its root. Uploads and archives are size-bounded. Skill text is escaped everywhere it is displayed.
 
-Deeper reading: [architecture](docs/01-architecture.md) · [modules](docs/02-modules.md) · [Store API and schema](docs/04-store-api.md).
+Deeper reading: [architecture](https://github.com/udayvarmora07/skills-manager/blob/main/docs/01-architecture.md) · [modules](https://github.com/udayvarmora07/skills-manager/blob/main/docs/02-modules.md) · [Store API and schema](https://github.com/udayvarmora07/skills-manager/blob/main/docs/04-store-api.md).
 
 ## Troubleshooting and FAQ
 
@@ -493,7 +503,7 @@ No, unless you use one of the opt-in features listed in [what leaves your machin
 <details>
 <summary><b>Exit codes and machine-readable output</b></summary>
 
-`0` ok · `1` error · `2` usage · `130` interrupted. Most commands accept `--json`. See the full [CLI reference](docs/03-cli-surface.md).
+`0` ok · `1` error · `2` usage · `130` interrupted. Most commands accept `--json`. See the full [CLI reference](https://github.com/udayvarmora07/skills-manager/blob/main/docs/03-cli-surface.md).
 
 </details>
 
@@ -501,19 +511,19 @@ No, unless you use one of the opt-in features listed in [what leaves your machin
 
 | If you want to… | Read |
 |---|---|
-| Learn every command and flag | [docs/03-cli-surface.md](docs/03-cli-surface.md) |
-| Understand the design | [docs/01-architecture.md](docs/01-architecture.md) |
-| Use the REST API or web UI internals | [docs/08-web-ui.md](docs/08-web-ui.md) |
-| Migrate hand-managed skill folders safely | [docs/17-adoption-and-distribution.md](docs/17-adoption-and-distribution.md) |
-| See why decisions were made | the `docs/ADR-*.md` files, starting at [docs/README.md](docs/README.md) |
-| Know what changed in each release | [CHANGELOG.md](CHANGELOG.md) |
-| Work on the code with an AI agent | [AGENTS.md](AGENTS.md) and [docs/SESSION-CONTEXT.md](docs/SESSION-CONTEXT.md) |
+| Learn every command and flag | [docs/03-cli-surface.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/03-cli-surface.md) |
+| Understand the design | [docs/01-architecture.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/01-architecture.md) |
+| Use the REST API or web UI internals | [docs/08-web-ui.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/08-web-ui.md) |
+| Migrate hand-managed skill folders safely | [docs/17-adoption-and-distribution.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/17-adoption-and-distribution.md) |
+| See why decisions were made | the `docs/ADR-*.md` files, starting at [docs/README.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/README.md) |
+| Know what changed in each release | [CHANGELOG.md](https://github.com/udayvarmora07/skills-manager/blob/main/CHANGELOG.md) |
+| Work on the code with an AI agent | [AGENTS.md](https://github.com/udayvarmora07/skills-manager/blob/main/AGENTS.md) and [docs/SESSION-CONTEXT.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/SESSION-CONTEXT.md) |
 
 An agent-facing management skill ships inside the package at `skillsmgr/examples/skills-manager-management/`. Copy it into your agent's skills folder to let the agent drive this tool with preview-first, approval-gated steps.
 
 ## Contributing
 
-Contributions are welcome. Bug reports, new agent scopes, validation rules, UI polish and tests are especially useful. Start with [CONTRIBUTING.md](CONTRIBUTING.md), which covers setup and every check CI runs.
+Contributions are welcome. Bug reports, new agent scopes, validation rules, UI polish and tests are especially useful. Start with [CONTRIBUTING.md](https://github.com/udayvarmora07/skills-manager/blob/main/CONTRIBUTING.md), which covers setup and every check CI runs.
 
 ```bash
 git clone https://github.com/udayvarmora07/skills-manager && cd skills-manager
@@ -532,12 +542,12 @@ The project holds a few deliberate constraints, and changes to them need maintai
 
 ## Security
 
-Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md). Design notes: [threat model](skills-manager-threat-model.md) · [security review](security_best_practices_report.md) · [static analysis policy](docs/STATIC-ANALYSIS.md). Release artifacts are built with a hash-pinned toolchain and carry build provenance attestations.
+Please report vulnerabilities privately, as described in [SECURITY.md](https://github.com/udayvarmora07/skills-manager/blob/main/SECURITY.md). Design notes: [threat model](https://github.com/udayvarmora07/skills-manager/blob/main/skills-manager-threat-model.md) · [security review](https://github.com/udayvarmora07/skills-manager/blob/main/security_best_practices_report.md) · [static analysis policy](https://github.com/udayvarmora07/skills-manager/blob/main/docs/STATIC-ANALYSIS.md). Release artifacts are built with a hash-pinned toolchain and carry build provenance attestations.
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for what is shipped, what is next and what is still a proposal.
+See [ROADMAP.md](https://github.com/udayvarmora07/skills-manager/blob/main/ROADMAP.md) for what is shipped, what is next and what is still a proposal.
 
 ## License
 
-[MIT](LICENSE). Built on the open [Agent Skills](https://agentskills.io) format. Thanks to everyone who files issues and shares skills.
+[MIT](https://github.com/udayvarmora07/skills-manager/blob/main/LICENSE). Built on the open [Agent Skills](https://agentskills.io) format. Thanks to everyone who files issues and shares skills.

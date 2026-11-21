@@ -728,6 +728,32 @@ const overflowOf = () => page.evaluate(() => ({sw: document.documentElement.scro
     }
   });
 
+  await test('Recovery', 'explains backup conflicts and allows a clean retry', async () => {
+    await load();
+    await nav('recovery');
+    const recovery = page.getByRole('region', {name: 'Recovery actions'});
+    const exportButton = recovery.getByRole('button', {name: 'Export full backup'});
+    const pattern = /\/api\/export\?full=1$/;
+    await page.route(pattern, route => route.fulfill({status: 409,
+      json: {code: 'backup_source_changed', error: '/private/source changed'}}));
+    try {
+      const alert = recovery.getByRole('alert');
+      await allowFailures(async () => {
+        await exportButton.click();
+        await alert.waitFor();
+      });
+      match(await alert.innerText(), /Wait for changes to finish/);
+      ok(!(await alert.innerText()).includes('/private/'), 'paths hidden from the alert');
+      await page.unroute(pattern);
+      const download = page.waitForEvent('download');
+      await exportButton.click();
+      eq((await download).suggestedFilename(), 'full-export.tar.gz');
+      await alert.waitFor({state: 'detached'});
+    } finally {
+      await page.unroute(pattern);
+    }
+  });
+
   await test('Cross-cutting', 'Escape closes dialogs with focus return (batch, install, validate)', async () => {
     await load('/classic/'); await nav('quality'); await page.locator('.quality-hygiene-metrics').waitFor();
     await nav('install'); const o = page.getByRole('button', {name: 'Open full install workflow'}); await o.focus(); await page.keyboard.press('Enter'); await page.locator('[data-modal=install]').waitFor();

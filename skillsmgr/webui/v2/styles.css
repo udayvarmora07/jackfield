@@ -60,6 +60,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 80px; }
 body { margin: 0; font-family: var(--ui); font-size: var(--fs-body); line-height: 1.55; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
 h1, h2, h3, p { margin: 0; }
 h1, h2, h3 { text-wrap: balance; }
@@ -580,6 +581,8 @@ button.map-state:hover { border-color: currentColor; }
 .rec-list li:first-child { border-top: 0; }
 .rec-list small { display: block; color: var(--muted); font-size: var(--fs-small); }
 .rec-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.import-outcome { margin-top: 0; overflow-wrap: anywhere; }
+.import-outcome ul { padding-inline-start: 1.25rem; }
 .hl-row { display: flex; gap: 8px; align-items: center; font-weight: 600; font-size: var(--fs-ui); color: var(--ink-2); }
 .hl-row input { accent-color: var(--ink); width: 16px; height: 16px; margin: 0; }
 .dlg-form .ed-label:first-child { margin-top: 4px; }
@@ -622,6 +625,7 @@ button.map-state:hover { border-color: currentColor; }
 /* Phone: navigation moves to the bottom where a thumb reaches it, and no tab is cut off. */
 .bottomnav { display: none; }
 @media (max-width: 600px) {
+  html { scroll-padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
   .top .tabs { display: none; }
   .gsearch { display: block; flex: 1 1 auto; width: auto; min-width: 0; }
   .gsearch kbd { display: none; }
@@ -734,10 +738,8 @@ button.map-state:hover { border-color: currentColor; }
 @media (prefers-reduced-motion: reduce) { .smdz { transition: none; } }
 
 /* Web Interface Guidelines (vercel-labs): no double-tap zoom delay on controls;
-   anchored headings clear the 66px sticky bar (plus a sticky letter header);
    scroll inside dialogs and the skill tree does not chain to the page. */
 a, button, summary, label, select, [role="button"] { touch-action: manipulation; }
-h1[id], h2[id], h3[id] { scroll-margin-top: 80px; }
 .dlg, .tree, .instance-dialog { overscroll-behavior: contain; }
 /* Browser surfaces in the system's own palette (impeccable craft floor): the
    highlighter token for selection (ink on --mark is 13.5:1 light; the dark

@@ -88,31 +88,68 @@ write paths, so the condition has one name wherever a user meets it.
   Malformed, symlinked, and prefix-collision directories are ignored. `purged`
   lists each purged skill once even when several timestamped copies existed.
 - `stats(self) -> dict` — counts and summary.
-- `export(self, dest=None, full=False) -> Path` / `backup(self, dest=None, full=False) -> Path` — slim skills-only archive by default; `full=True` adds validated trash and templates.
-  An explicit destination is a file path and atomically replaces an existing
-  file; default destinations use unique names under backups.
-- Export manifests include a SHA-256 content hash for each skill tree; imports verify hashes in staging and after commit when present. Hashes are verification metadata, not SQLite state.
+- `export(self, dest=None, full=False) -> Path` / `backup(self, dest=None, full=False) -> Path` — slim skills-only archive by default. `full=True` adds validated trash, templates and catalog metadata.
+  An explicit destination is an atomically replaced file path. Default
+  destinations are chosen under the backup-directory lock at publication,
+  so same-second runs keep separate files. The staged archive must pass the
+  importer's member and resource checks before publication. Export also checks
+  that every active skill has one importable primary document in the archive
+  and every listed trash folder contributes files. A failed check preserves
+  the previous backup. Explicit destinations within the data directory must
+  be under `backups/` or use a legacy root-level `.tar.gz` filename. Export
+  checks both the requested path and its resolved parent, including managed
+  skill and recovery directories linked to another volume. Staging and
+  publication use the checked parent. If a link is redirected during the
+  export, the result reports the path where the archive was written.
+- Export checks selected root membership, the archived paths in each skill
+  tree, and captured file revisions before publishing. An observed concurrent
+  change or a supporting directory read failure stops the export and preserves
+  the previous archive. These are filesystem checks during capture, with no
+  persistent state added for a web download.
+- Export hashes the paths and bytes it actually writes for each skill. It
+  stores hardlinked files as independent regular files and omits symlinks and
+  both manager sidecars. Imports verify SHA-256 hashes in staging and after
+  commit when present. Hashes are verification metadata.
 - `import_(self, archive, force=False, full=False) -> dict` — imports `.tar.gz`/`.tgz`/`.tar`
   and ZIP content (sniffed by content, not only filename). Resource-budget
   violations, unsafe traversal/Windows/special members, unsupported manifest
   versions/names/paths, and invalid extracted documents raise `StoreError`.
+  TAR permits 12,000 members and up to 12,000 explicit or implicit
+  directories. ZIP permits 200 members. Both cap the archive at 25 MiB
+  compressed, 16 MiB of total member payload and 8 MiB per file. TAR also
+  bounds the decompressed stream, including headers and padding, at 40 MiB.
   ZIP members are manually extracted to contained paths and symlink-bit entries
-  are rejected. Each skill is staged independently before replacement;
-  Preflight failures abort the entire import before any skill is installed,
-  including malformed documents previously exported from the filesystem. At
+  are rejected. Both formats reject paths that collide with implied
+  directories. On Windows, members also reject reserved filename components
+  and case aliases. Each skill is staged independently before replacement.
+  Preflight failures, including invalid archive metadata and malformed primary
+  documents in older backups, abort before any skill is installed. At
   the per-skill commit stage, successful names appear in `imported`,
   commit failures/already-present names in
-  `skipped`, and failed replacements restore the previous destination. A failed
-  staging copy leaves the existing skill directory untouched.
+  `skipped`, and failed replacements restore the previous destination. The
+  skill's index row and import history commit in the same SQLite transaction.
+  A failed staging copy leaves the existing skill directory untouched. A blocked
+  rollback reports the retained files in `skipped`. Forced replacement
+  refuses linked or non-directory skill destinations.
+  [Windows filename rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
 - Archive imports strip both manager sidecars from the whole extracted tree
-  (skills and full-archive trash) before validation, so an export → import
-  round trip deliberately drops provenance and source-lock evidence (R2).
-- `full=True` requires a boolean `full` flag and plain-name `trash`/`templates`
-  entries; every payload is validated before any mutation, then installed as one
-  all-or-nothing transaction that rolls back on failure and raises
-  `StoreError`. Restored trash names are reconciled into the index so `stats()`
-  and `doctor()` agree with `trash_list()`. Existing entries are skipped unless
-  `force=True`.
+  before installation. An exact legacy manifest hash can include those
+  sidecars. When it verifies, the importer verifies the remaining files
+  separately through staging and commit. Provenance and source-lock evidence
+  stay with the original installation (R2).
+- `full=True` requires a boolean `full` flag and unique plain-name
+  `trash`/`templates` entries. Preflight requires a valid
+  `catalog/metadata.json` when the manifest declares a catalog. Forced full
+  imports also check whether the
+  existing trash, template and catalog destinations can be replaced before
+  importing any skills. Full restore checks every recorded skill checksum
+  before writing any archive payload. Older archives can omit checksums.
+  Trash, templates and catalog metadata form one
+  rollback group that completes before independent skill imports. Failure to
+  install a payload or reconcile trash into the index rolls back that group.
+  A blocked rollback reports the retained transaction directory in diagnostics. Existing
+  entries are skipped unless `force=True`, which requires unlinked destinations
+  of the expected type. Catalog restore replaces only `metadata.json`.
 - `history(self, name=None, limit=50) -> list[dict]`; snapshot IDs are exposed
   through the module-level `list_snapshots(data_dir, scope, name)` helper and
   the CLI/REST history surfaces.

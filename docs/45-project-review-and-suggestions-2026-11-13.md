@@ -117,6 +117,15 @@ problem on 0.167.0-alpha.4.1.
 | Q3 | Widen scope to MCP servers and AGENTS.md (docs/29 D-5)? |
 | Q4 | Which of N1, N2 and N8 may add a command or surface? |
 
+**[SPEC] 2026-11-20 decisions.** Keep the `skill-control-plane` distribution
+name and the `skills-mgr` command. Focus the next release on multi-agent users
+while retaining ordinary single-agent workflows. Keep MCP and instruction
+files outside the product scope. Keep using the existing external runner for
+lock-based installation. Retain the reviewed Git backup planner as its
+current local seam. An MCP server and new lock/SaaS sync surfaces stay out of
+the 1.1.0 candidate. The candidate uses the current filesystem, CLI and v2
+interfaces. See @ROADMAP.md for release state.
+
 ## 8. Sources
 
 **[NOTE]** Read on 2026-11-13 unless stated.

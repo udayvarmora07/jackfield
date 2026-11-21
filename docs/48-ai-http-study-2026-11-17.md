@@ -123,6 +123,23 @@ The stub chose the tool call. An attended OpenCode study would measure
 OpenCode's routing for the permitted model and listing, with Claude Code and
 Command Code fidelity still unknown.
 
+## 2026-11-20 — Saved corpus replay in OpenCode
+
+The loopback-only `--replay-published-study` verified all 12 saved prompts
+through OpenCode 2.3.2. Every tool-capable request contained the exact prompt
+and the same names and descriptions for all four skills. The eight scripted
+skill-call cases produced eight completed calls and eight follow-up requests
+carrying the expected skill bodies. Four scripted no-call cases reached
+successful stops with zero observed skill calls. There were 32 stub requests
+and one observed ordered listing fingerprint across the corpus.
+
+The native instructions and tool definitions still differ from the simulator
+request. The stub was the decision maker in this replay, so the result supplies
+no native routing agreement rate. An attended run still needs to check the
+provider's current Chat Completions support for the exact permitted model,
+bound its requests, and record provider and observed model identities.
+The command and report fields are in @tools/ai_fidelity/README.md.
+
 ## 2026-11-20 — Repeatable offline OpenCode probe
 
 [The development probe](../tools/ai_fidelity/opencode_probe.py) reproduces the

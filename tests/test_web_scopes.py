@@ -57,7 +57,7 @@ class ScopedHomeTestCase(unittest.TestCase):
 class TestTwoServersDoNotCrossTalk(ScopedHomeTestCase):
     """SCOPE-10: one process, two servers, two data dirs -- no shared state."""
 
-    def _server(self, data_name: str, skill_name: str, description: str):
+    def _server(self, data_name: str, skill_name: str, description: str, **server_options):
         import threading
 
         from skillsmgr.webapp import WebAppServer
@@ -65,7 +65,7 @@ class TestTwoServersDoNotCrossTalk(ScopedHomeTestCase):
         store = scopes.Store(data_dir=Path(self._tmp.name) / data_name)
         store.init_db()
         store.create(skill_name, description)
-        server = WebAppServer(store, port=0)
+        server = WebAppServer(store, port=0, **server_options)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         self.addCleanup(thread.join, 5)
@@ -94,6 +94,38 @@ class TestTwoServersDoNotCrossTalk(ScopedHomeTestCase):
         # with the same server's Global view.
         self.assertEqual(self._names(server_a, "/api/skills?scope=all"), ["a-only"])
         self.assertEqual(self._names(server_b, "/api/skills?scope=all"), ["b-only"])
+
+    def test_project_scopes_show_the_same_roots_and_skills_in_rest(self):
+        import json
+        import urllib.request
+        from urllib.parse import urlencode
+
+        project = Path(self._tmp.name).resolve() / "project"
+        fixture = (("project-gemini", ".gemini/skills", "gemini-demo", "gemini-demo"),
+                   ("project-commandcode", ".commandcode/skills", "group/command-demo", "command-demo"))
+        for _, relative, folder, name in fixture:
+            skill = project / relative / folder
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                f"---\nname: {name}\ndescription: Test skill.\n---\n", encoding="utf-8",
+            )
+
+        with mock.patch.object(scopes, "_cwd", return_value=project):
+            server, _store = self._server("data", "global-demo", "Library skill", extra_allowed_roots=[project])
+            origin = f"http://127.0.0.1:{server.port}"
+            with urllib.request.urlopen(origin + "/api/scopes", timeout=10) as response:
+                scope_rows = {row["id"]: row for row in json.loads(response.read())}
+            query = urlencode({"project": str(project)})
+            with urllib.request.urlopen(origin + "/api/workspaces?" + query, timeout=10) as response:
+                project_view = json.loads(response.read())["project"]
+            observed = {row["relative"] for row in project_view["skills_roots"] if row["exists"]}
+            self.assertEqual(observed, {relative for _, relative, _, _ in fixture})
+            for scope_id, relative, _, name in fixture:
+                self.assertEqual(scope_rows[scope_id]["path"], str(project / relative))
+                self.assertEqual(scope_rows[scope_id]["count"], 1)
+                self.assertEqual(self._names(server, f"/api/skills?scope={scope_id}"), [name])
+                with urllib.request.urlopen(origin + f"/api/skills/{name}?scope={scope_id}", timeout=10) as response:
+                    self.assertEqual(json.loads(response.read())["name"], name)
 
     def test_agent_scope_snapshots_stay_in_the_requesting_servers_data_dir(self):
         server_a, store_a = self._server("data-a", "a-only", "in data-a")

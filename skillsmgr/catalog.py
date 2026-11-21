@@ -125,7 +125,7 @@ def load_catalog(data_dir: str | Path) -> dict:
         return empty_catalog()
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         raise CatalogError(f"could not read catalog metadata: {exc}") from exc
     return normalize_catalog(raw)
 

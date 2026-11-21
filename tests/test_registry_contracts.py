@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import os
 import json
 import tempfile
 import unittest
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 
 from skillsmgr import registry
 
@@ -197,6 +198,18 @@ class RegistryClientTests(unittest.TestCase):
             "cache_state": "stale", "stale": True,
             "url": "https://skills.sh/api/v1/skills?page=0&per_page=100&view=all-time",
         })
+
+    def test_rate_limit_closes_the_response_before_reporting_the_error(self):
+        body = io.BytesIO(b"rate limited")
+        error = HTTPError("https://skills.sh/api/search", 429, "rate limited", {"Retry-After": "3"}, body)
+
+        def opener(request, timeout):
+            raise error
+
+        client = registry.RegistryClient(self.tmp.name, opener=opener)
+        with self.assertRaisesRegex(registry.RegistryError, "HTTP 429; retry after 3s"):
+            client.search("demo")
+        self.assertTrue(body.closed)
 
     def test_cache_is_private_and_never_contains_token(self):
         self.responses.append(Response({"data": []}))

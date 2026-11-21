@@ -38,7 +38,7 @@ jobs:
           src: >-
             skillsmgr tests smoke_store.py smoke_web.py browser_harness.py
             desktop_launcher.py check_complexity.py check_docs.py check_package_data.py
-            check_design_tokens.py tools/verify_ai.py tools/ai_fidelity
+            check_design_tokens.py tools/verify_ai.py tools/verify_published.py tools/verify_upgrade.py tools/ai_fidelity tools/qa
   unit:
     name: unit (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -95,8 +95,8 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check --require-hashes -r requirements-build.txt
       - name: Build wheel and sdist once
         run: python3 -m build --no-isolation --wheel --sdist --outdir dist
-      - name: Package-data coverage on the exact release artifacts
-        run: python3 check_package_data.py --dist-dir dist
+      - name: Package data and clean recovery on both release artifacts
+        run: python3 check_package_data.py --dist-dir dist --install --require-build
       - name: AI CLI on the exact installed wheel (offline fake provider)
         run: python3 tools/verify_ai.py --artifact dist/*.whl
       - name: Upload release artifacts
@@ -105,11 +105,6 @@ jobs:
           name: dist
           path: dist/*
           if-no-files-found: error
-      - name: Store smoke on a clean install of the wheel
-        run: |
-          python3 -m venv /tmp/smoke-venv
-          /tmp/smoke-venv/bin/python -m pip install --no-index --no-deps dist/*.whl
-          SKILLS_MANAGER_DATA=$(mktemp -d) /tmp/smoke-venv/bin/python -m skillsmgr --help
 
   docs:
     name: docs consistency
@@ -159,6 +154,7 @@ jobs:
           sh install.sh --uninstall --method venv --prefix "$RUNNER_TEMP/scp-venv" --bin-dir "$RUNNER_TEMP/scp-bin"
           test ! -e "$RUNNER_TEMP/scp-venv"
           test ! -e "$RUNNER_TEMP/scp-bin/skills-mgr"
+          test ! -L "$RUNNER_TEMP/scp-bin/skills-mgr"
       - name: One-command installer, real install and uninstall (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -169,10 +165,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "installed skills-mgr exited $LASTEXITCODE" }
           ./install.ps1 -Uninstall -Method venv -Prefix $venv
           if (Test-Path $venv) { throw 'uninstall left the virtual environment behind' }
-      - name: One-command installer parses under Windows PowerShell 5.1
+      - name: One-command installer ownership under Windows PowerShell 5.1
         if: runner.os == 'Windows'
         shell: powershell
-        run: .\install.ps1 -Method venv -DryRun
+        env:
+          SKILLSMGR_TEST_POWERSHELL: powershell
+        run: python -m unittest tests.test_install_script.PowerShellInstallerRuntimeTests
 
   browser:
     name: browser smoke and frontend syntax
@@ -230,6 +228,44 @@ jobs:
           node --check skillsmgr/webui/app.js
           node --check skillsmgr/webui/domain.js
           python3 browser_harness.py
+
+  http-contracts:
+    name: HTTP regression contracts (Hurl)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 — 2026-11-07 reviewed
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 — 2026-11-07 reviewed
+        with:
+          python-version: "3.12"
+      - name: Verify Hurl and run the synthetic HTTP contracts
+        shell: bash
+        run: |
+          hurl_dir=$(mktemp -d /tmp/skillsmgr-hurl.XXXXXX)
+          trap 'rm -r -- "$hurl_dir"' EXIT
+          asset=hurl-8.1.0-x86_64-unknown-linux-gnu
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+            --connect-timeout 15 --max-time 180 --retry 2 --retry-max-time 300 \
+            --output "$hurl_dir/$asset.tar.gz" \
+            "https://github.com/Orange-OpenSource/hurl/releases/download/8.1.0/$asset.tar.gz"
+          printf '%s  %s\n' b497e7ab328100c507f1f3323ebe7cc5990d831ae4f9473b74d40b02971da4ca \
+            "$hurl_dir/$asset.tar.gz" | sha256sum --check
+          tar -xOzf "$hurl_dir/$asset.tar.gz" "$asset/bin/hurl" > "$hurl_dir/hurl"
+          chmod 0700 "$hurl_dir/hurl"
+          status=0
+          python3 tools/qa/run_http.py --hurl "$hurl_dir/hurl" --output-dir "$RUNNER_TEMP/http-qa" || status=$?
+          python3 tools/qa/summarize.py "$RUNNER_TEMP"/http-qa/http-*/junit.xml || status=1
+          exit "$status"
+      - name: Upload synthetic HTTP contract failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 — 2026-11-07 reviewed
+        with:
+          name: http-contract-failures
+          path: ${{ runner.temp }}/http-qa/http-*/junit.xml
+          if-no-files-found: ignore
+          retention-days: 7
 
   e2e:
     name: browser e2e (v2 + classic UI, headless Chrome)

@@ -691,6 +691,34 @@ sandbox.window.SkillManagerDomain.apiBlob('/api/export').then(r => console.log(J
 """
         self.assertEqual(_node(script)["filename"], "")
 
+    def test_backup_download_errors_keep_the_coded_retry_message_and_ignore_malformed_json(self):
+        script = r"""
+const fs = require('fs'), vm = require('vm');
+let broken = false;
+const sandbox = {window:{}, document:{}, setTimeout, clearTimeout, fetch: async () => ({
+  ok:false, status:409, headers:{get:()=>'application/json'},
+  json: async()=>{ if (broken) throw new SyntaxError('not JSON'); return {code:'backup_source_changed',error:'/private/path'}; },
+  blob: async()=>{ throw new Error('error response must not be read as a file'); },
+})};
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync('skillsmgr/webui/domain.js', 'utf8'), sandbox);
+const domain = sandbox.window.SkillManagerDomain;
+async function failure() {
+  try { await domain.apiBlob('/api/export'); }
+  catch (error) { return [error.message, domain.archiveDownloadError(error)]; }
+}
+(async () => {
+  const conflict = await failure();
+  broken = true;
+  console.log(JSON.stringify({conflict, malformed:await failure()}));
+})();
+"""
+        result = _node(script)
+        self.assertEqual(result["conflict"][0], "HTTP 409")
+        self.assertIn("Wait for changes to finish", result["conflict"][1])
+        self.assertNotIn("/private/path", result["conflict"][1])
+        self.assertEqual(result["malformed"], ["HTTP 409", "The backup could not be downloaded."])
+
     def test_export_uses_a_named_default_when_the_server_sends_none(self):
         script = _APP_HARNESS + r"""
 const ctx = makeContext([{name:'a', scope:'global'}]);

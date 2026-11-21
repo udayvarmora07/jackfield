@@ -9,7 +9,6 @@ skills via :meth:`Store.resync` / :meth:`Store.db_rebuild`.
 
 from __future__ import annotations
 
-import io
 import json
 import os
 import re
@@ -22,14 +21,15 @@ import time
 import zipfile
 import zlib
 import gzip
-from contextlib import closing, contextmanager
+from contextlib import closing, contextmanager, nullcontext
+from functools import partial
 from pathlib import Path
 
 from . import paths
 from . import path_safety
 from . import __version__
 from .diagnostics import diagnose as _diagnose
-from .atomic_io import atomic_write_text, mutation_lock, tree_content_hash
+from .atomic_io import atomic_write_text, mutation_lock
 from .atomic_io import move_trash_tree, stage_sibling
 from .atomic_io import register_lock_root as _register_lock_root
 from . import archive as _archive
@@ -217,39 +217,67 @@ def _sync_parent_directory(path: Path) -> None:
         os.close(directory_fd)
 
 
-def _unique_dest(directory: Path, stem: str, suffix: str) -> Path:
-    """Return an unused ``stem + suffix`` path inside *directory*."""
-    directory.mkdir(parents=True, exist_ok=True)
-    return path_safety.unique_child(directory, stem, suffix)
+def _publish_export(staged: Path, dest: Path, default_stem: str | None) -> Path:
+    """Choose the default name and publish the already-verified archive together."""
+    lock = mutation_lock(dest.parent) if default_stem is not None else nullcontext()
+    with lock:
+        if default_stem is not None:
+            serial = 1
+            while os.path.lexists(dest):
+                dest = dest.with_name(f"{default_stem}-{serial}.tar.gz")
+                serial += 1
+        os.replace(staged, dest)
+    _sync_parent_directory(dest.parent)
+    return dest
 
 
-def _explicit_export_destination(dest: str | Path) -> Path:
+def _export_location_allowed(destination: Path, data_root: Path) -> bool:
+    """Allow backups and legacy root-level archive filenames within the data root."""
+    return (
+        not destination.is_relative_to(data_root)
+        or destination.is_relative_to(data_root / "backups")
+        or (destination.parent == data_root and destination.name.lower().endswith(".tar.gz"))
+    )
+
+
+def _prepare_export_destination(store: "Store", dest: str | Path) -> tuple[Path, Path]:
     try:
         target = Path(dest).expanduser()
         if target.is_dir():
             raise StoreError("archive destination must be a file path, not a directory")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        return target
+        # Replacement acts on the named leaf, so resolve only the parent.
+        resolved = target.parent.resolve() / target.name
+        # Some installations link a managed directory to a different volume.
+        # Keep those physical paths protected even outside the data root.
+        linked_roots = (
+            store.skills_dir, store.trash_dir, store.templates_dir,
+            catalog_path(store.data_dir).parent, store.data_dir / "snapshots",
+        )
+        named_ok = _export_location_allowed(Path(os.path.abspath(target)), Path(os.path.abspath(store.data_dir)))
+        physical_ok = _export_location_allowed(resolved, store.data_dir.resolve())
+        if not named_ok or not physical_ok or any(resolved.is_relative_to(root.resolve()) for root in linked_roots):
+            raise StoreError("archive destination would overwrite managed data; choose backups/ or a path outside the data directory")
+        resolved.parent.mkdir(parents=True, exist_ok=True)
+        return target, resolved
     except (OSError, RuntimeError, ValueError):
         raise StoreError("cannot prepare archive destination; check the path and permissions") from None
 
 
-def _archive_members(root: Path) -> list[Path]:
-    """Return the *regular* files of a tree, in a stable order (STORE-9).
+def _export_result_path(requested: Path, published: Path) -> Path:
+    # Keep the caller's spelling when it still refers to the published file.
+    try:
+        if requested.name == published.name and requested.parent.resolve() == published.parent:
+            return requested
+    except (OSError, RuntimeError, ValueError):
+        pass
+    return published
 
-    Archived members must be exactly the regular single-link files whose bytes
-    :func:`atomic_io.tree_content_hash` hashes: ``tar.add`` stores a symlink as
-    a ``SYMTYPE`` member, which ``archive.validate_members`` rejects, so an
-    archive containing just one symlink used to fail import entirely -- the
-    whole backup, every skill in it, became unimportable.
-    """
-    members: list[Path] = []
-    for path in sorted(root.rglob("*")):
-        if path.is_symlink():
-            continue
-        if path.is_file():
-            members.append(path)
-    return members
+
+def _export_roots(store: "Store", full: bool) -> tuple[Path, ...]:
+    roots = (store.skills_dir,)
+    if full:
+        roots += store.trash_dir, store.templates_dir, catalog_path(store.data_dir)
+    return roots
 
 
 def _resync_row_changed(row, entry: dict) -> bool:
@@ -673,18 +701,28 @@ def _validate_full_payload(kind: str, source: Path) -> bool:
     """Return whether one preflighted full-import payload is usable."""
     if kind == "trash":
         return source.is_dir() and _trash_entry_name(source) is not None
-    if kind == "catalog":
-        if not source.is_dir():
-            return False
-        try:
-            load_catalog(source.parent)
-        except (OSError, ValueError):
-            return False
-        return True
     return source.is_file()
 
 
-def _plan_full_restore(store: "Store", tmp: Path, manifest: dict) -> list[tuple[str, str, Path, Path]]:
+def _full_catalog_entry(store: "Store", tmp: Path, *, replace: bool) -> tuple[str, str, Path, Path]:
+    source = catalog_path(tmp)
+    if not source.is_file():
+        raise StoreError("archive catalog metadata is missing or invalid")
+    try:
+        load_catalog(tmp)
+        catalog = catalog_path(store.data_dir)
+        if os.path.lexists(catalog.parent) and (catalog.parent.is_symlink() or not catalog.parent.is_dir()):
+            raise ValueError("catalog destination must be an unlinked directory")
+        dest = path_safety.contained_entry(store.data_dir, catalog.parent.name, catalog.name)
+    except (OSError, ValueError) as exc:
+        raise StoreError(f"could not prepare archive catalog: {exc}") from exc
+    _archive.check_full_destination(source, dest, replace=replace)
+    return "catalog", source.name, source, dest
+
+
+def _plan_full_restore(
+    store: "Store", tmp: Path, manifest: dict, *, replace: bool
+) -> list[tuple[str, str, Path, Path]]:
     """Validate full-archive trash/templates payloads before any mutation.
 
     Every manifest entry must resolve to a safe contained destination and to an
@@ -693,21 +731,19 @@ def _plan_full_restore(store: "Store", tmp: Path, manifest: dict) -> list[tuple[
     """
     entries: list[tuple[str, str, Path, Path]] = []
     for kind in ("trash", "templates"):
-        dest_root = store.trash_dir if kind == "trash" else store.templates_dir
+        dest_root = (store.trash_dir if kind == "trash" else store.templates_dir).resolve()
         for label in manifest.get(kind) or []:
             source = tmp / kind / label
             if not _validate_full_payload(kind, source):
                 raise StoreError(f"archive {kind} entry is missing or invalid: {label!r}")
             try:
-                dest = path_safety.contained_path(dest_root, label)
+                dest = path_safety.contained_entry_under(dest_root, label, check_name=False)
             except ValueError as exc:
                 raise StoreError(f"archive {kind} entry escapes the data directory: {label!r}") from exc
+            _archive.check_full_destination(source, dest, replace=replace)
             entries.append((kind, label, source, dest))
     if manifest.get("catalog"):
-        source = tmp / "catalog"
-        if not _validate_full_payload("catalog", source):
-            raise StoreError("archive catalog metadata is missing or invalid")
-        entries.append(("catalog", "metadata.json", source, store.data_dir / "catalog"))
+        entries.append(_full_catalog_entry(store, tmp, replace=replace))
     return entries
 
 
@@ -735,20 +771,37 @@ def _record_restored_trash(store: "Store", labels: list[str]) -> None:
         conn.close()
 
 
-def _extract_import_archive(archive: Path, dest: Path) -> None:
-    """Sniff and safely extract either supported archive format.
+def _record_imported_skill(store: "Store", name: str) -> None:
+    """Commit the skill index row and its import history in one transaction."""
+    with _driver_errors("recording imported skill"), closing(store._connect()) as conn:
+        store._upsert_row(conn, name, store._load_skill(_safe_skill_path(store.skills_dir, name)))
+        store._commit_history(conn, name, "import")
 
-    Manager sidecars are stripped from the whole extracted tree — skills and
-    trash alike — before anything reads it, so an archive cannot carry forged
-    provenance or source-lock evidence into the store (R2/S2).
-    """
+
+def _restore_full_entries(
+    store: "Store", entries: list[tuple[str, str, Path, Path]], *, replace: bool
+) -> tuple[list[str], list[str], list[str], bool]:
+    """Serialize with library and trash mutations, template creation and catalog edits."""
+    with (
+        mutation_lock(index_lock_path(store.skills_dir)),
+        mutation_lock(_trash_lock_dir(store.trash_dir)),
+        mutation_lock(store.templates_dir),
+        mutation_lock(catalog_path(store.data_dir)),
+        _driver_errors("reconciling imported trash"),
+    ):
+        return _archive.restore_full_payload(
+            entries, replace=replace, reconcile_trash=partial(_record_restored_trash, store)
+        )
+
+
+def _extract_import_archive(archive: Path, dest: Path) -> None:
+    """Sniff and safely extract either supported archive format into staging."""
     if zipfile.is_zipfile(archive):
         with zipfile.ZipFile(archive, "r") as zipped:
             members = _archive.validate_zip_members(zipped, archive.stat().st_size)
             _archive.extract_zip_members(zipped, dest, members)
     else:
         _extract_tar_archive(archive, dest)
-    _archive.strip_manager_sidecars(dest)
 
 
 def _extract_tar_archive(archive: Path, dest: Path) -> None:
@@ -2103,16 +2156,15 @@ class Store:
         # tree), so bootstrapping was pure side effect -- it created the whole
         # layout and a 32 KB index just to serve a download (docs/24 §D3-3).
         self._check_store_layout()
-        stem = "full-export" if full else "export"
+        default_stem = None
         if dest is None:
-            self.backups_dir.mkdir(parents=True, exist_ok=True)
-            dest = _unique_dest(self.backups_dir, f"{stem}-{stamp()}", ".tar.gz")
-        else:
-            # A caller-supplied destination is not in `backups/`, so this must
-            # not create `backups/` either: the web route stages a download in a
-            # private temporary directory and would otherwise leave an empty
-            # directory behind on every request (docs/24 §D3-3).
-            dest = _explicit_export_destination(dest)
+            stem = "full-export" if full else "export"
+            default_stem = f"{stem}-{stamp()}"
+            dest = self.backups_dir.resolve() / f"{default_stem}.tar.gz"
+        # An explicit destination creates only its parent. Web downloads use
+        # private staging and leave no files or directories in backups/.
+        requested, dest = _prepare_export_destination(self, dest)
+        source_revisions = _archive.export_root_revisions(_export_roots(self, full))
         entries = self._scan_dir(self.skills_dir)
         manifest = {
             "app": "skills-mgr",
@@ -2126,9 +2178,6 @@ class Store:
                     "license": e["license"],
                     "version": e["version"],
                     "category": e["category"],
-                    "content_hash": tree_content_hash(
-                        _safe_skill_path(self.skills_dir, e["name"])
-                    ),
                 }
                 for e in entries
             ],
@@ -2145,45 +2194,36 @@ class Store:
         temp_dest = Path(temp_name)
         try:
             with tarfile.open(temp_dest, "w:gz") as tar:
-                for entry in entries:
-                    source = _safe_skill_path(self.skills_dir, entry["name"])
-                    for file in _archive_members(source):
-                        tar.add(
-                            file,
-                            arcname=f"skills/{entry['name']}/{file.relative_to(source)}",
-                        )
+                writer = _archive.ExportWriter(tar)
+                for entry in manifest["skills"]:
+                    name = entry["name"]
+                    source = _safe_skill_path(self.skills_dir, name)
+                    entry["content_hash"] = writer.add_tree(f"skills/{name}", source, skill_name=name)
                 if full:
                     if self.trash_dir.is_dir():
                         for trashed in sorted(self.trash_dir.iterdir()):
                             if not trashed.is_dir() or _trash_entry_name(trashed) is None:
                                 continue
                             trash_names.append(trashed.name)
-                            for file in _archive_members(trashed):
-                                tar.add(
-                                    file,
-                                    arcname=f"trash/{trashed.name}/{file.relative_to(trashed)}",
-                                )
+                            writer.add_tree(f"trash/{trashed.name}", trashed)
                     if self.templates_dir.is_dir():
                         for template in sorted(self.templates_dir.glob("*.md")):
-                            if template.is_file():
+                            if not template.is_symlink() and template.is_file():
                                 template_names.append(template.name)
-                                tar.add(template, arcname=f"templates/{template.name}")
+                                writer.add_file(f"templates/{template.name}", template)
                     manifest["trash"] = trash_names
                     manifest["templates"] = template_names
                     manifest["catalog"] = True
-                    info = tarfile.TarInfo("catalog/metadata.json")
-                    info.size = len(catalog_payload)
-                    tar.addfile(info, io.BytesIO(catalog_payload))
+                    writer.add_bytes("catalog/metadata.json", catalog_payload)
                 payload = json.dumps(manifest, indent=2).encode("utf-8")
-                info = tarfile.TarInfo("manifest.json")
-                info.size = len(payload)
-                tar.addfile(info, io.BytesIO(payload))
-            os.replace(temp_dest, dest)
-            _sync_parent_directory(dest.parent)
+                writer.add_bytes("manifest.json", payload)
+            _archive.verify_export(temp_dest)
+            writer.verify_sources(source_revisions)
+            published = _publish_export(temp_dest, dest, default_stem)
+            return _export_result_path(requested, published)
         except BaseException:
             temp_dest.unlink(missing_ok=True)
             raise
-        return dest
 
     def backup(self, dest: str | Path | None = None, full: bool = False) -> Path:
         """Alias of :meth:`export` for backup semantics."""
@@ -2210,12 +2250,13 @@ class Store:
             manifest_path = tmp / "manifest.json"
             try:
                 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            except (OSError, ValueError) as exc:
+            except (OSError, ValueError, RecursionError) as exc:
                 raise StoreError(f"invalid archive manifest: {exc}") from exc
             skills = _archive.validate_manifest(manifest)
             if full and not manifest.get("full"):
                 raise StoreError("archive is not a full export; re-export with --full")
-            full_entries = _plan_full_restore(self, tmp, manifest) if full else []
+            _archive.sanitize_import_tree(tmp, skills)
+            full_entries = _plan_full_restore(self, tmp, manifest, replace=force) if full else []
             planned: list[tuple[str, Path, dict]] = []
             planned_names: set[str] = set()
             for entry in skills:
@@ -2265,52 +2306,32 @@ class Store:
             # All archive and content validation is complete before this first
             # destination deletion/copy, so force cannot partially apply an
             # archive that fails later preflight checks.
-            for name, source, entry in planned:
-                dest = _safe_skill_path(self.skills_dir, name)
-                if dest.exists():
-                    if not force:
-                        skipped.append(name)
-                        continue
-                stage_root = tmp / "commit-staging"
-                stage_root.mkdir(parents=True, exist_ok=True)
-                try:
-                    # The destination's per-skill lock is the same lock create/
-                    # edit/remove take.  Without it a force-import could
-                    # displace-and-replace a document while a concurrent edit()
-                    # was mid-write, silently discarding a committed edit that
-                    # still held the lock (STORE-4).
-                    committed, reason = _with_skill_lock(
-                        dest,
-                        _archive.commit_staged_skill,
-                        source,
-                        dest,
-                        stage_root,
-                        entry.get("content_hash"),
-                        upsert=self._upsert_entry,
-                    )
-                except Exception as exc:
-                    committed, reason = False, str(exc)
-                if committed:
-                    imported.append(name)
-                else:
-                    skipped.append(f"{name}: {reason}")
-            conn = self._connect()
-            try:
-                for name in imported:
-                    self._commit_history(conn, name, "import")
-            finally:
-                conn.close()
             restored_trash: list[str] = []
             restored_templates: list[str] = []
             skipped_full: list[str] = []
             restored_catalog = False
             if full:
-                catalog_existed = catalog_path(self.data_dir).is_file()
-                restored_trash, restored_templates, skipped_full = _archive.restore_full_payload(
-                    full_entries, replace=force
+                _archive.verify_full_skill_hashes(planned)
+                # A full-payload failure raises without an import result. Finish
+                # that rollback group before independently committing any skills.
+                restored_trash, restored_templates, skipped_full, restored_catalog = _restore_full_entries(
+                    self, full_entries, replace=force
                 )
-                _record_restored_trash(self, restored_trash)
-                restored_catalog = bool(manifest.get("catalog")) and (force or not catalog_existed)
+            record_import = partial(_record_imported_skill, self)
+            for name, source, entry in planned:
+                try:
+                    dest = path_safety.contained_entry(self.skills_dir, name)
+                    with _skill_and_index_locks(self.skills_dir, dest):
+                        committed, reason = _archive.commit_staged_skill(
+                            source, dest, entry.get("content_hash"),
+                            replace=force, upsert=record_import,
+                        )
+                except Exception as exc:
+                    committed, reason = False, str(exc)
+                if committed:
+                    imported.append(name)
+                else:
+                    skipped.append(f"{name}: {reason}" if reason else name)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
         result = {

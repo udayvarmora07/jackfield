@@ -552,7 +552,7 @@ stated beside the setting and in every result.
 | DELETE | `/api/catalog/profiles/<name>` | removes only the saved profile metadata |
 | POST | `/api/batch/preview` | body `{operation, targets[], options?}` → backend re-resolves exact physical targets and returns target count, plan hash, before-state evidence, and recovery/partial-failure policy |
 | POST | `/api/batch/execute` | body `{operation, targets[], options?, plan_id}` → per-target results; stale or widened plans are rejected. The plan id binds each target's `content_hash` and `disabled` state and, for `sync`, the observed destination copies, so a document rewritten, toggled or overwritten after the preview is a clean `stale` 400 (2026-11-07) |
-| GET | `/api/workspaces?project=DIR` | read-only adapter catalog, configured `managed_roots` choices and contained project-root observation; outside paths are redacted |
+| GET | `/api/workspaces?project=DIR` | read-only adapter catalog, configured `managed_roots` choices and contained project-root observation using the same agent project-root conventions as `/api/scopes`; outside paths are redacted |
 | POST | `/api/install` | Legacy body `{source, runner?, scope?, agents[], skills[], copy?, list_only?, run?}` builds/runs `skills add`; `{preview: true, trust_confirmed?, registry_hash?, description?}` returns the offline bridge plan with no request/execution. Registry body uses one of `{browse: true, page?, per_page?, view?, allow_stale?}`, `{search: QUERY, limit?, owner?, allow_stale?}`, `{curated: true, allow_stale?}`, `{fetch: true, source: ID, registry_hash?, allow_stale?, external_scan?}` for a read-only review, or `{fetch: true, review_id: ID, trust_confirmed: true}` for a no-network commit. Browse/search/curated return bounded catalog data. Fetch is global-store-only, writes a private expiring review artifact after full validation/risk evidence, and only the separate reviewed commit writes credential-free `.skillsmgr-provenance.json` and calls `Store.add`. Cache state is returned under `_registry`; stale fallback is opt-in. |
 
 When forced Sync replaces a copy whose supporting files differ, the previous
@@ -565,6 +565,9 @@ return to the folder they came from. v2 Inbox shows the affected
 scopes and paths before Sync. Its Undo restores the skill document and its
 on/off state. For the full earlier folder, move the current copy to trash
 first and restore the exact earlier entry from Recovery.
+The v2 skill reader, Sync map and Inbox describe the difference between text
+Undo and folder Recovery before Sync. The Agent trash card identifies copies
+saved by Sync alongside explicitly removed folders.
 
 ### Trash
 
@@ -634,8 +637,25 @@ the web trigger reports remain model estimates. See
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/export[?full=1]` | downloads slim or full gzip archive (attachment; global scope only) |
-| PUT | `/api/import?filename=&force=&full=` | raw tar or ZIP archive bytes → Store.import_; `full=1` restores trash/templates from a full archive |
+| PUT | `/api/import?filename=&force=&full=` | raw TAR or ZIP bytes → `Store.import_`. `full=1` restores trash, templates and catalog metadata. |
 | PUT | `/api/import` (multipart/form-data) | webkitdirectory folder upload → Store.add per SKILL.md |
+
+If the backup source changes during export, the server returns `409` with
+`backup_source_changed` and no attachment. Both Recovery pages show that the
+backup is being prepared, prevent another export while it is in progress,
+and tell the user to wait for the changes to finish before retrying. The
+retry message stays beside the download action until the next attempt.
+For `PUT /api/import?full=1`, an invalid or mismatched recorded skill checksum
+returns `400` before any skill, trash entry, template or catalog file is
+restored.
+
+Archive uploads and downloads use the Store resource limits in
+@docs/04-store-api.md. Downloads pass the TAR member and byte checks before
+the server sends an attachment.
+
+Both interfaces keep the import result visible with counts for restored
+trash and templates, catalog restoration, and the server's reasons for
+skipping entries. Failed requests stay visible beside the archive controls.
 
 A multipart upload stages every part into a private temporary tree before any
 skill is added, and it reports a name conflict as a plain `400` instead of

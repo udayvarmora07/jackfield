@@ -33,8 +33,12 @@ from pathlib import Path
 
 from . import paths
 from . import scopes
-from .loader import scan_dir
+from .documents import ACTIVE_DOCUMENT
 from .errors import StoreError
+from .file_reads import read_regular_file
+from .frontmatter import parse_frontmatter
+from .loader import required_field_gaps, scan_dir
+from .validator import validate_skill_name
 
 #: Bounds: a diagnostic must never walk an unbounded tree. ``MAX_ROOTS`` caps
 #: the nested-root search results, ``MAX_INSTANCES`` the instances read overall,
@@ -49,6 +53,7 @@ MAX_ROOTS = 32
 MAX_INSTANCES = 500
 MAX_WALK_ENTRIES = 2000
 MAX_WALK_DEPTH = 8
+MAX_STANDALONE_SKILL_BYTES = 1024 * 1024
 
 #: SEC-3: an unauthenticated HTTP caller must never be handed the user's real
 #: home directory or agent-skill inventory. Paths outside the allowlisted root
@@ -416,6 +421,7 @@ CONSUMERS: dict[str, dict] = {
         "label": "Gemini CLI",
         "source": "https://geminicli.com/docs/cli/using-agent-skills/",
         "policy": "ordered",
+        "standalone_document": True,
         "tiers": (
             {
                 "id": "workspace",
@@ -450,15 +456,16 @@ CONSUMERS: dict[str, dict] = {
         "label": "Command Code",
         "source": "https://commandcode.ai/docs/skills",
         "policy": "ordered",
+        "stop_at_skill": True,
         "tiers": (
-            {"id": "project-commandcode", "label": "Project .commandcode/", "roots": ({"rel": ".commandcode/skills"},)},
+            {"id": "project-commandcode", "label": "Project .commandcode/", "roots": ({"rel": ".commandcode/skills", "recursive": True},)},
             {
                 "id": "project-agents",
                 "label": "Project .agents/ (walked from CWD, stops at $HOME)",
                 "roots": ({"rel": ".agents/skills", "recursive": True},),
             },
-            {"id": "user-commandcode", "label": "User ~/.commandcode/", "roots": ({"scope": "commandcode"},)},
-            {"id": "user-agents", "label": "User ~/.agents/", "roots": ({"scope": "agents"},)},
+            {"id": "user-commandcode", "label": "User ~/.commandcode/", "roots": ({"scope": "commandcode", "recursive": True},)},
+            {"id": "user-agents", "label": "User ~/.agents/", "roots": ({"scope": "agents", "recursive": True},)},
             {
                 "id": "extras",
                 "label": "Extra locations (--skill flags, settings.json skills)",
@@ -636,12 +643,12 @@ def _nested_roots(project: Path | None, rel: str, budget: dict) -> list[Path]:
 
 
 def _read_root(root: Path | None, *, tier: str, recursive: bool = False,
-               scope: str | None = None) -> list[dict]:
+               scope: str | None = None, stop_at_skill: bool = False) -> list[dict]:
     """Read one root's instances through the shared loader seam."""
     if root is None or not root.is_dir():
         return []
     instances = []
-    for record in scan_dir(root, recursive=recursive):
+    for record in scan_dir(root, recursive=recursive, stop_at_skill=stop_at_skill):
         instance = dict(record)
         instance.setdefault("path", str(root / str(record.get("name", ""))))
         instance["root"] = str(root)
@@ -649,6 +656,36 @@ def _read_root(root: Path | None, *, tier: str, recursive: bool = False,
         instance["scope"] = scope
         instances.append(instance)
     return instances
+
+
+def _read_standalone_skill(root: Path, tier: str, scope: str | None, budget: dict) -> dict | None:
+    document = root / ACTIVE_DOCUMENT
+    try:
+        physical = root.resolve(strict=True)
+        allowed = budget["allowed_roots"]
+        if allowed and not _under_any(allowed, physical):
+            return None
+        raw = read_regular_file(physical / ACTIVE_DOCUMENT, MAX_STANDALONE_SKILL_BYTES, follow_symlinks=False)
+        header, _body = parse_frontmatter(raw.decode("utf-8"))
+        if required_field_gaps(header):
+            raise ValueError("missing required fields")
+        name = validate_skill_name(header["name"])
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError, RuntimeError):
+        budget["standalone_unavailable"] = True
+        return None
+    return {"name": name, "description": header["description"], "path": str(document),
+            "root": str(root), "tier": tier, "scope": scope, "read_only": True}
+
+
+def _observe_tier_root(root, tier, scope, budget, *, recursive, stop_at_skill, standalone_document):
+    records = _read_root(root, tier=tier, scope=scope, recursive=recursive, stop_at_skill=stop_at_skill)
+    if standalone_document:
+        standalone = _read_standalone_skill(root, tier, scope, budget)
+        if standalone is not None:
+            records.insert(0, standalone)
+    return records
 
 
 def _classify(instances: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -691,6 +728,7 @@ def _public_instance(instance: dict) -> dict:
         "malformed": bool(instance.get("malformed")),
         "decode_error": instance.get("decode_error"),
         "description": instance.get("description") or "",
+        "read_only": bool(instance.get("read_only")),
         "effective_state": UNRESOLVED,
     }
 
@@ -710,7 +748,8 @@ def _tier_report(tier: dict) -> dict:
     }
 
 
-def _build_tier(tier_spec: dict, project: Path | None, budget: dict) -> dict:
+def _build_tier(tier_spec: dict, project: Path | None, budget: dict, *,
+                stop_at_skill: bool = False, standalone_document: bool = False) -> dict:
     """Resolve and read one documented tier.
 
     A root whose physical identity was already read by a higher tier (or an
@@ -741,8 +780,10 @@ def _build_tier(tier_spec: dict, project: Path | None, budget: dict) -> dict:
             if remaining <= 0:
                 budget["truncated"] = True
                 break
-            found = _read_root(root, tier=tier_spec["id"], recursive=recursive,
-                               scope=root_spec.get("scope"))
+            found = _observe_tier_root(
+                root, tier_spec["id"], root_spec.get("scope"), budget,
+                recursive=recursive, stop_at_skill=stop_at_skill, standalone_document=standalone_document,
+            )
             instances.extend(found[:remaining])
             budget["instances"] += min(len(found), remaining)
     loadable, skipped = _classify(instances)
@@ -761,7 +802,9 @@ def _build_tier(tier_spec: dict, project: Path | None, budget: dict) -> dict:
 
 def _build_tiers(spec: dict, project: Path | None, budget: dict) -> list[dict]:
     """Read every documented tier in order (highest precedence first)."""
-    return [_build_tier(tier_spec, project, budget) for tier_spec in spec["tiers"]]
+    return [_build_tier(tier_spec, project, budget, stop_at_skill=spec.get("stop_at_skill", False),
+                        standalone_document=spec.get("standalone_document", False))
+            for tier_spec in spec["tiers"]]
 
 
 def _skipped_names(tiers: list[dict]) -> set[str]:
@@ -950,6 +993,20 @@ def _notes(spec: dict) -> list[str]:
     return list(value or ())
 
 
+def _scan_warnings(budget: dict) -> list[str]:
+    warnings = []
+    if budget["truncated"]:
+        warnings.append(f"read truncated at {MAX_INSTANCES} instances")
+    if budget.get("standalone_unavailable"):
+        warnings.append("a standalone Gemini SKILL.md could not be read or has unsupported frontmatter")
+    if budget.get("walk_truncated"):
+        warnings.append(
+            f"the nested-root search stopped after {MAX_WALK_ENTRIES} directory "
+            "entries or " + str(MAX_WALK_DEPTH) + " levels"
+        )
+    return warnings
+
+
 def _both_load(spec: dict, project: Path | None, budget: dict) -> dict[str, list[dict]]:
     """Collect the consumer's documented both-load instances, by skill name.
 
@@ -1088,6 +1145,7 @@ def explain(consumer: str, project: str | Path | None = None, *,
         )
 
     budget = {
+        "allowed_roots": allowed,
         "instances": 0,
         "truncated": False,
         "entries": 0,
@@ -1153,13 +1211,7 @@ def explain(consumer: str, project: str | Path | None = None, *,
                 f"tier '{tier['id']}' is documented but has no readable path in this "
                 "facade; a lower-tier winner may be provisional"
             )
-    if budget["truncated"]:
-        warnings.append(f"read truncated at {MAX_INSTANCES} instances")
-    if budget.get("walk_truncated"):
-        warnings.append(
-            f"the nested-root search stopped after {MAX_WALK_ENTRIES} directory "
-            "entries or " + str(MAX_WALK_DEPTH) + " levels"
-        )
+    warnings.extend(_scan_warnings(budget))
 
     report = _result(
         _overall(policy, skills),

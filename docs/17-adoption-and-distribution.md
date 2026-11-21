@@ -69,9 +69,10 @@ or adoption evidence or a screenshot of the previously committed build.
 
 The 2026-11-20 v2 pilot package contains seven dated screenshots from local
 checkpoint `2359e7a` with synthetic skills. Its manifest records each viewport,
-caption and checksum. The package location and coverage are recorded in
-@docs/06-progress-log.md. External-use review and consented sessions remain
-open.
+caption and checksum. The later nine-image `d2257c8` package includes Inbox
+overwrite and post-Sync Recovery. It is approved as a dated product
+illustration with its commit and viewport labels. The package locations are
+recorded in @docs/06-progress-log.md. Consented sessions remain open.
 
 ## Installation and release claims
 
@@ -88,6 +89,48 @@ Verified local distribution claims on this tree:
   replacement for the canonical CLI/UI;
 - CI and package-data checks govern artifacts; optional local artifact coverage
   remains unavailable when `python3 -m build` is not installed.
+- On Linux, the published 1.0.2 wheel upgraded to the local 1.1.0 candidate
+  with synthetic active, disabled, and trashed documents preserved. Its
+  full backup restored those documents byte-for-byte into a fresh candidate
+  data directory. The public PyPI release is still 1.0.2.
+  [Published wheel](https://pypi.org/project/skill-control-plane/1.0.2/#files)
+
+The manual **Release** workflow builds one candidate wheel and source
+distribution and verifies those exact artifacts on Linux, macOS, and Windows.
+Each runner then upgrades a disposable library from the pinned public 1.0.2
+wheel, restores its full backup, and reinstalls 1.0.2 against the original
+library. The fixture includes active, disabled and trashed skills, binary
+supporting files and a saved template. A manual run stops after verification.
+Attestation and publishing require a matching version tag and a successful
+verification matrix.
+
+Run the upgrade check locally after building the artifacts:
+
+```sh
+python -m tools.verify_upgrade --dist-dir dist
+```
+
+For an offline rehearsal, pass `--baseline-wheel PATH` with the pinned wheel
+from PyPI. The checksum requirement is the same.
+
+The POSIX one-command installer records ownership of the virtual environment
+it creates. An installation from an older version can still be upgraded or
+removed using its original `--prefix` and `--bin-dir` if its `skills-mgr`
+launcher still identifies the environment. If the installer cannot establish
+ownership, choose another prefix for a new installation.
+
+The Windows PowerShell installer also records ownership of new virtual
+environments. For an older installation, the default Windows install path
+with a Skills Manager launcher and package metadata can be upgraded or
+removed. Older unmarked custom prefixes are left in place. Use a new prefix
+to install alongside one.
+
+Before upgrading an existing installation, run
+`skills-mgr export --full --dest skills-before-upgrade.tar.gz` and keep that
+file. The export covers the manager library, trash and templates. Agent roots
+outside the manager library have their own files. To inspect the backup,
+choose a separate private directory and pass it to
+`skills-mgr --data-dir /path/to/restore-base import skills-before-upgrade.tar.gz --full`.
 
 No claim is made here about popularity, safety certification, hosted sync,
 team signing, automatic updates, download volume, retention, or human

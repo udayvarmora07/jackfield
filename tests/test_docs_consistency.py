@@ -20,6 +20,27 @@ class DocumentationConsistencyTests(unittest.TestCase):
             errors = check_docs.check_doc_links(root)
         self.assertEqual(errors, ["README.md: broken @docs/missing.md"])
 
+    def test_public_readme_rejects_relative_assets_and_checks_first_party_absolute_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "guide.md").write_text("# Install it\n", encoding="utf-8")
+            base = "https://github.com/udayvarmora07/skills-manager/blob/main/"
+            (root / "README.md").write_text(
+                '# Getting started\n[Jump](#getting-started)\n'
+                f'[Guide]({base}guide.md#install-it)\n'
+                f'[Bad anchor]({base}guide.md#missing)\n'
+                f'[Bad path]({base}missing.md)\n'
+                '[Relative guide](guide.md)\n<img src="logo.svg" alt="">\n'
+                '```md\n[Example](relative.md)\n```\n', encoding="utf-8",
+            )
+            errors = check_docs.check_public_readme_links(root)
+        self.assertEqual(errors, [
+            f"README.md: dead markdown anchor -> {base}guide.md#missing",
+            f"README.md: dead repository URL -> {base}missing.md",
+            "README.md: use an absolute URL on PyPI -> guide.md",
+            "README.md: use an absolute URL on PyPI -> logo.svg",
+        ])
+
     def _git_root(self, directory: str) -> Path:
         root = Path(directory)
         subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
@@ -83,6 +104,32 @@ class DocumentationConsistencyTests(unittest.TestCase):
                     with patcher:
                         names = [path.relative_to(root).as_posix() for path in check_docs._all_markdown(root)]
                     self.assertEqual(names, ["README.md", "docs/plan.md"])
+
+    def test_markdown_anchor_check_reads_linked_repository_targets_without_git(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "tools").mkdir()
+            (root / "tools/README.md").write_text("# Linked Tool\n", encoding="utf-8")
+            (root / "README.md").write_text(
+                "[Valid](tools/README.md#linked-tool)\n[Invalid](tools/README.md#missing)\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(check_docs.subprocess, "run", side_effect=FileNotFoundError("git")):
+                errors = check_docs.check_markdown_anchors(root)
+            self.assertEqual(errors, ["README.md: dead markdown anchor -> tools/README.md#missing"])
+
+    def test_markdown_anchor_check_does_not_follow_a_link_outside_the_repository(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
+            root = Path(directory)
+            target = Path(outside) / "outside.md"
+            target.write_text("# External heading\n", encoding="utf-8")
+            try:
+                (root / "escape.md").symlink_to(target)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks unavailable")
+            (root / "README.md").write_text("[Outside](escape.md#external-heading)\n", encoding="utf-8")
+            errors = check_docs.check_markdown_anchors(root)
+            self.assertEqual(errors, ["README.md: dead markdown anchor -> escape.md#external-heading"])
 
     def test_documented_store_symbol_must_exist(self):
         with tempfile.TemporaryDirectory() as directory:

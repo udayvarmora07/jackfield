@@ -71,6 +71,23 @@ and CLI output, checks the model-facing listing and the completed skill event,
 and prints counts plus a listing fingerprint. It retains no request bodies or
 raw CLI streams. Use the exact version because the CLI event shape may change.
 
-The stub chooses the skill for a single synthetic prompt. An attended routing
-study still needs a permitted model, a bounded provider setup and equivalent
-model-facing listings. See @docs/48-ai-http-study-2026-11-17.md.
+Rehearse the 12 saved prompts using the same isolation:
+
+```sh
+unshare --user --map-root-user --net /bin/sh -c '
+  ip link set lo up && exec python3 -m tools.ai_fidelity.opencode_probe \
+    --opencode "$1" --replay-published-study
+' probe /absolute/path/to/opencode
+```
+
+The replay verifies the saved input checksums, the exact user prompt in
+tool-capable requests, and the names and descriptions in OpenCode's
+model-facing listing against the saved simulation. Each case starts with
+a fresh home and project. Reports contain prompt hashes, scripted choices,
+the observed listing hash and counts of completed tool calls and follow-up
+requests.
+
+The stub scripts the authored outcome, including no-call cases. These
+results establish observation and listing compatibility for the fixture.
+Same-model agreement still needs an attended run with the permitted
+provider. See @docs/48-ai-http-study-2026-11-17.md.

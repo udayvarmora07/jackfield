@@ -387,7 +387,7 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         source.init_db()
         source.create("demo", "Replacement", body="new")
         archive = source.export(Path(self.tmp.name) / "failure.tar.gz")
-        with mock.patch.object(self.store, "_upsert_entry", side_effect=StoreError("index unavailable")):
+        with mock.patch.object(self.store, "_upsert_row", side_effect=StoreError("index unavailable")):
             result = self.store.import_(archive, force=True)
         self.assertEqual(result["imported"], [])
         self.assertTrue(any("index unavailable" in item for item in result["skipped"]))
@@ -441,7 +441,7 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         source.init_db()
         source.create("demo", "Replacement", body="new")
         archive = source.export(Path(self.tmp.name) / "bfail.tar.gz")
-        with mock.patch("skillsmgr.archive.shutil.move", side_effect=OSError(5, "Input/output error")):
+        with mock.patch("skillsmgr.archive.os.replace", side_effect=OSError(5, "Input/output error")):
             result = self.store.import_(archive, force=True)
         self.assertNotIn("demo", result["imported"])
         self.assertTrue(any("demo" in item for item in result["skipped"]))

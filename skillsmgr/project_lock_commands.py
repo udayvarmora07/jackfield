@@ -12,9 +12,10 @@ from pathlib import Path
 
 from . import lockfiles
 from .atomic_io import atomic_write_text
-from .file_reads import read_regular_file
+from .diagnostics import diagnose
+from .file_reads import file_revision, read_regular_file, read_regular_file_with_stat
 from .path_safety import mkdir_private, trusted_root
-from .review_artifacts import is_plan_token, issue_plan_token, matches_plan_token
+from .review_artifacts import _fsync_directory, is_plan_token, issue_plan_token, matches_plan_token
 
 
 def _has_contained_document(skill: Path) -> bool:
@@ -51,8 +52,7 @@ def verify_project_lock(project_root: str | Path) -> dict:
     )
     return result
 
-# The vendor's companion file is an exclusive create; we deliberately never
-# break stale files because another process could still own them.
+
 def _digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -187,6 +187,8 @@ def preview_project_lock_write(project_root: str | Path, names: list[str], *, lo
 
 @contextmanager
 def _vendor_mutex(path):
+    # Keep the vendor's exclusive-create contract. Age alone cannot prove
+    # another process has stopped holding the lock.
     mutex = Path(str(path) + ".lock")
     try:
         fd = os.open(mutex, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
@@ -212,7 +214,7 @@ def _vendor_mutex(path):
             pass
 
 
-def _atomic_bytes(path, content, mode, before_replace):
+def _atomic_bytes(path, content, mode, before_replace, *, record_staged=None):
     fd, name = tempfile.mkstemp(prefix=".skills-lock-", dir=path.parent)
     try:
         with os.fdopen(fd, "wb") as handle:
@@ -223,8 +225,17 @@ def _atomic_bytes(path, content, mode, before_replace):
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
+            staged = os.fstat(handle.fileno()) if record_staged is not None else None
+        if staged is not None:
+            # Windows can defer updating the write time until close.
+            written, info = read_regular_file_with_stat(Path(name), len(content), follow_symlinks=False)
+            revision = file_revision(info)
+            if revision is None or revision[:2] != [staged.st_dev, staged.st_ino] or written != content:
+                raise lockfiles.LockfileError("could not identify the staged project lock")
+            record_staged(revision)
         before_replace()
         os.replace(name, path)
+        _fsync_directory(path.parent)
     finally:
         if os.path.exists(name):
             os.unlink(name)
@@ -244,16 +255,41 @@ def _receipt_dir(data_dir):
 
 
 def _read_current(path):
+    content, _ = _read_lock_snapshot(path)
+    return content
+
+
+def _read_lock_snapshot(path):
     try:
-        return read_regular_file(path, lockfiles.MAX_LOCK_BYTES, follow_symlinks=False)
+        return read_regular_file_with_stat(path, lockfiles.MAX_LOCK_BYTES, follow_symlinks=False)
     except FileNotFoundError:
-        return None
+        return None, None
 
 
 def _new_lock_mode():
     # Windows chmod/stat exposes a writable file as 0666 regardless of the
     # group and other bits passed to chmod.
     return 0o666 if os.name == "nt" else 0o644
+
+
+def _require_write_access(path, mode):
+    # Rename checks the containing directory, so enforce the existing file's
+    # write protection separately. A new file has no existing mode to check.
+    if mode is not None and (not mode & 0o222 or not os.access(path, os.W_OK)):
+        raise lockfiles.LockfileError("project lockfile is not writable")
+
+
+def _record_lock_replacement(path, receipt, revision):
+    payload = json.dumps({**receipt, "post_file": revision}, sort_keys=True).encode("utf-8")
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    except FileExistsError as exc:
+        raise lockfiles.LockfileError("preview receipt already exists; run preview again") from exc
+    with os.fdopen(fd, "wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    _fsync_directory(path.parent)
 
 
 def apply_project_lock_write(project_root: str | Path, names: list[str], plan_hash: str, *, data_dir: str | Path, local_sources: dict[str, str] | None = None) -> dict:
@@ -269,31 +305,44 @@ def apply_project_lock_write(project_root: str | Path, names: list[str], plan_ha
             raise lockfiles.LockfileError("lockfile permissions changed after preview")
         if before == after:
             return {"project": str(project), "plan_hash": plan_hash, "changed": False}
+        _require_write_access(path, expected_mode)
         receipt = {"project": str(project), "before": None if before is None else base64.b64encode(before).decode("ascii"),
-                   "after": _digest(after), "mode": mode, "state": "prepared"}
+                   "before_hash": None if before is None else _digest(before),
+                   "after": _digest(after), "mode": mode, "state": "recorded"}
         receipt_path = _receipt_dir(data_dir) / (plan_hash + ".json")
-        receipt_bytes = json.dumps(receipt, sort_keys=True).encode("utf-8")
-        try:
-            fd = os.open(receipt_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
-        except FileExistsError as exc:
-            saved = read_regular_file(receipt_path, lockfiles.MAX_LOCK_BYTES * 2, follow_symlinks=False)
-            if saved != receipt_bytes:
-                raise lockfiles.LockfileError("preview receipt already exists with different contents") from exc
-        else:
-            with os.fdopen(fd, "wb") as handle:
-                handle.write(receipt_bytes)
-                handle.flush()
-                os.fsync(handle.fileno())
+
         def check_preimage():
             check_lock()
             if _read_current(path) != before:
                 raise lockfiles.LockfileError("lockfile changed before replacement")
             if before is not None and stat.S_IMODE(path.stat().st_mode) != mode:
                 raise lockfiles.LockfileError("lockfile permissions changed before replacement")
-        _atomic_bytes(path, after, mode, check_preimage)
-        receipt["state"] = "applied"
-        atomic_write_text(receipt_path, json.dumps(receipt, sort_keys=True))
+            _require_write_access(path, expected_mode)
+        _atomic_bytes(path, after, mode, check_preimage,
+                      record_staged=lambda revision: _record_lock_replacement(receipt_path, receipt, revision))
     return {"project": str(project), "plan_hash": plan_hash, "changed": True}
+
+
+def _read_lock_receipt(path, project):
+    try:
+        raw, info = read_regular_file_with_stat(path, lockfiles.MAX_LOCK_BYTES * 2, follow_symlinks=False)
+        if os.name == "posix" and info.st_mode & 0o077:
+            raise ValueError("project lock backup must be private")
+        receipt = json.loads(raw, object_pairs_hook=lockfiles._unique_lock_object)
+        before = None if receipt["before"] is None else base64.b64decode(receipt["before"], validate=True)
+        if type(receipt["mode"]) is not int or not 0 <= receipt["mode"] <= 0o7777:
+            raise ValueError("project lock receipt has invalid permissions")
+        if before is not None and len(before) > lockfiles.MAX_LOCK_BYTES:
+            raise ValueError("project lock preimage exceeds size limit")
+        if receipt["state"] == "recorded" and receipt["before_hash"] != (None if before is None else _digest(before)):
+            raise ValueError("project lock preimage did not match")
+    except (OSError, ValueError, RecursionError, KeyError, TypeError) as exc:
+        raise lockfiles.LockfileError("invalid or missing project lock receipt") from exc
+    if receipt.get("project") != str(project):
+        raise lockfiles.LockfileError("receipt belongs to another project")
+    if receipt.get("state") not in ("applied", "recorded"):
+        raise lockfiles.LockfileError("write was not confirmed as applied")
+    return receipt, before
 
 
 def undo_project_lock_write(project_root: str | Path, plan_hash: str, *, data_dir: str | Path) -> dict:
@@ -301,39 +350,35 @@ def undo_project_lock_write(project_root: str | Path, plan_hash: str, *, data_di
         raise lockfiles.LockfileError("invalid preview hash")
     project = Path(project_root).expanduser().resolve(strict=True)
     receipt_path = _receipt_dir(data_dir) / (plan_hash + ".json")
-    raw = read_regular_file(receipt_path, lockfiles.MAX_LOCK_BYTES * 2, follow_symlinks=False)
-    receipt = json.loads(raw.decode("utf-8"), object_pairs_hook=lockfiles._unique_lock_object)
-    if receipt.get("project") != str(project):
-        raise lockfiles.LockfileError("receipt belongs to another project")
-    if receipt.get("state") != "applied":
-        raise lockfiles.LockfileError("write was not confirmed as applied")
-    before = None if receipt["before"] is None else base64.b64decode(receipt["before"], validate=True)
+    receipt, before = _read_lock_receipt(receipt_path, project)
     mode = receipt["mode"]
     # Earlier Windows receipts recorded the requested mode for new files.
     if os.name == "nt" and before is None and mode == 0o644:
         mode = _new_lock_mode()
     path = project / lockfiles.PROJECT_LOCK_FILENAME
     with _vendor_mutex(path) as check_lock:
-        current = _read_current(path)
-        if current is None or _digest(current) != receipt["after"]:
-            raise lockfiles.LockfileError("lockfile changed after write; undo refused")
-        if stat.S_IMODE(path.stat().st_mode) != mode:
-            raise lockfiles.LockfileError("lockfile permissions changed after write; undo refused")
-        if before is None:
+        def check_postimage():
             check_lock()
-            if _read_current(path) != current:
-                raise lockfiles.LockfileError("lockfile changed before undo")
-            if stat.S_IMODE(path.stat().st_mode) != mode:
-                raise lockfiles.LockfileError("lockfile permissions changed before undo")
+            current, info = _read_lock_snapshot(path)
+            if current is None or _digest(current) != receipt.get("after"):
+                raise lockfiles.LockfileError("lockfile changed after write; undo refused")
+            if stat.S_IMODE(info.st_mode) != mode:
+                raise lockfiles.LockfileError("lockfile permissions changed after write; undo refused")
+            if receipt["state"] == "recorded":
+                revision = file_revision(info)
+                if revision is None or revision != receipt.get("post_file"):
+                    raise lockfiles.LockfileError("lockfile is a different file; undo refused")
+            _require_write_access(path, mode)
+
+        check_postimage()
+        if before is None:
             path.unlink()
+            _fsync_directory(path.parent)
         else:
-            def check_postimage():
-                check_lock()
-                if _read_current(path) != current:
-                    raise lockfiles.LockfileError("lockfile changed before undo")
-                if stat.S_IMODE(path.stat().st_mode) != mode:
-                    raise lockfiles.LockfileError("lockfile permissions changed before undo")
             _atomic_bytes(path, before, mode, check_postimage)
         receipt["state"] = "undone"
-        atomic_write_text(receipt_path, json.dumps(receipt, sort_keys=True))
+        try:
+            atomic_write_text(receipt_path, json.dumps(receipt, sort_keys=True))
+        except OSError as exc:
+            diagnose(f"project lock restored but could not update the undo receipt at {receipt_path}", exc)
     return {"project": str(project), "plan_hash": plan_hash, "restored": True}

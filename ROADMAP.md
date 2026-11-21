@@ -60,8 +60,10 @@ shipped; the remaining lines below are future or rejected directions:
 ## Release
 
 - **`v1.0.2` published on 2026-11-18.** PyPI lists both distributions with
-  provenance, and the GitHub release points to `ef9bfd6`. The next version
-  and its candidate remain open in [the task tracker](task.md).
+  provenance, and the GitHub release points to `ef9bfd6`. The working tree
+  prepares `1.1.0`, which adds the v2 default, reviewed project controls
+  and recovery improvements. Publishing still runs through the release
+  workflow after a matching version tag.
   [PyPI files and provenance](https://pypi.org/project/skill-control-plane/1.0.2/#files)
   [GitHub release](https://github.com/udayvarmora07/skills-manager/releases/tag/v1.0.2)
 

@@ -98,7 +98,7 @@ def safe_scope_skill_path(scope: "Scope", name: str) -> Path:
         # directory. Preserve the existing name-based public API by resolving
         # the first deterministic observed instance when the flat path is absent.
         resolved_base = _resolved_scope_root(scope)
-        for record in scan_dir(scope.base, recursive=True):
+        for record in _scan_agent_root(scope):
             if record.get("name") == name and record.get("path"):
                 try:
                     relative = Path(record["path"]).resolve().relative_to(resolved_base)
@@ -246,6 +246,12 @@ class Scope:
     consumer: str | None = None
 
 
+def _scan_agent_root(scope: Scope, **options) -> list[dict]:
+    if scope.consumer == "commandcode":
+        options["stop_at_skill"] = True
+    return scan_dir(scope.base, recursive=scope.recursive, **options)
+
+
 def _resolved_scope_root(scope: Scope) -> Path:
     return _root_discovery.resolved_root(scope)
 
@@ -311,11 +317,17 @@ def _cwd() -> Path:
         return paths.home_dir()
 
 
-def known_scopes() -> list[Scope]:
+def _aliases_known_scope(candidate: Path, scopes: list[Scope]) -> bool:
+    physical = candidate.resolve()
+    return any(physical == scope.base.resolve() for scope in scopes if scope.base.exists())
+
+
+def known_scopes(*, include_project_aliases: bool = False) -> list[Scope]:
     """All scopes we know about, in stable UI order.
 
     The home directory comes from ``paths.home_dir()`` so an empty ``$HOME``
-    cannot relocate every agent scope to ``/`` (SCOPE-17).
+    cannot relocate every agent scope to ``/`` (SCOPE-17). Inventory callers
+    can keep project aliases when their discovery rules also matter.
     """
     home = paths.home_dir()
     cwd = _cwd()
@@ -326,12 +338,12 @@ def known_scopes() -> list[Scope]:
         Scope("cursor", "Cursor", home / ".cursor/skills", "agent", True, recursive=True, consumer="cursor"),
         Scope("opencode", "OpenCode", home / ".config/opencode/skills", "agent", True, recursive=True, consumer="opencode"),
         Scope("gemini", "Gemini", home / ".gemini/skills", "agent", True, consumer="gemini"),
-        Scope("commandcode", "Command Code", home / ".commandcode/skills", "agent", True, consumer="commandcode"),
+        Scope("commandcode", "Command Code", home / ".commandcode/skills", "agent", True, recursive=True, consumer="commandcode"),
         Scope("agents", "Agents", home / ".agents/skills", "agent", True, recursive=True, consumer="shared-agent-skills"),
     ]
     for label, rel, recursive, consumer in _root_discovery.project_scope_specs():
         cand = cwd / rel
-        if cand.is_dir() and all(cand.resolve() != s.base.resolve() for s in scopes if s.base.exists()):
+        if cand.is_dir() and (include_project_aliases or not _aliases_known_scope(cand, scopes)):
             sid = label.lower().replace(" ", "-").replace(".", "")
             scopes.append(Scope(sid, label, cand, "project", True, recursive, True, consumer))
     return scopes
@@ -374,7 +386,7 @@ def list_scopes(
             by_scope.get(s.id, [])
             if by_scope is not None
             else (
-                scan_dir(s.base, recursive=s.recursive, link_roots=_peer_link_roots(s))
+                _scan_agent_root(s, link_roots=_peer_link_roots(s))
                 if exists
                 else []
             )
@@ -558,13 +570,17 @@ def scan_scope(scope_id: str, *, include_husks: bool = False, collector: list[di
     scope = scope_by_id(scope_id)
     if scope is None:
         raise StoreError(f"unknown scope {scope_id!r}")
+    return _scan_agent_scope(scope, include_husks=include_husks, collector=collector)
+
+
+def _scan_agent_scope(scope: Scope, *, include_husks=False, collector=None) -> list[dict]:
+    """Scan an observed agent or project descriptor with its own discovery rules."""
     # SEC-10/§D1: a flat record used to carry no path, so the loop below
     # re-derived it for every row -- re-resolving the scope base and re-running
     # the name/containment check the scan had already performed.  The scan can
     # hand over the exact entry it validated instead.
-    entries = scan_dir(
-        scope.base,
-        recursive=scope.recursive,
+    entries = _scan_agent_root(
+        scope,
         include_husks=include_husks,
         annotate_paths=True,
         link_roots=_peer_link_roots(scope),

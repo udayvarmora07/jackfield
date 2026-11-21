@@ -70,7 +70,9 @@ def create_template(
     # before the directory exists would create a lock file inside a directory
     # that does not exist yet.
     templates_dir.mkdir(parents=True, exist_ok=True)
-    with mutation_lock(path):
+    # Full imports share this directory lock so they can restore an entire
+    # template set without keeping one advisory descriptor per file open.
+    with mutation_lock(templates_dir), mutation_lock(path):
         if path.exists():
             raise FileExistsError(f"template '{name}' already exists")
         content = body if body is not None else DEFAULT_TEMPLATE.format(name=name)

@@ -98,6 +98,18 @@ class ExplainCase(unittest.TestCase):
 
 
 class TestCommandCodeSixWayOrder(ExplainCase):
+    def test_nested_scope_discovers_grouped_skills_and_stops_at_a_skill(self):
+        project = self.project_skill(".commandcode/skills/group")
+        self.project_skill(".commandcode/skills/group/deploy/references", name="example")
+        user = self.home_skill(".commandcode/skills/category")
+        self.home_skill(".agents/skills/team", name="review")
+
+        report = self.explain("commandcode")
+        self.assertEqual(self.winner_path(report), str(project.resolve()))
+        self.assertEqual([row["path"] for row in report["skills"]["deploy"]["shadowed"]],
+                         [str(user.resolve())])
+        self.assertEqual(set(report["skills"]), {"deploy", "review"})
+
     def test_project_commandcode_beats_every_lower_tier(self):
         expected = self.project_skill(".commandcode/skills", description="winner")
         self.project_skill(".agents/skills")
@@ -225,6 +237,35 @@ class TestClaudeTripleAndBothLoad(ExplainCase):
 
 
 class TestGeminiTieAndUndocumentedConsumers(ExplainCase):
+    def test_standalone_gemini_skill_uses_document_name_and_location(self):
+        target = self.project / ".gemini/skills/SKILL.md"
+        target.parent.mkdir(parents=True)
+        target.write_text(document("root-skill", "Standalone workspace skill"), encoding="utf-8")
+        self.home_skill(".agents/skills", name="root-skill")
+        self.project_skill(".gemini/skills", name="child-skill")
+        before = tree_digest(self.base)
+
+        report = self.explain("gemini")
+        self.assertEqual(set(report["skills"]), {"root-skill", "child-skill"})
+        winner = report["skills"]["root-skill"]["winner"]
+        self.assertEqual(winner["path"], str(target))
+        self.assertTrue(winner["read_only"])
+        self.assertEqual(winner["description"], "Standalone workspace skill")
+        self.assertEqual(tree_digest(self.base), before)
+
+    def test_standalone_gemini_observations_obey_managed_roots(self):
+        private = self.home / ".gemini/skills/SKILL.md"
+        private.parent.mkdir(parents=True)
+        private.write_text(document("private-standalone", "SYNTHETIC PRIVATE DESCRIPTION"), encoding="utf-8")
+        visible = self.project / ".agents/skills/SKILL.md"
+        visible.parent.mkdir(parents=True)
+        visible.write_text(document("visible-standalone", "Shared workspace skill"), encoding="utf-8")
+
+        report = self.explain("gemini", allowed_root=self.project)
+        self.assertEqual(set(report["skills"]), {"visible-standalone"})
+        self.assertNotIn("SYNTHETIC PRIVATE DESCRIPTION", json.dumps(report))
+        self.assertEqual(self.winner_path(report, "visible-standalone"), str(visible))
+
     def test_documented_workspace_tie_is_ambiguous_not_a_guess(self):
         self.project_skill(".gemini/skills", description="a")
         self.project_skill(".agents/skills", description="b")

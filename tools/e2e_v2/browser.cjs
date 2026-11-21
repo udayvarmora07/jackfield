@@ -78,6 +78,27 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Skip link keeps the current page and focuses its heading (SR-2)',async()=>{await go('skill/same-everywhere');await page.locator('a.skip').focus();await page.keyboard.press('Enter');await page.waitForTimeout(200);assert(page.url().endsWith('#/skill/same-everywhere'),page.url());assert.equal(await page.evaluate(()=>document.activeElement&&document.activeElement.id),'h1');});
   await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
+  await test('Repeated Reader Sync clicks issue one request', async () => {
+    await go('skill/majority-minor');
+    const button = page.locator('.inline-note.warn button');
+    const target = file('.codex', 'majority-minor'), before = fs.readFileSync(target);
+    let syncs = 0;
+    const observe = request => {
+      if (request.method() === 'POST' && request.url() === base + '/api/sync') ++syncs;
+    };
+    page.on('request', observe);
+    try {
+      await button.evaluate(el => { el.click(); el.click(); });
+      const undo = page.locator('.toast button').filter({hasText:'Undo'}).last();
+      await undo.waitFor();
+      await undo.click();
+      await page.locator('.toast').filter({hasText:'Undone'}).waitFor();
+      assert.equal(syncs, 1);
+      assert.deepEqual(fs.readFileSync(target), before);
+    } finally {
+      page.off('request', observe);
+    }
+  });
   await test('Inbox Sync preview follows the selected source and shows affected locations', async () => {
     await go('inbox');
     await page.locator('.qi').filter({hasText:'majority-minor'}).click();
@@ -89,6 +110,28 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.match(await page.locator('[data-primary]').innerText(), /^Sync 3 copies from Codex$/);
     assert.equal(await targets.locator('li').count(), 3);
     assert.doesNotMatch(await targets.innerText(), /Codex/);
+  });
+  await test('Inbox Sync stays clear of navigation after scrolling', async () => {
+    try {
+      for (const [width, block] of [[1280, 'start'], [390, 'end']]) {
+        await page.setViewportSize({width, height:577});
+        await go('inbox');
+        await page.locator('.qi').filter({hasText:'majority-minor'}).click();
+        const visible = await page.locator('[data-primary]').evaluate((button, block) => {
+          button.focus({preventScroll:true});
+          button.scrollIntoView({block, behavior:'instant'});
+          const rect = button.getBoundingClientRect();
+          const header = document.querySelector('.top').getBoundingClientRect();
+          const footer = document.querySelector('.bottomnav').getBoundingClientRect();
+          const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+          return document.activeElement === button && button.contains(hit) &&
+            rect.top >= header.bottom && rect.bottom <= (footer.height ? footer.top : innerHeight);
+        }, block);
+        assert(visible, `Inbox Sync is obscured at ${width}px`);
+      }
+    } finally {
+      await page.setViewportSize({width:1280, height:900});
+    }
   });
   await test('Delayed double click issues one sync and Undo restores bytes and queue',async()=>{
     await go('inbox');
@@ -221,6 +264,41 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.waitForTimeout(500);assert(fs.existsSync(f));
     assert.match((await page.locator('.toast').allInnerTexts()).join(' '),/Undo is unavailable/);
   });
+  await test('Backup conflict explains retry and leaves the full download available',async()=>{
+    await go('recovery');
+    const backup=page.getByRole('region',{name:'Backup',exact:true});
+    const full=backup.getByRole('button',{name:'Include trash and templates'});
+    const pattern=/\/api\/export\?full=1$/;
+    let release, downloads=0;
+    const pending=new Promise(resolve=>{release=resolve;});
+    const countDownload=()=>{downloads++;};
+    page.on('download',countDownload);
+    await page.route(pattern,async route=>{
+      await pending;
+      await route.fulfill({status:409,json:{code:'backup_source_changed',error:'/private/source changed'}});
+    });
+    try {
+      await full.click();
+      await backup.getByRole('status').getByText('Preparing backup…').waitFor();
+      assert(await full.isDisabled());
+      assert(await backup.getByRole('button',{name:'Download a backup'}).isDisabled());
+      release();
+      const alert=backup.getByRole('alert');
+      await alert.waitFor();
+      assert.match(await alert.innerText(),/Wait for changes to finish/);
+      assert.doesNotMatch(await alert.innerText(),/private|HTTP 409/);
+      assert.equal(downloads,0);
+      await page.unroute(pattern);
+      const success=page.waitForEvent('download');
+      await full.click();
+      assert.equal((await success).suggestedFilename(),'full-export.tar.gz');
+      await alert.waitFor({state:'detached'});
+    } finally {
+      release();
+      await page.unroute(pattern);
+      page.off('download',countDownload);
+    }
+  });
   await test('Backup download/import and invalid archive error',async()=>{
     await go('recovery');
     const download=page.waitForEvent('download');
@@ -229,12 +307,16 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert(fs.statSync(saved).size>0);
     await page.locator('#imp-file').setInputFiles(saved);
     await page.getByRole('button',{name:'Load skills',exact:true}).click();
-    await page.waitForTimeout(500);
-    assert.match((await page.locator('.toast').allInnerTexts()).join(' '),/already there and kept/);
+    const outcome=page.locator('.import-outcome');
+    await outcome.getByRole('status').waitFor();
+    assert.match(await outcome.innerText(),/0 skills imported\. \d+ skipped\./);
+    await outcome.getByText('Skipped entries',{exact:true}).click();
+    assert((await outcome.getByRole('listitem').count())>0);
     const bad=path.join(root,'bad-archive.tar.gz');fs.writeFileSync(bad,'not an archive');
     await page.locator('#imp-file').setInputFiles(bad);
-    await page.getByRole('button',{name:'Load skills',exact:true}).click();await page.waitForTimeout(500);
-    const text=(await page.locator('.toast').allInnerTexts()).join(' ');
+    await page.getByRole('button',{name:'Load skills',exact:true}).click();
+    await outcome.waitFor();
+    const text=await outcome.innerText();
     assert.match(text,/not a backup archive/);assert.doesNotMatch(text,/ReadError|Traceback|[/]tmp[/]/);
     await page.route('**/api/scopes',route=>route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({error:'Traceback /home/private/secret PermissionError'})}));
     try{await go('home');assert.doesNotMatch(await page.locator('main').innerText(),/Traceback|PermissionError|[/]home[/]private/);}finally{await page.unrouteAll({behavior:'wait'});}

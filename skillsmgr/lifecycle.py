@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .atomic_io import atomic_write_text, mutation_lock, register_lock_root
+from .diagnostics import diagnose
 from .errors import StoreError
 from .file_reads import read_regular_file
 from .path_safety import mkdir_private, trusted_root
@@ -69,9 +70,13 @@ def _load(root):
         return None, {"version": 1, "pins": {}}
     except (OSError, ValueError) as exc:
         raise StoreError("cannot read pins file safely") from exc
+    return raw, _decode_pins(raw)
+
+
+def _decode_pins(raw):
     try:
         data = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object)
-    except (UnicodeError, ValueError) as exc:
+    except (ValueError, RecursionError) as exc:
         raise StoreError("invalid pins file") from exc
     if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] != 1:
         raise StoreError("unsupported pins file")
@@ -84,7 +89,7 @@ def _load(root):
         _key(*key.split("/"))
         if not isinstance(value.get("note", ""), str):
             raise StoreError("invalid pin note")
-    return raw, data
+    return data
 
 
 def _hash(data):
@@ -144,22 +149,46 @@ def apply_pin_change(data_dir, scope, name, pinned, plan_hash, *, note=""):
             doc["pins"][key] = {"at": datetime.now(timezone.utc).isoformat(), "note": note}
         else:
             del doc["pins"][key]
+        # A repeated pin/unpin can produce the same visible set. Bind the
+        # published bytes to this specific plan before writing its receipt.
+        doc["last_pin_plan"] = plan_hash
         after = (json.dumps(doc, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8")
         if len(after) > MAX_PIN_BYTES or len(doc["pins"]) > MAX_SKILLS:
             raise StoreError("pins file exceeds size limit")
         receipt_path = _receipts(root) / (plan_hash + ".json")
         if receipt_path.exists() or receipt_path.is_symlink():
             raise StoreError("pin preview was already used")
-        receipt = {"state": "prepared", "before": None if before is None else base64.b64encode(before).decode("ascii"),
+        receipt = {"state": "recorded", "before": None if before is None else base64.b64encode(before).decode("ascii"),
+                   "before_hash": None if before is None else _hash(before),
                    "after": _hash(after), "scope": scope, "name": name}
         _write(receipt_path, json.dumps(receipt), limit=MAX_PIN_BYTES * 2)
         current, _ = _load(root)
         if current != before:
             raise StoreError("pins changed before replacement")
         _write(path, after.decode("utf-8"))
-        receipt["state"] = "applied"
-        _write(receipt_path, json.dumps(receipt), limit=MAX_PIN_BYTES * 2)
     return {"changed": True, "plan_hash": plan_hash}
+
+
+def _read_undo_receipt(path):
+    try:
+        raw = read_regular_file(path, MAX_PIN_BYTES * 2, follow_symlinks=False)
+        if os.name == "posix" and path.lstat().st_mode & 0o077:
+            raise ValueError("pin undo receipt must be private")
+        receipt = json.loads(raw, object_pairs_hook=_unique_object)
+        if receipt["state"] not in ("recorded", "applied"):
+            raise StoreError("pin change was not confirmed as applied")
+        before = None if receipt["before"] is None else base64.b64decode(receipt["before"], validate=True)
+        if receipt["state"] == "recorded":
+            before_hash = None if before is None else _hash(before)
+            if before_hash != receipt["before_hash"]:
+                raise ValueError("pin undo preimage did not match")
+        if before is not None:
+            if len(before) > MAX_PIN_BYTES:
+                raise ValueError("pin undo preimage exceeds size limit")
+            _decode_pins(before)
+    except (OSError, ValueError, RecursionError, KeyError, TypeError) as exc:
+        raise StoreError("invalid or missing pin undo receipt") from exc
+    return receipt, before
 
 
 def undo_pin_change(data_dir, plan_hash):
@@ -172,23 +201,21 @@ def undo_pin_change(data_dir, plan_hash):
         receipt_path = root / "pin-backups" / (plan_hash + ".json")
         if receipt_path.parent.is_symlink():
             raise StoreError("pin backup directory is a symlink")
-        try:
-            raw = read_regular_file(receipt_path, MAX_PIN_BYTES * 2, follow_symlinks=False)
-            receipt = json.loads(raw, object_pairs_hook=_unique_object)
-            if receipt["state"] != "applied":
-                raise StoreError("pin change was not confirmed as applied")
-            before = None if receipt["before"] is None else base64.b64decode(receipt["before"], validate=True)
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            raise StoreError("invalid or missing pin undo receipt") from exc
-        current, _ = _load(root)
+        receipt, before = _read_undo_receipt(receipt_path)
+        current, doc = _load(root)
         if current is None or _hash(current) != receipt.get("after"):
             raise StoreError("pins changed after this action; undo refused")
+        if receipt["state"] == "recorded" and doc.get("last_pin_plan") != plan_hash:
+            raise StoreError("pin change was not confirmed as applied")
         if before is None:
             path.unlink()
         else:
             _write(path, before.decode("utf-8"))
         receipt["state"] = "undone"
-        _write(receipt_path, json.dumps(receipt), limit=MAX_PIN_BYTES * 2)
+        try:
+            _write(receipt_path, json.dumps(receipt), limit=MAX_PIN_BYTES * 2)
+        except OSError as exc:
+            diagnose(f"pins restored but could not update the undo receipt at {receipt_path}", exc)
     return {"restored": True, "plan_hash": plan_hash}
 
 
@@ -196,8 +223,11 @@ def _day(value):
     try:
         if not isinstance(value, str):
             return None
-        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
-    except ValueError:
+        stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if stamp.tzinfo is not None:
+            stamp = stamp.astimezone(timezone.utc)
+        return stamp.date()
+    except (ValueError, OverflowError):
         return None
 
 
@@ -240,10 +270,43 @@ def candidate_report(skills, usage_report, *, data_dir, days=90, now=None):
         key = _key(scope, name)
         agents = sorted(usage.get(name, ()))
         edited = _day(skill.get("last_edit"))
-        active = bool(agents) or (edited is not None and cutoff <= edited <= today)
-        rows.append({"scope": scope, "name": name, "state": "in-use" if active else "unknown",
+        observations = []
+        if edited is not None and cutoff <= edited <= today:
+            observations.append("recent document modification")
+        if agents:
+            observations.append("recent cached usage for the same name")
+        rows.append({"scope": scope, "name": name, "relative_path": skill.get("relative_path"),
+                     "state": "in-use" if observations else "unknown",
                      "pinned": key in pins["pins"], "last_edit": skill.get("last_edit"),
-                     "used_by": agents, "reason": "recent activity" if active else
+                     "used_by": agents, "reason": " and ".join(observations) if observations else
                      "complete consumer, usage and edit coverage is not established"})
     return {"days": days, "cutoff": cutoff.isoformat(), "skills": rows,
             "truncated": len(selected) > MAX_SKILLS, "limit": MAX_SKILLS}
+
+
+def archive_readiness(scope_ids, usage_coverage, *, project_paths=None, observed_roots=None):
+    """Report documented consumer hints and the outstanding archive prerequisites."""
+    from .adapters import catalog
+
+    documented = {scope: [] for scope in scope_ids}
+    project_paths = project_paths or {}
+    observed_roots = observed_roots or {}
+    peers = {}
+    for scope, root in observed_roots.items():
+        peers.setdefault(root, set()).add(scope)
+    for adapter in sorted(catalog(), key=lambda adapter: adapter["id"]):
+        consumer = adapter["id"]
+        observed = usage_coverage.get(consumer)
+        status = observed.get("status") if isinstance(observed, dict) else None
+        direct = {root["scope"] for root in adapter["candidate_roots"]}
+        relative = {root["relative_path"] for root in adapter["candidate_roots"] if root["relative_path"]}
+        for scope, readers in documented.items():
+            aliases = peers.get(observed_roots.get(scope), (scope,))
+            if any(alias in direct or project_paths.get(alias) in relative for alias in aliases):
+                readers.append({"consumer": consumer, "transcript_scan": status or "no-reader"})
+    return {
+        "consumer_mapping": "partial",
+        "usage_continuity": "unverified",
+        "edit_install_continuity": "unverified",
+        "documented_scope_consumers": documented,
+    }

@@ -5,9 +5,10 @@
 #   python3 -m build --no-isolation --wheel --sdist --outdir dist
 #
 # `--no-isolation` makes `build` use exactly these pinned, hash-checked
-# packages instead of resolving a fresh backend from PyPI per run, so the
-# attested wheel/sdist bytes are reproducible. `setuptools==` here must stay
-# equal to `[build-system] requires` in pyproject.toml (a unittest pins it).
+# packages instead of resolving a fresh backend from PyPI per run. The release
+# workflow builds once and attests, verifies and publishes those exact files.
+# Separate builds can record different archive timestamps. `setuptools==` here
+# must equal `[build-system] requires` in pyproject.toml (a unittest pins it).
 # Every hash is sha256 of an official file published for that exact version.
 #
 # Bumping any version: update this file and pyproject.toml in one commit, or

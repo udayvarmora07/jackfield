@@ -58,8 +58,10 @@ was added.
   `plugin:` prefix) or are dropped.
 - **Evidence events** (structured fields only, never free text): Claude
   `tool_use` named `Skill` (`input.skill`); Command Code `tool_use`
-  `activate_skill` (`input.name`); OpenCode `part` rows with
-  `tool:"skill"` read from its SQLite file opened read-only; Gemini
+  `activate_skill` (`input.name`); OpenCode legacy `part` rows with
+  `tool:"skill"`, 2.3.2 assistant messages containing completed skill calls,
+  and 2.3.2 top-level skill activations read from a checkpointed SQLite file
+  opened read-only; Gemini
   `activate_skill` tool calls; Codex `<skill><name>` fragments (explicit)
   and `SKILL.md` reads under a known root (inferred). Listings,
   re-injected `invoked_skills`, mentions and duplicate call ids never count.
@@ -68,7 +70,52 @@ was added.
   never an error. Each report lists parser coverage per agent.
 - **Cache**: `<data>/usage/counts.json` with per-day buckets kept 400 days
   and bounded scan watermarks for incremental rescans. Cached reports read
-  aggregates only. `usage disable --purge` removes the private usage directory.
+  aggregates only. They accept legacy integer counts and the current explicit
+  and inferred counts on canonical UTC dates. A damaged scan summary is marked
+  `cache-invalid` for that agent while valid counts remain visible. Reported
+  scan summaries include only documented fields and leave the coverage window
+  unset. Reports include dates within the selected UTC window
+  through today. JSONL scans save progress through complete records that
+  fit the byte and time budgets. If a refresh stops partway through a file
+  or line, the next refresh can resume from the saved offset, provided the
+  file still has the saved prefix. The 32 MiB per-file limit applies to
+  each JSONL refresh, so long sessions can be read in successive passes.
+  A refresh scans each selected agent once, including repeated selections.
+  Directory discovery and transcript reads share the deadline. Directories
+  count toward a separate metadata limit. A capped refresh saves a numeric
+  position in the file walk and can continue with later transcripts. The
+  position wraps at the end or when it can no longer be reached. Resumed
+  walks show partial coverage and the cache bounds per-agent file marks.
+  Multi-agent refreshes rotate their starting agent when they exhaust the
+  shared budget. A deferred source keeps its saved file position.
+  A skipped oversized record is discarded through its newline even across
+  several passes. A skipped malformed or oversized record keeps coverage
+  partial across appends. Gemini's whole-document JSON still has a file-size
+  limit. OpenCode scans checkpointed data
+  again with call-ID deduplication so a tool that completes in an existing
+  row can count. The current-format table is read first, and each table is
+  read in descending SQLite row ID order so long histories leave room for
+  new rows. A timed-out scan keeps events already extracted from a stable
+  snapshot and reports partial coverage. A write-ahead log
+  with frames yields partial coverage. `usage disable --purge` removes the
+  private usage directory.
+- **OpenCode database selection.** An absolute `XDG_DATA_HOME` replaces
+  the default data base, and `OPENCODE_DB` can select a filename under its
+  OpenCode folder or an absolute path. In-memory or ambiguous relative-base
+  configurations provide no scan source. When the configured database
+  changes, the CLI requires fresh consent for that path. A cache read
+  suppresses counts when it observes a change in the consent root or a
+  mismatch with the cache's root binding. A refresh through a currently
+  consented root rebuilds mismatched evidence.
+  [OpenCode XDG roots](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/util/src/global-roots.ts)
+  [OpenCode database selection](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/cli/src/database-path.ts)
+
+The 2.3.2 database shape was observed using the isolated probe in
+@docs/48-ai-http-study-2026-11-17.md. The tool went through a checkpointed
+assistant message with `state.status` of `completed` and `state.input.id`.
+The reader counted it on two refreshes without changing the database.
+[OpenCode session schema](https://github.com/anomalyco/opencode/blob/dev/packages/core/schema.json)
+[SQLite URI parameters](https://www.sqlite.org/uri.html)
 
 **[NOTE]** Formats are undocumented vendor internals and will drift; counts
 join to library skills by name, so they are approximate across scopes.
@@ -91,6 +138,34 @@ last `N` UTC dates including today. A modification time covers one file and
 can be preserved by a copy, so it cannot establish install age, the age of
 supporting files, or an uninterrupted edit history.
 
+The JSON `inventory` distinguishes sampled roots (`scanned`), missing roots,
+incomplete observations (`partial`), physical roots already represented by
+another scope (`shared-root`), and scopes omitted by the row limit
+(`not-scanned`). Scan diagnostics contain fixed descriptions of the failure.
+Shared physical roots only reuse an equivalent completed scan. A flat root
+and a grouped or recursive root are scanned separately even if they resolve
+to the same directory. Project-root aliases participate in this inventory.
+The rows include `relative_path` where the folder can be attributed to the
+scope root. Skipped documents with unaddressable names make inventory partial.
+`used_by` and its explanation identify cached matches by name. A name match
+leaves the exact originating copy unknown.
+
+The preview's `archive_readiness` reports documented readers for each
+selected managed scope by matching scope IDs and known project-relative root
+conventions in the consumer catalog. This is a partial configuration hint.
+Readers are combined for selected scopes observed at the same physical root.
+The resulting hints apply to the root. Individual readers may discover
+different copies under their own discovery rules.
+Project roots beyond the working directory, aliases, explicit registrations and
+additional agent installations can change which consumer sees a physical
+copy. The last transcript scan status describes one scan. It establishes
+neither continuous coverage nor that a name match came from the selected
+copy. Gemini CLI documents session cleanup, and OpenCode describes its live
+event stream as volatile across disconnects. Any lookback over such signals
+needs independent evidence that observation was continuous.
+[Gemini session retention](https://geminicli.com/docs/cli/session-management/#session-retention)
+[OpenCode event stream](https://opencode.ai/docs/api#event)
+
 **[SPEC]** Future eligibility and moves:
 - `state` is **`unknown | in-use | stale-candidate`**, never a boolean.
   Stale-candidate needs all of: usage consent, a parser and a coverage
@@ -103,6 +178,12 @@ supporting files, or an uninterrupted edit history.
   `atomic_io.move_trash_tree` (EXDEV-safe) and verify `tree_content_hash`
   before and after. Restore refuses an occupied destination or a changed hash.
 - **Pins** live in `<data>/pins.json`, never inside the skill tree.
+  A pin or unpin saves its private undo receipt before replacing the file.
+  The updated file includes the unique preview ID. Undo verifies that ID
+  and the resulting bytes, so an interruption after the replacement leaves
+  a usable receipt. An interruption before replacement leaves the original
+  pin state in place. Earlier confirmed receipts still work by matching the
+  saved post-write hash.
 - Archiving is never automatic. `archive candidates` is the dry run;
   `archive apply` needs the plan hash from it.
 
@@ -117,8 +198,18 @@ delegated to the existing `install --runner`. The reader accepts v1 and
 v2. Writing v1 requires prior vendor migration because the legacy hash uses
 ICU ordering. The preview shows selected managed fields and avoids unrelated lockfile
 data. A v2 write keeps an undo receipt in the private manager data
-directory. Verification compares installed document trees offline. It does
+directory before publishing the staged lock. New receipts record the
+replacement file's identity, exact bytes and permissions. A replacement that
+completed before an interruption can be undone. Undo refuses a different file
+even when its contents match. A failed attempt with a saved receipt
+also requires a fresh preview before retrying. Verification compares
+installed document trees offline. It does
 not establish remote provenance. [Vercel lock source](https://github.com/vercel-labs/skills/blob/main/src/local-lock.ts).
+
+Apply and undo honor the write protection on an existing lockfile, including
+on systems where the containing directory would allow an atomic replacement.
+The CLI leaves a busy companion lock in place because its age alone cannot
+establish whether another process still holds it.
 
 ## 4. Native per-project profiles
 

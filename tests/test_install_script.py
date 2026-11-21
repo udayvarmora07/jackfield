@@ -20,10 +20,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 INSTALL_SH = ROOT / "install.sh"
 INSTALL_PS1 = ROOT / "install.ps1"
+POWERSHELL = shutil.which(os.environ.get("SKILLSMGR_TEST_POWERSHELL", "pwsh"))
 
 # The only host programs install.sh may rely on besides the fakes.
 HOST_TOOLS = (
-    "sh", "sed", "dirname", "mkdir", "ln", "readlink", "grep", "id", "rm", "cat",
+    "sh", "sed", "dirname", "mkdir", "rmdir", "ln", "readlink", "grep", "id", "rm", "cat", "cmp",
 )
 # Needed by the fakes below, not by install.sh.
 FAKE_TOOLS = ("chmod",)
@@ -45,10 +46,11 @@ exit 0
 """
 
 # A python3 that is "3.12": answers the version probe, creates a fake venv
-# whose pip records its arguments and drops a working skills-mgr script.
+# whose pip records its arguments, and publishes a launcher without replacing it.
 FAKE_PYTHON = """#!/bin/sh
 case "$1" in
     -c) exit 0 ;;
+    -I) ln -s "$4" "$5"; exit $? ;;
     -m)
         if [ "$2" = venv ]; then
             mkdir -p "$3/bin"
@@ -56,6 +58,7 @@ case "$1" in
             cat > "$3/bin/python" <<'PY'
 #!/bin/sh
 printf 'pip %s\\n' "$*" >> "$FAKE_LOG"
+case "$*" in *failed-install*) exit 23 ;; esac
 dir=$(dirname "$0")
 printf '#!/bin/sh\\necho "skills-mgr 9.9.9"\\n' > "$dir/skills-mgr"
 chmod +x "$dir/skills-mgr"
@@ -216,6 +219,30 @@ class InstallShTests(unittest.TestCase):
         proc = self.run_sh(expect=1)
         self.assertIn("is not a link", proc.stderr)
         self.assertEqual((bindir / "skills-mgr").read_text(encoding="utf-8"), "someone else's")
+        self.assertEqual(self.calls(), [])
+
+    def test_install_preserves_a_foreign_symlink_even_when_dangling(self):
+        self.add_fake("python3", FAKE_PYTHON)
+        bindir = self.home / ".local/bin"
+        bindir.mkdir(parents=True)
+        link = bindir / "skills-mgr"
+        link.symlink_to(self.tmp / "another-tool")
+        proc = self.run_sh(expect=1)
+        self.assertIn("points to a different installation", proc.stderr)
+        self.assertEqual(os.readlink(link), str(self.tmp / "another-tool"))
+        self.assertEqual(self.calls(), [])
+
+    def test_install_and_uninstall_leave_an_unowned_virtualenv_alone(self):
+        self.add_fake("python3", FAKE_PYTHON)
+        prefix = self.tmp / "unrelated"
+        prefix.mkdir()
+        (prefix / "pyvenv.cfg").write_text("home = unrelated\n", encoding="utf-8")
+        (prefix / "keep.txt").write_text("keep me", encoding="utf-8")
+        args = ("--method", "venv", "--prefix", str(prefix))
+        self.assertIn("does not belong to Skills Manager", self.run_sh(*args, expect=1).stderr)
+        self.assertIn("leaving", self.run_sh(*args, "--uninstall").stdout)
+        self.assertEqual(sorted(p.name for p in prefix.iterdir()), ["keep.txt", "pyvenv.cfg"])
+        self.assertEqual(self.calls(), [])
 
     # --- uninstall --------------------------------------------------------
 
@@ -228,8 +255,64 @@ class InstallShTests(unittest.TestCase):
         out = self.run_sh("--uninstall").stdout
         self.assertIn("removed", out)
         self.assertFalse((self.home / ".local/share/skill-control-plane/venv").exists())
-        self.assertFalse((self.home / ".local/bin/skills-mgr").exists())
+        self.assertFalse(os.path.lexists(self.home / ".local/bin/skills-mgr"))
         self.assertTrue((data / "SKILL.md").exists())
+
+    def test_legacy_virtualenv_with_its_launcher_can_still_be_upgraded_and_removed(self):
+        self.add_fake("python3", FAKE_PYTHON)
+        prefix = self.home / ".local/share/skill-control-plane/venv"
+        link = self.home / ".local/bin/skills-mgr"
+        self.run_sh()
+        (prefix / ".skills-manager-install").unlink(missing_ok=True)
+        self.run_sh()
+        self.assertTrue((prefix / ".skills-manager-install").is_file())
+        (prefix / ".skills-manager-install").unlink()
+        self.run_sh("--uninstall")
+        self.assertFalse(prefix.exists())
+        self.assertFalse(os.path.lexists(link))
+
+    def test_marked_virtualenv_can_be_uninstalled_if_the_launcher_went_missing(self):
+        self.add_fake("python3", FAKE_PYTHON)
+        self.run_sh()
+        prefix = self.home / ".local/share/skill-control-plane/venv"
+        (self.home / ".local/bin/skills-mgr").unlink()
+        self.run_sh("--uninstall")
+        self.assertFalse(prefix.exists())
+
+    def test_failed_dependency_install_can_be_retried_in_the_owned_prefix(self):
+        self.add_fake("python3", FAKE_PYTHON)
+        prefix = self.home / ".local/share/skill-control-plane/venv"
+        launcher = self.home / ".local/bin/skills-mgr"
+        self.run_sh("--from", "failed-install", expect=23)
+        self.assertTrue((prefix / ".skills-manager-install").is_file())
+        self.assertFalse(os.path.lexists(launcher))
+        self.assertFalse(prefix.with_name("venv.skills-manager-lock").exists())
+        self.run_sh()
+        self.assertTrue(launcher.is_symlink())
+
+    def test_locked_virtualenv_refuses_a_second_install_or_uninstall(self):
+        self.add_fake("python3", FAKE_PYTHON)
+        self.run_sh()
+        prefix = self.home / ".local/share/skill-control-plane/venv"
+        prefix.with_name("venv.skills-manager-lock").mkdir()
+        previous = self.calls()
+        for args in ((), ("--uninstall",)):
+            with self.subTest(args=args):
+                self.assertIn("could not lock", self.run_sh(*args, expect=1).stderr)
+        self.assertTrue((prefix / ".skills-manager-install").is_file())
+        self.assertEqual(self.calls(), previous)
+
+    def test_linked_prefix_is_also_refused_with_a_trailing_slash(self):
+        self.add_fake("python3", FAKE_PYTHON)
+        self.run_sh()
+        real = self.home / ".local/share/skill-control-plane/venv"
+        alias = self.tmp / "alias"
+        alias.symlink_to(real, target_is_directory=True)
+        prefix = ("--method", "venv", "--prefix", str(alias) + "/")
+        self.assertIn("is a link", self.run_sh(*prefix, expect=1).stderr)
+        self.assertIn("leaving", self.run_sh(*prefix, "--uninstall").stdout)
+        self.assertTrue(real.exists())
+        self.assertTrue(alias.is_symlink())
 
     def test_uninstall_leaves_a_foreign_link_alone(self):
         bindir = self.home / ".local/bin"
@@ -287,17 +370,106 @@ class InstallPs1Tests(unittest.TestCase):
         self.assertNotIn("$PROFILE", text)
         self.assertNotIn("Invoke-Expression", text)
 
-    @unittest.skipUnless(shutil.which("pwsh"), "pwsh not installed")
+
+@unittest.skipUnless(POWERSHELL, "PowerShell not installed")
+class PowerShellInstallerRuntimeTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.local_app_data = self.root / "fixture [parent]"
+        self.prefix = self.local_app_data / "skill-control-plane" / "venv"
+
+    def run_ps(self, *args, expect=0):
+        proc = subprocess.run(
+            [POWERSHELL, "-NoProfile", "-File", str(INSTALL_PS1), "-Method", "venv", *map(str, args)],
+            env=dict(os.environ, LOCALAPPDATA=str(self.local_app_data), SKILLS_MGR_INSTALL_PREFIX=""),
+            capture_output=True, text=True, timeout=120,
+        )
+        self.assertEqual(proc.returncode, expect, proc.stdout + proc.stderr)
+        return proc
+
     def test_powershell_dry_run(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            proc = subprocess.run(
-                ["pwsh", "-NoProfile", "-File", str(INSTALL_PS1), "-Method", "venv",
-                 "-Prefix", str(Path(tmp) / "env"), "-DryRun"],
-                capture_output=True, text=True, timeout=120,
-            )
-            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-            self.assertIn("dry run: nothing was changed", proc.stdout)
-            self.assertFalse((Path(tmp) / "env").exists())
+        proc = self.run_ps("-DryRun")
+        self.assertIn("dry run: nothing was changed", proc.stdout)
+        self.assertFalse(self.local_app_data.exists())
+
+    def test_unrelated_environment_entirely_preserved_on_install_and_uninstall(self):
+        self.prefix.mkdir(parents=True)
+        (self.prefix / "pyvenv.cfg").write_text("home = unrelated\n", encoding="utf-8")
+        (self.prefix / "keep.txt").write_text("keep me", encoding="utf-8")
+        self.assertIn("does not belong to Skills Manager", self.run_ps(expect=1).stderr)
+        self.assertIn("leaving", self.run_ps("-Uninstall").stdout)
+        self.assertEqual(sorted(path.name for path in self.prefix.iterdir()), ["keep.txt", "pyvenv.cfg"])
+
+    def test_marked_partial_environment_can_be_removed_with_literal_paths(self):
+        prefix = self.root / "venv [test]"
+        prefix.mkdir()
+        (prefix / ".skills-manager-install").write_bytes(b"skill-control-plane venv 1\n")
+        (prefix / "partial-file").touch()
+        neighbor = self.root / "venv t"
+        neighbor.mkdir()
+        result = self.run_ps("-Prefix", prefix, "-Uninstall", "-DryRun")
+        self.assertIn("dry run: nothing was changed", result.stdout)
+        self.assertTrue(prefix.is_dir())
+        self.run_ps("-Prefix", prefix, "-Uninstall")
+        self.assertFalse(prefix.exists())
+        self.assertTrue(neighbor.is_dir())
+
+    def test_shell_removes_old_dedicated_environment_with_product_metadata(self):
+        scripts = self.prefix / "Scripts"
+        scripts.mkdir(parents=True)
+        (scripts / "skills-mgr.exe").touch()
+        (self.prefix / "pyvenv.cfg").write_text("home = legacy\n", encoding="utf-8")
+        dist = self.prefix / "Lib/site-packages/skill_control_plane-1.0.2.dist-info"
+        dist.mkdir(parents=True)
+        metadata = dist / "METADATA"
+        metadata.write_text("Name: different-project\n\nName: skill-control-plane\n", encoding="utf-8")
+        self.assertIn("leaving", self.run_ps("-Uninstall").stdout)
+        self.assertTrue(self.prefix.exists())
+        metadata.write_text("Name: skill-control-plane\n", encoding="utf-8")
+        self.assertIn("removed", self.run_ps("-Uninstall").stdout)
+        self.assertFalse(self.prefix.exists())
+
+    def test_old_custom_environment_with_product_metadata_is_preserved(self):
+        custom = self.prefix.with_name("custom")
+        scripts = custom / "Scripts"
+        scripts.mkdir(parents=True)
+        (scripts / "skills-mgr.exe").touch()
+        (custom / "pyvenv.cfg").touch()
+        metadata = custom / "Lib/site-packages/skill_control_plane-1.0.2.dist-info/METADATA"
+        metadata.parent.mkdir(parents=True)
+        metadata.write_text("Name: skill-control-plane\n", encoding="utf-8")
+        self.assertIn("leaving", self.run_ps("-Prefix", custom, "-Uninstall").stdout)
+        self.assertTrue(metadata.is_file())
+
+    def test_linked_venv_prefix_is_never_removed(self):
+        self.prefix.parent.mkdir(parents=True)
+        target = self.root / "other-env"
+        target.mkdir()
+        (target / ".skills-manager-install").write_bytes(b"skill-control-plane venv 1\n")
+        try:
+            self.prefix.symlink_to(target, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("directory symlinks unavailable")
+        self.assertIn("leaving", self.run_ps("-Uninstall").stdout)
+        self.assertIn("not an ordinary directory", self.run_ps(expect=1).stderr)
+        self.assertTrue(self.prefix.is_symlink())
+        self.assertTrue((target / ".skills-manager-install").is_file())
+
+    def test_removing_owned_environment_does_not_remove_link_targets(self):
+        self.prefix.mkdir(parents=True)
+        (self.prefix / ".skills-manager-install").write_bytes(b"skill-control-plane venv 1\n")
+        target = self.root / "external"
+        target.mkdir()
+        (target / "keep.txt").write_bytes(b"keep")
+        try:
+            (self.prefix / "linked-data").symlink_to(target, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("directory symlinks unavailable")
+        self.run_ps("-Uninstall")
+        self.assertFalse(self.prefix.exists())
+        self.assertEqual((target / "keep.txt").read_bytes(), b"keep")
 
 
 if __name__ == "__main__":

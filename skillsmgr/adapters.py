@@ -6,6 +6,7 @@ from pathlib import Path
 
 from . import effective
 from .errors import StoreError
+from .root_discovery import project_scope_specs
 
 VERIFIED_ON = "2026-09-09"
 _RELOAD = {
@@ -93,9 +94,10 @@ def project_observation(project: str | Path | None, allowed_roots: list[Path] | 
     if not resolved.is_dir():
         return {"status": "missing", "path": str(resolved), "skills_roots": []}
     candidates = []
-    for rel in (".claude/skills", ".cursor/skills", ".gemini/skills", ".opencode/skills", ".commandcode/skills", ".agents/skills"):
-        root = resolved / rel
-        candidates.append({"path": str(root), "exists": root.is_dir(), "relative": rel})
+    for _, rel, _, consumer in project_scope_specs():
+        if consumer is not None:
+            root = resolved / rel
+            candidates.append({"path": str(root), "exists": root.is_dir(), "relative": rel})
     return {"status": "accepted", "path": str(resolved), "skills_roots": candidates, "paths_redacted": False}
 
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from .cli_output import print_json, sanitize_text
 from .clock import iso
 from .documents import ACTIVE_DOCUMENT, DISABLED_DOCUMENT
+from .errors import StoreError
 
 
 def _preview_output(result, *, json_output):
@@ -167,7 +168,7 @@ def _candidate_mtime(record):
     return None
 
 
-def _candidate_rows(records):
+def _candidate_rows(records, physical_root, named_root):
     from .validator import validate_skill_name
 
     for record in records:
@@ -175,31 +176,155 @@ def _candidate_rows(records):
             validate_skill_name(record["name"])
         except ValueError:
             continue
-        yield {"scope": record["scope"], "name": record["name"], "last_edit": _candidate_mtime(record)}
+        # The peer-link record's provenance names the target. Keep the named
+        # entry in this scope, as we do for in-scope links and ordinary skills.
+        entry = record.get("path") if record.get("read_only") else record["provenance"]["path"]
+        path = Path(entry) if entry else None
+        relative = None
+        if path is not None:
+            for root in (physical_root, named_root):
+                if path.is_relative_to(root):
+                    relative = path.relative_to(root).as_posix()
+                    break
+        yield {"scope": record["scope"], "name": record["name"], "relative_path": relative,
+               "last_edit": _candidate_mtime(record)}
+
+
+def _note_standalone_document(descriptor, diagnostics):
+    if descriptor.consumer not in ("gemini", "shared-agent-skills"):
+        return
+    try:
+        (descriptor.base / ACTIVE_DOCUMENT).lstat()
+    except FileNotFoundError:
+        return
+    except OSError:
+        reason = "standalone Gemini SKILL.md could not be inspected"
+    else:
+        reason = "standalone Gemini SKILL.md is outside the managed skill inventory"
+    diagnostics.append({"section": "scope-scan", "reason": reason})
+
+
+def _scan_root_key(descriptor, physical_root):
+    # The global scan has no peer-link allowances. Command Code stops its
+    # recursive scan at a skill folder, whereas other recursive scans descend.
+    return (physical_root, descriptor.id == "global", descriptor.recursive,
+            descriptor.consumer == "commandcode")
+
+
+def _root_fingerprint(info):
+    return info.st_dev, info.st_ino, info.st_mtime_ns
+
+
+def _root_still_matches(base, physical_root, fingerprint):
+    try:
+        return base.resolve(strict=True) == physical_root and _root_fingerprint(base.stat()) == fingerprint
+    except (OSError, RuntimeError):
+        return False
+
+
+def _candidate_inventory(descriptors, inventory, observed_roots, scan_scope):
+    completed_scans = {}
+    for descriptor in descriptors:
+        evidence = inventory[descriptor.id]
+        diagnostics = evidence["diagnostics"]
+        try:
+            before = descriptor.base.stat()
+            if not stat.S_ISDIR(before.st_mode):
+                diagnostics.append({"section": "scope-scan", "reason": "scope root is not a directory"})
+                evidence["status"] = "partial"
+                continue
+            physical_root = descriptor.base.resolve(strict=True)
+        except FileNotFoundError:
+            evidence["status"] = "missing"
+            continue
+        except (OSError, RuntimeError):
+            diagnostics.append({"section": "scope-scan", "reason": "scope root could not be inspected"})
+            evidence["status"] = "partial"
+            continue
+        _note_standalone_document(descriptor, diagnostics)
+        key = _scan_root_key(descriptor, physical_root)
+        fingerprint = _root_fingerprint(before)
+        previous = completed_scans.get(key)
+        if previous is not None and previous[1] == fingerprint and _root_still_matches(descriptor.base, physical_root, fingerprint):
+            observed_roots[descriptor.id] = physical_root
+            evidence.update(status="partial" if diagnostics else "shared-root", canonical_scope=previous[0])
+            continue
+        try:
+            records = scan_scope(descriptor, collector=diagnostics)
+        except (OSError, RuntimeError, StoreError):
+            diagnostics.append({"section": "scope-scan", "reason": "scope scan failed"})
+            evidence["status"] = "partial"
+            continue
+        if _root_still_matches(descriptor.base, physical_root, fingerprint):
+            observed_roots[descriptor.id] = physical_root
+        else:
+            diagnostics.append({"section": "scope-scan", "reason": "scope root changed during scan"})
+        if any(record.get("addressable") is False and not record.get("document_missing") for record in records):
+            diagnostics.append({"section": "scope-scan", "reason": "one or more skill names are outside the managed inventory"})
+        evidence["status"] = "partial" if diagnostics else "scanned"
+        if evidence["status"] == "scanned":
+            completed_scans[key] = (descriptor.id, fingerprint)
+        yield from _candidate_rows(records, physical_root, descriptor.base)
+
+
+def _scan_candidate_scope(descriptor, *, collector):
+    from . import scopes
+
+    if descriptor.id == "global":
+        return scopes.scan_scope("global", collector=collector)
+    return scopes._scan_agent_scope(descriptor, collector=collector)
 
 
 def _candidates(args, store):
     from . import lifecycle, scopes, usage
 
     usage_report = usage.report(store.data_dir, days=args.days)
-    selected = scopes._merged_scope_ids() if args.scope == "all" else [args.scope]
-    records = (record for scope in selected for record in scopes.scan_scope(scope, collector=[]))
+    descriptors = [scope for scope in scopes.known_scopes(include_project_aliases=True)
+                   if args.scope in ("all", scope.id)]
+    if not descriptors:
+        raise StoreError(f"unknown scope {args.scope!r}")
+    inventory = {scope.id: {"status": "not-scanned", "diagnostics": []} for scope in descriptors}
+    observed_roots = {}
+    workspace = scopes._cwd()
+    project_paths = {scope.id: scope.base.relative_to(workspace).as_posix() for scope in descriptors
+                     if scope.kind == "project" and scope.base.is_relative_to(workspace)}
     result = lifecycle.candidate_report(
-        _candidate_rows(records), usage_report, data_dir=store.data_dir, days=args.days,
+        _candidate_inventory(descriptors, inventory, observed_roots, _scan_candidate_scope), usage_report,
+        data_dir=store.data_dir, days=args.days,
     )
+    readiness = lifecycle.archive_readiness(inventory, usage_report["coverage"],
+                                            project_paths=project_paths, observed_roots=observed_roots)
     if args.json:
+        result["archive_readiness"] = readiness
+        result["inventory"] = inventory
         print_json(result)
         return
     for row in result["skills"]:
         parts = [sanitize_text(row["scope"]), sanitize_text(row["name"]), row["state"]]
+        if row["relative_path"] and row["relative_path"] != row["name"]:
+            parts.append("folder " + sanitize_text(row["relative_path"]))
         if row["pinned"]:
             parts.append("(pinned)")
         if row["last_edit"]:
             parts.append(f'document modified {row["last_edit"]}')
+        if row["used_by"]:
+            parts.append("same-name usage from " + sanitize_text(", ".join(row["used_by"])))
         print(*parts)
     if result["truncated"]:
         print(f'Showing the first {result["limit"]} skills.')
-    print("Archive eligibility requires complete coverage. Current reports show partial evidence.")
+    for scope, evidence in inventory.items():
+        if evidence["status"] != "scanned":
+            description = evidence["status"]
+            if "canonical_scope" in evidence:
+                description += " with " + evidence["canonical_scope"]
+            print(sanitize_text(scope), "inventory", sanitize_text(description))
+        for diagnostic in evidence["diagnostics"]:
+            print(" ", sanitize_text(diagnostic["reason"]))
+    for scope, consumers in readiness["documented_scope_consumers"].items():
+        if consumers:
+            scans = ", ".join(f'{row["consumer"]} ({row["transcript_scan"]})' for row in consumers)
+            print(f"{sanitize_text(scope)} documented readers {sanitize_text(scans)}")
+    print("Archive eligibility requires a complete consumer map and continuous usage, edit and install evidence.")
 
 
 def _pin(args, store):

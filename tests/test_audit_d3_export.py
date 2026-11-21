@@ -22,8 +22,11 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
+import json
 from pathlib import Path
+from unittest import mock
 
+from skillsmgr.archive import ExportWriter
 from skillsmgr.store import Store
 from skillsmgr.webapp import WebAppServer
 
@@ -98,6 +101,25 @@ class ExportDownloadTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertTrue(body)
         self.assertEqual([], self._backups())
+
+    def test_a_source_change_returns_a_conflict_instead_of_an_attachment(self):
+        add_tree = ExportWriter.add_tree
+
+        def move_after_capture(writer, prefix, root, **options):
+            digest = add_tree(writer, prefix, root, **options)
+            if prefix == "skills/demo-0":
+                self.store.remove("demo-0")
+            return digest
+
+        with mock.patch.object(ExportWriter, "add_tree", move_after_capture):
+            with self.assertRaises(urllib.error.HTTPError) as failure:
+                self._get("/api/export?full=1")
+        with failure.exception as response:
+            self.assertEqual(response.code, 409)
+            self.assertIsNone(response.headers.get("Content-Disposition"))
+            self.assertEqual(json.load(response)["code"], "backup_source_changed")
+        self.assertEqual([], self._backups())
+        self.assertEqual(self._get("/api/export?full=1")[0], 200)
 
     def test_head_reports_the_length_without_a_body(self):
         request = urllib.request.Request(

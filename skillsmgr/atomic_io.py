@@ -6,6 +6,7 @@ import errno
 import hashlib
 import os
 import shutil
+import stat
 import tempfile
 import threading
 import time
@@ -19,6 +20,7 @@ try:  # Windows: keep the same cross-process contract where supported.
 except ImportError:  # pragma: no cover - POSIX
     _msvcrt = None
 from collections import OrderedDict
+from collections.abc import Iterator
 from pathlib import Path
 
 from .diagnostics import diagnose as _diagnose
@@ -407,16 +409,45 @@ def is_sha256_hex(value: object) -> bool:
     return isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdefABCDEF" for c in value)
 
 
-def tree_content_hash(root: Path, *, separator: str = "/") -> str:
+def regular_tree_files(root: Path, *, exclude: frozenset[str] = frozenset()) -> Iterator[Path]:
+    """Yield regular files in tree-hash order, skipping links and excluded names."""
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        current = Path(dirpath)
+        dirnames[:] = [
+            name for name in sorted(dirnames)
+            if name not in exclude and not (current / name).is_symlink()
+        ]
+        for name in sorted(filenames):
+            path = current / name
+            if name not in exclude and not path.is_symlink() and path.is_file():
+                yield path
+
+
+def strict_regular_tree_files(root: Path, *, exclude: frozenset[str]) -> Iterator[Path]:
+    """Yield files in the same order, propagating directory and metadata errors."""
+    pending = [root]
+    while pending:
+        with os.scandir(pending.pop()) as entries:
+            children = sorted(entries, key=lambda entry: entry.name)
+        directories = []
+        for child in children:
+            if child.name in exclude:
+                continue
+            mode = child.stat(follow_symlinks=False).st_mode
+            if stat.S_ISREG(mode):
+                yield Path(child.path)
+            elif stat.S_ISDIR(mode):
+                directories.append(Path(child.path))
+        pending.extend(reversed(directories))
+
+
+def tree_content_hash(
+    root: Path, *, separator: str = "/", exclude: frozenset[str] = frozenset()
+) -> str:
     """Hash relative file names and bytes for a directory tree.
 
     Only regular, non-symlink files are hashed, and symlinked directories are
-    never descended into (STORE-9).  The digest has to describe exactly the
-    members an export puts in the archive -- ``tar.add`` stores a symlink as a
-    ``SYMTYPE`` member, which ``archive.validate_members`` rejects -- otherwise
-    the manifest hash covers bytes the archive does not contain and the whole
-    archive becomes unimportable.  It also used to follow a link that escaped
-    the managed root, hashing (and thereby oracling) data outside it.
+    never descended into (STORE-9). Excluded names are skipped at every depth.
 
     ``separator="\\"`` reproduces the digest Windows builds before 2026-11-20
     wrote into export manifests (``str(relative)`` used the OS separator); it
@@ -425,18 +456,8 @@ def tree_content_hash(root: Path, *, separator: str = "/") -> str:
     _require_separator(separator)
     digest = hashlib.sha256()
     root = Path(root)
-    if not root.is_dir():
-        return digest.hexdigest()
-    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        current = Path(dirpath)
-        dirnames[:] = [
-            name for name in sorted(dirnames) if not (current / name).is_symlink()
-        ]
-        for name in sorted(filenames):
-            path = current / name
-            if path.is_symlink():
-                continue
-            _digest_member(digest, root, path, separator)
+    for path in regular_tree_files(root, exclude=exclude):
+        _digest_member(digest, root, path, separator)
     return digest.hexdigest()
 
 
@@ -462,14 +483,9 @@ def tree_hash_matches(root: Path, expected: str) -> bool:
 def _digest_member(digest, root: Path, path: Path, separator: str = "/") -> None:
     """Add one regular file's name and bytes to ``digest``, streamed.
 
-    A FIFO or device would block or never end, so only regular files count.
     Chunked reads give the same digest as hashing the whole file at once,
     without holding a large file in memory.
     """
-    if not path.is_file():
-        return
-    # POSIX separators, so one tree has one digest on every OS: an archive
-    # exported on Linux must import on Windows and vice versa.
     digest.update(separator.join(path.relative_to(root).parts).encode("utf-8"))
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):

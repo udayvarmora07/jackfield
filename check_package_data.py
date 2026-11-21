@@ -26,7 +26,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import venv
 import zipfile
 from dataclasses import dataclass
 from typing import Mapping
@@ -42,27 +41,56 @@ VUE_MEMBER = "skillsmgr/webui/static/vendor/vue.global.prod.js"
 #: checks below are what stop that from silently regressing.
 EXAMPLES_ROOT = Path("skillsmgr") / "examples"
 
-#: A clean install is the only evidence that the example actually reaches
-#: ``site-packages`` rather than merely existing inside the archive.
-INSTALL_PROBE = (
-    "from pathlib import Path; import skillsmgr; "
-    "root=Path(skillsmgr.__file__).parent; "
-    "vue=root/'webui/static/vendor/vue.global.prod.js'; "
-    "skill=root/'examples/skills-manager-management/SKILL.md'; "
-    "assert vue.is_file() and vue.stat().st_size > 0, vue; "
-    "assert skill.is_file() and skill.read_bytes().startswith(b'---'), skill; "
-    "completion=root/'completions'; "
-    "assert all((completion/name).is_file() and (completion/name).stat().st_size for name in ('skills-mgr.bash', '_skills-mgr')), completion; "
-    # The typeface must reach an installed copy too. A stylesheet that names a
-    # face it does not ship is the 'declared but never shipped' failure: the
-    # app runs, every visitor sees the fallback, and nothing reports an error.
-    "fonts=root/'webui/static/fonts'; "
-    "faces=sorted(fonts.glob('*.woff2')); "
-    "assert len(faces) >= 4, faces; "
-    "assert all(f.stat().st_size > 1000 for f in faces), faces; "
-    "assert (fonts/'plex.css').is_file(), fonts; "
-    "assert 'IBMPlexSans' in {f.name.split('-')[0] for f in faces}, faces"
-)
+# The probe runs as installed code, with no source checkout on sys.path.
+INSTALL_PROBE = """
+from importlib.metadata import version
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+import skillsmgr
+
+root = Path(skillsmgr.__file__).parent
+assert root.is_relative_to(Path(sys.prefix)), root
+assert version('skill-control-plane') == skillsmgr.__version__
+vue = root / 'webui/static/vendor/vue.global.prod.js'
+skill = root / 'examples/skills-manager-management/SKILL.md'
+assert vue.is_file() and vue.stat().st_size > 0, vue
+assert skill.is_file() and skill.read_bytes().startswith(b'---'), skill
+completion = root / 'completions'
+assert all((completion / name).is_file() and (completion / name).stat().st_size
+           for name in ('skills-mgr.bash', '_skills-mgr')), completion
+fonts = root / 'webui/static/fonts'
+faces = sorted(fonts.glob('*.woff2'))
+assert len(faces) >= 4 and all(face.stat().st_size > 1000 for face in faces), faces
+assert (fonts / 'plex.css').is_file(), fonts
+assert 'IBMPlexSans' in {face.name.split('-')[0] for face in faces}, faces
+
+with tempfile.TemporaryDirectory(dir=Path.cwd()) as data:
+    def cli(*args):
+        result = subprocess.run(
+            [sys.executable, '-I', '-m', 'skillsmgr', '--data-dir', data, *args],
+            capture_output=True, timeout=20,
+        )
+        assert result.returncode == 0, result.stderr.decode('utf-8', 'replace')
+        return result.stdout
+
+    created = json.loads(cli('create', 'release-probe', '-d', 'Release fixture',
+                             '--body', 'Synthetic recovery marker.', '--json'))
+    directory = Path(created['path'])
+    assert directory.is_relative_to(Path(data).resolve()), directory
+    document = directory / 'SKILL.md'
+    companion = directory / 'references' / 'example.txt'
+    companion.parent.mkdir()
+    companion.write_bytes(b'Packaged recovery fixture.')
+    expected = {file: file.read_bytes() for file in (document, companion)}
+    cli('remove', 'release-probe', '--trash')
+    assert not directory.exists(), directory
+    cli('restore', 'release-probe')
+    assert all(file.read_bytes() == previous for file, previous in expected.items())
+"""
 
 #: SEC-9: the vendored bundle executes same-origin with access to every local
 #: REST endpoint, including all mutations, and a 158 KB minified blob cannot be
@@ -486,32 +514,49 @@ def _venv_python(venv_dir: Path) -> Path:
     return venv_dir / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def clean_install(artifact: Path, temporary_root: Path) -> None:
-    """Install one artifact offline into a fresh temporary virtualenv."""
-
-    venv_dir = temporary_root / (artifact.stem.replace(".", "-") + "-venv")
+def _create_install_venv(venv_dir: Path, *, env: Mapping[str, str]) -> Path:
+    """Bootstrap from the real interpreter so a launcher symlink supplies no home path."""
     try:
-        venv.EnvBuilder(with_pip=True, clear=True).create(venv_dir)
+        interpreter = Path(sys.executable).resolve(strict=True)
+        result = subprocess.run(
+            [str(interpreter), "-I", "-X", "utf8", "-m", "venv", "--clear", str(venv_dir)],
+            cwd=venv_dir.parent, env=env, capture_output=True, encoding="utf-8", errors="replace", timeout=60,
+        )
     except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
         raise BuildUnavailable(f"cannot create isolated virtualenv: {exc}") from exc
-    python = _venv_python(venv_dir)
+    if result.returncode:
+        details = (result.stderr or result.stdout).strip()
+        raise BuildUnavailable(f"cannot create isolated virtualenv (exit {result.returncode}): {details}")
+    return _venv_python(venv_dir)
+
+
+def clean_install(artifact: Path, temporary_root: Path, *, wheelhouse: Path | None = None) -> None:
+    """Install one local artifact and supply the pinned sdist build tools."""
+
+    venv_dir = temporary_root / (artifact.stem.replace(".", "-") + "-venv")
     env = os.environ.copy()
     env.pop("PYTHONPATH", None)
-    if artifact.name.endswith(".tar.gz"):
-        backend_probe = subprocess.run(
-            [str(python), "-c", "import setuptools"],
+    env["PIP_CONFIG_FILE"] = os.devnull
+    python = _create_install_venv(venv_dir, env=env)
+    pip = [str(python), "-I", "-m", "pip", "--isolated", "--disable-pip-version-check", "install"]
+    if not artifact.name.endswith(".whl"):
+        source = (["--index-url", "https://pypi.org/simple"] if wheelhouse is None else
+                  ["--no-index", "--find-links", str(wheelhouse)])
+        bootstrap = subprocess.run(
+            [*pip, *source, "--only-binary=:all:", "--require-hashes", "--no-deps",
+             "-r", str(ROOT / "requirements-build.txt")],
             cwd=temporary_root,
             env=env,
             capture_output=True,
             text=True,
         )
-        if backend_probe.returncode:
-            raise BuildUnavailable(
-                f"isolated sdist install backend unavailable for {artifact.name}: "
-                f"{backend_probe.stderr.strip() or backend_probe.stdout.strip()}"
+        if bootstrap.returncode:
+            output = (bootstrap.stderr + "\n" + bootstrap.stdout).strip()
+            raise BuildFailed(
+                f"could not install the locked build toolchain for {artifact.name}:\n{output}"
             )
     result = subprocess.run(
-        [str(python), "-m", "pip", "install", "--no-index", "--no-deps", "--no-build-isolation", str(artifact)],
+        [*pip, "--no-index", "--no-deps", "--no-build-isolation", str(artifact)],
         cwd=temporary_root,
         env=env,
         capture_output=True,
@@ -523,13 +568,14 @@ def clean_install(artifact: Path, temporary_root: Path) -> None:
             raise BuildUnavailable(f"isolated install tooling unavailable for {artifact.name}: {output}")
         raise BuildFailed(f"isolated install failed for {artifact.name}:\n{output}")
     probe_result = subprocess.run(
-        [str(python), "-c", INSTALL_PROBE], cwd=temporary_root, env=env, capture_output=True, text=True
+        [str(python), "-I", "-c", INSTALL_PROBE], cwd=temporary_root, env=env, capture_output=True, text=True
     )
     if probe_result.returncode:
         raise AssertionError(f"clean install probe failed for {artifact.name}: {probe_result.stderr.strip()}")
 
 
-def run_check(project_root: Path = ROOT, *, install: bool = False, require_build: bool = False, dist_dir: Path | None = None) -> int:
+def run_check(project_root: Path = ROOT, *, install: bool = False, require_build: bool = False,
+              dist_dir: Path | None = None, wheelhouse: Path | None = None) -> int:
     """Run the packaging check, returning a shell-friendly status code.
 
     When *dist_dir* is given, exactly one wheel and one sdist already present
@@ -584,7 +630,7 @@ def run_check(project_root: Path = ROOT, *, install: bool = False, require_build
                 temp_root = Path(temp)
                 try:
                     for artifact in (wheels[0], sdists[0]):
-                        clean_install(artifact, temp_root)
+                        clean_install(artifact, temp_root, wheelhouse=wheelhouse)
                         print(f"PASS: clean install {artifact.name}")
                 except (BuildUnavailable, BuildFailed, AssertionError) as exc:
                     print(f"UNAVAILABLE: {exc}" if isinstance(exc, BuildUnavailable) else f"FAIL: {exc}", file=sys.stderr)
@@ -616,7 +662,7 @@ def run_check(project_root: Path = ROOT, *, install: bool = False, require_build
         if install:
             try:
                 for artifact in (wheel, sdist):
-                    clean_install(artifact, temp_root)
+                    clean_install(artifact, temp_root, wheelhouse=wheelhouse)
                     print(f"PASS: clean install {artifact.name}")
             except (BuildUnavailable, BuildFailed, AssertionError) as exc:
                 print(f"UNAVAILABLE: {exc}" if isinstance(exc, BuildUnavailable) else f"FAIL: {exc}", file=sys.stderr)
@@ -628,6 +674,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, default=ROOT)
     parser.add_argument("--install", action="store_true", help="also install wheel and sdist into fresh temporary venvs")
+    parser.add_argument("--wheelhouse", type=Path, help="local wheels for the pinned sdist toolchain (offline)")
     parser.add_argument("--require-build", action="store_true", help="return 2 when optional build tooling is unavailable")
     parser.add_argument(
         "--dist-dir",
@@ -636,7 +683,11 @@ def main(argv: list[str] | None = None) -> int:
         help="inspect exactly one wheel + one sdist already in DIR instead of building (CI build-once artifact check)",
     )
     args = parser.parse_args(argv)
-    return run_check(args.project_root.resolve(), install=args.install, require_build=args.require_build, dist_dir=args.dist_dir)
+    if args.wheelhouse is not None and not args.install:
+        parser.error("--wheelhouse requires --install")
+    wheelhouse = args.wheelhouse.resolve() if args.wheelhouse is not None else None
+    return run_check(args.project_root.resolve(), install=args.install, require_build=args.require_build,
+                     dist_dir=args.dist_dir, wheelhouse=wheelhouse)
 
 
 if __name__ == "__main__":

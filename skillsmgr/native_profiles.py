@@ -15,6 +15,8 @@ import stat
 from pathlib import Path
 
 from .atomic_io import mutation_lock
+from .diagnostics import diagnose
+from .file_reads import file_revision
 from .native_state import MAX_CONFIG_BYTES, _glob_match, _unique_object
 from .project_config import _open_project
 from .validator import validate_skill_name
@@ -69,7 +71,7 @@ def _parent(project: Path, agent: str) -> int:
     return fd
 
 
-def _read(fd: int, name: str) -> tuple[bytes | None, int | None]:
+def _read_snapshot(fd: int, name: str) -> tuple[bytes | None, os.stat_result | None]:
     try:
         target = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, 'O_NONBLOCK', 0), dir_fd=fd)
     except FileNotFoundError:
@@ -89,9 +91,14 @@ def _read(fd: int, name: str) -> tuple[bytes | None, int | None]:
         data = b''.join(chunks)
         if len(data) > MAX_CONFIG_BYTES:
             raise NativeProfileError('Settings file exceeds 1 MiB.')
-        return data, stat.S_IMODE(info.st_mode)
+        return data, info
     finally:
         os.close(target)
+
+
+def _read(fd: int, name: str) -> tuple[bytes | None, int | None]:
+    data, info = _read_snapshot(fd, name)
+    return data, None if info is None else stat.S_IMODE(info.st_mode)
 
 
 def _format(data: bytes | None) -> tuple[dict, tuple]:
@@ -281,7 +288,7 @@ def _backup_dir(data_dir: Path) -> int:
         os.close(root)
 
 
-def _write_new(fd: int, name: str, data: bytes, mode: int) -> None:
+def _write_new(fd: int, name: str, data: bytes, mode: int) -> os.stat_result:
     file_fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode, dir_fd=fd)
     try:
         os.fchmod(file_fd, mode)
@@ -289,17 +296,27 @@ def _write_new(fd: int, name: str, data: bytes, mode: int) -> None:
             stream.write(data)
             stream.flush()
             os.fsync(file_fd)
+            return os.fstat(file_fd)
     finally:
         os.close(file_fd)
 
 
-def _replace(fd: int, name: str, data: bytes, mode: int, expected: str, expected_mode: int | None) -> None:
+def _replace(fd: int, name: str, data: bytes, mode: int, expected: str,
+             expected_mode: int | None, *, record_staged=None, expected_file=None) -> None:
     temporary = '.skills-manager-' + secrets.token_hex(16)
     try:
-        _write_new(fd, temporary, data, mode)
-        current, current_mode = _read(fd, name)
+        staged = _write_new(fd, temporary, data, mode)
+        if record_staged is not None:
+            revision = file_revision(staged)
+            if revision is None:
+                raise NativeProfileError('Could not identify the staged settings file.')
+            record_staged(revision)
+        current, info = _read_snapshot(fd, name)
+        current_mode = None if info is None else stat.S_IMODE(info.st_mode)
         if _digest(current) != expected or current_mode != expected_mode:
             raise NativeProfileError('Settings changed since preview; nothing replaced.')
+        if expected_file is not None and file_revision(info) != expected_file:
+            raise NativeProfileError('Settings file was replaced; undo refused.')
         os.replace(temporary, name, src_dir_fd=fd, dst_dir_fd=fd)
         os.fsync(fd)
     finally:
@@ -307,6 +324,17 @@ def _replace(fd: int, name: str, data: bytes, mode: int, expected: str, expected
             os.unlink(temporary, dir_fd=fd)
         except FileNotFoundError:
             pass
+
+
+def _record_replacement(data_dir, backup_id, record, revision):
+    record['post_file'] = revision
+    payload = json.dumps(record, sort_keys=True, separators=(',', ':')).encode()
+    backups = _backup_dir(data_dir)
+    try:
+        _write_new(backups, backup_id + '.json', payload, 0o600)
+        os.fsync(backups)
+    finally:
+        os.close(backups)
 
 
 def apply_native(project: Path, agent: str, off: list[str], plan_id: str, data_dir: Path) -> dict:
@@ -331,40 +359,21 @@ def apply_native(project: Path, agent: str, off: list[str], plan_id: str, data_d
             if _digest(after) != plan['post_hash']:
                 raise NativeProfileError('Native settings plan is stale.')
             backup_id = secrets.token_hex(16)
-            record = {'version': 1, 'state': 'prepared', 'project': plan['project'], 'agent': agent, 'mode': mode,
+            record = {'version': 1, 'state': 'recorded', 'project': plan['project'], 'agent': agent, 'mode': mode,
                       'pre_hash': plan['pre_hash'], 'post_hash': plan['post_hash'],
                       'preimage': None if before is None else base64.b64encode(before).decode('ascii')}
-            payload = json.dumps(record, sort_keys=True, separators=(',', ':')).encode()
-            backups = _backup_dir(data_dir)
-            try:
-                _write_new(backups, backup_id + '.json', payload, 0o600)
-                os.fsync(backups)
-            finally:
-                os.close(backups)
             try:
                 _replace(fd, _TARGETS[agent][1], after, mode if mode is not None else 0o600,
-                         plan['pre_hash'], mode)
-                current, _ = _read(fd, _TARGETS[agent][1])
+                         plan['pre_hash'], mode,
+                         record_staged=lambda revision: _record_replacement(data_dir, backup_id, record, revision))
+                current, info = _read_snapshot(fd, _TARGETS[agent][1])
             except (OSError, NativeProfileError) as exc:
-                raise NativeProfileError(f'Apply failed; backup {backup_id} was retained; settings may have changed.') from exc
-            if _digest(current) != plan['post_hash']:
+                raise NativeProfileError(f'Apply failed. Check for backup {backup_id} before retrying.') from exc
+            except KeyboardInterrupt:
+                diagnose(f'Native apply interrupted. Check for backup {backup_id}.')
+                raise
+            if _digest(current) != plan['post_hash'] or file_revision(info) != record['post_file']:
                 raise NativeProfileError(f'Post-write verification failed; backup {backup_id} was retained.')
-            record['state'] = 'applied'
-            payload = json.dumps(record, sort_keys=True, separators=(',', ':')).encode()
-            backups = _backup_dir(data_dir)
-            temporary = '.' + backup_id + '.tmp'
-            try:
-                _write_new(backups, temporary, payload, 0o600)
-                os.replace(temporary, backup_id + '.json', src_dir_fd=backups, dst_dir_fd=backups)
-                os.fsync(backups)
-            except OSError as exc:
-                raise NativeProfileError(f'Backup {backup_id} finalization failed; settings may have changed.') from exc
-            finally:
-                try:
-                    os.unlink(temporary, dir_fd=backups)
-                except FileNotFoundError:
-                    pass
-                os.close(backups)
             return {'status': 'applied', 'backup_id': backup_id, 'plan_id': plan_id}
         finally:
             os.close(fd)
@@ -394,7 +403,7 @@ def undo_native(backup_id: str, data_dir: Path) -> dict:
             os.close(backups)
         try:
             record = json.loads(raw, object_pairs_hook=_unique_object)
-            if record['version'] != 1 or record['state'] != 'applied' or record['agent'] not in _TARGETS:
+            if record['version'] != 1 or record['state'] not in ('applied', 'recorded') or record['agent'] not in _TARGETS:
                 raise ValueError()
             before = None if record['preimage'] is None else base64.b64decode(record['preimage'], validate=True)
             if _digest(before) != record['pre_hash'] or (before is not None and len(before) > MAX_CONFIG_BYTES):
@@ -406,23 +415,32 @@ def undo_native(backup_id: str, data_dir: Path) -> dict:
             post_hash = record['post_hash']
             if not isinstance(post_hash, str) or len(post_hash) != 64:
                 raise ValueError()
-        except (ValueError, KeyError, TypeError, UnicodeError) as exc:
+            post_file = record['post_file'] if record['state'] == 'recorded' else None
+            if record['state'] == 'recorded' and not isinstance(post_file, list):
+                raise ValueError()
+        except (ValueError, KeyError, TypeError, RecursionError) as exc:
             raise NativeProfileError('Invalid backup record.') from exc
         fd = _parent(project, record['agent'])
         try:
             name = _TARGETS[record['agent']][1]
-            current, current_mode = _read(fd, name)
+            current, info = _read_snapshot(fd, name)
+            current_mode = None if info is None else stat.S_IMODE(info.st_mode)
             if _digest(current) != post_hash or current_mode != (mode if mode is not None else 0o600):
                 raise NativeProfileError('Settings changed after apply; undo refused.')
+            if post_file is not None and file_revision(info) != post_file:
+                raise NativeProfileError('Settings file was replaced; undo refused.')
             if before is None:
                 # Recheck immediately before unlinking the new file.
-                check, checked_mode = _read(fd, name)
+                check, checked_info = _read_snapshot(fd, name)
+                checked_mode = None if checked_info is None else stat.S_IMODE(checked_info.st_mode)
                 if _digest(check) != post_hash or checked_mode != current_mode:
                     raise NativeProfileError('Settings changed after apply; undo refused.')
+                if post_file is not None and file_revision(checked_info) != post_file:
+                    raise NativeProfileError('Settings file was replaced; undo refused.')
                 os.unlink(name, dir_fd=fd)
                 os.fsync(fd)
             else:
-                _replace(fd, name, before, mode, post_hash, current_mode)
+                _replace(fd, name, before, mode, post_hash, current_mode, expected_file=post_file)
             return {'status': 'undone', 'backup_id': backup_id}
         finally:
             os.close(fd)

@@ -55,6 +55,27 @@ for familiarity.
 than assume: three skills and three hundred skills are different products. If
 time allows, run at least one session at each size and record the difference.
 
+### Launch the synthetic fixture
+
+After consent, run this from the repository root:
+
+```bash
+python3 tools/e2e_v2/run.py --pilot --output-dir /path/to/private/pilot-runs
+```
+
+The launcher prints a fresh fixture directory and its URL. It runs the app
+with disposable agent roots and manager data, and leaves host provider
+credentials out of the server environment. Open the URL in a fresh browser
+profile. The localhost binding is the unauthenticated fixture server's only
+security boundary. Keep it local to this machine.
+
+Use `majority-minor` for X and give Codex as the named destination during
+the Sync task. The prior Codex copy includes a synthetic supporting file.
+The fixture also includes disabled and malformed copies. After the session,
+press Ctrl-C in the launcher to stop the server. The printed directory remains
+available for participant inspection and deletion, separate from consent and
+de-identified notes. Use a fresh launch for each session.
+
 ## Pilot workflow
 
 **[SPEC]** Each task is given verbatim, with no coaching after the first

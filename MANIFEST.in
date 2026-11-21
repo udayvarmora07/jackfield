@@ -10,3 +10,4 @@ prune tests
 
 # Fidelity harness is development-only and can execute an external agent.
 prune tools/ai_fidelity
+prune tools/qa

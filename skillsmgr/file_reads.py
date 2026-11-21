@@ -46,7 +46,22 @@ def _read_bounded(descriptor: int, limit: int, path: Path) -> bytes:
     return data
 
 
+def file_revision(info: os.stat_result | None) -> list[int] | None:
+    """Identify the regular file published by a same-filesystem rename."""
+    if info is None or not stat.S_ISREG(info.st_mode) or not info.st_ino:
+        return None
+    return [info.st_dev, info.st_ino, info.st_mtime_ns]
+
+
 def read_regular_file(path: Path, limit: int, *, follow_symlinks: bool = True) -> bytes:
+    """Read a bounded regular file and optionally refuse final symlinks."""
+    data, _ = read_regular_file_with_stat(path, limit, follow_symlinks=follow_symlinks)
+    return data
+
+
+def read_regular_file_with_stat(
+    path: Path, limit: int, *, follow_symlinks: bool = True,
+) -> tuple[bytes, os.stat_result]:
     """Read at most ``limit + 1`` bytes and reject non-regular or oversized files.
 
     Where O_NOFOLLOW is unavailable, no-follow opens compare path identity
@@ -75,6 +90,6 @@ def read_regular_file(path: Path, limit: int, *, follow_symlinks: bool = True) -
             raise NotRegularFile(str(path))
         if verify_identity:
             _verify_identity(path, before, opened)
-        return _read_bounded(descriptor, limit, path)
+        return _read_bounded(descriptor, limit, path), opened
     finally:
         os.close(descriptor)

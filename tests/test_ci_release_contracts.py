@@ -11,6 +11,7 @@ import unittest
 from pathlib import Path
 
 import check_package_data
+from skillsmgr import __version__
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -161,6 +162,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("run: python -m compileall", xplat)
         self.assertNotIn("*.py", xplat)
         self.assertIn("run: python -m unittest", xplat)
+        self.assertIn('test ! -L "$RUNNER_TEMP/scp-bin/skills-mgr"', xplat)
 
     def test_ci_xplat_job_runs_the_whole_suite_on_every_supported_os(self):
         # 2026-11-20: this job used to run a four-module path/archive subset on
@@ -196,9 +198,19 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("node --check skillsmgr/webui/app.js", browser)
         self.assertIn("node --check skillsmgr/webui/domain.js", browser)
 
+    def test_ci_checks_the_hurl_asset_before_running_contracts_and_retains_failures(self):
+        text = _workflow_text("ci.yml")
+        http = text.split("\n  http-contracts:", 1)[1].split("\n  e2e:", 1)[0]
+        self.assertLess(http.index("sha256sum --check"), http.index("tar -xOzf"))
+        self.assertLess(http.index("tar -xOzf"), http.index("tools/qa/run_http.py"))
+        self.assertIn("tools/qa/summarize.py", http)
+        self.assertIn('exit "$status"', http)
+        self.assertIn("if: ${{ failure() }}", http)
+        self.assertIn("path: ${{ runner.temp }}/http-qa/http-*/junit.xml", http)
+
     def test_ci_has_separate_named_jobs(self):
         ids = set(_job_ids(_workflow_text("ci.yml")))
-        for expected in ("unit", "adversarial", "package", "docs", "browser", "xplat", "e2e"):
+        for expected in ("unit", "adversarial", "package", "docs", "browser", "xplat", "e2e", "http-contracts"):
             self.assertIn(expected, ids, f"CI is missing the {expected!r} job")
 
     def test_third_party_actions_are_pinned_to_shas(self):
@@ -369,7 +381,7 @@ class CrossPlatformContractTests(unittest.TestCase):
                     archive.addfile(info, io.BytesIO(data))
             installed: list[str] = []
             with mock.patch.object(
-                check_package_data, "clean_install", side_effect=lambda artifact, root: installed.append(artifact.name)
+                check_package_data, "clean_install", side_effect=lambda artifact, root, **kw: installed.append(artifact.name)
             ), contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(check_package_data.run_check(dist_dir=dist_dir, install=True), 0)
             self.assertEqual(installed, [wheel.name, sdist.name])
@@ -398,17 +410,38 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
     def test_release_builds_once_tests_exact_artifacts_and_attests(self):
         text = _workflow_text("release.yml")
         self.assertIn("python3 -m build --no-isolation --wheel --sdist --outdir dist", text)
-        self.assertIn("check_package_data.py --dist-dir dist", text)
+        verify = text.split("\n  verify:\n", 1)[1].split("\n  attest:\n", 1)[0]
+        self.assertIn("check_package_data.py --dist-dir dist --install --require-build", verify)
+        self.assertIn("tools/verify_ai.py --artifact dist/*.whl", verify)
         self.assertIn("attest-build-provenance", text)
         self.assertIn("test.pypi.org/legacy", text)
+
+    def test_release_verifies_exact_upgrade_on_each_platform_before_attesting(self):
+        text = _workflow_text("release.yml")
+        verify = text.split("\n  verify:\n", 1)[1].split("\n  attest:\n", 1)[0]
+        for runner in ("ubuntu-latest", "macos-latest", "windows-latest"):
+            self.assertIn(runner, verify)
+        self.assertIn("needs: build", verify)
+        self.assertIn("runs-on: ${{ matrix.os }}", verify)
+        self.assertIn("python -m tools.verify_upgrade --dist-dir dist", verify)
+        self.assertNotIn("continue-on-error", verify)
+        attest = text.split("\n  attest:\n", 1)[1].split("\n  publish-testpypi:\n", 1)[0]
+        self.assertIn("needs: verify", attest)
+
+    def test_manual_release_rehearsal_cannot_attest_or_publish(self):
+        text = _workflow_text("release.yml")
+        self.assertIn("\n  workflow_dispatch:", text)
+        attest = text.split("\n  attest:\n", 1)[1].split("\n  publish-testpypi:\n", 1)[0]
+        self.assertIn("if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')", attest)
+        testpypi = text.split("\n  publish-testpypi:\n", 1)[1].split("\n  publish-pypi:\n", 1)[0]
+        self.assertIn("needs: attest", testpypi)
 
     def test_release_creates_github_release_and_verifies_post_publish(self):
         text = _workflow_text("release.yml")
         self.assertIn("action-gh-release@", text)
-        self.assertIn("skill-control-plane==", text)
+        self.assertIn("tools/verify_published.py --dist-dir dist", text)
+        self.assertIn("needs: postpublish-verify", text)
         self.assertNotIn("pip install skills-manager", text)
-        self.assertIn("vue.global.prod.js", text)
-        self.assertIn("SKILLS_MANAGER_DATA=$(mktemp -d)", text)
 
     def test_release_declares_least_privilege_permissions(self):
         text = _workflow_text("release.yml")
@@ -444,7 +477,7 @@ class ReleaseClaimContractTests(unittest.TestCase):
         project_name, project_version = _project_identity(pyproject)
         normalized_stem = _normalized_artifact_stem(project_name, project_version)
         self.assertEqual(project_name, "skill-control-plane")
-        self.assertEqual(project_version, "1.0.2")
+        self.assertEqual(project_version, __version__)
         project_table = pyproject.split("[project]", 1)[1].split("\n[", 1)[0]
         self.assertIn('license = "MIT"', project_table)
         self.assertIn('license-files = ["LICENSE"]', project_table)
@@ -457,7 +490,7 @@ class ReleaseClaimContractTests(unittest.TestCase):
 
         wheel_name = f"{normalized_stem}-py3-none-any.whl"
         sdist_name = f"{normalized_stem}.tar.gz"
-        metadata = _FIXTURE_METADATA
+        metadata = _FIXTURE_METADATA.replace(b"Version: 1.0.2\n", f"Version: {project_version}\n".encode())
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             wheel = root / wheel_name

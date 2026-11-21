@@ -277,6 +277,15 @@ product revenue catches up only if the audits keep revealing the same needs.**
 | MON-Q4 | Add a zh-CN interface? | Strong demand signal; reverses the current `lang="en"` decision. |
 | MON-Q5 | Which docs/14 Pro and Team assumptions stay? | This doc argues the Pro tier should wait. |
 
+**[SPEC] 2026-11-20 decisions.** Start with a services pilot for people who
+manage skills across multiple agents, including small teams. Keep the local
+skills tool free. Keep MCP and instruction-file management outside the
+product's scope. Keep the interface in English until participants establish
+a concrete localization need. Defer a public catalog report until its sample,
+advisory definitions and reproducibility have been reviewed. Treat the Pro
+and Team tiers in docs/14 as research hypotheses with no paid product
+commitment. The pilot and any sale require real participants.
+
 ## Method and limits
 
 **[NOTE]** Research for this doc used agent-reach: X through the OpenCLI

@@ -85,6 +85,8 @@ createApp({
       themeMediaHandler: null,
       menuOpen: false,
       busy: false,
+      exportPending: false,
+      exportError: "",
       banner: null,
       // Keep the Overview readiness marker absent until the first list
       // request has settled, including the initial render before mounted().
@@ -2709,7 +2711,7 @@ createApp({
 
     openImport(full = false) {
       if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.import = { file: null, force: false, full: !!full };
+      this.modals.import = { file: null, force: false, full: !!full, result: null, error: "" };
     },
 
     pickImportFile() {
@@ -2733,27 +2735,27 @@ createApp({
 
     async doImport() {
       const m = this.modals.import;
-      if (!m || !m.file) return;
+      if (!m || !m.file || this.busy) return;
       this.busy = true;
+      m.error = "";
       try {
         const url = "/api/import?filename=" + encodeURIComponent(m.file.name) + "&force=" + (m.force ? "1" : "0") + "&full=" + (m.full ? "1" : "0");
         const data = await api(url, { method: "PUT", body: m.file });
-        this.closeModal("import");
-        if (data.imported && data.imported.length) {
-          this.toast("Imported: " + data.imported.join(", "));
-        }
-        if (data.skipped && data.skipped.length) {
-          this.toast("Skipped (already present): " + data.skipped.join(", "), "info");
-        }
+        m.result = data;
+        m.file = null;
+        if (this.modals.import !== m) this.toast(this.archiveImportSummary(data), "info");
+        else this.$nextTick(() => this.$refs.importSummary?.focus());
         await this.loadSkills();
         await this.loadTrash();
         if (data.imported && data.imported.length) this.loadDetail(data.imported[0]);
       } catch (e) {
-        this.toast(e.message, "err");
+        m.error = e.message;
+        if (this.modals.import !== m) this.toast(e.message, "err");
       } finally {
         this.busy = false;
       }
     },
+    archiveImportSummary(result) { return SkillManagerDomain.archiveImportSummary(result); },
 
     openSync() {
       if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
@@ -2790,7 +2792,10 @@ createApp({
     },
 
     async exportArchive(full = false) {
+      if (this.busy) return;
       this.busy = true;
+      this.exportPending = true;
+      this.exportError = "";
       try {
         const { blob, filename: served } = await apiBlob("/api/export" + (full ? "?full=1" : ""));
         const filename = served || "skills-export.tar.gz";
@@ -2802,11 +2807,13 @@ createApp({
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 4000);
-        this.toast("Archive downloaded: " + filename);
+        this.toast("Download started for " + filename);
       } catch (e) {
-        this.toast(e.message, "err");
+        this.exportError = SkillManagerDomain.archiveDownloadError(e);
+        if (this.view !== "recovery") this.toast(this.exportError, "err");
       } finally {
         this.busy = false;
+        this.exportPending = false;
       }
     },
   },

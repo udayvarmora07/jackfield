@@ -1,10 +1,13 @@
 """Lifecycle reporting stays conservative and pins remain reversible."""
+import base64
+import io
 import json
 import os
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from skillsmgr import lifecycle
 from skillsmgr.errors import StoreError
@@ -28,6 +31,8 @@ class LifecycleTests(unittest.TestCase):
             "coverage": {"codex": {"coverage_window_start": None}}, "consented": ["codex"]})["skills"]
         self.assertEqual([row["state"] for row in rows], ["in-use", "in-use"])
         self.assertEqual(rows[0]["used_by"], ["codex"])
+        self.assertEqual(rows[0]["reason"], "recent cached usage for the same name")
+        self.assertEqual(rows[1]["reason"], "recent document modification")
         self.assertEqual(self.report([{"name": "a"}])["skills"][0]["state"], "unknown")
 
     def test_unknown_even_when_claimed_coverage_is_full(self):
@@ -55,6 +60,12 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(len(report["skills"]), 10_000)
         self.assertTrue(report["truncated"])
         self.assertTrue(all(row["state"] == "unknown" for row in report["skills"]))
+
+    def test_timestamp_offsets_are_normalized_before_utc_calendar_comparison(self):
+        rows = [{"name": "previous", "last_edit": "2026-11-20T00:15:00+01:00"},
+                {"name": "current", "last_edit": "2026-11-19T23:45:00-01:00"}]
+        report = lifecycle.candidate_report(rows, {}, data_dir=self.data, days=1, now=self.now)
+        self.assertEqual([row["state"] for row in report["skills"]], ["unknown", "in-use"])
 
     def test_pin_preview_apply_stale_undo_and_replay(self):
         plan = lifecycle.preview_pin_change(self.data, "agents", "demo", True, note="keep")
@@ -92,6 +103,89 @@ class LifecycleTests(unittest.TestCase):
         with self.assertRaises(StoreError):
             lifecycle.undo_pin_change(self.data, plan["plan_hash"])
         self.assertEqual(json.loads(path.read_text())["pins"], {})
+
+    def test_pin_undo_recovers_a_replacement_that_completed_before_interrupt(self):
+        pin = lifecycle.preview_pin_change(self.data, "global", "demo", True)
+        write = lifecycle._write
+
+        def interrupted_after_replace(path, data, **kwargs):
+            write(path, data, **kwargs)
+            if path.name == "pins.json":
+                raise KeyboardInterrupt
+
+        with patch.object(lifecycle, "_write", side_effect=interrupted_after_replace):
+            with self.assertRaises(KeyboardInterrupt):
+                lifecycle.apply_pin_change(self.data, "global", "demo", True, pin["plan_hash"])
+
+        self.assertTrue(self.report([{"name": "demo"}])["skills"][0]["pinned"])
+        self.assertTrue(lifecycle.undo_pin_change(self.data, pin["plan_hash"])["restored"])
+        self.assertFalse((self.data / "pins.json").exists())
+
+    def test_interrupted_unpin_cannot_undo_a_later_unpin_of_the_same_skill(self):
+        pin = lifecycle.preview_pin_change(self.data, "global", "demo", True)
+        lifecycle.apply_pin_change(self.data, "global", "demo", True, pin["plan_hash"])
+        original = (self.data / "pins.json").read_bytes()
+        first = lifecycle.preview_pin_change(self.data, "global", "demo", False)
+        write = lifecycle._write
+
+        def abort_replacement(path, data, **kwargs):
+            if path.name == "pins.json":
+                raise OSError("injected write failure")
+            write(path, data, **kwargs)
+
+        with patch.object(lifecycle, "_write", side_effect=abort_replacement):
+            with self.assertRaisesRegex(OSError, "injected write failure"):
+                lifecycle.apply_pin_change(self.data, "global", "demo", False, first["plan_hash"])
+        self.assertEqual((self.data / "pins.json").read_bytes(), original)
+        with self.assertRaisesRegex(StoreError, "undo refused"):
+            lifecycle.undo_pin_change(self.data, first["plan_hash"])
+
+        second = lifecycle.preview_pin_change(self.data, "global", "demo", False)
+        lifecycle.apply_pin_change(self.data, "global", "demo", False, second["plan_hash"])
+        with self.assertRaisesRegex(StoreError, "undo refused"):
+            lifecycle.undo_pin_change(self.data, first["plan_hash"])
+        self.assertTrue(lifecycle.undo_pin_change(self.data, second["plan_hash"])["restored"])
+        self.assertEqual((self.data / "pins.json").read_bytes(), original)
+
+    def test_undo_receipt_legacy_compatibility_and_preimage_validation(self):
+        initial = lifecycle.preview_pin_change(self.data, "global", "demo", True)
+        lifecycle.apply_pin_change(self.data, "global", "demo", True, initial["plan_hash"])
+        path = self.data / "pins.json"
+        original = path.read_bytes()
+        change = lifecycle.preview_pin_change(self.data, "global", "demo", False)
+        lifecycle.apply_pin_change(self.data, "global", "demo", False, change["plan_hash"])
+        receipt_path = self.data / "pin-backups" / (change["plan_hash"] + ".json")
+        receipt = json.loads(receipt_path.read_text())
+        path_after = path.read_bytes()
+        tampered = {**receipt, "before": base64.b64encode(b'{"version":1,"pins":{}}').decode("ascii")}
+        receipt_path.write_text(json.dumps(tampered))
+        with self.assertRaisesRegex(StoreError, "invalid or missing pin undo receipt"):
+            lifecycle.undo_pin_change(self.data, change["plan_hash"])
+        self.assertEqual(path.read_bytes(), path_after)
+
+        # Simulate the receipt and pins metadata emitted by the previous writer.
+        legacy_doc = json.loads(path_after)
+        del legacy_doc["last_pin_plan"]
+        legacy_after = json.dumps(legacy_doc).encode("utf-8")
+        path.write_bytes(legacy_after)
+        receipt.update(state="applied", after=lifecycle._hash(legacy_after))
+        del receipt["before_hash"]
+        receipt_path.write_text(json.dumps(receipt))
+        self.assertTrue(lifecycle.undo_pin_change(self.data, change["plan_hash"])["restored"])
+        self.assertEqual(path.read_bytes(), original)
+
+    def test_undo_succeeds_when_receipt_update_fails_after_restore(self):
+        change = lifecycle.preview_pin_change(self.data, "global", "demo", True)
+        lifecycle.apply_pin_change(self.data, "global", "demo", True, change["plan_hash"])
+        with (
+            patch.object(lifecycle, "_write", side_effect=OSError("receipt update failed")),
+            patch("sys.stderr", new_callable=io.StringIO) as logs,
+        ):
+            self.assertTrue(lifecycle.undo_pin_change(self.data, change["plan_hash"])["restored"])
+        self.assertFalse((self.data / "pins.json").exists())
+        self.assertIn("pins restored", logs.getvalue())
+        with self.assertRaisesRegex(StoreError, "undo refused"):
+            lifecycle.undo_pin_change(self.data, change["plan_hash"])
 
     def test_unpin_undo_restores_original_note(self):
         plan = lifecycle.preview_pin_change(self.data, "global", "a", True, note="keep")

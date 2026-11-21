@@ -82,10 +82,10 @@ _skills_mgr_complete() {
         --scope)
             case "$grammar_path" in
                 install) candidates='global project' ;;
-                list|ls|search|doctor|stats|tokens) candidates='all global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-skills' ;;
-                *) candidates='global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-skills' ;;
+                list|ls|search|doctor|stats|tokens) candidates='all global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-gemini project-commandcode project-skills' ;;
+                *) candidates='global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-gemini project-commandcode project-skills' ;;
             esac ;;
-        --to) candidates='global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-skills' ;;
+        --to) candidates='global claude-code codex cursor opencode gemini commandcode agents project-claude project-cursor project-opencode project-agents project-gemini project-commandcode project-skills' ;;
         --runner) candidates='npx pnpm yarn bunx' ;;
         --view) candidates='all-time trending hot' ;;
         --window) candidates='claude claude-haiku gpt-4o gpt-5 gpt-5.6 gemini gemini-2m' ;;

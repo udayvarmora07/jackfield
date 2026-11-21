@@ -15,8 +15,15 @@
   `opencode`, `gemini`, and `commandcode`.
 - `usage report [--agent AGENT ...] [--days N] [--refresh] [--json]` reads
   stored aggregates by default. `--refresh` scans authorized roots. Days
-  defaults to 90 and accepts 1–400. Reports include coverage and separate
-  explicit and inferred counts. Changed roots require fresh consent.
+  defaults to 90 and accepts 1–400 UTC dates including today. Reports show
+  separate explicit and inferred counts and the earliest and latest dates
+  observed in that window. Changed roots require fresh consent. OpenCode's
+  database follows an absolute `XDG_DATA_HOME` and any explicit `OPENCODE_DB`
+  filename or absolute path. Give an explicit filename for a nondefault
+  channel database. In-memory databases have no local transcript source.
+  OpenCode refreshes need a checkpointed database. If its write-ahead log
+  still has frames, close OpenCode and refresh again. A cached report
+  suppresses aggregates when consent and cache roots disagree.
 - `usage disable [--agent AGENT ... | --purge] [--json]` revokes selected
   consent, or all consent when no agent is named. `--purge` also erases
   cached usage data.
@@ -32,6 +39,8 @@
   Writes support v2 and retain untouched entries and unknown fields.
 - `lock undo --project DIR --plan-id HASH [--json]` restores the preimage
   if the current file still matches the recorded write.
+- Preview can read a write-protected lockfile. Apply and undo require write
+  access to an existing lockfile before replacing or removing it.
 
 ### `native-profile`
 
@@ -43,7 +52,9 @@
   for supported Claude Code, Gemini, and OpenCode settings. Codex preview
   provides launch arguments and Command Code preview gives a manual patch.
 - `native-profile undo --backup-id ID [--json]` restores the preimage if
-  the current settings still match the recorded write.
+  the current settings still match the recorded file and bytes. An
+  interruption after replacement leaves the backup ID available in the
+  diagnostic and the receipt in `native-backups`.
 
 ### `archive`
 
@@ -52,12 +63,27 @@
   The activity window includes today and the preceding `N - 1` UTC dates.
   `in-use` indicates a cached usage event or a primary document modified in
   that window. JSON `last_edit` is the observed document modification time
-  when available, and `used_by` lists the agents with cached events.
+  when available, and `used_by` lists the agents with same-name cached events.
+  The `reason` and text view distinguish this name match from document
+  modification evidence. Inventory reports which scope roots were scanned,
+  missing, incomplete, shared with another scope or skipped by the row cap.
+  A scanned empty root and a broken root are distinguishable in JSON.
+  `relative_path` identifies the folder under its scope root when available.
+  The text view includes nested folders so same-name copies can be told apart.
+  Scopes that resolve to the same directory are scanned separately when their
+  discovery rules differ. The preview includes discovered project-root aliases.
+  The JSON `archive_readiness` field lists the documented readers for the
+  selected scope IDs, including matched project-root conventions and readers
+  of other selected scopes observed at the same physical root. These are
+  root-level hints. Individual consumers may discover different copies there.
+  The field includes their last transcript scan statuses and states
+  the outstanding consumer mapping, usage, and edit/install prerequisites.
 - `archive pin NAME [--scope SCOPE] [--note TEXT] [--plan-id HASH] [--json]`
   and `archive unpin NAME [--scope SCOPE] [--plan-id HASH] [--json]` preview
   by default and mutate only with the matching plan ID.
 - `archive undo-pin --plan-id HASH [--json]` restores the previous pin
-  state if the current file still matches the recorded write.
+  state if the current file matches the recorded write. A new pin or unpin
+  remains undoable if the process stops just after replacing the pin file.
 
 Archive eligibility needs continuous observation for all potential
 consumers. The current transcript parsers cannot establish that coverage.
@@ -123,7 +149,8 @@ or mutating the data directory.
 
 - `--color` — force color output.
 - `--no-color` — disable color output. The default is automatic terminal detection.
-- `--scope SCOPE` — scope selector on `list`, `view`, `search`, `doctor`, `stats`. Values: `global` (default; the Store + DB), `all` (aggregate commands only; `view` requires one scope), or an agent scope id (`claude-code`, `codex`, `cursor`, `opencode`, `gemini`, `commandcode`, `agents`). `agents` is the Command Code skills dir (`~/.agents/skills`).
+- `--scope SCOPE` — scope selector on `list`, `view`, `search`, `doctor`, `stats`. Values: `global` (default; the Store + DB), `all` (aggregate commands only; `view` requires one scope), an agent scope ID (`claude-code`, `codex`, `cursor`, `opencode`, `gemini`, `commandcode`, `agents`), or a discovered project scope. `agents` uses the shared `~/.agents/skills` root.
+- Existing `.gemini/skills` and `.commandcode/skills` folders in the current project appear as `project-gemini` and `project-commandcode`. Gemini inventory reads skills in immediate child folders. Command Code inventory also reads grouped skills, stopping at the first active or disabled skill document in each branch of the tree. For a Gemini `SKILL.md` directly in a Gemini or shared skills root, `doctor --explain gemini` reports a read-only file observation. Archive preview marks that root's managed inventory partial.
 
 **[NOTE]** The scope flag is a **per-command flag**, not a global flag — each scope-aware command declares its own `--scope`. `tokens` and `install` also accept `--scope` with their own semantics (see below).
 
@@ -227,13 +254,27 @@ store. Content is sniffed rather than trusted from the filename. Tar and ZIP
 imports enforce resource budgets, reject traversal/Windows/special members, and
 use a strict versioned `skills-mgr` manifest contract; `--force` overwrites
 existing names with staged per-skill recovery.
-`--full` restores trash and templates from a full export.
+`--full` restores trash, templates and catalog metadata from a full export.
+It checks any recorded skill checksums before changing the library or its
+recovery data.
+Trash, templates and catalog metadata roll back together on failure. They
+finish before active skills are installed. Individual install failures after
+preflight appear in `skipped`.
 
 ### `export [--dest PATH] [--full] [--json]`
 Export all skills (global scope only) to an archive. `--dest` names a file,
-not a directory; an explicit existing file is atomically replaced. With no
-`--dest`, a unique filename is generated under `backups/`.
-`--full` includes trash and templates. Alias: `backup`.
+not a directory. An explicit existing file is atomically replaced. With no
+`--dest`, each publication chooses its own filename under `backups/`, even
+when multiple backups start in the same second.
+Choose an explicit destination outside managed state. Within the data
+directory, `backups/` and existing root-level `.tar.gz` naming conventions
+are supported. The command reports the saved archive path.
+`--full` includes trash, templates and catalog metadata. Alias: `backup`.
+The finished TAR must pass import size and member checks before replacing an
+existing destination. Unreadable supporting folders stop the export. Retry if
+export reports that the source changed while it was being read. TAR supports
+up to 12,000 members and 12,000 directories
+within the byte limits in @docs/04-store-api.md.
 
 ### `backup [--dest PATH] [--full] [--json]`
 Alias of `export` (identical behavior).

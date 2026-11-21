@@ -15,11 +15,45 @@ sys.path.insert(0, str(REPO))
 from browser_harness import _chrome, _node
 from skillsmgr.launcher_security import trusted_executable
 
+
+def _fixture_environment(root, home, data):
+    """Keep provider credentials and host agent settings out of fixture processes."""
+    env = {name: os.environ[name] for name in ('SYSTEMROOT', 'LANG', 'LC_ALL') if name in os.environ}
+    temp = root / 'tmp'
+    temp.mkdir(mode=0o700)
+    env.update(
+        HOME=str(home), USERPROFILE=str(home), PATH=os.defpath,
+        TMPDIR=str(temp), TMP=str(temp), TEMP=str(temp),
+        XDG_CONFIG_HOME=str(home / '.config'), XDG_DATA_HOME=str(home / '.local/share'),
+        XDG_CACHE_HOME=str(home / '.cache'), XDG_STATE_HOME=str(home / '.local/state'),
+        SKILLS_MANAGER_DATA=str(data), PYTHONDONTWRITEBYTECODE='1',
+        CLAUDE_CONFIG_DIR=str(home / '.claude'), CODEX_HOME=str(home / '.codex'),
+        GEMINI_CLI_SYSTEM_DEFAULTS_PATH=str(home / 'gemini-system-defaults.json'),
+        GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(home / 'gemini-system-settings.json'),
+        BROWSER_TEST_ROOT=str(root),
+    )
+    return env
+
+
+def _browser_environment(root, home, engine):
+    env = dict(os.environ, BROWSER_TEST_ROOT=str(root), BROWSER_TEST_HOME=str(home),
+               BROWSER_TEST_ENGINE=engine)
+    if engine == 'chromium':
+        requested = env.get('CHROME_BIN')
+        chrome = trusted_executable('chrome', which=lambda _: requested) if requested else _chrome()
+        if not chrome:
+            raise RuntimeError('CHROME_BIN must identify a trusted Chrome executable')
+        env['CHROME_BIN'] = chrome
+    return env
+
+
 def main():
     parser = argparse.ArgumentParser(description='Create isolated fixtures and run the optional Playwright browser suite.')
     parser.add_argument('--output-dir', required=True, type=Path, help='Existing or new directory for a fresh private run folder and evidence')
     parser.add_argument('--browser', choices=('chromium', 'firefox'), default='chromium',
                         help='Use trusted system Chrome (default) or Playwright-managed Firefox')
+    parser.add_argument('--pilot', action='store_true',
+                        help='Keep the seeded loopback fixture open for a moderated walkthrough until Ctrl-C')
     args = parser.parse_args()
     args.output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     root = Path(tempfile.mkdtemp(prefix='skillsmgr-e2e-', dir=args.output_dir.resolve()))
@@ -51,23 +85,14 @@ def main():
     (roots['claude']/'.system').mkdir()
     (home/'.claude/settings.json').write_text(json.dumps({'skillOverrides': {'same-everywhere': 'off'}}))
     (home/'.config/opencode/opencode.json').write_text(json.dumps({'permission': {'skill': {'same-everywhere': 'deny'}}}))
-    env = dict(os.environ, HOME=str(home), SKILLS_MANAGER_DATA=str(data), PYTHONDONTWRITEBYTECODE='1')
-    env.pop('XDG_STATE_HOME', None)
-    env.pop('SLASH_COMMAND_TOOL_CHAR_BUDGET', None)
-    env['CODEX_HOME'] = str(home / '.codex')
-    env['GEMINI_CLI_SYSTEM_DEFAULTS_PATH'] = str(home / 'gemini-system-defaults.json')
-    env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'] = str(home / 'gemini-system-settings.json')
-    env['BROWSER_TEST_ROOT'] = str(root)
-    env['BROWSER_TEST_HOME'] = str(home)
-    env['BROWSER_TEST_ENGINE'] = args.browser
-    subprocess.run([sys.executable, '-m', 'skillsmgr', 'create', 'library-fixture', '-d', 'Use this for browser recovery checks.', '--body', 'Fixture body.'], cwd=REPO, env=env, check=True, stdout=subprocess.DEVNULL)
-    node = _node()
-    if args.browser == 'chromium':
-        requested_chrome = env.get('CHROME_BIN')
-        chrome = trusted_executable('chrome', which=lambda _: requested_chrome) if requested_chrome else _chrome()
-        if not chrome:
-            raise RuntimeError('CHROME_BIN must identify a trusted Chrome executable')
-        env['CHROME_BIN'] = chrome
+    if args.pilot:
+        (roots['codex'] / 'majority-minor' / 'codex-checklist.txt').write_text(
+            'Previous Codex copy only.\n', encoding='utf-8')
+    server_env = _fixture_environment(root, home, data)
+    browser_env = None if args.pilot else _browser_environment(root, home, args.browser)
+    subprocess.run([sys.executable, '-m', 'skillsmgr', 'create', 'library-fixture', '-d',
+                    'Use this for browser recovery checks.', '--body', 'Fixture body.'],
+                   cwd=REPO, env=server_env, check=True, stdout=subprocess.DEVNULL)
     server_code = (
         'import os; from pathlib import Path; '
         'from skillsmgr.store import Store; from skillsmgr.webapp import WebAppServer; '
@@ -78,18 +103,27 @@ def main():
     )
     print(f'Fixture and evidence directory: {root}', flush=True)
     print('The localhost binding is the unauthenticated test server\'s only security boundary.', flush=True)
+    local_http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     with (root/'server.log').open('w') as log:
-        server = subprocess.Popen([sys.executable, '-c', server_code], cwd=REPO, env=env, stdout=log, stderr=subprocess.STDOUT)
+        server = subprocess.Popen([sys.executable, '-c', server_code], cwd=REPO, env=server_env,
+                                  stdout=log, stderr=subprocess.STDOUT)
         try:
             for _ in range(100):
                 if server.poll() is not None: raise RuntimeError('Server exited; inspect server.log')
                 try:
-                    env['BROWSER_TEST_BASE'] = (root/'server-url.txt').read_text()
-                    with urllib.request.urlopen(env['BROWSER_TEST_BASE']+'/v2/', timeout=.25): break
+                    url = (root/'server-url.txt').read_text()
+                    with local_http.open(url+'/v2/', timeout=.25): break
                 except OSError: time.sleep(.1)
             else: raise RuntimeError('Server did not start; inspect server.log')
-            result = subprocess.run([node, str(Path(__file__).with_name('browser.cjs'))], cwd=REPO, env=env, timeout=360)
+            if args.pilot:
+                print(f'Open {url}/v2/ in a fresh browser profile. Press Ctrl-C here when finished.', flush=True)
+                return server.wait()
+            browser_env['BROWSER_TEST_BASE'] = url
+            result = subprocess.run([_node(), str(Path(__file__).with_name('browser.cjs'))],
+                                    cwd=REPO, env=browser_env, timeout=360)
             return result.returncode
+        except KeyboardInterrupt:
+            return 130
         finally:
             server.terminate()
             try: server.wait(timeout=5)

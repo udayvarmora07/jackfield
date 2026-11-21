@@ -303,6 +303,7 @@ console.log(JSON.stringify({summary, invalidLabel: methods.qualityStateLabel(rec
             if child.poll() is None:  # pragma: no cover - only on failure
                 child.kill()
                 child.wait(timeout=5)
+            child.stdout.close()
 
     def test_browser_workspace_retries_a_profile_cleanup_race(self):
         import errno

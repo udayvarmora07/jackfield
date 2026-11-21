@@ -43,9 +43,8 @@ async function requestJson(url, opts = {}) {
   return data;
 }
 
-/* Non-JSON transfers still belong to this seam: the app must not re-implement
- * error handling or transport inline. These keep the same "throw the server's
- * own error message" contract as api() above. */
+/* Non-JSON transfers still belong to this seam. A failed download may carry
+ * a structured JSON code even though the successful response is binary. */
 async function apiText(url, opts = {}) {
   const res = await fetch(url, opts);
   if (!res.ok) throw new Error("HTTP " + res.status);
@@ -54,8 +53,24 @@ async function apiText(url, opts = {}) {
 
 async function apiBlob(url, opts = {}) {
   const res = await fetch(url, opts);
-  if (!res.ok) throw new Error("HTTP " + res.status);
+  if (!res.ok) {
+    const error = new Error("HTTP " + res.status);
+    if ((res.headers.get("content-type") || "").includes("application/json")) {
+      try {
+        const payload = await res.json();
+        if (typeof payload?.code === "string") error.code = payload.code;
+      } catch { /* Keep the HTTP error when the response has no readable JSON. */ }
+    }
+    throw error;
+  }
   return { blob: await res.blob(), filename: filenameFromResponse(res) };
+}
+
+function archiveDownloadError(error) {
+  if (error?.code === "backup_source_changed") {
+    return "The library changed while the backup was being prepared. Wait for changes to finish, then try the download again.";
+  }
+  return "The backup could not be downloaded.";
 }
 
 function filenameFromResponse(res) {
@@ -466,6 +481,19 @@ function syncRecoveryNotice(results) {
     (retained.length > 1 ? ` ${retained.length} previous folders need manual recovery. First backup location: ${retained[0]}.` : "");
 }
 
+function archiveImportSummary(result) {
+  const imported = (result.imported || []).length;
+  const skipped = (result.skipped || []).length + (result.skipped_full || []).length;
+  const restored = [
+    [(result.restored_trash || []).length, "trash entry", "trash entries"],
+    [(result.restored_templates || []).length, "template", "templates"],
+  ].filter(([count]) => count).map(([count, singular, plural]) => `${count} ${count === 1 ? singular : plural}`);
+  if (result.restored_catalog) restored.push("catalog metadata");
+  return `${imported} ${imported === 1 ? "skill" : "skills"} imported.` +
+    (restored.length ? ` Restored ${restored.join(", ")}.` : "") +
+    (skipped ? ` ${skipped} skipped.` : "");
+}
+
 window.SkillManagerDomain = Object.freeze({
   withJsonType,
   esc,
@@ -490,5 +518,7 @@ window.SkillManagerDomain = Object.freeze({
   formatCompat,
   formatTools,
   syncRecoveryNotice,
+  archiveDownloadError,
+  archiveImportSummary,
 });
 }());

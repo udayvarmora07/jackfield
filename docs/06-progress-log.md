@@ -7,6 +7,659 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-21 — Fail backups with unreadable supporting folders
+
+- Slim and full backups now report a supporting folder read failure during
+  capture or verification. Previously both scans could omit the same
+  unreadable directory and publish an incomplete archive. A failed scan
+  preserves the existing archive and removes the staged file.
+- With a real unreadable folder, the installed CLI exited with an error
+  and kept the previous archive. The Web API returned HTTP 400 without a
+  download. Python 3.12 ran 2,479 tests with seven skips and no failures.
+  Archive contracts passed on Python 3.11–3.14. Both smoke tests, all 16
+  Hurl requests, both artifact installs, and the 1.0.2 upgrade and downgrade
+  rehearsal passed.
+
+## 2026-11-21 — Verify backup checksums before restoring
+
+- A full restore now checks recorded skill checksums before changing any
+  skill, trash entry, template, or catalog file. A missing checksum remains
+  valid for older backups. Ordinary imports still report per-skill skips.
+- The installed CLI and REST API refused an archive with a mismatched
+  checksum and preserved the existing data. The verified public 1.0.2
+  backup still restored into the candidate. Both release artifacts and both
+  smoke tests passed. Python 3.12 ran 2,478 tests with seven skips and no
+  failures, and the archive contracts passed on Python 3.11–3.14.
+
+## 2026-11-21 — Explain and retry backup conflicts in Recovery
+
+- An export that sees a concurrent source change returns a `409` response
+  with `backup_source_changed`. Recovery shows progress while preparing a
+  download and a persistent retry message if the library changes. Both views
+  block duplicate export actions while a download request is in progress.
+- The REST regression verified that a real source change returns no
+  attachment. Chrome passed all 50 v2 scenarios and 40 classic scenarios
+  with 352 classic assertions, including the conflict and retry in both
+  views. Python 3.12 ran 2,477 tests with seven skips and no failures. Both
+  smoke tests and all 16 HTTP requests passed. The rebuilt wheel and sdist
+  installed cleanly and the published-version upgrade rehearsal passed.
+
+## 2026-11-21 — Check backup sources before publishing
+
+- Export checks the membership of the selected roots and the paths and file
+  revisions it captured. A detected change returns a retry message and leaves
+  any previous archive untouched. Root membership checks also catch moves
+  when directory timestamps are unchanged.
+- Regression tests cover trashing and restoring a skill during export,
+  changing and adding a supporting file, and downloading an empty library
+  without creating its data directory.
+- The installed candidate wheel preserved 10,000 supporting files through
+  a full export and import. For that Linux fixture the median export time
+  was 1.71 seconds, up from 1.51 seconds in the previous build over three
+  runs each. Both release artifacts installed cleanly and the upgrade
+  rehearsal passed. The full Python 3.12 suite ran 2,475 tests with seven
+  skips and no failures. Both smoke tests and all 16 HTTP requests passed.
+
+## 2026-11-21 — Protect managed state from backup destinations
+
+- Backup and export preserve managed data such as pins, usage consent and
+  undo receipts. Explicit archive paths under `backups/` and root-level
+  `.tar.gz` names still work. A backup folder linked to another managed
+  state directory is refused.
+- Export writes to the checked physical parent. If the requested parent
+  link is redirected during the scan, it returns the actual archive path.
+- The installed candidate CLI preserved active pin and consent files when
+  they were selected as output paths. Its default full export still worked.
+  Both release artifacts passed clean installs and the published-version
+  upgrade and restore rehearsal passed. The full Python 3.12 suite ran
+  2,471 tests with seven skips and no failures. Both smoke tests and all 16
+  HTTP requests passed.
+
+## 2026-11-21 — Make the published-package quickstart safer
+
+- The README starts with a read-only inventory. Bash and PowerShell examples
+  create, trash, and recover a sample skill in a temporary manager library,
+  leaving existing agent roots out of the write path.
+- Repository documents and images use absolute URLs so the packaged README
+  resolves them from PyPI. The documentation gate checks these URLs against
+  the repository as well as checking internal headings.
+- The Bash and PowerShell samples passed on Linux with the published 1.0.2
+  wheel and the 1.1.0 candidate. Both candidate artifacts passed clean
+  installs and contain the exact updated README. PyPA's renderer found no
+  unresolved same-page links. Python 3.12 ran 2,467 tests with seven skips
+  and no failures.
+
+## 2026-11-21 — Preserve unrelated environments during PowerShell installation
+
+- Added an ownership marker and a per-prefix lock to the PowerShell
+  installer. It leaves unrelated environments and linked prefixes intact,
+  and uses literal paths when removing an owned environment.
+- Older installations in the default Windows path are recognized by the
+  existing launcher and package metadata. An unmarked custom prefix lacks
+  that ownership evidence and is preserved. The hosted workflow now runs
+  the ownership tests with Windows PowerShell 5.1.
+- PowerShell 7.4.20 on Linux passed the offline 1.0.2 to 1.1.0 upgrade and
+  uninstall in a directory with spaces and brackets. A separate process was
+  refused while the prefix lock was held. All 31 installer tests passed,
+  and the Python 3.12 suite ran 2,466 tests with seven skips and no failures.
+  Native Windows verification remains pending.
+
+## 2026-11-21 — Preserve unrelated environments during POSIX installation
+
+- The shell installer checks for a launcher collision before installing. It
+  keeps existing foreign links and publishes a new launcher without replacing
+  an occupied path. An ownership marker and per-prefix lock protect creation,
+  retry and removal of the installer's virtual environment.
+- Older installs still upgrade or uninstall when their launcher identifies
+  the environment. The shell installer refuses unrelated virtual environments
+  and leaves their files intact.
+- The local 1.1.0 wheel passed offline install, legacy adoption, and uninstall
+  with spaces in both paths. The rehearsal preserved an unrelated environment
+  and a dangling foreign launcher. The Linux Python 3.12 suite ran 2,460 tests
+  with eight skips and no failures. Installer tests passed on Python 3.11–3.14.
+
+## 2026-11-21 — Preserve archive inventory across scope aliases
+
+- The archive dry run uses the scope's discovery rules when a flat, grouped,
+  or recursive scope shares a physical root. Project aliases participate.
+  Equivalent stable scans share their inventory. Reader hints cover selected
+  scopes observed at the same root.
+- Candidate rows identify the relative skill folder, so grouped copies with
+  the same name are distinguishable. An omitted unaddressable skill marks the
+  inventory partial. Archive eligibility remains gated on continuous evidence.
+- Both release verifiers now start virtual-environment creation through the
+  resolved Python interpreter. The package check previously failed with a
+  symlinked launcher even though the artifact itself was valid.
+- The installed 1.1.0 wheel reported 10,000 distinct grouped folders through
+  a project alias and flagged truncation at 10,001. Both packaged artifacts
+  passed a clean install through a symlinked interpreter, and the upgrade,
+  full restore and previous-version reinstall passed on Linux Python
+  3.11–3.14. Python 3.12 ran 2,453 tests with eight skips and no failures.
+  Both smoke tests and the 16 HTTP regression requests passed.
+
+## 2026-11-21 — Wire HTTP regression contracts into CI
+
+- Added a GitHub CI job that verifies Hurl 8.1.0 by SHA-256 before running
+  the synthetic HTTP contracts. Failed runs with a JUnit report retain it as
+  `http-contract-failures`.
+- Added the Recovery contract for a skill named `purge`, checking that
+  restoring it preserves unrelated trash. All four contracts and 16 requests
+  passed locally. A deliberate wrong expectation confirmed the JUnit summary
+  identifies the Recovery assertion and prints its actual and expected values.
+- Verified the hash-pinned Keploy v3.7.13 Linux binary against a synthetic
+  saved run in an isolated network namespace. The summary accepts its known
+  cgroup startup warning in `--keploy` mode and names the failing
+  `restore-skill` case with HTTP 200 expected and 404 observed.
+- Verified the local workflow step against the upstream Hurl archive, a failing
+  contract, and a corrupted archive. The Python 3.12 suite ran 2,448 tests with
+  eight skips and no failures. The QA and workflow contract tests passed on
+  Python 3.11–3.14. The new job still needs its first hosted run.
+
+## 2026-11-21 — Rehearse upgrades before publication
+
+- Added a reproducible upgrade check against the hash-pinned public 1.0.2
+  wheel. It checks CLI state and exact document and supporting-file bytes for
+  active, disabled and trashed skills, along with a saved template. It verifies
+  a full restore in a fresh candidate library and reopening the original
+  library after reinstalling 1.0.2.
+- The release verification job now installs the same built wheel and source
+  distribution and runs the upgrade check on Linux, macOS and Windows.
+  A manual run stops after verification. Matching version tags still control
+  attestation and the publication jobs.
+  [Published 1.0.2 wheel](https://pypi.org/project/skill-control-plane/1.0.2/#files)
+- The exact candidate wheel passed the upgrade, restore and previous-version
+  reinstall on Linux with Python 3.11–3.14. The Linux installer also passed
+  with Python 3.11 on a symlinked path, including removal of the launcher.
+  The final Python 3.12 suite ran 2,445 tests with eight skips and no
+  failures. Hosted macOS and Windows CI passed at baseline `80f1dd8`.
+  Hosted rehearsal of the current candidate is pending.
+  [Baseline CI run](https://github.com/udayvarmora07/skills-manager/actions/runs/44743791588)
+
+## 2026-11-21 — Add developer HTTP regression reports
+
+- Added an optional Hurl runner with synthetic Library, project discovery,
+  and toggle contracts. Hurl 8.1.0 passed all three contracts and ten
+  requests. The JUnit summary lists failed cases and their assertions,
+  with a nonzero exit status for failures or invalid reports.
+- Reviewed Snyk Agent Scan and Keploy's published source and data handling.
+  The QA runner uses local synthetic requests and accepts JUnit reports
+  exported from Keploy. The Linux release asset and official OCI layer timed
+  out in this first check. The follow-up above records the native Linux export.
+  [Developer QA guide](../tools/qa/README.md)
+
+## 2026-11-21 — Observe standalone Gemini skill documents
+
+- Doctor can report a Gemini or shared root's direct `SKILL.md` using its
+  frontmatter name and exact file path. The observation is read-only.
+  Managed-root reports omit standalone documents outside their allowlist.
+- Archive preview marks manager inventory partial when it sees a standalone
+  Gemini document. A recursive scope scan excludes the scope directory
+  itself from its per-skill folder rows.
+  [Gemini skill loader](https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/skills/skillLoader.ts)
+- Linux Python 3.11–3.14 each ran 2,439 tests without failures, with seven
+  or eight skips. Both smoke tests and both package clean installs passed.
+
+## 2026-11-21 — Verify the published-version upgrade path
+
+- Installed the hash-verified public 1.0.2 wheel into an isolated environment,
+  created active, disabled and trashed sample skills, then upgraded to the
+  1.1.0 candidate. All three documents retained their exact bytes. A full
+  backup created by 1.0.2 restored the same files into a fresh candidate
+  library.
+  [Published wheel](https://pypi.org/project/skill-control-plane/1.0.2/#files)
+- Updated the README's supported-scope, diagnostic and recovery claims to
+  reflect the shipped product boundaries.
+
+## 2026-11-21 — Discover Gemini and Command Code project skills
+
+- Workspaces previously recognized project-local Gemini and Command Code
+  roots that were missing from the scoped CLI, REST inventory and archive
+  preview. They now share the same project-root conventions. Shell
+  completions include `project-gemini` and `project-commandcode`.
+- Command Code finds skills in grouping folders in both its project and user
+  scopes. Inventory and Doctor stop walking when they reach a skill folder,
+  including a disabled one, so supporting files stay part of that skill.
+  Gemini inventory uses immediate child folders.
+  [Command Code docs](https://commandcode.ai/docs/skills)
+  [Gemini loader](https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/skills/skillLoader.ts)
+- The installed CLI listed and opened both project skills. The REST test
+  matched Workspaces roots and scope counts to the corresponding skill
+  lists. Linux Python 3.11–3.14 ran 2,434 tests per interpreter with zero
+  failures and seven or eight skips. Both smoke tests and both clean installs
+  passed. Headless Chrome passed 49 v2 checks and 39 classic scenarios
+  with 349 classic assertions.
+
+## 2026-11-20 — Validate cached usage evidence
+
+- Reproduced malformed scan summaries breaking consumers and cached summary
+  fields claiming complete coverage. Cached reports now return documented
+  observations only. A damaged summary is marked `cache-invalid` for its
+  agent, and valid counts and other agents' summaries remain available.
+- Saved count buckets require canonical UTC days and supported nonnegative
+  counts. Legacy integer counts still load. A successful refresh can rebuild
+  a damaged aggregate cache from the consented transcripts.
+- On 2026-11-21, Linux Python 3.11–3.14 each ran 2,431 tests with zero
+  failures and seven or eight skips. Both smoke tests, clean installs,
+  offline AI verification, and an installed CLI check for usage reporting
+  and archive preview passed.
+
+## 2026-11-20 — Honor project lockfile write protection
+
+- Vercel checks an existing lockfile's write permissions before replacing it.
+  Skills Manager now checks write access before staging an apply and before
+  publishing an apply or undo. Preview remains available for readable files.
+  [Vercel lock source](https://github.com/vercel-labs/skills/blob/main/src/local-lock.ts)
+- Two regressions reproduced apply replacing a read-only file and undo
+  overwriting a file after write access changed. Both now refuse the mutation
+  and preserve the file. Undo also preserves the receipt for a later retry.
+- Linux Python 3.11–3.14 each ran 2,428 tests with no failures and seven
+  or eight skips. Both smoke tests, package clean installs, and an installed
+  CLI check for refused apply and successful apply and undo passed.
+
+## 2026-11-20 — Recover interrupted native settings and project lock writes
+
+- Both writers used to replace their target before a final receipt write
+  could fail. New receipts retain the original bytes and identify the staged
+  file before replacement. Undo checks that file's identity, content hash
+  and permissions. Neither vendor file format changed.
+- Interruption tests complete each rename, raise before apply returns and
+  restore the previous file through undo. A separate byte-identical native
+  replacement and a matching lock written after a failed publish are refused.
+- The project-lock writer reads the staged revision after closing all write
+  handles so Windows can report the final write timestamp.
+  [Microsoft file times documentation](https://learn.microsoft.com/en-us/windows/win32/sysinfo/file-times)
+- Linux Python 3.11–3.14 each ran 2,426 tests successfully, including seven
+  or eight skips per version. Both smoke tests and the clean-install wheel
+  and sdist interruption checks passed. Receipts from the previous checkpoint
+  restored the exact original files. A forced exit left the project lock's
+  companion lock in place. Undo recovered once the test cleared that lock.
+
+## 2026-11-20 — Keep pin undo available after an interrupted write
+
+- Reproduced a pin being saved when finalizing its receipt failed. Undo used
+  to refuse the pending receipt. The file now carries the exact plan ID and
+  the pre-write receipt can be used once the new file is in place.
+- Undo checks the current file, the matched plan and the retained preimage.
+  An older interrupted unpin cannot undo a later unpin of the same skill.
+  Earlier confirmed receipts still match by their saved hash. If updating a
+  consumed receipt fails after restoring the pin, undo reports the successful
+  restore and emits a diagnostic for the receipt.
+- Both clean-installed packages restored the exact original pin file from a
+  separate CLI process after interrupted unpin. Linux Python 3.11–3.14 each
+  ran 2,423 tests with no failures, and both smokes passed.
+
+## 2026-11-20 — Restore full archive metadata before replacing skills
+
+- A full import used to replace active skills before a metadata write could
+  fail and return an error without a skill result. The rollback group for
+  trash, templates and catalog now completes first. A later per-skill
+  replacement still produces an individual success or skip result.
+- Fixtures deny a template copy and trash index update. The original skill,
+  binary companion and history survive, and new skills are left uninstalled.
+  A retry restores the archive. An active and trashed copy of the same name
+  remain distinct and the active copy owns the index row.
+- Duplicate trash or template labels now fail preflight before installation.
+- Both failures reproduced on the previous checkpoint. Linux Python
+  3.11–3.14 each ran 2,419 tests without a failure. Store and web smokes
+  passed. Both unpublished 1.1.0 packages passed all four targeted
+  full-restore checks after clean installation.
+
+## 2026-11-20 — Keep failed imports from replacing skills
+
+- Forced full imports check existing trash, template and catalog destinations
+  before any active-skill installation. The metadata restore rechecks those
+  destinations under its mutation locks before replacing them.
+- Import writes the skill row and its history in the same SQLite transaction
+  while the original files are still available for rollback. A regression
+  test denies history inserts through SQLite and verifies that the original
+  disabled document, binary companion, index row and history survive. The
+  same archive imports successfully once writes are allowed.
+- Both Recovery interfaces display the import result beside the controls.
+  In Chrome, one real synthetic full import installed a skill, restored a
+  trash entry, template and catalog, and reported why another skill was
+  skipped. An invalid archive left an alert visible in v2.
+- Linux Python 3.11–3.14 each ran 2,417 tests without a failure. Store and
+  web smokes passed, as did 49 v2 and 39 classic Chrome checks. Both
+  unpublished 1.1.0 packages passed five archive regressions after a clean
+  install. The package, complexity, documentation, workflow and lint checks
+  also passed.
+
+## 2026-11-20 — Verify primary documents and protect backup destinations
+
+- Reproduced an export that listed a skill whose document vanished after
+  inventory. Export now validates the primary document bytes written for each
+  active skill with the importer's rules. Missing or conflicting documents and
+  empty listed trash entries fail before publication.
+- Reproduced an explicit export into a live skill document. Destination
+  validation now protects the library, recovery folders, catalog and SQLite
+  files. A check of the resolved parent also covers writes through a directory
+  alias while allowing ordinary backup destinations.
+- Manifest and catalog JSON recursion errors use the existing import
+  preflight diagnostics. Tests inject the decoder error and verify that no
+  skill is installed.
+- Linux Python 3.11–3.14 each ran 2,414 tests without a failure. Both smokes
+  and the clean-installed wheel and source archive passed. The CLI refused
+  a backup destination on a live skill, and the web route returned HTTP 400
+  for an invalid document without sending an archive.
+
+## 2026-11-20 — Preserve concurrent backups and validate archive paths
+
+- Reproduced two same-second default backups returning the same path. The
+  backup directory lock now covers name selection and publication after TAR
+  verification. Existing names include dangling links, which reserve their
+  own path without being followed.
+- Six simultaneous processes with the same default timestamp published six
+  different TAR files. All six passed archive validation.
+- TAR and ZIP preflight reject a file that conflicts with an explicit or
+  implicit directory before extracting members. On Windows the same checks
+  reject reserved components, duplicate file names with different casing,
+  and directory case aliases.
+  [Windows filename rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
+- Linux Python 3.11–3.14 each ran 2,408 tests without a failure. The Windows
+  path rules were exercised in the Linux suite. Both smokes, the shared
+  temporary-root test, documentation, complexity, workflow and lint checks
+  passed. The current tree also restored the 10,000-file and 120-template
+  fixture under the 64-descriptor limit.
+- The clean-installed wheel and source distribution passed full backup recovery
+  and restored the 1.0.2 archive. The unpublished artifacts and logs are in
+  `backup-address-verification` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+
+## 2026-11-20 — Make exported backups restorable at larger file counts
+
+- Reproduced a successful TAR export that its own importer rejected at 200
+  members. TAR now permits 12,000 members and 12,000 directories under fixed
+  byte, nesting and compression limits. ZIP retains its 200-member limit.
+  Export applies the importer's resource checks before publishing the archive.
+- Export hashes the paths and bytes it saves, records hardlinked file contents
+  as regular files, and omits install-local evidence. Clean installs of both
+  candidate packages restored an archive from the published 1.0.2 CLI whose
+  legacy manifest included a source-lock file. The restored skill and binary
+  reference matched the original and the source-lock file was removed.
+- A Linux tmpfs fixture exported 10,000 references and 120 templates in
+  2.672 seconds. Import took 5.396 seconds under a soft limit of 64 open
+  descriptors. Reference hashes and template bytes matched and Store doctor
+  passed. A shared template-directory lock replaces the per-file import locks.
+- The unpublished packages and round-trip logs are in
+  `archive-portability-verification` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+- Linux Python 3.11–3.14 each ran 2,403 tests with no failures. The shared
+  temporary-root test, both smokes, Ruff, Bandit on the touched runtime modules,
+  documentation, complexity and workflow checks also passed.
+
+## 2026-11-20 — Preserve original files across failed archive imports
+
+- Reproduced two failures with disposable libraries. Full import left a
+  template absent after a replacement rename failed. Ordinary import erased
+  the displaced skill and its supporting file when both replacement and
+  rollback were denied.
+- Both paths stage beside the destination and record the swap before the
+  first rename. A blocked rollback keeps the private backup and reports its
+  location. Index resync and later import attempts preserve that directory.
+- Full-backup trash, templates and catalog metadata roll back together on
+  publication failure or an index reconciliation error. Catalog restore
+  requires the declared metadata file and preserves companion files beside
+  it. The per-skill import locks the destination and shares the index lock.
+- Restored across separate staging and destination mounts. In five pairs of
+  simultaneous CLI imports, exactly one installed the skill and exactly one
+  restored the catalog. Both fresh package installs recovered the active
+  skill, binary supporting file, template, catalog and trash from a full
+  backup. The unpublished packages and logs are in
+  `archive-import-verification` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+- Linux Python 3.11–3.14 each ran 2,396 tests without a failure. The shared
+  temporary-root trust test passed separately on all four versions. Store
+  and web smokes, documentation, complexity and workflow checks passed.
+
+## 2026-11-20 — Verify release recovery and public artifact identity
+
+- Reproduced a failed source-package install on a fresh Python 3.12 venv.
+  The installer now provisions the hash-locked build toolchain and installs
+  the local source archive with dependency and index lookup disabled. A local
+  wheelhouse also allows the toolchain bootstrap to run without an index.
+  [Python 3.12 venv dependency changes](https://docs.python.org/3.12/library/venv.html)
+- The CI and release jobs run the packaged recovery probe against both exact
+  artifacts. Both verified CLI creation, trash and byte-for-byte restore of
+  the document and supporting file. The release gate also runs the existing
+  offline AI probe on the exact wheel.
+- After PyPI publication, a read-only job compares the listed hashes and
+  downloads of both distributions. GitHub Release creation depends on that
+  check. The write-capable job uploads the two tested artifacts. The new
+  verifier passed against the independently downloaded GitHub assets for
+  the existing 1.0.2 release. [PyPI release API](https://docs.pypi.org/api/json/#get-a-release)
+- The unpublished 1.1.0 wheel and source distribution, with checksums, are
+  in `release-recovery-verification` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+- The full suite ran 2,388 tests per interpreter on Linux Python 3.11–3.14
+  with no failures. The shared temporary-directory trust test also passed
+  separately on all four versions. The workflow syntax check passed locally.
+
+## 2026-11-20 — Make archive preview evidence explicit
+
+- Archive previews now retain scope-scan diagnostics and distinguish
+  scanned, missing, partial, shared and unscanned roots. Real CLI fixtures
+  covered an empty directory, a file in place of a scope root, aliases
+  to one physical directory and a later scope omitted by the row limit.
+- Project-scope reader hints now use the documented project-relative roots
+  in the consumer catalog. A row with a cached name match identifies that
+  evidence separately from a recent primary document modification. Exact
+  copy attribution and continuous usage and edit/install coverage remain
+  unverified.
+- Both unpublished 1.1.0 packages reproduced the JSON and text results in
+  clean installs. Previewing the synthetic library preserved skill files,
+  the transcript and the usage cache, and created no index. Store and web
+  smokes, the offline AI probe and static checks passed. The packages and
+  hashes are in `archive-preview-evidence` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+- The Linux suite ran 2,381 tests per interpreter on Python 3.11 through
+  3.14 with zero failures and seven or eight skips. The shared sticky
+  temporary-directory check passed separately on `/tmp` for all four.
+
+## 2026-11-20 — Resume transcript discovery across projects
+
+- Directory discovery now yields transcripts as it finds them and keeps
+  earlier events when later discovery reaches the deadline. A separate
+  metadata limit bounds directory walks. When the file budget is reached,
+  the next refresh can resume by numeric position without saving project
+  or transcript names. Resumed coverage remains partial.
+- A synthetic collection of 10,001 transcripts across 101 project folders
+  counted 10,000 events on the first refresh and one on the second. A third
+  refresh preserved the count. Regressions cover cursor wrap after a library
+  shrinks and bounded per-agent file marks.
+- Multi-agent refreshes rotate their starting agent after reaching the
+  shared byte or time limit. Regressions cover an active Claude Code source
+  and a waiting Command Code event, and confirm that deferral keeps the
+  waiting source's saved position. Report order follows the caller's selection.
+- A fresh wheel and source distribution passed installed CLI pagination and
+  cross-agent rotation checks, plus the earlier long-file, OpenCode and
+  repeated-agent checks. Store and web smokes, the offline AI probe and the
+  documentation, complexity, Ruff and Bandit checks passed. The unpublished
+  candidate and checksums are in `fair-transcript-refresh` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+- The first verification attempt encountered a full filesystem. After
+  cleaning generated fixtures and install environments, the Linux suite ran
+  2,377 tests per interpreter on Python 3.11 through 3.14 in a private
+  temporary directory, with zero failures and seven or eight skips. The
+  shared-sticky-directory check skipped there and passed separately on
+  `/tmp` on all four interpreters.
+
+## 2026-11-20 — Forward progress within usage scan budgets
+
+- JSONL refreshes count complete records within the available byte and time
+  budgets. Each refresh resumes at the saved position. Reaching a deadline
+  preserves events already counted. A single 35,651,966-byte synthetic
+  session was read in two default-budget refreshes. A separate 10,000-record
+  fixture reached all counts in five refreshes at a 450,000-byte scan budget.
+  Repeated refreshes left counts stable.
+- Long JSONL sessions can exceed one refresh's per-file budget. An oversized
+  record stays in discard mode until its newline, even across refreshes.
+  Synthetic regressions cover a valid-looking JSON suffix that must be
+  skipped and a valid event on the next line that must be counted. Repeating
+  an agent selection now spends the same budget as selecting it once.
+- OpenCode reports prioritize the current table and newest inserted rows
+  within each table. Timed-out reads retain events extracted before the
+  deadline after verifying the database snapshot was stable. Tests also
+  interrupted a live SQLite query and checked its retained evidence.
+- Both unpublished 1.1.0 packages passed package-data and clean-install
+  checks, including the long JSONL session and a read-only, byte-limited
+  OpenCode scan and repeated `--agent` flags. The wheel passed offline AI
+  verification. The packages and checksums are in `usage-scan-budgets` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+- The Linux suite ran 2,370 tests on each of Python 3.11, 3.12, 3.13 and
+  3.14 with zero failures. Python 3.11 through 3.13 had seven skips each
+  and Python 3.14 had six. Store and web smokes, documentation, complexity,
+  Ruff, Bandit and design token checks passed.
+
+## 2026-11-20 — HTTP response cleanup and documentation links
+
+- The AI provider and registry clients close HTTP error responses as soon
+  as the status, headers and required body details have been read. Three
+  cases reproduced the leaked response, then passed with the fix. The AI
+  transport and registry suite ran 50 tests on Python 3.14 without resource
+  warnings. Both exact release artifacts passed clean-install checks for
+  error response closure, along with the earlier usage and archive cases.
+  [Python HTTPError response contract](https://docs.python.org/3.14/library/urllib.error.html#urllib.error.HTTPError)
+- The documentation gate now resolves Markdown anchors in directly linked
+  repository files when Git discovery fails. A real link from the study docs
+  to the OpenCode probe instructions exposed the error. Regression tests
+  verify valid and missing anchors and keep linked reads inside the repository.
+- The final Python 3.12 run completed 2,362 tests with seven skips and zero
+  failures. The 23 focused checks also passed on Python 3.11, 3.13 and 3.14.
+  The documentation gate passed with Git and with an empty executable search
+  path. Ruff, complexity, offline AI evidence and release contract checks passed.
+- Chromium and Firefox each passed 49 v2 scenarios and 39 classic scenarios,
+  covering 349 assertions per classic run. The unpublished packages, their
+  hashes and the browser reports are in `http-response-cleanup` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+- Two builds with the pinned toolchain produced identical member contents
+  in both distributions. The wheel metadata timestamps and the sdist gzip
+  timestamps differed, changing both archive hashes. The lock now documents
+  the release workflow's build-once artifact identity guarantee.
+
+## 2026-11-20 — Resume bounded transcript refreshes
+
+- A JSONL refresh now resumes from the saved offset when the prior scan
+  stopped at an unfinished append. Comparing the previously read prefix
+  also lets a short transcript grow without restarting from byte zero.
+  Successfully resuming after a skipped oversized or malformed record
+  keeps the source marked partial.
+- Two regressions reproduced the missing events when only the appended
+  record fit the remaining budget. Both now pass. The focused usage and
+  lifecycle suite passed 45 tests on each supported Python version, 3.11
+  through 3.14. The full suite ran 2,358 tests on each version with zero
+  failures. Python 3.11 through 3.13 had seven skips each and Python 3.14
+  had six. The Store and web smokes and the documentation, complexity, Ruff
+  and design gates passed.
+- Rebuilt the unpublished 1.1.0 wheel and sdist and verified both in clean
+  environments. Each found OpenCode's selected database and its activation,
+  showed the archive evidence gaps, and resumed a capped JSONL refresh.
+  The wheel passed the offline AI verification. Packages and checksums are
+  in `archive-and-usage-refresh` under
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+
+## 2026-11-20 — OpenCode consent and archive evidence
+
+- Usage consent follows an absolute `XDG_DATA_HOME` and a configured
+  `OPENCODE_DB`. Changed roots require new consent. A cached report suppresses
+  evidence if the cache belongs to a different root. An authorized refresh
+  rebuilds that agent's aggregates from the consented root.
+- The read-only OpenCode reader now counts durable explicit skill activations
+  alongside completed skill-tool calls. In an isolated OpenCode 2.3.2 run,
+  an explicit activation with `resume: false` appeared exactly once in each
+  of two refreshes. The SQLite database hash stayed identical across refreshes.
+  [OpenCode database selection](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/cli/src/database-path.ts)
+- Archive previews show documented scope consumers and each reader's coverage
+  status. Modification evidence is compared in UTC even if a timestamp
+  carries a local offset. Consumer mapping is partial and continuous usage
+  and edit/install evidence remain unverified, so archive moves stay gated.
+- The full Python 3.12 suite ran 2,356 tests with seven skips and zero failures.
+  The 43 focused usage and lifecycle tests also passed on Python 3.11, 3.13
+  and 3.14. Store and web smokes, documentation, static, complexity and offline
+  AI evidence gates passed. The rebuilt unpublished 1.1.0 wheel and sdist
+  passed package-data checks and clean-install consent, usage and archive
+  preview checks. Packages and checksums are in `archive-evidence-refresh`
+  under `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+
+## 2026-11-20 — Native replay and moderated pilot fixture
+
+- Replayed all 12 saved prompts through OpenCode 2.3.2 in a loopback-only
+  namespace, with a fresh home and project for each case. The four skill names
+  and descriptions matched the saved simulation listing. Across 32 scripted
+  provider requests, eight cases completed a skill call and carried its body
+  into the follow-up request. Four cases stopped without a skill call. Two
+  replay reports were byte-identical. The saved report is
+  `~/skills-manager-artifacts/2026-11-20-fidelity-replay/opencode-offline-replay.json`.
+  The stub scripted the outcomes. An attended provider run is still needed
+  for any same-model agreement rate.
+- The v2 test launcher can keep a seeded fixture open for a moderated pilot.
+  Fixture processes use private agent roots and a server environment without
+  inherited provider credentials or proxy settings. The browser rehearsal
+  synced the synthetic Codex copy, confirmed that Recovery refuses to
+  overwrite an occupied folder, and restored the original text and companion
+  file after the synced copy was moved aside. Ctrl-C stopped the server.
+- Fixed an obscured Inbox Sync button found during the rehearsal. Document
+  scroll padding now keeps controls clear of the sticky header and phone
+  navigation. The regression reproduced the desktop failure at `80f1dd8`
+  and passed on the working tree in Chromium and Firefox, at 1280 × 577 and
+  390 × 577. [W3C focus visibility guidance](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)
+- Closed [issue #14](https://github.com/udayvarmora07/skills-manager/issues/14)
+  after confirming both Host-header cases were covered on `main`.
+- Rebuilt the unpublished 1.1.0 candidate with the scroll fix. Both exact
+  artifacts passed the package-data gate, clean installs and installed CSS
+  checks. The wheel passed the offline provider smoke. The refreshed
+  checksums and packages are in the `pilot-and-focus-refresh` subfolder of
+  `~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+
+The final local suite ran 2,352 tests on Python 3.12 with seven skips and
+zero failures. Chromium and Firefox passed 49 v2 scenarios each. Headed
+Chrome passed actual 200% and 400% zoom. The web smoke, AI evidence,
+documentation, design token, complexity and static checks passed.
+
+## 2026-11-20 — Usage, Sync and release-candidate review
+
+- Verified the original Windows and browser fixes on
+  [CI for `80f1dd8`](https://github.com/udayvarmora07/skills-manager/actions/runs/44743791588).
+  All 16 jobs passed. The F-1 and F-2 Host behavior reported in issue #14
+  is covered by the current web-client contracts.
+- Checked OpenCode 2.3.2 through the isolated fake provider and the database
+  it wrote. Both usage refreshes counted the one completed synthetic skill
+  call and left the database hash unchanged. The reader supports legacy
+  rows and checkpointed assistant messages, retains partial coverage for
+  capped scans, and ignores timestamps outside the report's UTC window.
+  The archive move remains gated on continuous evidence for all consumers.
+- The v2 reader guards repeated Sync clicks. Recovery identifies previous
+  copies saved by Sync, and the affected surfaces explain when to use the
+  full folder in Recovery instead of text Undo.
+- Set the local candidate version to 1.1.0 and retained the current PyPI
+  distribution. Both publication jobs pin the reviewed v1.14.3 commit of
+  the PyPI publish action. A matching version tag triggers the workflow,
+  with TestPyPI preceding PyPI. [Upstream release](https://github.com/pypa/gh-action-pypi-publish/releases/tag/v1.14.3)
+- Retained the tracked `.specs/` evidence and Git history. Recorded the
+  product and market decisions in docs/27 and docs/45. No buyer demand or
+  participant evidence was added.
+- Approved the nine-image `d2257c8` pilot package for dated product
+  illustrations. Verified each PNG's hash, size and metadata, and inspected
+  the captures, including the disposable path in the Inbox. The ZIP's
+  SHA-256 is `551858fffabbd8246f4137182ed32e6e8c60b6614a57bf61f1ffa149f875c8a2`.
+  The captions name the older checkpoint. Participant and human accessibility
+  checks remain open.
+
+Local verification ran 2,348 cases on Python 3.12 (7 skips, zero failures)
+and 123 focused cases each on Linux Python 3.11, 3.13 and 3.14. Both smokes,
+Ruff, Bandit, syntax, complexity, docs, design tokens and offline AI
+evidence checks passed. The Chrome and Firefox v2 suites passed 48
+scenarios each. Classic passed 349 assertions in each engine. Headed
+Chrome passed actual 200% and 400% zoom on the six main routes. A synthetic
+10,000-activation fixture kept one count per activation across concurrent
+refreshes. The new usage and repeated Sync regressions failed against
+`80f1dd8` and passed with these changes.
+
+The hash-locked 1.1.0 wheel and source distribution passed the exact
+package-data gate, clean installs, and installed CLI creation, reading, and
+lifecycle report checks. The wheel passed the offline provider test. The
+checksummed artifacts are in
+`~/skills-manager-artifacts/2026-11-20-release-candidate-1.1.0/`.
+
 ## 2026-11-20 — Windows CI follow-up and offline fidelity probe
 
 - GitHub CI reproduced the same four failing tests on Windows 3.11 and

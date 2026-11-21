@@ -9,7 +9,7 @@
 ```text
 skills-manager/
   skillsmgr/
-    __init__.py      # __version__ = "1.0.2"
+    __init__.py      # __version__ = "1.1.0"
     __main__.py      # entry: python3 -m skillsmgr -> cli.main()
     cli.py           # stable adapter: main/build_parser + public handler exports
     cli_parser.py    # argparse construction; command inventory in docs/03

@@ -63,6 +63,41 @@ class NativeWrites(unittest.TestCase):
             undo_native(applied['backup_id'], self.data)
         self.assertEqual(self.path.read_text(), '{"other": 2}')
 
+    def test_completed_native_rename_can_be_undone_after_interruption(self):
+        before = b'{"other": 42}\n'
+        self.path.write_bytes(before)
+        self.path.chmod(0o640)
+        plan = self.preview()
+        replace = os.replace
+
+        def interrupt_after_replace(source, destination, **kwargs):
+            replace(source, destination, **kwargs)
+            if destination == self.path.name:
+                raise KeyboardInterrupt
+
+        with mock.patch("skillsmgr.native_profiles.os.replace", side_effect=interrupt_after_replace):
+            with self.assertRaises(KeyboardInterrupt):
+                self.apply(plan)
+        receipt, = (self.data / "native-backups").glob("*.json")
+        self.assertNotEqual(self.path.read_bytes(), before)
+        self.assertEqual(undo_native(receipt.stem, self.data)["status"], "undone")
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o640)
+
+    def test_native_undo_refuses_a_byte_identical_replacement(self):
+        self.path.write_text('{}')
+        applied = self.apply(self.preview())
+        output = self.path.read_bytes()
+        info = self.path.stat()
+        replacement = self.path.with_name('external.json')
+        replacement.write_bytes(output)
+        replacement.chmod(stat.S_IMODE(info.st_mode))
+        os.utime(replacement, ns=(info.st_atime_ns, info.st_mtime_ns))
+        os.replace(replacement, self.path)
+        with self.assertRaisesRegex(NativeProfileError, 'file was replaced'):
+            undo_native(applied['backup_id'], self.data)
+        self.assertEqual(self.path.read_bytes(), output)
+
     def test_refuses_noncanonical_json_and_symlinks(self):
         for data in ('{ "other": 1 }', '{"x":1,"x":2}', '{/* comment */}'):
             self.path.write_text(data)
@@ -147,9 +182,10 @@ class NativeWrites(unittest.TestCase):
         from skillsmgr import native_profiles
         original = native_profiles._write_new
         def mutate(fd, name, data, mode):
-            original(fd, name, data, mode)
+            info = original(fd, name, data, mode)
             if name.startswith('.skills-manager-'):
                 self.path.write_text('{"other": 3}')
+            return info
         with mock.patch.object(native_profiles, '_write_new', side_effect=mutate):
             with self.assertRaises(NativeProfileError):
                 self.apply(plan)

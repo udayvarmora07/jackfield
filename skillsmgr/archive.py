@@ -5,20 +5,30 @@ from __future__ import annotations
 import bz2
 import contextlib
 import gzip
+import hashlib
+import io
+from itertools import zip_longest
 import lzma
+import ntpath
+import os
 import re
 import shutil
+import stat
 import tarfile
+import tempfile
 import zipfile
 import zlib
+from collections.abc import Iterator
 from pathlib import Path
 
 from . import __version__
 from . import path_safety
 from .errors import StoreError
 from .sidecar_binding import MANAGER_SIDECARS
-from .atomic_io import tree_hash_matches
+from .atomic_io import is_sha256_hex, strict_regular_tree_files, tree_content_hash, tree_hash_matches
 from .diagnostics import diagnose as _diagnose
+from .documents import ACTIVE_DOCUMENT, DISABLED_DOCUMENT, DOCUMENT_NAMES
+from .file_reads import read_regular_file_with_stat
 from .frontmatter import FrontmatterError, parse_frontmatter
 from .validator import validate_skill_name
 
@@ -27,19 +37,32 @@ class ArchiveError(StoreError):
     """Raised for archive validation or extraction failures (a ``StoreError``)."""
 
 
+class BackupSourceChanged(ArchiveError):
+    """The staged export observed concurrent source changes and can be retried."""
+
+    status = 409
+    code = "backup_source_changed"
+
+
 MAX_ARCHIVE_COMPRESSED_BYTES = 25 * 1024 * 1024
 MAX_ARCHIVE_EXPANDED_BYTES = 16 * 1024 * 1024
 MAX_ARCHIVE_MEMBER_BYTES = 8 * 1024 * 1024
-MAX_ARCHIVE_MEMBERS = 200
+MAX_ARCHIVE_MEMBERS = 12_000
+MAX_ARCHIVE_DIRECTORIES = 12_000
+MAX_ZIP_ARCHIVE_MEMBERS = 200
 MAX_ARCHIVE_PATH_LENGTH = 512
 MAX_ARCHIVE_NESTING = 16
 MAX_ARCHIVE_COMPRESSION_RATIO = 1000
+_WINDOWS_PATHS = os.name == "nt"
+_WINDOWS_DEVICE_NAMES = frozenset({"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"} | {
+    f"{prefix}{digit}" for prefix in ("COM", "LPT") for digit in "123456789¹²³"
+})
+_WINDOWS_RESERVED_CHARACTERS = frozenset('<>:"|?*')
 # Hard ceiling on how far into the *decompressed* tar stream any read may
 # reach.  The expanded-size budget counts member payloads only; headers,
-# PAX/GNU long-name records and 512-byte padding ride on top of it.  Each of
-# the 200 permitted members may cost a few header blocks, so 8 MiB of slack is
-# generous for a valid archive and still bounds a hostile one (R1/S1).
-MAX_ARCHIVE_DECOMPRESSED_BYTES = MAX_ARCHIVE_EXPANDED_BYTES + 8 * 1024 * 1024
+# PAX/GNU long-name records and 512-byte padding ride on top of it. Keep a
+# separate cap on that overhead as well as the individual payload budgets.
+MAX_ARCHIVE_DECOMPRESSED_BYTES = MAX_ARCHIVE_EXPANDED_BYTES + 24 * 1024 * 1024
 
 _TAR_DECOMPRESSION_ERRORS = (
     tarfile.TarError,
@@ -70,14 +93,17 @@ def strip_manager_sidecars(root: Path) -> list[str]:
     Symlinks are unlinked, never followed.  A sidecar name used by a directory
     is removed as a tree, because nothing legitimate is stored under it.
     """
+    return _strip_sidecars(root, _sidecar_paths(root))
+
+
+def _sidecar_paths(root: Path) -> list[Path]:
+    return [path for path in root.rglob("*") if path.name in MANAGER_SIDECARS]
+
+
+def _strip_sidecars(root: Path, candidates: list[Path]) -> list[str]:
     removed: list[str] = []
     try:
-        candidates = sorted(
-            (path for path in Path(root).rglob("*") if path.name in MANAGER_SIDECARS),
-            key=lambda item: len(item.parts),
-            reverse=True,
-        )
-        for path in candidates:
+        for path in sorted(candidates, key=lambda item: len(item.parts), reverse=True):
             if path.is_dir() and not path.is_symlink():
                 shutil.rmtree(path)
             else:
@@ -86,6 +112,22 @@ def strip_manager_sidecars(root: Path) -> list[str]:
     except OSError as exc:
         raise ArchiveError(f"could not remove manager evidence from intake: {exc}") from exc
     return removed
+
+
+def sanitize_import_tree(root: Path, skills: list[dict]) -> None:
+    """Drop manager sidecars and normalize valid legacy hashes that included them."""
+    sidecars = _sidecar_paths(root)
+    affected: set[str] = set()
+    for path in sidecars:
+        parts = path.relative_to(root).parts
+        if len(parts) >= 3 and parts[0] == "skills":
+            affected.add(parts[1])
+    for entry in skills:
+        name, expected = entry["name"], entry.get("content_hash")
+        source = root / "skills" / name
+        if name in affected and expected and tree_hash_matches(source, expected):
+            entry["content_hash"] = tree_content_hash(source, exclude=MANAGER_SIDECARS)
+    _strip_sidecars(root, sidecars)
 
 
 def normalize_member_name(name: str) -> str:
@@ -104,9 +146,25 @@ def normalize_member_name(name: str) -> str:
         raise ArchiveError(f"unsafe archive member: {name!r}")
     normalized = name.rstrip("/")
     parts = normalized.split("/") if normalized else []
-    if not parts or any(part in ("", ".", "..") for part in parts):
+    if not parts or any(_unsupported_member_component(part) for part in parts):
         raise ArchiveError(f"unsafe archive member: {name!r}")
     return "/".join(parts)
+
+
+def _unsupported_member_component(part: str) -> bool:
+    if part in ("", ".", ".."):
+        return True
+    if not _WINDOWS_PATHS:
+        return False
+    return (
+        part.endswith((" ", "."))
+        or part.split(".", 1)[0].rstrip(" ").upper() in _WINDOWS_DEVICE_NAMES
+        or any(char in _WINDOWS_RESERVED_CHARACTERS or ord(char) < 32 for char in part)
+    )
+
+
+def _member_path_key(name: str) -> str:
+    return ntpath.normcase(name) if _WINDOWS_PATHS else name
 
 
 def _validate_archive_limits(
@@ -115,25 +173,26 @@ def _validate_archive_limits(
     compressed_size: int,
     seen: set[str],
     expanded_size: int,
-    ratio_compressed_size: int | None = None,
+    *,
+    max_members: int,
 ) -> tuple[str, int]:
     if len(name) > MAX_ARCHIVE_PATH_LENGTH:
         raise ArchiveError(f"archive member path is too long: {name!r}")
     normalized = normalize_member_name(name)
     if len(normalized.split("/")) > MAX_ARCHIVE_NESTING:
         raise ArchiveError(f"archive member path is nested too deeply: {name!r}")
-    if normalized in seen:
+    key = _member_path_key(normalized)
+    if key in seen:
         raise ArchiveError(f"duplicate archive member: {normalized!r}")
-    seen.add(normalized)
-    if len(seen) > MAX_ARCHIVE_MEMBERS:
-        raise ArchiveError(f"archive has too many members (max {MAX_ARCHIVE_MEMBERS})")
+    seen.add(key)
+    if len(seen) > max_members:
+        raise ArchiveError(f"archive has too many members (max {max_members})")
     if file_size > MAX_ARCHIVE_MEMBER_BYTES:
         raise ArchiveError(f"archive member exceeds {MAX_ARCHIVE_MEMBER_BYTES} bytes: {normalized!r}")
     expanded_size += file_size
     if expanded_size > MAX_ARCHIVE_EXPANDED_BYTES:
         raise ArchiveError(f"archive expanded size exceeds {MAX_ARCHIVE_EXPANDED_BYTES} bytes")
-    ratio_size = compressed_size if ratio_compressed_size is None else ratio_compressed_size
-    if expanded_size > max(ratio_size, 1) * MAX_ARCHIVE_COMPRESSION_RATIO:
+    if expanded_size > max(compressed_size, 1) * MAX_ARCHIVE_COMPRESSION_RATIO:
         raise ArchiveError(f"archive compression ratio exceeds {MAX_ARCHIVE_COMPRESSION_RATIO}:1")
     return normalized, expanded_size
 
@@ -177,6 +236,39 @@ def _validate_archive_layout(normalized: str, is_dir: bool, is_file: bool) -> No
             raise ArchiveError(f"template archive entry must be a regular file: {normalized!r}")
     else:
         raise ArchiveError(f"unexpected archive layout: {normalized!r}")
+
+
+class _ArchivePaths:
+    """Track explicit and implicit paths before anything is extracted."""
+
+    def __init__(self) -> None:
+        self.files: set[str] = set()
+        self.directories: dict[str, str] = {}
+
+    def add(self, name: str, *, is_directory: bool) -> None:
+        if is_directory:
+            self._add_directories(name)
+            return
+        key = _member_path_key(name)
+        if key in self.directories:
+            raise ArchiveError(f"archive path is both a file and a directory: {name!r}")
+        self.files.add(key)
+        self._add_directories(name.rpartition("/")[0])
+
+    def _add_directories(self, directory: str) -> None:
+        while directory:
+            key = _member_path_key(directory)
+            previous = self.directories.get(key)
+            if previous is not None:
+                if previous != directory:
+                    raise ArchiveError(f"archive directory aliases {previous!r}: {directory!r}")
+                return
+            if key in self.files:
+                raise ArchiveError(f"archive path is both a file and a directory: {directory!r}")
+            self.directories[key] = directory
+            if len(self.directories) > MAX_ARCHIVE_DIRECTORIES:
+                raise ArchiveError(f"archive has too many directories (max {MAX_ARCHIVE_DIRECTORIES})")
+            directory = directory.rpartition("/")[0]
 
 
 class _BoundedReader:
@@ -314,21 +406,188 @@ def validate_members(tar: tarfile.TarFile, compressed_size: int) -> list[tuple[t
         raise ArchiveError(f"archive compressed size exceeds {MAX_ARCHIVE_COMPRESSED_BYTES} bytes")
     members: list[tuple[tarfile.TarInfo, str]] = []
     seen: set[str] = set()
+    paths = _ArchivePaths()
     expanded_size = 0
     manifest_count = 0
     for member in _iter_tar_members(tar):
         if not (member.isdir() or member.isreg()):
             raise ArchiveError(f"unsupported archive member type: {member.name!r}")
         normalized, expanded_size = _validate_archive_limits(
-            member.name, member.size if member.isreg() else 0, compressed_size, seen, expanded_size
+            member.name, member.size if member.isreg() else 0, compressed_size, seen, expanded_size,
+            max_members=MAX_ARCHIVE_MEMBERS,
         )
         _validate_archive_layout(normalized, member.isdir(), member.isreg())
+        paths.add(normalized, is_directory=member.isdir())
         if normalized == "manifest.json":
             manifest_count += 1
         members.append((member, normalized))
     if manifest_count != 1:
         raise ArchiveError("archive must contain exactly one manifest.json")
     return members
+
+
+def _export_revision(info: os.stat_result) -> tuple[int, ...]:
+    # Windows can infer executable bits from the filename for a path stat.
+    return info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode), info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+
+def _export_source_changed(path: Path) -> BackupSourceChanged:
+    return BackupSourceChanged(f"backup source changed during export: {path}; retry after changes finish")
+
+
+def _export_file_revision(path: Path) -> tuple[int, ...] | None:
+    try:
+        return _export_revision(path.lstat())
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ArchiveError(f"could not inspect backup source: {path}") from exc
+
+
+_ExportRootRevision = tuple[tuple[int, ...], frozenset[str] | None] | None
+
+
+def _export_root_revision(path: Path) -> _ExportRootRevision:
+    try:
+        metadata = path.stat()
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ArchiveError(f"could not inspect backup source: {path}") from exc
+    try:
+        # Directory timestamps can be coarse. Compare actual member names so
+        # moving a skill within one clock tick is still observable.
+        names = frozenset(child.name for child in path.iterdir()) if stat.S_ISDIR(metadata.st_mode) else None
+    except FileNotFoundError as exc:
+        raise _export_source_changed(path) from exc
+    except OSError as exc:
+        raise ArchiveError(f"could not list backup source: {path}") from exc
+    return _export_revision(metadata), names
+
+
+def export_root_revisions(paths: tuple[Path, ...]) -> dict[Path, _ExportRootRevision]:
+    """Observe the roots before listing them, including roots that are absent."""
+    return {path: _export_root_revision(path) for path in paths}
+
+
+def _export_tree_files(root: Path) -> Iterator[Path]:
+    try:
+        yield from strict_regular_tree_files(root, exclude=MANAGER_SIDECARS)
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        raise _export_source_changed(Path(exc.filename or root)) from exc
+    except OSError as exc:
+        raise ArchiveError(f"could not read backup source: {exc.filename or root}") from exc
+
+
+class ExportWriter:
+    """Write bounded regular files and hash exactly the bytes in the archive."""
+
+    def __init__(self, tar: tarfile.TarFile) -> None:
+        self.tar = tar
+        self.seen: set[str] = set()
+        self.paths = _ArchivePaths()
+        self.expanded_size = 0
+        self._source_files: dict[Path, tuple[int, ...]] = {}
+        self._source_trees: dict[Path, tuple[Path, ...]] = {}
+
+    def _header(self, name: str, size: int) -> tarfile.TarInfo:
+        # The finished gzip stream has the exact compressed size. Until it
+        # closes, use the ceiling and enforce the other budgets before reading.
+        normalized, self.expanded_size = _validate_archive_limits(
+            name, size, MAX_ARCHIVE_COMPRESSED_BYTES, self.seen, self.expanded_size,
+            max_members=MAX_ARCHIVE_MEMBERS,
+        )
+        _validate_archive_layout(normalized, False, True)
+        self.paths.add(normalized, is_directory=False)
+        info = tarfile.TarInfo(normalized)
+        info.size = size
+        return info
+
+    def add_bytes(self, name: str, payload: bytes) -> None:
+        self.tar.addfile(self._header(name, len(payload)), io.BytesIO(payload))
+
+    def add_file(self, name: str, source: Path) -> bytes:
+        try:
+            metadata = source.lstat()
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ArchiveError(f"archive source is not a regular file: {name!r}")
+            info = self._header(name, metadata.st_size)
+            data, opened = read_regular_file_with_stat(source, info.size, follow_symlinks=False)
+        except (OSError, ValueError) as exc:
+            raise ArchiveError(f"could not read archive source {name!r}: {exc}") from exc
+        revision = _export_revision(metadata)
+        if len(data) != info.size or _export_revision(opened) != revision:
+            raise _export_source_changed(source)
+        self._source_files[source] = revision
+        info.mode = metadata.st_mode & 0o777
+        info.mtime = int(metadata.st_mtime)
+        self.tar.addfile(info, io.BytesIO(data))
+        return data
+
+    def add_tree(self, prefix: str, root: Path, *, skill_name: str | None = None) -> str:
+        digest = hashlib.sha256()
+        first_member = len(self.seen)
+        primary_names = {_member_path_key(name) for name in DOCUMENT_NAMES}
+        document_written = False
+        captured: list[Path] = []
+        for source in _export_tree_files(root):
+            relative = source.relative_to(root).as_posix()
+            data = self.add_file(f"{prefix}/{relative}", source)
+            captured.append(source)
+            if skill_name is not None and _member_path_key(relative) in primary_names:
+                if document_written:
+                    raise ArchiveError(f"skill directory contains both enabled and disabled documents: {skill_name!r}")
+                _validate_skill_document(data, skill_name)
+                document_written = True
+            digest.update(relative.encode("utf-8"))
+            digest.update(data)
+        if skill_name is not None and not document_written:
+            raise ArchiveError(f"cannot back up skill {skill_name!r}: no regular skill document was read")
+        if len(self.seen) == first_member:
+            raise ArchiveError(f"cannot back up empty archive entry: {prefix!r}")
+        self._source_trees[root] = tuple(captured)
+        return digest.hexdigest()
+
+    def verify_sources(self, roots: dict[Path, _ExportRootRevision]) -> None:
+        """Refuse observed changes before publishing the staged archive."""
+        for root, captured in self._source_trees.items():
+            current = _export_tree_files(root)
+            if any(previous != actual for previous, actual in zip_longest(captured, current)):
+                raise _export_source_changed(root)
+        for source, revision in self._source_files.items():
+            if _export_file_revision(source) != revision:
+                raise _export_source_changed(source)
+        for path, revision in export_root_revisions(tuple(roots)).items():
+            if revision != roots[path]:
+                raise _export_source_changed(path)
+
+
+def verify_export(path: Path) -> None:
+    """Check the compressed size, ratio and decompression overhead before publishing."""
+    with open_tar(path) as tar:
+        validate_members(tar, path.stat().st_size)
+
+
+def _validate_manifest_payload_labels(manifest: dict, field: str) -> None:
+    labels = manifest.get(field)
+    if labels is None:
+        return
+    if not isinstance(labels, list):
+        raise ArchiveError(f"invalid archive manifest: {field} must be a list")
+    seen: set[str] = set()
+    for label in labels:
+        if (
+            not isinstance(label, str)
+            or not label
+            or label.startswith(".")
+            or "\\" in label
+            or Path(label).name != label
+        ):
+            raise ArchiveError(f"invalid archive manifest: {field} entry is not a plain name: {label!r}")
+        key = _member_path_key(label)
+        if key in seen:
+            raise ArchiveError(f"invalid archive manifest: duplicate {field} entry: {label!r}")
+        seen.add(key)
 
 
 def validate_manifest(manifest: object) -> list[dict]:
@@ -354,20 +613,7 @@ def validate_manifest(manifest: object) -> list[dict]:
     if catalog_flag is not None and not isinstance(catalog_flag, bool):
         raise ArchiveError("invalid archive manifest: catalog must be a boolean")
     for field in ("trash", "templates"):
-        value = manifest.get(field)
-        if value is None:
-            continue
-        if not isinstance(value, list):
-            raise ArchiveError(f"invalid archive manifest: {field} must be a list")
-        for item in value:
-            if (
-                not isinstance(item, str)
-                or not item
-                or item.startswith(".")
-                or "\\" in item
-                or Path(item).name != item
-            ):
-                raise ArchiveError(f"invalid archive manifest: {field} entry is not a plain name: {item!r}")
+        _validate_manifest_payload_labels(manifest, field)
     validated: list[dict] = []
     names: set[str] = set()
     for entry in skills:
@@ -392,6 +638,7 @@ def validate_zip_members(
         raise ArchiveError(f"archive compressed size exceeds {MAX_ARCHIVE_COMPRESSED_BYTES} bytes")
     members: list[tuple[zipfile.ZipInfo, str]] = []
     seen: set[str] = set()
+    paths = _ArchivePaths()
     members_info = archive.infolist()
     if any(member.compress_size < 0 or member.file_size < 0 for member in members_info):
         raise ArchiveError("invalid ZIP member size")
@@ -413,8 +660,10 @@ def validate_zip_members(
             compressed_total,
             seen,
             expanded_size,
+            max_members=MAX_ZIP_ARCHIVE_MEMBERS,
         )
         _validate_archive_layout(normalized, is_dir, not is_dir)
+        paths.add(normalized, is_directory=is_dir)
         if normalized == "manifest.json":
             manifest_count += 1
         members.append((member, normalized))
@@ -488,166 +737,182 @@ def extract_members(tar: tarfile.TarFile, dest: Path, members: list[tuple[tarfil
 
 
 def has_skill_document(source: Path) -> bool:
-    enabled = (source / "SKILL.md").is_file()
-    disabled = (source / "SKILL.md.disabled").is_file()
+    enabled = (source / ACTIVE_DOCUMENT).is_file()
+    disabled = (source / DISABLED_DOCUMENT).is_file()
     if enabled and disabled:
         raise ArchiveError(f"skill directory contains both enabled and disabled documents: {source.name!r}")
     return enabled or disabled
 
 
 def validate_imported_skill(source: Path, name: str) -> None:
-    document = source / ("SKILL.md" if (source / "SKILL.md").is_file() else "SKILL.md.disabled")
+    document = source / (ACTIVE_DOCUMENT if (source / ACTIVE_DOCUMENT).is_file() else DISABLED_DOCUMENT)
     try:
-        data, _ = parse_frontmatter(document.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, FrontmatterError) as exc:
+        payload = document.read_bytes()
+    except OSError as exc:
+        raise ArchiveError(f"invalid skill document for {name!r}: {exc}") from exc
+    _validate_skill_document(payload, name)
+
+
+def _validate_skill_document(payload: bytes, name: str) -> None:
+    try:
+        text = payload.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        data, _ = parse_frontmatter(text)
+    except (UnicodeError, FrontmatterError) as exc:
         raise ArchiveError(f"invalid skill document for {name!r}: {exc}") from exc
     if data.get("name") is not None and data.get("name") != name:
         raise ArchiveError(f"skill document name {data.get('name')!r} does not match manifest name {name!r}")
 
 
+def verify_full_skill_hashes(planned: list[tuple[str, Path, dict]]) -> None:
+    """Verify the checksums a full archive supplies before restoring any data."""
+    for name, source, entry in planned:
+        if "content_hash" not in entry:
+            continue  # Full backups from older versions may omit the checksum.
+        expected = entry["content_hash"]
+        if not is_sha256_hex(expected):
+            raise ArchiveError(f"invalid content hash for '{name}'")
+        try:
+            verified = tree_hash_matches(source, expected)
+        except OSError as exc:
+            raise ArchiveError(f"could not verify archived skill '{name}': {exc}") from exc
+        if not verified:
+            raise ArchiveError(f"content hash mismatch for '{name}'")
+
+
 def commit_staged_skill(
     source: Path,
     dest: Path,
-    stage_root: Path,
     expected_hash: str | None,
     *,
+    replace: bool,
     upsert,
-    copytree=None,
-    move=None,
-    rmtree=None,
 ) -> tuple[bool, str | None]:
-    """Commit one staged skill and restore the prior destination on failure."""
-    copytree = copytree or shutil.copytree
-    move = move or shutil.move
-    rmtree = rmtree or shutil.rmtree
-    staged = stage_root / dest.name
-    backup = stage_root / f"{dest.name}.backup"
-    moved_original = False
-    dest_existed = dest.exists()
+    """Install under the caller's destination lock and retain blocked rollbacks."""
+    dest_exists = os.path.lexists(dest)
+    if dest_exists:
+        if not replace:
+            return False, None
+        if not _compatible_destination(source, dest):
+            return False, "the destination must be an unlinked skill directory"
+
+    transaction = None
     try:
-        copytree(source, staged)
-        if expected_hash and not tree_hash_matches(staged, expected_hash):
+        transaction = _stage_replacement(source, dest, copytree=shutil.copytree, copyfile=shutil.copyfile, rmtree=shutil.rmtree)
+        if expected_hash and not tree_hash_matches(transaction / "new", expected_hash):
             raise ArchiveError(f"content hash mismatch for '{dest.name}'")
-        if dest.exists():
-            move(str(dest), str(backup))
-            moved_original = True
-        move(str(staged), str(dest))
+        _publish_replacement(dest, transaction, dest_exists, move=os.replace)
         if expected_hash and not tree_hash_matches(dest, expected_hash):
             raise ArchiveError(f"committed content hash mismatch for '{dest.name}'")
         upsert(dest.name)
-        if backup.exists():
-            rmtree(backup)
-        # The original is gone (replaced by the staged copy and deleted once
-        # the commit succeeded), so there is nothing left to move back: any
-        # later failure -- including an interrupt -- must not try.
-        moved_original = False
-        return True, None
     except BaseException as exc:
-        # BaseException, not Exception: an interrupt (Ctrl-C, SIGTERM-driven
-        # SystemExit) landing in the window where the user's original sits in
-        # *backup* used to escape this handler, and the caller's staged-root
-        # cleanup then deleted the only remaining copy of the skill.  The
-        # rollback must run for interrupts too.
-        if moved_original:
-            # dest now holds (at most) the staged copy we moved in; the user's
-            # original lives in backup, so any partial dest may be discarded
-            # before the original is moved back into place.
-            rmtree(dest, ignore_errors=True)
-            if backup.exists():
-                try:
-                    move(str(backup), str(dest))
-                except Exception as restore_exc:
-                    rmtree(staged, ignore_errors=True)
-                    raise restore_exc from exc
-        else:
-            # No original was moved aside: either staging failed before the
-            # original was ever touched (dest_existed -> it is still the user's
-            # skill and must survive) or the destination is one we created, in
-            # which case a partial commit must be removed.
-            if not dest_existed:
-                rmtree(dest, ignore_errors=True)
-            rmtree(staged, ignore_errors=True)
-            if not isinstance(exc, Exception):
-                raise
-            return False, str(exc)
-        rmtree(staged, ignore_errors=True)
+        retained = _rollback_replacements(
+            [(dest, transaction)] if transaction is not None else [],
+            operation="skill import", move=os.replace, rmtree=shutil.rmtree,
+        )
         if not isinstance(exc, Exception):
             raise
+        if retained:
+            return False, f"{exc}. Recovery files retained at {retained[0]}"
         return False, str(exc)
+    shutil.rmtree(transaction, ignore_errors=True)
+    return True, None
 
 
-def _rollback_full_install(installed: list[tuple[Path, Path | None]], staged: list[Path], *, move, rmtree) -> None:
-    """Undo every payload installed by a failed full-import transaction."""
-    for dest, previous in reversed(installed):
-        rmtree(dest, ignore_errors=True)
-        if previous is not None and previous.exists():
-            try:
-                move(str(previous), str(dest))
-            except OSError as exc:
-                # STORE-14: this used to be a bare ``except OSError: pass``, so a
-                # failed rollback left the user's payload only under a dotted
-                # backup name with nothing said about it.  Every other rollback
-                # in the codebase reports through _diagnose().
-                _diagnose(
-                    f"full-import rollback failed; the previous {dest.name!r} "
-                    f"is still at {previous}",
-                    exc,
-                )
-    for stage in staged:
-        rmtree(stage, ignore_errors=True)
+def _stage_replacement(source: Path, dest: Path, *, copytree, copyfile, rmtree) -> Path:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    transaction = Path(tempfile.mkdtemp(prefix=".skillsmgr-backup.", dir=dest.parent))
+    try:
+        if source.is_dir():
+            copytree(source, transaction / "new")
+        else:
+            copyfile(source, transaction / "new")
+    except BaseException:
+        rmtree(transaction, ignore_errors=True)
+        raise
+    return transaction
+
+
+def _compatible_destination(source: Path, dest: Path) -> bool:
+    return not dest.is_symlink() and (dest.is_dir() if source.is_dir() else dest.is_file())
+
+
+def check_full_destination(source: Path, dest: Path, *, replace: bool) -> bool:
+    """Return whether the exact destination exists and can be replaced if requested."""
+    exists = os.path.lexists(dest)
+    if exists and replace and not _compatible_destination(source, dest):
+        raise ArchiveError(f"cannot replace full archive destination {dest}: expected an unlinked entry of the same type")
+    return exists
+
+
+def _publish_replacement(dest: Path, transaction: Path, dest_exists: bool, *, move) -> None:
+    if dest_exists:
+        move(dest, transaction / "old")
+    move(transaction / "new", dest)
+
+
+def _rollback_replacements(
+    installed: list[tuple[Path, Path]], *, operation: str, move, rmtree
+) -> list[Path]:
+    """Undo completed renames, including a rename interrupted on return."""
+    retained: list[Path] = []
+    for dest, transaction in reversed(installed):
+        stage, backup = transaction / "new", transaction / "old"
+        try:
+            if not os.path.lexists(stage) and os.path.lexists(dest):
+                move(dest, stage)
+            if os.path.lexists(backup):
+                move(backup, dest)
+        except BaseException as exc:
+            retained.append(transaction)
+            _diagnose(f"{operation} rollback failed for {dest}. Inspect {transaction}", exc)
+        else:
+            rmtree(transaction, ignore_errors=True)
+    return retained
 
 
 def restore_full_payload(
     entries: list[tuple[str, str, Path, Path]],
     *,
     replace: bool,
+    reconcile_trash=None,
     move=None,
     rmtree=None,
     copytree=None,
     copyfile=None,
-) -> tuple[list[str], list[str], list[str]]:
+) -> tuple[list[str], list[str], list[str], bool]:
     """Install validated full-import payloads as one all-or-nothing transaction.
 
     ``entries`` are ``(kind, label, source, dest)`` tuples that were validated
     before any mutation. Each payload is staged on the destination filesystem,
     the previous entry is moved aside, and the staged copy is moved into place;
-    any failure rolls back every entry installed by this call and raises
-    :class:`ArchiveError`, so a full import never leaves mixed old/new trash or
-    templates behind.
+    any failure during installation or reconciliation rolls back the swaps. A blocked
+    rollback leaves the original in its private transaction directory and
+    reports the directory in diagnostics.
     """
-    move = move or shutil.move
+    move = move or os.replace
     rmtree = rmtree or shutil.rmtree
     copytree = copytree or shutil.copytree
     copyfile = copyfile or shutil.copyfile
     restored: dict[str, list[str]] = {"trash": [], "templates": [], "catalog": []}
     skipped: list[str] = []
-    installed: list[tuple[Path, Path | None]] = []
-    staged: list[Path] = []
+    installed: list[tuple[Path, Path]] = []
     try:
         for kind, label, source, dest in entries:
-            if (dest.exists() or dest.is_symlink()) and not replace:
+            dest_exists = check_full_destination(source, dest, replace=replace)
+            if dest_exists and not replace:
                 skipped.append(f"{kind}/{label}")
                 continue
-            stage = dest.parent / f".{dest.name}.skillsmgr-stage"
-            backup = dest.parent / f".{dest.name}.skillsmgr-backup"
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            rmtree(stage, ignore_errors=True)
-            staged.append(stage)
-            if source.is_dir():
-                copytree(source, stage)
-            else:
-                copyfile(source, stage)
-            previous = None
-            if dest.exists() or dest.is_symlink():
-                move(str(dest), str(backup))
-                previous = backup
-            move(str(stage), str(dest))
-            installed.append((dest, previous))
+            transaction = _stage_replacement(source, dest, copytree=copytree, copyfile=copyfile, rmtree=rmtree)
+            installed.append((dest, transaction))
+            _publish_replacement(dest, transaction, dest_exists, move=move)
             restored[kind].append(label)
-    except (OSError, shutil.Error) as exc:
-        _rollback_full_install(installed, staged, move=move, rmtree=rmtree)
-        raise ArchiveError(f"could not restore full archive payload: {exc}") from exc
-    rmtree_previous = [previous for _, previous in installed if previous is not None]
-    for previous in rmtree_previous:
-        rmtree(previous, ignore_errors=True)
-    return restored["trash"], restored["templates"], skipped
+        if reconcile_trash is not None:
+            reconcile_trash(restored["trash"])
+    except BaseException as exc:
+        _rollback_replacements(installed, operation="full-import", move=move, rmtree=rmtree)
+        if isinstance(exc, OSError):
+            raise ArchiveError(f"could not restore full archive payload: {exc}") from exc
+        raise
+    for _, transaction in installed:
+        rmtree(transaction, ignore_errors=True)
+    return restored["trash"], restored["templates"], skipped, bool(restored["catalog"])
