@@ -161,3 +161,20 @@ simulator's snapshot before comparing choices. The retained Claude-scoped
 simulation documents that separate run. A request with no skill tool and
 no listing still counts toward the provider budget. A failed or incomplete
 native run stays out of the agreement denominator.
+
+## 2026-11-21 — OpenCode-scoped simulator preflight
+
+**[NOTE]** A fresh private fixture used the checksummed 12 prompts and four
+skills from the original study. The product's simulator scanned the OpenCode
+scope and produced the same names and descriptions as the native probe.
+With three passes and seed 20261117, the DeepSeek V4.1 Flash configuration
+estimated 28,863 tokens including the output allowances and made zero calls.
+The separate OpenCode 2.3.2 replay reproduced eight completed skill calls
+with follow-up bodies and four successful no-call cases in 32 stub requests.
+
+**[?]** A live same-model result is still unavailable. The original GOAT route
+is unavailable for this study. OpenRouter lists both permitted models as
+metered offerings. A comparison through a different provider needs a new
+simulation and native run using the same exact model and provider route.
+[DeepSeek V4.1 Flash](https://openrouter.ai/deepseek/deepseek-v4.1-flash)
+[Muse Ember](https://openrouter.ai/meta/muse-ember)

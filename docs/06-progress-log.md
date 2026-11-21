@@ -7,6 +7,20 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-21 — Record hosted rehearsal and fidelity preflight
+
+- GitHub-hosted macOS and Windows passed exact wheel and source distribution
+  checks and clean installs at `06943c5`. Both upgraded an existing 1.0.2
+  library to 1.1.0, restored the 1.0.2 full backup in a fresh library, and
+  reopened the original library after reinstalling 1.0.2. The run was
+  manually dispatched for verification.
+  [Hosted rehearsal](https://github.com/udayvarmora07/skills-manager/actions/runs/44903486924)
+- The OpenCode-scoped simulator preflight matched all four synthetic listing
+  entries and estimated three passes over 12 prompts with zero provider
+  calls. The separate native replay reproduced eight scripted skill calls
+  and four scripted no-call cases. The attended same-model comparison
+  remains open. See @docs/48-ai-http-study-2026-11-17.md.
+
 ## 2026-11-21 — Preserve package-data bytes on Windows checkouts
 
 - The hosted macOS release rehearsal passed at `1e8bcd1`. Windows failed
@@ -203,7 +217,7 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
   with Python 3.11 on a symlinked path, including removal of the launcher.
   The final Python 3.12 suite ran 2,445 tests with eight skips and no
   failures. Hosted macOS and Windows CI passed at baseline `80f1dd8`.
-  Hosted rehearsal of the current candidate is pending.
+  The follow-up hosted rehearsal is recorded above.
   [Baseline CI run](https://github.com/udayvarmora07/skills-manager/actions/runs/44743791588)
 
 ## 2026-11-21 — Add developer HTTP regression reports

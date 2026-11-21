@@ -79,10 +79,11 @@ records, not additional live work.
   library, trash, templates or catalog data.
 - [x] Refuse to publish slim or full backups when a supporting folder cannot
   be read during capture or verification. Preserve the previous archive.
-- [/] Record the current candidate's hosted macOS and Windows rehearsal results.
-  The first macOS rehearsal passed. A Windows checkout changed the line
-  endings of package data, so Git now keeps the byte-checked files in LF.
-  The hosted rehearsal must pass again with the checkout fix.
+- [x] Record the 1.1.0 candidate's hosted macOS and Windows rehearsal results.
+  Both runners installed the exact wheel and source distribution, upgraded
+  from 1.0.2, restored its full backup, and reopened the original library
+  after reinstalling 1.0.2.
+  [Hosted rehearsal](https://github.com/udayvarmora07/skills-manager/actions/runs/44903486924)
 - [x] Resume budgeted JSONL refreshes across an unfinished append and retain
   partial coverage when a record was skipped.
 - [x] Count the complete records that fit each bounded JSONL refresh. Keep
@@ -370,7 +371,9 @@ tracked above. The tool-page visual sign-off is in the parity section below.
   skill call and follow-up request using a loopback-only fake provider.
   Its saved-corpus replay verifies all 12 prompts, all four listing entries,
   eight scripted skill calls and four scripted no-call cases in OpenCode.
-  An attended same-model comparison remains open for the permitted models.
+  A fresh OpenCode-scoped simulator preflight matched the replay's fixture and
+  budgeted three passes without calling a provider. The attended same-model
+  comparison still needs a working provider for one of the permitted models.
   See @docs/48-ai-http-study-2026-11-17.md.
 
 - [ ] Human spoken screen-reader sign-off using the docs/32 walkthrough.
