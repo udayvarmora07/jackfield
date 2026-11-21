@@ -18,6 +18,11 @@ older archives remain indexed by @docs/archive/README.md. The live queue is
 - All 51 v2 browser scenarios passed, including the tool routes at widths of
   320, 768 and 1280 pixels in both themes. Both smoke tests and clean installs
   of the rebuilt wheel and source distribution passed.
+- The navigation regression also passed in Firefox 151. The local suite
+  ran 2,481 tests with 13 skips and no failures. Hosted macOS and Windows
+  repeated the exact-artifact install, upgrade, restore and downgrade checks
+  on `9a43357`.
+  [Follow-up hosted rehearsal](https://github.com/udayvarmora07/skills-manager/actions/runs/44904992122)
 
 ## 2026-11-21 — Preserve shared-root pin evidence in the archive preview
 
