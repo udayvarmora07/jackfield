@@ -567,7 +567,9 @@ on/off state. For the full earlier folder, move the current copy to trash
 first and restore the exact earlier entry from Recovery.
 The v2 skill reader, Sync map and Inbox describe the difference between text
 Undo and folder Recovery before Sync. The Agent trash card identifies copies
-saved by Sync alongside explicitly removed folders.
+saved by Sync alongside explicitly removed folders. Same-name copies in a
+scope are numbered in newest-first order. Each Restore button names the
+skill, target scope and copy number when needed.
 
 ### Trash
 
@@ -883,8 +885,9 @@ directory above is the earlier pass and still describes the pre-G8 shell.
 **[?]** That `REVIEW.md` records what the harness did **not** cover: no
 non-Chromium engine, no forced-colors mode, no 200%/400% zoom, no screen
 reader, and **no human perceptual review**. The structural choices above are
-therefore rendered and machine-checked but not human-signed-off, which is the
-same open gate as the participant sessions in @docs/25-design-partner-pilot-kit.md.
+documented as rendered and machine-checked. The later delegated release review
+is in @docs/32-continuation-verification-2026-11-06.md. Participant research
+continues to use the separate protocol in @docs/25-design-partner-pilot-kit.md.
 
 The acceptance pass also records the shipped corrections: union counting for
 malformed/unaddressable observations, enabled/parsed/addressable active-count

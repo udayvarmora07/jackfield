@@ -1,8 +1,4 @@
-"""Conservative lifecycle observations and previewed, reversible pins.
-
-No archive operation is exposed here: transcript coverage and complete
-consumer/edit evidence are not currently sufficient to establish staleness.
-"""
+"""Conservative lifecycle observations and previewed, reversible pins."""
 from __future__ import annotations
 
 import base64

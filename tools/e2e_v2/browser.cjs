@@ -95,12 +95,14 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const shortcuts = page.getByRole('button', {name: 'Keyboard shortcuts', exact: true});
     await shortcuts.click();
     await page.getByRole('dialog', {name: 'Keyboard shortcuts'}).waitFor();
+    assert(await page.locator('.toasts').evaluate(element => element.inert));
     assert(await page.locator('a.skip').evaluate(element => {
       const focused = document.activeElement;
       element.focus();
       return element.inert && document.activeElement === focused;
     }));
     await page.keyboard.press('Escape');
+    assert(!(await page.locator('.toasts').evaluate(element => element.inert)));
     assert.equal(await skipLink.count(), 1);
     assert(await shortcuts.evaluate(element => document.activeElement === element));
   });
@@ -669,7 +671,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.match(fs.readFileSync(path.join(target,'SKILL.md'),'utf8'),/Updated by the owner UI/);
     assert.match(fs.readFileSync(path.join(link,'SKILL.md'),'utf8'),/Updated by the owner UI/);
   });
-  await test('Agent trash removal offers Undo and Recovery restore',async()=>{
+  await test('Agent trash offers Undo and identifies the exact previous copy',async()=>{
     const name='browser-agent-trash';
     const created=await page.request.post(base+'/api/skills?scope=agents',{data:{name,description:'Agent trash browser fixture.',body:'# Trash fixture\n'}});
     assert(created.ok(),await created.text());
@@ -690,16 +692,25 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.locator('.dlg-f .btn-danger').click();
     await page.waitForTimeout(500);
     assert(!fs.existsSync(filePath));
+    const replacement=await page.request.post(base+'/api/skills?scope=agents',{data:{name,description:'Second archive fixture.',body:'# Newer text\n'}});
+    assert(replacement.ok(),await replacement.text());
+    await go('skill/'+name);
+    await page.getByRole('button',{name:'Move to trash',exact:true}).click();
+    await page.locator('.dlg-f .btn-danger').click();
+    await page.waitForTimeout(500);
+    assert(!fs.existsSync(filePath));
     await go('recovery');
     const agentTrash=page.locator('section[aria-labelledby="rec-agent-trash"]');
-    await agentTrash.getByText(name,{exact:true}).waitFor();
+    const older=agentTrash.getByRole('button',{name:`Restore ${name} to Shared skills folder, copy 2 of 2`,exact:true});
+    await older.waitFor();
+    assert.equal(await agentTrash.getByRole('button',{name:`Restore ${name} to Shared skills folder, copy 1 of 2`,exact:true}).count(),1);
     const restore=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/trash/'+name+'?scope=agents'));
-    await agentTrash.getByRole('button',{name:'Restore',exact:true}).click();
+    await older.click();
     assert((await restore).ok());
     await page.waitForTimeout(300);
     assert(fs.existsSync(filePath));
     assert.deepEqual(fs.readFileSync(filePath),original);
-    await agentTrash.getByText(name,{exact:true}).waitFor({state:'detached'});
+    await agentTrash.getByRole('button',{name:`Restore ${name} to Shared skills folder`,exact:true}).waitFor();
   });
   await test('V2 tool read failure stays visible and a retry recovers',async()=>{
     await page.route('**/api/catalog',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Fixture catalog unavailable'})}));
@@ -732,6 +743,13 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await page.setViewportSize({width,height:900});await go('tools/settings');await page.getByLabel('Theme',{exact:true}).selectOption(mode);
       for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','skills','recovery']){
         await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`${route} ${width} ${mode}`);
+        if (route.startsWith('tools/')) {
+          const active = page.locator('.v2-tool-nav [aria-current="page"]');
+          assert(await active.evaluate(link => {
+            const tab = link.getBoundingClientRect(), nav = link.closest('nav').getBoundingClientRect();
+            return tab.left >= nav.left - 1 && tab.right <= nav.right + 1;
+          }), `active tool is clipped on ${route} at ${width}px`);
+        }
       }
     }
     await page.setViewportSize({width:1280,height:900});await go('tools');await page.screenshot({path:path.join(root,'final-tools-desktop.png')});

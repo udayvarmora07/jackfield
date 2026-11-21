@@ -76,6 +76,25 @@ press Ctrl-C in the launcher to stop the server. The printed directory remains
 available for participant inspection and deletion, separate from consent and
 de-identified notes. Use a fresh launch for each session.
 
+### 2026-11-21 release rehearsal
+
+The maintainer delegated the current release decision. Five agent-operated
+rehearsals each started with a fresh synthetic fixture and exercised all six
+workflows below. The cases used 1440×900 light, 1280×800 dark, 768×900 light
+with keyboard actions, 390×844 dark, and 320×700 light. Each run confirmed
+the Codex target before Sync, set aside the replacement, and restored the
+original document and its supporting file byte for byte from Recovery.
+
+The rehearsal prompted distinct Restore names and newest-first labels for
+same-name copies. It also found a toast overlapping the next modal's action.
+Modal controls now stay above notifications. On the phone layouts the
+rehearsal waited for the non-modal toast to clear before continuing.
+
+**[SPEC]** The release review uses these synthetic runs. There were zero
+human participants, so no participant outcomes, completion rates, or
+consent records were generated. This protocol remains available for future
+participant research.
+
 ## Pilot workflow
 
 **[SPEC]** Each task is given verbatim, with no coaching after the first

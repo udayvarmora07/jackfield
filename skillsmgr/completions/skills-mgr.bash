@@ -56,7 +56,9 @@ _skills_mgr_table() {
         'native-profile/preview') candidates='--agent --help --json --off --profile --project -h'; value_options='--agent --off --profile --project' ;;
         'native-profile/apply') candidates='--agent --help --json --off --plan-id --profile --project -h'; value_options='--agent --off --plan-id --profile --project' ;;
         'native-profile/undo') candidates='--backup-id --help --json -h'; value_options='--backup-id' ;;
-        'archive') candidates='--help -h candidates pin undo-pin unpin'; value_options='' ;;
+        'archive') candidates='--help -h apply candidates pin restore undo-pin unpin'; value_options='' ;;
+        'archive/apply') candidates='--help --json --plan-id -h'; value_options='--plan-id' ;;
+        'archive/restore') candidates='--help --json -h'; value_options='' ;;
         'archive/candidates') candidates='--days --help --json --scope -h'; value_options='--days --scope' ;;
         'archive/pin') candidates='--help --json --note --plan-id --scope -h'; value_options='--note --plan-id --scope' ;;
         'archive/unpin') candidates='--help --json --plan-id --scope -h'; value_options='--plan-id --scope' ;;

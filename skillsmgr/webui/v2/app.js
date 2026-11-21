@@ -330,7 +330,7 @@ const app = createApp({
     /* The informative end of a long folder path ("…/.claude/skills"); the full
      * path stays in the element's title. A leading ellipsis cut the useful part. */
     shortPath(path) {const text=String(path||"");const parts=text.split(/[\\/]/).filter(Boolean);return text.length<=28||parts.length<=2?text:"…/"+parts.slice(-2).join("/");},
-    fmtDate(value) {const date=new Date(value);return Number.isNaN(date.getTime())?String(value||"Date unavailable"):Domain.dateFormatter(this.formatLocale==="system"?undefined:this.formatLocale,{dateStyle:"medium",timeStyle:"short"}).format(date);},
+    fmtDate(value, timeStyle = "short") {const date=new Date(value);return Number.isNaN(date.getTime())?String(value||"Date unavailable"):Domain.dateFormatter(this.formatLocale==="system"?undefined:this.formatLocale,{dateStyle:"medium",timeStyle}).format(date);},
     preferencesChanged() {this.theme=savedPreference("skillsmgr-theme",THEMES,"system");this.formatLocale=savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system");document.documentElement.dataset.textSize=savedPreference("skillsmgr-text-size",["standard","large"],"standard");this.applyTheme(); },
     skillTags(name) {return (this.catalog.tags || {})[name] || [];},
     openSource(record) { this.toolTarget=markRaw(record);location.hash="#/tools/source-update"; },
@@ -799,7 +799,22 @@ const app = createApp({
       }));
       if (gen !== this.agentTrashGen) return;
       rows.sort((a, b) => String(b.trashed_at).localeCompare(String(a.trashed_at)) || a.name.localeCompare(b.name));
+      const counts = new Map(), positions = new Map();
+      const keyOf = (row) => JSON.stringify([row.scope, row.name]);
+      for (const row of rows) {
+        const key = keyOf(row);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      for (const row of rows) {
+        const key = keyOf(row), position = (positions.get(key) || 0) + 1;
+        positions.set(key, position);
+        if (counts.get(key) > 1) row.copyLabel = `copy ${position} of ${counts.get(key)}`;
+      }
       this.agentTrash = rows; this.agentTrashErrors = errors; this.agentTrashLoading = false;
+    },
+    agentRestoreLabel(row) {
+      const target = `Restore ${row.name} to ${row.scopeLabel}`;
+      return row.copyLabel ? `${target}, ${row.copyLabel}` : target;
     },
     async restoreAgentTrash(t) {
       if (this.busy) return;

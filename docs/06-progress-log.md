@@ -7,6 +7,25 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-21 — Close the delegated review and add library archiving
+
+- Added explicit, previewed `archive apply` and guarded `archive restore`
+  for a selected manager-library folder. The receipt binds the original
+  name and reviewed bytes. The operation preserves companions and disabled
+  state and refuses changed copies, links, pins, and occupied destinations.
+  Staleness-based selection still requires independent continuity evidence.
+- Direct keyboard and Orca review and a visual pass across 26 route and
+  viewport combinations supported the release decision. The current tool
+  tab stays visible on narrow layouts. Toasts no longer cover modal actions.
+- Each of five synthetic pilot rehearsals restored the original Codex
+  document and supporting file. Same-name Recovery entries now identify
+  their order and target. The release decision uses synthetic and screen
+  reader diagnostics. Participant research retains its consent protocol.
+- The local suite ran 2,489 tests with 13 skips and no failures. All 51 v2
+  browser scenarios and both smoke tests passed. Both exact artifacts
+  passed clean installation and the 1.0.2 upgrade and restore rehearsal.
+  The installed wheel also passed the archive and restore round trip.
+
 ## 2026-11-21 — Rehearse the v2 screen-reader walkthrough
 
 - The desktop and phone Inbox links now use the same accessible name and

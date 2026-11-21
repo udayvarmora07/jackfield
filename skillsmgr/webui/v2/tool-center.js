@@ -101,6 +101,7 @@
     watch:{page:{immediate:true,handler(p,previous){this.sequence++;this.loading={};if(previous==='source-update'&&p!=='source-update')this.retireSource();this.error='';
       this.result=null;
       this.report=null;
+       this.$nextTick(this.revealActiveTool);
        if(p==='source-update'&&this.sourceReviewHandoff)this.$nextTick(()=>this.loadSourceHandoff(this.sourceReviewHandoff));
        if(p==='profiles') this.loadCatalog();
        if(p==='templates') this.loadTemplates();
@@ -113,6 +114,14 @@
       this.snapshots=null;
       }, historyName(v){remember('skillsmgr-history-name',v)}, historyScope(v){remember('skillsmgr-history-scope',v)}},
     methods:{
+      revealActiveTool() {
+        const nav = this.$refs.toolNav;
+        const active = nav?.querySelector('[aria-current="page"]');
+        if (!active || nav.scrollWidth <= nav.clientWidth) return;
+        const viewport = nav.getBoundingClientRect(), link = active.getBoundingClientRect();
+        if (link.left < viewport.left) nav.scrollLeft += link.left - viewport.left;
+        else if (link.right > viewport.right) nav.scrollLeft += link.right - viewport.right;
+      },
       human(v){const t=String(v==null?'':v).replace(/[-_]+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'Unknown';},
       when(iso){if(!iso)return 'Not returned';const d=new Date(iso);if(isNaN(d))return String(iso);try{return new Intl.DateTimeFormat(this.locale==='system'?undefined:this.locale,{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(e){return String(iso)}},
       pl(n,one,many){return window.SkillsV2Model.plural(n,one,many)},
@@ -359,9 +368,11 @@
       this.darkListener=e=>{this.systemDark=e.matches};
       this.motionListener=e=>{this.reducedMotion=e.matches};
       this.darkMedia.addEventListener('change',this.darkListener);
-      this.motionMedia.addEventListener('change',this.motionListener)},
+      this.motionMedia.addEventListener('change',this.motionListener);
+      window.addEventListener('resize', this.revealActiveTool)},
     beforeUnmount(){this.alive=false;
       window.removeEventListener('storage',this.baselineStorageListener);
+      window.removeEventListener('resize', this.revealActiveTool);
       this.darkMedia.removeEventListener('change',this.darkListener);
       this.motionMedia.removeEventListener('change',this.motionListener);
       if(this.sourceReview && this.sourceReview.review_state==='pending'&&!this.sourceSuccess) api('/api/source-updates/reviews/'+enc(this.sourceReview.review_id),{method:'DELETE'}).catch(()=>{});
@@ -369,7 +380,7 @@
     template:`
     <section :class="['v2-tools', page==='recovery-extra'?'':'page']" :aria-busy="busy">
       <div :class="['v2-tool-layout', {'v2-tool-layout-solo': page==='recovery-extra'||page==='tools'}]">
-        <nav v-if="page!=='recovery-extra'&&page!=='tools'" class="v2-tool-nav" aria-label="Tools navigation">
+        <nav v-if="page!=='recovery-extra'&&page!=='tools'" ref="toolNav" class="v2-tool-nav" aria-label="Tools navigation">
           <a class="v2-tool-nav-home" href="#/tools"><span aria-hidden="true">←</span> All tools</a>
           <template v-for="g in toolGroups" :key="g.label">
             <span class="v2-tool-nav-label">{{g.label}}</span>

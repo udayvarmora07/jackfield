@@ -16,7 +16,7 @@ Entry point for `python3 -m skillsmgr`; delegates to `cli.main()`.
 
 ## `cli.py`, `cli_parser.py`, `cli_handlers.py`
 
-The stable `cli.py` adapter exposes `main()`, `build_parser()`, the public `COMMANDS` table, command handler names, and exit constants. `cli_parser.py` owns argparse construction (`prog="skills-mgr"`): 33 top-level commands + 24 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 60 invocable names (see @docs/03-cli-surface.md). `cli_handlers.py` owns command behavior and validates names/data before filesystem work (it also rejects a `--metadata` key containing a control character with a clean exit 1, and both edit paths fail closed on an unparseable document); `cli_output.py` owns JSON/errors/table rendering plus `sanitize_text()`/`truncate()`/`render_table()`, which strip C0/C1/DEL, Unicode line separators, format characters, and lone surrogates from untrusted display fields (`--json` and `view --raw` are deliberately exempt). Exit codes: 0 ok / 1 error / 2 usage / 130 interrupt. Public parser/handler adapters preserve existing imports and contract tests.
+The stable `cli.py` adapter exposes `main()`, `build_parser()`, the public `COMMANDS` table, command handler names, and exit constants. `cli_parser.py` owns argparse construction (`prog="skills-mgr"`): 33 top-level commands + 26 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 62 invocable names (see @docs/03-cli-surface.md). `cli_handlers.py` owns command behavior and validates names/data before filesystem work (it also rejects a `--metadata` key containing a control character with a clean exit 1, and both edit paths fail closed on an unparseable document); `cli_output.py` owns JSON/errors/table rendering plus `sanitize_text()`/`truncate()`/`render_table()`, which strip C0/C1/DEL, Unicode line separators, format characters, and lone surrogates from untrusted display fields (`--json` and `view --raw` are deliberately exempt). Exit codes: 0 ok / 1 error / 2 usage / 130 interrupt. Public parser/handler adapters preserve existing imports and contract tests.
 
 ## Usage and reviewed project changes
 
@@ -24,6 +24,8 @@ The stable `cli.py` adapter exposes `main()`, `build_parser()`, the public `COMM
 `native-profile` without bootstrapping the SQLite index. `usage.py` owns
 CLI-only consent, bounded event readers, and private daily aggregates.
 `lifecycle.py` reports usage evidence and manages reversible pins.
+`lifecycle_archive.py` previews and moves one exact manager-library folder,
+records its digest, and restores a verified archive to an unoccupied address.
 `project_lock_commands.py` verifies Vercel lockfiles and binds v2 writes
 and undo to reviewed bytes. `native_profiles.py` handles native settings
 previews, guarded apply and undo, and read-only agent handoffs.

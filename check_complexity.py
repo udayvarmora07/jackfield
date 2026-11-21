@@ -50,6 +50,7 @@ TARGET_FILES = (
     "skillsmgr/source_update.py",
     "skillsmgr/backup_sync.py",
     "skillsmgr/archive.py",
+    "skillsmgr/lifecycle_archive.py",
     "skillsmgr/evals.py",
     "skillsmgr/external_scan.py",
     "skillsmgr/lockfiles.py",

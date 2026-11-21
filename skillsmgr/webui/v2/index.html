@@ -354,10 +354,10 @@
         </section>
         <section class="card rec-card" aria-labelledby="rec-agent-trash">
           <h2 id="rec-agent-trash">Agent trash <span class="sub num">{{ agentTrash.length }}</span></h2>
-          <p class="sub">Find removed skills and previous copies saved by Sync. To restore a folder, set aside any copy already at its original location.</p>
+          <p class="sub">Find removed skills and previous copies saved by Sync, newest first. To restore a folder, set aside any copy already at its original location.</p>
           <ul class="rec-list" v-if="agentTrash.length">
-            <li v-for="t in agentTrash" :key="t.trash_path"><span><b>{{ t.name }}</b><small>{{ t.scopeLabel }} · {{ fmt(Math.max(1, Math.round(t.size_bytes / 1024))) }} KB · removed {{ fmtDate(t.trashed_at) }}</small></span>
-              <button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="restoreAgentTrash(t)">Restore</button></li>
+            <li v-for="t in agentTrash" :key="t.trash_path"><span><b>{{ t.name }}</b><small>{{ t.scopeLabel }} · {{ fmt(Math.max(1, Math.round(t.size_bytes / 1024))) }} KB · removed {{ fmtDate(t.trashed_at, 'medium') }}<template v-if="t.copyLabel"> · {{ t.copyLabel }}</template></small></span>
+              <button type="button" class="btn btn-line btn-sm" :aria-label="agentRestoreLabel(t)" :disabled="busy" @click="restoreAgentTrash(t)">Restore</button></li>
           </ul>
           <p class="state-note" v-else-if="agentTrashLoading" role="status">Reading agent trash…</p>
           <p class="state-note" v-else-if="!agentTrashErrors.length">No skill copies are waiting in agent trash.</p>
@@ -490,7 +490,7 @@
   </div>
 
   <div class="sr-only" role="status" aria-live="polite">{{ live }}</div>
-  <div class="toasts"><div class="toast" :class="{ err: t.err }" role="status" v-for="t in toasts" :key="t.id" @focusin="holdToast(t, true)" @focusout="holdToast(t, false)" @mouseenter="holdToast(t, true)" @mouseleave="holdToast(t, false)"><ic :name="t.err ? 'bad' : 'ok'"></ic><span>{{ t.text }}</span><button type="button" v-if="t.undo" @click="runUndo(t)">Undo</button></div></div>
+  <div class="toasts" :inert="!!dialog"><div class="toast" :class="{ err: t.err }" role="status" v-for="t in toasts" :key="t.id" @focusin="holdToast(t, true)" @focusout="holdToast(t, false)" @mouseenter="holdToast(t, true)" @mouseleave="holdToast(t, false)"><ic :name="t.err ? 'bad' : 'ok'"></ic><span>{{ t.text }}</span><button type="button" v-if="t.undo" @click="runUndo(t)">Undo</button></div></div>
 </div>
 <script src="../static/vendor/vue.global.prod.js"></script>
 <script src="../domain.js"></script>

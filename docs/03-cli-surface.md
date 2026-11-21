@@ -4,7 +4,7 @@
 
 **AI manifest**: Authoritative inventory of every command, alias, flag, and exit code of the `skills-mgr` CLI. Facts verified against the parser/handler modules (`cli_parser.py`, `cli_handlers.py`, `cli_output.py` behind the stable `cli.py` adapter) plus live invocations on 2026-09-22. Usage consent, archive lifecycle and reviewed project changes are CLI-only. See @docs/08-web-ui.md for the shared web surface. Do not add commands or flags without updating this doc and @docs/02-modules.md.
 
-**[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **33 top-level commands + 24 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 60 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
+**[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **33 top-level commands + 26 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 62 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
 
 ## Usage, lifecycle and project controls
 
@@ -58,6 +58,19 @@
 
 ### `archive`
 
+- `archive apply NAME [--plan-id HASH] [--json]` previews one named
+  manager-library copy. Supplying the matching plan ID moves the complete
+  unpinned folder to private archive storage. The preview shows the exact
+  source, destination, folder digest and archive ID. The plan binds the
+  reviewed tree and is single-use. Select copies for this command yourself.
+- `archive restore ARCHIVE_ID [--json]` verifies the saved folder and moves it
+  back to its original library address if the destination is unoccupied.
+  Save the archive ID from the preview or result. The receipt also identifies
+  the name under `archive/global/<id>/ARCHIVE.json` in the data directory.
+  These moves require the same filesystem and accept ordinary directories and
+  single-link regular files, up to 10,000 entries, 16 MiB per file, and 256 MiB
+  total. Archive payloads are outside Trash and outside the current backup
+  export. Preserve the archive directory when backing up or migrating it.
 - `archive candidates [--scope SCOPE] [--days N] [--json]` combines
   inventory, pins and cached usage. The default scope is `global`.
   The activity window includes today and the preceding `N - 1` UTC dates.

@@ -445,6 +445,7 @@ button.map-state:hover { border-color: currentColor; }
 .pick input { width: 18px; height: 18px; accent-color: var(--ink); margin: 0; }
 .pick small { display: block; font-family: var(--mono); font-size: var(--fs-caption); color: var(--muted); }
 .toasts { position: fixed; z-index: 70; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toasts[inert] { z-index: 59; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: 0 20px 50px -10px rgb(0 0 0 / .4); font-weight: 600; font-size: var(--fs-ui); animation: rise .18s var(--ease); max-width: calc(100vw - 32px); }
 .toast .i { color: var(--ok-on-dark); }
 .toast.err .i { color: var(--error-on-toast); }

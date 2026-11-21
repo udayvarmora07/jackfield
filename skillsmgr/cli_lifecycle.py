@@ -327,7 +327,7 @@ def _candidates(args, store):
         if consumers:
             scans = ", ".join(f'{row["consumer"]} ({row["transcript_scan"]})' for row in consumers)
             print(f"{sanitize_text(scope)} documented readers {sanitize_text(scans)}")
-    print("Archive eligibility requires a complete consumer map and continuous usage, edit and install evidence.")
+    print("Staleness requires a complete consumer map and continuous usage, edit and install evidence.")
 
 
 def _pin(args, store):
@@ -348,6 +348,36 @@ def _pin(args, store):
     if not args.json and result["changed"]:
         print("Pin" if pinned else "Unpin", sanitize_text(args.name), "in", sanitize_text(args.scope))
     _preview_output(result, json_output=args.json)
+
+
+def _archive_apply(args, store):
+    from .lifecycle_archive import apply_archive, preview_archive
+
+    result = apply_archive(store, args.name, args.plan_id) if args.plan_id else preview_archive(store, args.name)
+    if args.json:
+        print_json(result)
+        return
+    if args.plan_id:
+        print("Archived", sanitize_text(result["name"]), "with ID", result["archive_id"])
+    else:
+        print("Reviewing explicit archive of", sanitize_text(result["source"]))
+        print("The library copy will be moved to", sanitize_text(result["path"]))
+        print("Folder SHA-256", result["tree_sha256"])
+        print("Plan ID", result["plan_id"])
+    if result.get("index_warning"):
+        print(result["index_warning"])
+
+
+def _archive_restore(args, store):
+    from .lifecycle_archive import restore_archive
+
+    result = restore_archive(store, args.archive_id)
+    if args.json:
+        print_json(result)
+        return
+    print("Restored", sanitize_text(result["path"]))
+    if result.get("index_warning"):
+        print(result["index_warning"])
 
 
 def _undo_pin(args, store):

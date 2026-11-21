@@ -126,8 +126,7 @@ join to library skills by name, so they are approximate across scopes.
 pin undo. Current transcript formats provide observed events with partial
 parser coverage. They do not prove gap-free observation or cover every
 possible consumer and edit/install period. The report therefore emits
-`unknown` and `in-use` only. Moving skills into or out of archive is
-pending eligibility evidence. Text and disk state of skills are untouched
+`unknown` and `in-use` only. Text and disk state of skills are untouched
 by pin changes.
 
 **[SPEC]** The read-only preview reports the primary document's filesystem
@@ -170,17 +169,13 @@ needs independent evidence that observation was continuous.
 [Gemini session retention](https://geminicli.com/docs/cli/session-management/#session-retention)
 [OpenCode event stream](https://opencode.ai/docs/api#event)
 
-**[SPEC]** Future eligibility and moves:
+**[SPEC]** Future evidence-based eligibility:
 - `state` is **`unknown | in-use | stale-candidate`**, never a boolean.
   Stale-candidate needs all of: usage consent, a parser and a coverage
   window of at least T days for every agent that can load the skill, zero
   events in T days, no edit or install in T days, and no pin. Anything less
-  is `unknown`, and archive is never offered from it. T defaults to 90.
-- **Archive is not trash.** `trash purge` empties trash, so archives live in
-  `<data>/archive/<scope>/<name>-<stamp>/` with `ARCHIVE.json` (original
-  path, reason, evidence, tree hash). Moves reuse
-  `atomic_io.move_trash_tree` (EXDEV-safe) and verify `tree_content_hash`
-  before and after. Restore refuses an occupied destination or a changed hash.
+  is `unknown`. The candidate report offers no move based on that state.
+  T defaults to 90.
 - **Pins** live in `<data>/pins.json`, never inside the skill tree.
   A pin or unpin saves its private undo receipt before replacing the file.
   The updated file includes the unique preview ID. Undo verifies that ID
@@ -188,8 +183,22 @@ needs independent evidence that observation was continuous.
   a usable receipt. An interruption before replacement leaves the original
   pin state in place. Earlier confirmed receipts still work by matching the
   saved post-write hash.
-- Archiving is never automatic. `archive candidates` is the dry run;
-  `archive apply` needs the plan hash from it.
+
+**[SPEC] 2026-11-21 decision.** Explicit archive is available for one
+manager-library skill at a time. The operator names the copy and approves
+the exact preview with its plan ID. This operation makes no staleness claim
+and refuses pinned copies. It preserves the full folder (including a disabled
+document, supporting files, and empty subdirectories) in
+`<data>/archive/global/<id>/skill/`. The sibling `ARCHIVE.json` is written
+before moving and records the original library name and the tree digest. The
+archive directory remains outside Trash, and the receipt survives restore so
+the same plan cannot be replayed. The initial surface requires an atomic
+same-filesystem rename and refuses linked or oversized trees.
+
+Restore takes the exact archive ID and refuses a changed digest or an
+occupied library address. The index is reconciled from the filesystem after
+the move. The current full export excludes this archive directory.
+See @docs/03-cli-surface.md for the commands and bounds.
 
 ## 3. Project skill lockfile
 

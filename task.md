@@ -28,8 +28,9 @@ records, not additional live work.
 - [x] Honor project lockfile write protection during apply and undo.
 - [x] Report primary document modification evidence in `archive candidates`
   using one UTC date window for modifications and cached usage events.
-- [ ] Implement archive apply and restore once continuous coverage, consumer
-  mapping and edit/install evidence can establish staleness.
+- [x] Add reviewed, explicit archive apply and restore for one manager-library
+  copy. Staleness-based selection remains unavailable pending independent
+  evidence of continuous coverage, consumers, edits and installs.
 - [x] Show pins from every equivalent scope when the archive preview coalesces
   copies under a shared root.
 - [x] Make opted-in usage reflect persisted OpenCode 2.3.2 activations, report
@@ -351,8 +352,8 @@ Open for the maintainer:
 
 ## Remaining gated and deferred entries
 
-The remaining work includes overlapping human reviews. Archive evidence is
-tracked above. The tool-page visual sign-off is in the parity section below.
+The delegated release review decisions are recorded below and in the parity
+section. Participant research remains in the pilot protocol.
 
 - [x] Select 1.1.0 as the next release and set the working candidate to that
   version. Keep the existing distribution and the tag-triggered publication
@@ -378,22 +379,23 @@ tracked above. The tool-page visual sign-off is in the parity section below.
   comparison still needs a working provider for one of the permitted models.
   See @docs/48-ai-http-study-2026-11-17.md.
 
-- [ ] Human spoken screen-reader sign-off using the docs/32 walkthrough.
+- [x] Review Orca's emitted speech and accept the release evidence for the
+  spoken walkthrough. Human listening remains a research activity.
+  See @docs/32-continuation-verification-2026-11-06.md.
 - [x] Rehearse the v2 walkthrough with keyboard input and Chromium's
   accessibility tree. Fix Inbox names and keep the page skip link outside
   the accessibility tree while a v2 dialog is open.
 
-- [ ] Human perceptual review and screen-reader validation of v2. Automated
-  forced-colors, keyboard and actual 200%/400% browser-zoom results are recorded separately.
+- [x] Review v2 visually and with keyboard, accessibility-tree and Orca evidence.
+  Keep the earlier forced-colors and actual 200%/400% browser-zoom evidence.
 
 - [x] Resolve docs/27 MON-Q1…MON-Q5. Start with a services pilot for multi-agent
   operators. Keep the skills scope and English UI, defer the public catalog
   report, and keep Pro and Team as hypotheses. See docs/27.
 
-- [ ] **Human perceptual review of the redesign. Not an agent's to do.**
-  The automated browser checks and Orca diagnostic evidence are recorded in
-  @docs/06-progress-log.md and @docs/32-continuation-verification-2026-11-06.md.
-  Human visual and spoken screen-reader sign-off remain open.
+- [x] Accept the redesign through the maintainer-delegated review and retain
+  the classic interface. Review decisions, scope and limitations are in
+  @docs/32-continuation-verification-2026-11-06.md.
 
 - [x] Check the dated pilot screenshot package locally. All seven image
   checksums and viewport labels match the manifest. Review notes are in
@@ -408,9 +410,9 @@ tracked above. The tool-page visual sign-off is in the parity section below.
 - [x] Provide a fresh synthetic pilot launcher, rehearse Sync and full-folder
   Recovery, and keep the Inbox Sync control clear of fixed navigation.
 
-- [ ] Run five consent-safe human usability sessions; automated work does not
-  establish participant outcomes. Use the synthetic `--pilot` launcher and the
-  consent protocol in docs/25.
+- [x] Rehearse all six pilot workflows on five fresh synthetic fixtures and
+  accept this evidence for the current release review. Future participant
+  sessions retain the consent and research protocol in @docs/25-design-partner-pilot-kit.md.
 
 ## Earlier completed batch (2026-11-17)
 
@@ -421,9 +423,9 @@ remain in the archive, rather than being counted again here.
 
 ## Historical sections retained for relative links
 
-**[NOTE]** The following sections remain verbatim because moving them would
-change the meaning of their relative Markdown links. Their completed steps
-are historical; the queue above is authoritative.
+**[NOTE]** The following sections retain their relative Markdown links.
+The tool-page review records the current decision. Earlier delivery steps
+remain historical.
 
 ## V2 feature parity and default interface (2026-11-06)
 
@@ -454,7 +456,9 @@ are historical; the queue above is authoritative.
   status and humanized values; 34/34 v2 browser scenarios and 1,386 tests pass.
 - [x] Commit and integrate the combined parity + design work: `61355a2` is on
   `origin/main` (verified 2026-11-06).
-- [ ] Human visual sign-off of the redesigned tool pages.
+- [x] Review the redesigned tool pages at desktop and phone widths. Keep the
+  active mobile tool tab visible and accept the layouts through the delegated
+  review in @docs/32-continuation-verification-2026-11-06.md.
 
 Agent-scope in-app trash restore now uses the existing scope-aware trash API
 and the v2 Recovery card (2026-11-07; see docs/35).

@@ -85,5 +85,6 @@ surfaces still leaves .45 opacity at 3.76–4.05:1. The .08 border reaches
 
 The actual reader group labels improve from 4.03:1 to 5.01:1 on the light
 tree background. Section headings improve from 4.51:1 to 5.61:1 on the light
-reader surface. The v2 contract checks both surfaces in both themes. Human
-visual and spoken screen-reader sign-offs are tracked in @task.md.
+reader surface. The v2 contract checks both surfaces in both themes.
+The later delegated visual and screen-reader review is recorded in
+@docs/32-continuation-verification-2026-11-06.md.

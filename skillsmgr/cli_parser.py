@@ -116,7 +116,7 @@ def _register_lifecycle_commands(sub):
     p = _lifecycle_action(native_profile_sub.add_parser("undo", help="restore the recorded preimage"), lifecycle._native)
     p.add_argument("--backup-id", required=True)
 
-    archive = sub.add_parser("archive", help="review lifecycle evidence and manage pins")
+    archive = sub.add_parser("archive", help="review activity and archive library skills")
     archive_sub = archive.add_subparsers(dest="archive_action", required=True)
     p = _lifecycle_action(archive_sub.add_parser("candidates", help="review observed activity and pins"), lifecycle._candidates)
     add_scope_arg(p)
@@ -128,6 +128,11 @@ def _register_lifecycle_commands(sub):
     _pin_flags(p)
     p = _lifecycle_action(archive_sub.add_parser("undo-pin", help="restore the previous pin state"), lifecycle._undo_pin)
     p.add_argument("--plan-id", required=True)
+    p = _lifecycle_action(archive_sub.add_parser("apply", help="preview or archive one library skill"), lifecycle._archive_apply)
+    p.add_argument("name")
+    p.add_argument("--plan-id", help="archive the exact reviewed copy")
+    p = _lifecycle_action(archive_sub.add_parser("restore", help="return one exact archive to the library"), lifecycle._archive_restore)
+    p.add_argument("archive_id")
 
 
 def _pin_flags(parser):

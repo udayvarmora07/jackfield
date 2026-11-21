@@ -188,3 +188,31 @@ shortcuts dialog hid the page skip link from the accessibility tree and
 Escape restored its availability.
 
 **[?]** Human listening and perceptual sign-offs remain open.
+
+## 2026-11-21 — Delegated accessibility and visual review
+
+**[NOTE]** The maintainer delegated the review decision. Chrome 158 and
+Orca 46.1 ran in an isolated X11 and AT-SPI session against synthetic data.
+Orca's spoken-output log included the theme state, the specific Inbox fix,
+the Inbox count, the checked divergent Codex copy, and the skill heading
+after activating **Skip to content**. The speech dispatcher used a dummy
+output module, so the log captures the utterances supplied to speech.
+
+Reviewed v2 Home, Skills, Sync map, Inbox, Recovery, the Tools landing page,
+and Install, Profiles, Templates, Quality, Workspaces, Settings, and Update
+from folder. Desktop light at 1440 px and phone dark at 390 px gave 26
+route and viewport checks. Axe 4.12.1 reported zero violations in the
+selected WCAG A and AA rules and flagged some contrast checks for inspection.
+No page exceeded its viewport. Screenshots showed the active mobile tool
+could be clipped. The tool navigation now scrolls its active link into view
+when the route or browser width changes.
+
+The workflow rehearsal also found that a toast from Sync could sit above the
+next dialog's action. Toasts now sit behind an open v2 modal and leave its
+pointer and focus controls available. Recovery shows the order of same-name
+agent copies and gives each Restore action its own accessible name.
+
+**[SPEC]** The in-repo review gates for the redesign and tool pages are
+accepted on this evidence. Keep the classic interface available. Human
+listening, real-device use, and legibility research retain their value as
+independent evidence. This decision makes no conformance certification.
