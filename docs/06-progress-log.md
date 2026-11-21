@@ -7,6 +7,18 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-21 — Fix Windows backup and uninstall failures
+
+- Backup capture compares the creation timestamp reported by both path and
+  handle stats on Windows Python 3.12 and later. This prevents false source
+  conflicts on Python 3.14 while retaining the file identity, size and
+  modification-time checks.
+- Legacy PowerShell uninstall closes the distribution metadata reader before
+  removing the verified environment. A handle probe reproduced the leak and
+  checked the fix.
+- The local suite ran 2,480 tests with seven skips and no failures. Both
+  smoke tests, clean package installs and the upgrade rehearsal passed.
+
 ## 2026-11-21 — Restore the hosted Hurl check
 
 - GitHub moved `ubuntu-latest` to Ubuntu 26.04. The Hurl 8.1.0 binary

@@ -50,6 +50,8 @@ records, not additional live work.
   unrelated trash, and retain actionable JUnit failure reports.
 - [x] Pin the Hurl job to an Ubuntu image that provides its libxml2 runtime
   and check binary startup before running the HTTP contracts.
+- [x] Compare portable backup timestamps on Windows and close legacy
+  installer metadata before PowerShell uninstalls the environment.
 - [x] Verify the native open-source Keploy export against a synthetic saved
   run, including the cgroup startup warning before JUnit XML.
 - [x] Rehearse the upgrade from published 1.0.2 and restore its full backup

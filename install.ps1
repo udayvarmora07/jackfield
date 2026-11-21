@@ -102,11 +102,15 @@ function Test-MarkedVenv {
 
 function Test-ProductMetadata([string]$Path) {
     if (-not (Test-PlainFile $Path) -or (Get-PathItem $Path).Length -gt 1048576) { return $false }
-    foreach ($line in [System.IO.File]::ReadLines($Path)) {
-        if (-not $line) { break }
-        if ($line -match '^Name: ') { return ($line -eq "Name: $Dist") }
+    $reader = [System.IO.File]::OpenText($Path)
+    try {
+        while (($line = $reader.ReadLine())) {
+            if ($line -match '^Name: ') { return ($line -eq "Name: $Dist") }
+        }
+        return $false
+    } finally {
+        $reader.Dispose()
     }
-    return $false
 }
 
 function Test-LegacyVenv {

@@ -4,6 +4,7 @@ import io
 import json
 import os
 import sqlite3
+import stat
 import tarfile
 import tempfile
 import unittest
@@ -11,6 +12,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Barrier
+from types import SimpleNamespace
 from unittest import mock
 
 from skillsmgr import __version__
@@ -103,6 +105,14 @@ class ArchiveContractTests(unittest.TestCase):
         self.assertEqual(result["imported"], ["demo"])
         self.assertEqual(target.get("demo")["description"], "Archive demo")
         self.assertIn("round-trip body", target.get("demo")["body"])
+
+    def test_windows_backup_revision_uses_the_same_timestamp_for_paths_and_handles(self):
+        fields = dict(st_dev=1, st_ino=2, st_mode=stat.S_IFREG | 0o644, st_size=4, st_mtime_ns=6)
+        path = SimpleNamespace(**fields, st_file_attributes=0, st_birthtime_ns=3, st_ctime_ns=3)
+        opened = SimpleNamespace(**fields, st_file_attributes=0, st_birthtime_ns=3, st_ctime_ns=5)
+        self.assertEqual(archive_mod._export_revision(path), archive_mod._export_revision(opened))
+        opened.st_mtime_ns += 1
+        self.assertNotEqual(archive_mod._export_revision(path), archive_mod._export_revision(opened))
 
     def test_explicit_export_of_a_fresh_library_does_not_create_store_state(self):
         source = Store(data_dir=self.root / "fresh")

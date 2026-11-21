@@ -427,8 +427,13 @@ def validate_members(tar: tarfile.TarFile, compressed_size: int) -> list[tuple[t
 
 
 def _export_revision(info: os.stat_result) -> tuple[int, ...]:
+    # Windows Python may report different ctime semantics for path and handle
+    # stats. Both expose creation time as birthtime from Python 3.12 onwards.
+    timestamp = info.st_ctime_ns
+    if hasattr(info, "st_file_attributes"):
+        timestamp = getattr(info, "st_birthtime_ns", timestamp)
     # Windows can infer executable bits from the filename for a path stat.
-    return info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode), info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    return info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode), info.st_size, info.st_mtime_ns, timestamp
 
 
 def _export_source_changed(path: Path) -> BackupSourceChanged:
