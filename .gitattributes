@@ -2,3 +2,8 @@
 # End-of-line translation must never rewrite those bytes, or the recorded hash
 # would only hold on the platform that last vendored it.
 skillsmgr/webui/static/vendor/vue.global.prod.js -text
+
+# Hosted verification compares these members against a Linux-built artifact.
+/LICENSE text eol=lf
+skillsmgr/completions/* text eol=lf
+skillsmgr/examples/**/*.md text eol=lf

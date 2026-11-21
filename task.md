@@ -80,6 +80,9 @@ records, not additional live work.
 - [x] Refuse to publish slim or full backups when a supporting folder cannot
   be read during capture or verification. Preserve the previous archive.
 - [/] Record the current candidate's hosted macOS and Windows rehearsal results.
+  The first macOS rehearsal passed. A Windows checkout changed the line
+  endings of package data, so Git now keeps the byte-checked files in LF.
+  The hosted rehearsal must pass again with the checkout fix.
 - [x] Resume budgeted JSONL refreshes across an unfinished append and retain
   partial coverage when a record was skipped.
 - [x] Count the complete records that fit each bounded JSONL refresh. Keep

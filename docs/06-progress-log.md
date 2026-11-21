@@ -7,6 +7,16 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-21 — Preserve package-data bytes on Windows checkouts
+
+- The hosted macOS release rehearsal passed at `1e8bcd1`. Windows failed
+  the exact-artifact check before running the upgrade because Git converted
+  the Bash completion file to CRLF. An isolated checkout with
+  `core.autocrlf=true` reproduced the failure against the hosted artifacts.
+- Git now keeps LF for both shell completions, the packaged example
+  documents and the license. The verifier still compares exact bytes.
+  [First hosted rehearsal](https://github.com/udayvarmora07/skills-manager/actions/runs/44903097110)
+
 ## 2026-11-21 — Fix Windows backup and uninstall failures
 
 - Backup capture compares the creation timestamp reported by both path and
