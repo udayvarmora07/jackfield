@@ -231,7 +231,8 @@ jobs:
 
   http-contracts:
     name: HTTP regression contracts (Hurl)
-    runs-on: ubuntu-latest
+    # Hurl 8.1.0 requires libxml2.so.2, which Ubuntu 24.04 provides.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 — 2026-11-07 reviewed
@@ -240,6 +241,10 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 — 2026-11-07 reviewed
         with:
           python-version: "3.12"
+      - name: Install Hurl's libxml2 runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2
       - name: Verify Hurl and run the synthetic HTTP contracts
         shell: bash
         run: |
@@ -254,6 +259,7 @@ jobs:
             "$hurl_dir/$asset.tar.gz" | sha256sum --check
           tar -xOzf "$hurl_dir/$asset.tar.gz" "$asset/bin/hurl" > "$hurl_dir/hurl"
           chmod 0700 "$hurl_dir/hurl"
+          "$hurl_dir/hurl" --version
           status=0
           python3 tools/qa/run_http.py --hurl "$hurl_dir/hurl" --output-dir "$RUNNER_TEMP/http-qa" || status=$?
           python3 tools/qa/summarize.py "$RUNNER_TEMP"/http-qa/http-*/junit.xml || status=1

@@ -201,8 +201,14 @@ class CiWorkflowContractTests(unittest.TestCase):
     def test_ci_checks_the_hurl_asset_before_running_contracts_and_retains_failures(self):
         text = _workflow_text("ci.yml")
         http = text.split("\n  http-contracts:", 1)[1].split("\n  e2e:", 1)[0]
+        self.assertIn("runs-on: ubuntu-24.04", http)
+        self.assertLess(
+            http.index("apt-get install -y --no-install-recommends libxml2"),
+            http.index("sha256sum --check"),
+        )
         self.assertLess(http.index("sha256sum --check"), http.index("tar -xOzf"))
-        self.assertLess(http.index("tar -xOzf"), http.index("tools/qa/run_http.py"))
+        self.assertLess(http.index("tar -xOzf"), http.index('"$hurl_dir/hurl" --version'))
+        self.assertLess(http.index('"$hurl_dir/hurl" --version'), http.index("tools/qa/run_http.py"))
         self.assertIn("tools/qa/summarize.py", http)
         self.assertIn('exit "$status"', http)
         self.assertIn("if: ${{ failure() }}", http)

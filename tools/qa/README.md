@@ -16,7 +16,8 @@ python3 tools/qa/summarize.py /absolute/path/to/qa-evidence/http-RUN/junit.xml
 The runner prints the generated report path. Failures return a nonzero exit
 code. The summary shows failed files, source locations, and actual and expected
 values when Hurl supplies them. GitHub CI runs the contracts with the
-hash-verified Hurl 8.1.0 release binary and attaches `http-contract-failures`
+hash-verified Hurl 8.1.0 release binary on Ubuntu 24.04 for its
+`libxml2.so.2` runtime and attaches `http-contract-failures`
 when a run produces a failing JUnit report. The report covers Library,
 project discovery, enable/disable, and Recovery. The standard unit suite
 remains available through `python3 -m unittest discover -s tests`.

@@ -48,6 +48,8 @@ records, not additional live work.
   summary for Hurl and exported Keploy reports.
 - [x] Run hash-pinned Hurl contracts in CI, verify scoped Recovery preserves
   unrelated trash, and retain actionable JUnit failure reports.
+- [x] Pin the Hurl job to an Ubuntu image that provides its libxml2 runtime
+  and check binary startup before running the HTTP contracts.
 - [x] Verify the native open-source Keploy export against a synthetic saved
   run, including the cgroup startup warning before JUnit XML.
 - [x] Rehearse the upgrade from published 1.0.2 and restore its full backup

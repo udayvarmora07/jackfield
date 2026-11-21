@@ -7,6 +7,15 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-21 — Restore the hosted Hurl check
+
+- GitHub moved `ubuntu-latest` to Ubuntu 26.04. The Hurl 8.1.0 binary
+  requires `libxml2.so.2`, so the HTTP job now uses Ubuntu 24.04 and
+  installs its `libxml2` package. A version check tests binary startup
+  before the fixture server starts.
+- Hurl 8.1.0 started locally on Ubuntu 24.04 and all 16 requests passed.
+  The CI and QA contract suite passed all 37 tests.
+
 ## 2026-11-21 — Fail backups with unreadable supporting folders
 
 - Slim and full backups now report a supporting folder read failure during
