@@ -1358,6 +1358,7 @@ app.component("listing-budgets", {
           basis: budget.basis || "Budget basis unavailable",
           cuts: (section.entries || []).filter((e) => Number(e.cut_chars) > 0)
             .sort((a, b) => Number(b.cut_chars) - Number(a.cut_chars) || String(a.name).localeCompare(String(b.name))).slice(0, 20),
+          thin: (section.entries || []).filter((e) => e.thin).map((e) => e.name).sort(),
           status: status + (section.confidence === "partial" ? " · partial evidence" : "") }];
       });
     },
@@ -1395,6 +1396,9 @@ app.component("listing-budgets", {
         <p class="sub">{{ section.status }}</p><p class="sub">{{ section.basis }}</p>
         <details v-if="section.cuts.length" class="listing-cuts"><summary>{{ section.cuts.length }} description{{ section.cuts.length === 1 ? "" : "s" }} cut before the model sees {{ section.cuts.length === 1 ? "it" : "them" }}</summary>
           <ul><li v-for="e in section.cuts" :key="e.name"><span class="mono">{{ e.name }}</span> loses {{ fmtN(e.cut_chars) }} of {{ fmtN(e.description_chars) }} characters</li></ul></details>
+        <details v-if="section.thin.length" class="listing-cuts"><summary>{{ section.thin.length }} description{{ section.thin.length === 1 ? " is" : "s are" }} too short to route on</summary>
+          <p class="sub">Under 20 characters, the model has almost nothing to choose {{ section.thin.length === 1 ? "this skill" : "these skills" }} by.</p>
+          <ul><li v-for="n in section.thin.slice(0, 20)" :key="n"><span class="mono">{{ n }}</span></li></ul></details>
       </div>
       <p class="sub" v-if="!sections.length">No Claude Code or Codex listing instances observed.</p>
       <a class="see-all" href="#/tools/quality">Review listing evidence <ic name="arrow" cls="i-s"></ic></a>

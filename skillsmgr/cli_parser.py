@@ -66,6 +66,7 @@ def _add_ai_parser(sub, commands) -> None:
     p.add_argument("--section", type=int, metavar="N", help="section number from the estimate; default: the whole skill")
     p.add_argument("--trials", type=int, choices=range(1, 6), default=3)
     p.add_argument("--max-cases", type=int, default=10, metavar="N")
+    p.add_argument("--placebo", action="store_true", help="also run with same-length neutral filler in its place")
     p.add_argument("--run", action="store_true", help="send the skill and eval prompts to the configured provider")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=commands["cmd_ai"])

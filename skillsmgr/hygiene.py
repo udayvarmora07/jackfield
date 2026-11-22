@@ -42,6 +42,10 @@ _CLAUDE_PROJECT_SCOPE = "project-claude"
 _CLAUDE_LISTING_SOURCE = "https://code.claude.com/docs/en/skills"
 _LISTING_SEPARATOR = "\n"
 LISTING_CHARS_PER_TOKEN = 4
+# The validator's "very short description" bound; a listed entry below it gives
+# the model almost nothing to route on (SkillReducer, arXiv 2603.29919: 26.4% of
+# 55,315 skills had missing or thin descriptions).
+THIN_DESCRIPTION_CHARS = 20
 LISTING_ESTIMATE_ASSUMPTION = (
     "4 characters per token; the documented budget is in characters but scales "
     "from a token window and the conversion is not documented"
@@ -1129,6 +1133,7 @@ def _listing_entry(record: dict, cap: int, setting: dict | None,
         "counted_description_chars": counted,
         "over_cap": listing == "full" and len(combined) > cap,
         "cut_chars": (len(combined) - counted) * (listing == "full"),
+        "thin": min(listing == "full", len(combined) < THIN_DESCRIPTION_CHARS),
         "entry_chars": len(text),
     }
     return entry, text
@@ -1546,7 +1551,8 @@ def _codex_entry(name: str, description: str, tokens: int, truncated: bool) -> d
     kept = _CODEX_DESCRIPTION_CAP - 3 if truncated else len(description)
     return {"name": _bounded(name, 128), "description_chars": len(description),
             "delivered_description_chars": kept, "cut_chars": len(description) - kept,
-            "tokens": tokens, "over_cap": truncated}
+            "tokens": tokens, "over_cap": truncated,
+            "thin": len(description) < THIN_DESCRIPTION_CHARS}
 
 
 def _codex_budget(window: str, home=None) -> dict:

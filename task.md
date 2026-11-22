@@ -52,11 +52,13 @@ records, not additional live work.
   Quora), reports 15–17 in @docs/research/2026-11-22-ai-loop/.
 - [x] Literature deep dive (report 18). Applied: cases-only bootstrap,
   minimum detectable effect, `untested` ablation decision, two-order judge.
+- [x] Literature batch 2: thin-description flags in the listing report,
+  `ai ablate --placebo`, directive density and stale project references in
+  `ai conflicts`.
 - [ ] Remaining literature proposals in @docs/60-ai-features-research-loop-2026-11-22.md
-  "Round 4": placebo arm, real-runtime trigger checks, three-vote judge with
-  repo-fact checks, held-out splits, negative assertions, staleness check,
-  instruction density lint, injection tests; and thin-description flags in the
-  listing report.
+  "Round 4": per-model labels, real-runtime trigger checks, three-vote judge,
+  held-out splits, action assertions, a "why" per rule, phrasing lint,
+  injection tests.
 
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 

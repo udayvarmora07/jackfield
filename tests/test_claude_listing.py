@@ -93,6 +93,8 @@ class ClaudeListingContracts(unittest.TestCase):
         self.assertEqual(entries["alpha"]["counted_description_chars"], 0)
         self.assertEqual(section["excluded"]["name_only"], 1)
         self.assertEqual(entries["alpha"]["cut_chars"], 0)  # a setting, not a cut
+        self.assertFalse(entries["alpha"]["thin"])  # name-only by choice, not thin
+        self.assertTrue(entries["beta"]["thin"])  # 10 characters
         self.assertEqual(
             section["listing_chars"],
             len("alpha") + len("\n") + len("beta: " + "B" * 10),

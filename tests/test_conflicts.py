@@ -162,6 +162,34 @@ class CheckTests(ConflictFixture):
         limited = self.report()['inputs_limited']
         self.assertTrue(any('first 300 instruction lines' in line for line in limited))
 
+    def test_stale_references_in_project_files_are_found_deterministically(self):
+        (self.project / 'docs').mkdir()
+        (self.project / 'docs/real.md').write_text('x', encoding='utf-8')
+        (self.project / 'src').mkdir()
+        (self.project / 'src/tool.py').write_text('x', encoding='utf-8')
+        (self.project / 'package.json').write_text('{"scripts": {"test": "x"}}', encoding='utf-8')
+        (self.home / 'outside.md').write_text('x', encoding='utf-8')
+        (self.project / 'AGENTS.md').write_text(
+            '- See `docs/real.md` and `docs/missing.md`.\n- Run `npm test`, then `npm run lint`.\n'
+            '- Also `make deploy`, `tool.py`, `gone.py` and `../outside.md`.\n- Install with `npm install`.\n',
+            encoding='utf-8')
+        stale = {(row['reference'], row['line']): row['reason'] for row in self.report()['stale_references']}
+        self.assertEqual(set(stale), {('docs/missing.md', 1), ('npm run lint', 2), ('make deploy', 3), ('gone.py', 3)})
+        self.assertIn('no \'lint\' script', stale[('npm run lint', 2)])
+        self.assertIn('no readable Makefile', stale[('make deploy', 3)])
+
+    def test_without_a_project_nothing_is_checked_for_staleness(self):
+        report = ai_conflicts.check(self.data, {'scope': 'claude-code'})
+        self.assertEqual(report['stale_references'], [])
+
+    def test_density_counts_directives_per_instruction_file(self):
+        many = ''.join(f'- Always do step {n}.\n' for n in range(conflicts.DENSE_DIRECTIVES + 1))
+        (self.project / 'AGENTS.md').write_text(many, encoding='utf-8')
+        rows = {row['source']: row for row in self.report()['density']}
+        project_row = rows[str(self.project / 'AGENTS.md')]
+        self.assertEqual((project_row['directives'], project_row['dense']), (conflicts.DENSE_DIRECTIVES + 1, True))
+        self.assertFalse(rows['~/.claude/CLAUDE.md']['dense'])
+
     def test_fenced_lines_are_not_rules(self):
         quotes = {side['quote'] for p in self.report()['candidates'] for side in (p['a'], p['b'])}
         self.assertNotIn('- Never commit after each change.', quotes)

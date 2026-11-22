@@ -22,7 +22,7 @@
         explainName: "", explained: null,
         question: "", askScope: "all", asked: null, askEstimate: null, askKey: "",
         evalName: "", evalMax: 10, evalTrials: 3, evalResult: null, evalEstimate: null,
-        ablateName: "", ablateSection: "", ablateTrials: 3, ablateMax: 10, ablateSections: [], ablateEstimate: null, ablateEstimateKey: "",
+        ablateName: "", ablateSection: "", ablateTrials: 3, ablateMax: 10, ablatePlacebo: false, ablateSections: [], ablateEstimate: null, ablateEstimateKey: "",
         ablateResult: null, ablateRequest: 0, ablateReviewOwned: true,
         conflictsScope: "global", conflictsProject: "", conflictsMax: 20, conflictsReport: null, conflictsEstimate: null, conflictsRequest: 0,
         savedCount: 0, savedPrompts: [], savedNote: "", savedError: "", savedBusy: false, savedRequest: 0,
@@ -147,10 +147,10 @@
       },
       skillHref(name) { return "#/skill/" + encodeURIComponent(name); },
       librarySkills() { return [...new Set(this.records.filter((r) => r.scope === "global").map((r) => r.name))].sort(); },
-      ablateInputKey() { return JSON.stringify([this.ablateName, this.ablateSection, this.ablateTrials, this.ablateMax]); },
+      ablateInputKey() { return JSON.stringify([this.ablateName, this.ablateSection, this.ablateTrials, this.ablateMax, this.ablatePlacebo]); },
       ablateBody(extra) {
         return { name: this.ablateName, section: this.ablateSection === "" ? null : Number(this.ablateSection),
-          trials: Number(this.ablateTrials), max_cases: Number(this.ablateMax), ...extra };
+          trials: Number(this.ablateTrials), max_cases: Number(this.ablateMax), placebo: !!this.ablatePlacebo, ...extra };
       },
       clearAblate() {
         this.ablateRequest++;
@@ -858,6 +858,7 @@
             <div class="tp-set-row"><label for="ai-abn"><b>Skill</b><small>A turned-on skill in your library with cases in <code>evals/evals.json</code>.</small></label><select id="ai-abn" class="field" v-model="ablateName" @change="chooseAblateSkill()"><option value="">Choose…</option><option v-for="n in librarySkills()" :key="n" :value="n">{{ n }}</option></select></div>
             <div class="tp-set-row"><label for="ai-abs"><b>Remove</b><small>A section includes its subsections.</small></label><select id="ai-abs" class="field" v-model="ablateSection" @change="clearAblate()" :disabled="!ablateName"><option value="">The whole skill</option><option v-for="sec in ablateSections" :key="sec.index" :value="String(sec.index)">{{ '#'.repeat(sec.level) }} {{ sec.heading }} (~{{ fmt(sec.tokens) }} tokens)</option></select></div>
             <div class="tp-set-row"><label for="ai-abm"><b>Cases</b><small>At least 3 graded cases are needed for a decision.</small></label><select id="ai-abm" class="field" v-model.number="ablateMax" @change="clearAblate()"><option v-for="n in [3,5,10,15,20]" :key="n" :value="n">{{ n }}</option></select></div>
+            <div class="tp-set-row"><label for="ai-abp"><b>Same-length filler</b><small>Also run with neutral filler of the same length in its place, to tell "this text matters" from "any text this long matters". Adds a third of the calls.</small></label><input id="ai-abp" type="checkbox" v-model="ablatePlacebo" @change="clearAblate()"></div>
             <div class="tp-set-row"><label for="ai-abt"><b>Repeats</b><small>Model answers vary; repeats narrow the range.</small></label><select id="ai-abt" class="field" v-model.number="ablateTrials" @change="clearAblate()"><option :value="1">Once</option><option :value="3">3 times</option><option :value="5">5 times</option></select></div>
           </div>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !ablateName" @click="estimateAblate()">Check what will be sent</button></div>
@@ -873,9 +874,10 @@
           <p class="tp-fine">{{ ablateResult.reason }}.</p>
           <p v-if="ablateResult.coverage_warning" class="tp-issue warn">{{ ablateResult.coverage_warning }}</p>
           <trial-stats v-if="ablateResult.statistics" :stats="ablateResult.statistics" title="With it compared with without it" :labels="{ full: 'With it', ablated: 'Without it' }"></trial-stats>
-          <table class="ai-table"><thead><tr><th>Case</th><th>With it</th><th>Without it</th></tr></thead>
+          <trial-stats v-if="ablateResult.placebo_statistics" :stats="ablateResult.placebo_statistics" title="With it compared with same-length filler" :labels="{ full: 'With it', placebo: 'Filler' }"></trial-stats>
+          <table class="ai-table"><thead><tr><th>Case</th><th>With it</th><th>Without it</th><th v-if="ablateResult.variants && ablateResult.variants.includes('placebo')">Filler</th></tr></thead>
             <tbody><tr v-for="c in ablateResult.cases" :key="c.case"><td class="tp-mono">{{ c.case }}</td>
-              <td v-for="v in ['full','ablated']" :key="v">{{ c[v].graded ? c[v].passed + ' / ' + c[v].graded + ' passed' : 'Not graded' }}</td></tr></tbody></table>
+              <td v-for="v in (ablateResult.variants || ['full','ablated'])" :key="v">{{ c[v].graded ? c[v].passed + ' / ' + c[v].graded + ' passed' : 'Not graded' }}</td></tr></tbody></table>
           <template v-if="ablateResult.proposal && ablateResult.proposal.kind==='remove-section'">
             <p class="tp-fine">A removal of this section is staged. Review the exact change; the current copy is kept in Recovery when you save.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy || !ablateReviewOwned" @click="openAblateReview()">Review the removal…</button></div>
@@ -904,6 +906,14 @@
           <header class="tp-panel-h"><div><h2 id="ai-cfr-h">{{ conflictsReport.candidates.length }} possible contradiction{{ conflictsReport.candidates.length===1?'':'s' }}</h2><p>{{ conflictsReport.sources.length }} sources read<template v-if="conflictsReport.unreadable.length"> · {{ conflictsReport.unreadable.length }} unreadable</template><template v-if="conflictsReport.candidates_truncated"> · list cut at {{ conflictsReport.candidates.length }}</template></p></div></header>
           <p v-if="conflictsReport.unreadable.length" class="tp-fine">Not read: <span class="tp-mono">{{ conflictsReport.unreadable.join(', ') }}</span></p>
           <p v-for="(line,i) in (conflictsReport.inputs_limited || [])" :key="'lim'+i" class="tp-issue warn">{{ line }}</p>
+          <details v-if="(conflictsReport.density || []).length" class="listing-cuts"><summary>Directives per always-loaded file<template v-if="conflictsReport.density.some(d => d.dense)"> · {{ conflictsReport.density.filter(d => d.dense).length }} over {{ conflictsReport.dense_threshold }}</template></summary>
+            <p class="tp-fine">Every directive in these files is read in every session. Research finds compliance falls as directives accumulate, with early ones favoured past about {{ conflictsReport.dense_threshold }}.</p>
+            <ul><li v-for="d in conflictsReport.density" :key="d.source"><span class="tp-mono">{{ d.source }}</span>: {{ d.directives }}{{ d.capped ? '+' : '' }} directive lines<span v-if="d.dense" class="pill warn">dense</span></li></ul></details>
+          <template v-if="(conflictsReport.stale_references || []).length">
+            <h3>{{ conflictsReport.stale_references.length }} stale reference{{ conflictsReport.stale_references.length === 1 ? '' : 's' }} in project instructions</h3>
+            <p class="tp-fine">Checked against the project without a model. An agent that follows a stale path or command wastes tool calls and gets no error.</p>
+            <ul class="ai-list"><li v-for="row in conflictsReport.stale_references" :key="row.source + row.line + row.reference"><span class="tp-mono">{{ row.reference }}</span>: {{ row.reason }} <small class="tp-mono">({{ row.source }}:{{ row.line }})</small></li></ul>
+          </template>
           <p class="tp-fine">{{ conflictsReport.limits }}</p>
           <div v-if="configured && conflictsReport.candidates.length" class="tp-set">
             <div class="tp-set-row"><label for="ai-cfn"><b>Pairs to judge</b><small>Only the two quoted lines of each pair are sent, never whole files.</small></label><select id="ai-cfn" class="field" v-model.number="conflictsMax" @change="conflictsEstimate=null"><option v-for="n in [5,10,20,40]" :key="n" :value="n">{{ n }}</option></select></div>

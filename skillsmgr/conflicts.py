@@ -24,6 +24,8 @@ reported as unknown rather than guessed.
 from __future__ import annotations
 
 import hashlib
+import json
+import os
 import re
 from pathlib import Path
 
@@ -340,6 +342,126 @@ def candidates(sources: list, limits: list | None = None) -> tuple[list, bool]:
     return pairs[:MAX_CANDIDATES], len(pairs) > MAX_CANDIDATES
 
 
+# IFScale (arXiv 2507.11538): compliance falls as instructions accumulate, and
+# the bias towards early instructions peaks around 150-200 of them.
+DENSE_DIRECTIVES = 150
+MAX_STALE = 200
+_CODE_SPAN = re.compile(r"`([^`\n]{2,200})`")
+_PATH_REF = re.compile(r"^@?(?:\./)?([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+/?|[A-Za-z0-9_-]+\.(?:md|py|js|ts|json|toml|ya?ml|sh|txt))$")
+_SCRIPT_REF = re.compile(r"^(npm|pnpm|yarn|bun)\s+(?:run\s+)?([A-Za-z0-9:_-]+)")
+_MAKE_REF = re.compile(r"^make\s+([A-Za-z0-9_.-]+)")
+_PY_REF = re.compile(r"^python3?\s+([A-Za-z0-9_./-]+\.py)\b")
+_PACKAGE_BUILTINS = frozenset("install i ci add remove rm uninstall exec x dlx create init update up outdated "
+                              "publish link unlink audit view info why list ls config login version help".split())
+
+
+def density(sources: list) -> list:
+    """Directive lines per always-loaded file; many directives dilute each one."""
+    rows = []
+    for source in sources:
+        if source["kind"] == "instructions":
+            count = len(rules(source["text"]))
+            rows.append({"source": source["label"], "directives": count,
+                         "capped": count >= MAX_RULES_PER_SOURCE, "dense": count > DENSE_DIRECTIVES})
+    return rows
+
+
+def _inside(project: Path, relative: str) -> Path | None:
+    parts = Path(relative).parts
+    if not parts or Path(relative).is_absolute() or any(set(part) == {"."} for part in parts):
+        return None
+    try:
+        target = (project / relative).resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return target if target.is_relative_to(project) else None
+
+
+def _package_scripts(project: Path) -> dict | None:
+    try:
+        data = json.loads(file_reads.read_regular_file(project / "package.json", MAX_FILE_BYTES, follow_symlinks=False).decode("utf-8"))
+    except (OSError, ValueError, UnicodeError):
+        return None
+    scripts = data.get("scripts") if isinstance(data, dict) else None
+    return scripts if isinstance(scripts, dict) else {}
+
+
+def _make_targets(project: Path) -> set | None:
+    try:
+        text = file_reads.read_regular_file(project / "Makefile", MAX_FILE_BYTES, follow_symlinks=False).decode("utf-8")
+    except (OSError, ValueError, UnicodeError):
+        return None
+    return set(re.findall(r"^([A-Za-z0-9_.-]+)\s*:(?!=)", text, re.M))
+
+
+_SKIP_DIRS = frozenset({".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".tox"})
+MAX_WALK = 50_000
+
+
+def _file_names(project: Path) -> set | None:
+    """File and folder names in the project, or ``None`` when the tree is too large to judge."""
+    names, seen = set(), 0
+    for _root, dirs, files in os.walk(project):
+        dirs[:] = [d for d in dirs if d not in _SKIP_DIRS]
+        names.update(dirs)
+        names.update(files)
+        seen += len(files) + len(dirs)
+        if seen > MAX_WALK:
+            return None
+    return names
+
+
+def _stale_reason(project: Path, span: str, facts: dict) -> str | None:
+    span = span.strip()
+    script = _SCRIPT_REF.match(span)
+    if script and script.group(2) not in _PACKAGE_BUILTINS:
+        scripts = facts.setdefault("scripts", _package_scripts(project))
+        if scripts is None:
+            return "the project has no readable package.json"
+        return None if script.group(2) in scripts else f"package.json has no {script.group(2)!r} script"
+    make = _MAKE_REF.match(span)
+    if make:
+        targets = facts.setdefault("make", _make_targets(project))
+        if targets is None:
+            return "the project has no readable Makefile"
+        return None if make.group(1) in targets else f"the Makefile has no {make.group(1)!r} target"
+    python = _PY_REF.match(span)
+    path = python.group(1) if python else (_PATH_REF.match(span).group(1) if _PATH_REF.match(span) else None)
+    if path is None:
+        return None
+    if "/" not in path.rstrip("/"):
+        names = facts.setdefault("names", _file_names(project))
+        return None if names is None or path in names else "no file with this name in the project"
+    target = _inside(project, path.rstrip("/"))
+    if target is None or target.exists():
+        return None
+    return "not found in the project"
+
+
+def stale_references(sources: list, project: Path | None) -> list:
+    """Code spans in project instruction files naming paths, scripts or targets that do not exist.
+
+    A stale command costs an agent extra tool calls and never raises an error
+    (arXiv 2611.09802). Only spans that resolve inside the project are checked,
+    so the report never reveals whether files outside it exist.
+    """
+    if project is None:
+        return []
+    found, facts = [], {}
+    for source in sources:
+        if source.get("layer") != "project":
+            continue
+        for number, line in enumerate(_LINES.split(source["text"]), 1):
+            for span in _CODE_SPAN.findall(line):
+                reason = _stale_reason(project, span, facts)
+                if reason:
+                    found.append({"source": source["label"], "line": number, "quote": _quote(line),
+                                  "reference": span.strip()[:200], "reason": reason, "basis": "deterministic"})
+                if len(found) >= MAX_STALE:
+                    return found
+    return found
+
+
 def check(scope: str = "global", project: Path | None = None, *, home: Path | None = None) -> dict:
     """The deterministic report: sources read and ranked candidate pairs."""
     if not isinstance(scope, str) or not scope or scope == "all":
@@ -361,6 +483,8 @@ def check(scope: str = "global", project: Path | None = None, *, home: Path | No
         "sources": [{key: source[key] for key in ("kind", "layer", "label") if key in source}
                     for source in sources],
         "unreadable": unreadable, "candidates": pairs, "candidates_truncated": truncated,
+        "density": density(sources), "dense_threshold": DENSE_DIRECTIVES,
+        "stale_references": stale_references(sources, project),
         "inputs_limited": limits[:20],
         "basis": "heuristic",
         "limits": ("Candidates come from word patterns, not understanding; many are compatible in "

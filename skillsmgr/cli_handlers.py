@@ -33,6 +33,7 @@ from .cli_output import (
 )
 from .store import Store, StoreError
 from .validator import validate_skill, validate_skill_name
+from .hygiene import THIN_DESCRIPTION_CHARS
 from .external_scan import scan_options
 from .store import list_snapshots
 from .tokens import aggregate, estimate, format_tokens, window_name
@@ -750,6 +751,11 @@ def _render_cut_descriptions(section: dict) -> None:
               f"{int(entry.get('description_chars') or 0):,} description chars")
     if len(rows) > 5:
         print(f"    cut: {len(rows) - 5} more (see --json)")
+    thin = sorted(_display(str(entry.get("name"))) for entry in section.get("entries") or []
+                  if isinstance(entry, dict) and entry.get("thin"))
+    if thin:
+        more = f" and {len(thin) - 5} more" if len(thin) > 5 else ""
+        print(f"    thin: {', '.join(thin[:5])}{more} (description under {THIN_DESCRIPTION_CHARS} chars)")
 
 
 def _claude_candidate_advice(chars: int, budget: int, candidates: int) -> str:

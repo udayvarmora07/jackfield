@@ -155,6 +155,29 @@ class AblateTests(unittest.TestCase):
         self.assertEqual((result['status'], result['decision']), ('partial', 'uncertain'))
         self.assertNotIn('proposal', result)
 
+    def test_placebo_swaps_the_section_for_same_length_filler(self):
+        result = self.run_ablation(section=0, placebo=True)
+        self.assertEqual(result['variants'], ['full', 'ablated', 'placebo'])
+        self.assertEqual(len(self.sent), 5 * 3)
+        placebo = [system for system in self.sent if 'neutral filler' in system]
+        self.assertEqual(len(placebo), 5)
+        full = [system for system in self.sent if 'magic word is PINEAPPLE' in system][0]
+        self.assertEqual(len(placebo[0]), len(full))
+        self.assertEqual(result['placebo_statistics']['lift'], 0.8)
+        self.assertIn('placebo', result['cases'][0])
+        self.assertIn('same-length filler', result['egress'][0])
+        saved = ai_skills.read_run(self.data, result['run_id'])
+        self.assertEqual(set(saved['cases'][0]), {'case', 'full', 'ablated', 'placebo'})
+
+    def test_placebo_choice_is_bound_to_the_preview(self):
+        estimate = ai_ablate.ablate(self.store, {'name': 'magic', 'section': 0, 'estimate': True})
+        with self.assertRaises(ai.AiError) as failure:
+            ai_ablate.ablate(self.store, {'name': 'magic', 'section': 0, 'placebo': True, 'plan': estimate['plan']})
+        self.assertEqual(failure.exception.status, 409)
+        with self.assertRaises(ai.AiError):
+            ai_ablate.ablate(self.store, {'name': 'magic', 'placebo': 'yes', 'estimate': True})
+        self.assertEqual(self.sent, [])
+
     def test_cases_at_the_ceiling_cannot_justify_removal(self):
         self.write_cases('PINEAPPLE', 4, hard=False)
         result = self.run_ablation(section=2)

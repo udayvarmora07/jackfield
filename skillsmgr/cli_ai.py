@@ -165,7 +165,8 @@ def _human_report(report):
 
 
 def _execute_ablate(args, store):
-    payload = {"name": args.name, "section": args.section, "trials": args.trials, "max_cases": args.max_cases}
+    payload = {"name": args.name, "section": args.section, "trials": args.trials, "max_cases": args.max_cases,
+               "placebo": args.placebo}
     estimate = ai_ablate.ablate(store, {**payload, "estimate": True})
     if not args.run:
         return {"status": "estimate", "result": estimate}, 0
@@ -190,6 +191,10 @@ def _human_ablate(report):
         print(f"Decision: {result['decision']} -- {sanitize_text(result['reason'])}")
         print(f"Lift with it: {stats['lift']} (interval {stats['interval']}, {stats['paired_cases']} requests, "
               f"{stats['trials']} trials)")
+        placebo = result.get("placebo_statistics")
+        if placebo:
+            print(f"Against same-length filler: lift {placebo['lift']} (interval {placebo['interval']}), "
+                  f"{placebo['verdict']}")
         if stats.get("min_detectable") is not None:
             print(f"Smallest difference this run could reliably show: ~{round(stats['min_detectable'] * 100)} points")
         if result.get("coverage_warning"):
@@ -242,6 +247,12 @@ def _human_conflicts(report):
         print(f"- {pair['kind']}: {label}")
         print("    " + _human_side(pair["a"]))
         print("    " + _human_side(pair["b"]))
+    for row in result.get("density", []):
+        flag = " (dense)" if row["dense"] else ""
+        print(f"  {sanitize_text(row['source'])}: {row['directives']}{'+' if row['capped'] else ''} directive lines{flag}")
+    for row in result.get("stale_references", []):
+        print(f"- stale: {sanitize_text(row['reference'])}: {sanitize_text(row['reason'])} "
+              f"({sanitize_text(row['source'])}:{row['line']})")
     print(sanitize_text(result["limits"]))
 
 

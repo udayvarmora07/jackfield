@@ -7,6 +7,18 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Thin descriptions, placebo arm, density and stale references
+
+- Listing entries carry `thin` (description under the validator's 20
+  characters, name-only entries excluded); `doctor --hygiene` and the v2
+  listing card list them.
+- `ai ablate --placebo` / `placebo: true` runs a third variant with the removed
+  text swapped for same-length neutral filler and reports `placebo_statistics`.
+- `ai conflicts` reports `density` per instruction file (dense above 150) and,
+  with a project, deterministic `stale_references` for paths, package scripts,
+  make targets and Python files that do not exist. On this repository it found
+  none after bare file names were resolved project-wide.
+
 ## 2026-11-22 — Round 4 research and literature-driven statistics fixes
 
 - Read Reddit, X, Instagram and Quora through the user's own Chrome (reports

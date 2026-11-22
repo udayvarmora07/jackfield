@@ -168,11 +168,11 @@ def _discriminates(rows: list) -> bool:
                for variants in seen.values() if len(variants) > 1)
 
 
-def _per_case(rows: list, cases: list) -> list:
+def _per_case(rows: list, cases: list, labels) -> list:
     out = []
     for case in cases:
         entry = {'case': case['id']}
-        for label in ('full', 'ablated'):
+        for label in labels:
             mine = sorted((row for row in rows if row['case'] == case['id'] and row['variant'] == label),
                           key=lambda row: row['trial'])
             graded = [row['passed'] for row in mine if row['passed'] is not None]
@@ -207,26 +207,56 @@ def _stage_removal(store, target, files, directories, digest, primary, prefix, b
             'hunks': _public_hunks(body, proposed), 'tree_hash': digest, 'target': target}
 
 
-def _documents(prefix: str, body: str, section) -> tuple[dict, str]:
+_FILLER = ('This paragraph is neutral filler of the same length as the removed text. '
+           'It gives no instructions and can be ignored. ')
+
+
+def _filler(length: int) -> str:
+    """Neutral text of exactly ``length`` characters, ending in a newline when it has room."""
+    if length <= 0:
+        return ''
+    return (_FILLER * (length // len(_FILLER) + 1))[:length - 1] + '\n'
+
+
+def _documents(prefix: str, body: str, section, placebo: bool) -> tuple[dict, str]:
+    """``full``, ``ablated`` and, with ``placebo``, the removed text swapped for same-length filler.
+
+    The placebo separates "this text helps" from "any text this long helps or
+    distracts" (Signal or Noise, arXiv 2608.23067).
+    """
     if section is None:
-        return {'full': prefix + body, 'ablated': ''}, ''
-    remaining = _without(body, section)
-    return {'full': prefix + body, 'ablated': prefix + remaining}, remaining
+        documents, remaining = {'full': prefix + body, 'ablated': ''}, ''
+        swapped = prefix + _filler(len(body))
+    else:
+        remaining = _without(body, section)
+        documents = {'full': prefix + body, 'ablated': prefix + remaining}
+        swapped = (prefix + body[:section['start']] + _filler(section['end'] - section['start'])
+                   + body[section['end']:])
+    if placebo:
+        documents['placebo'] = swapped
+    return documents, remaining
 
 
-def _egress(run: AiRun, name: str, count: int, trials: int, section) -> str:
+def _placebo(value) -> bool:
+    if value not in (None, True, False):
+        raise AiError('placebo must be true or false', 'ai-input')
+    return value is True
+
+
+def _egress(run: AiRun, name: str, count: int, trials: int, section, variants: int) -> str:
     where = ('a model running on this machine' if run.config['local']
              else f"{run.config['label']} ({run.config['base_url']})")
     what = 'without the skill' if section is None else f'without the section "{section["heading"]}"'
+    placebo = ', and with same-length filler in its place' if variants == 3 else ''
     return (f"{name}'s SKILL.md and {count} eval prompts (with their input files) go to {where}, "
-            f'{trials * 2} times per case: with the whole skill and {what}.')
+            f'{trials * variants} times per case: with the whole skill, {what}{placebo}.')
 
 
 def _evidence(result: dict) -> dict:
     kept = {key: value for key, value in result.items()
             if key not in ('plan', 'destination', 'cases', 'proposal', 'sections')}
     kept['cases'] = [{'case': row['case'], **{label: {k: row[label][k] for k in ('passed', 'graded', 'answers')}
-                                              for label in ('full', 'ablated')}} for row in result['cases']]
+                                              for label in result['variants']}} for row in result['cases']]
     return kept
 
 
@@ -240,29 +270,33 @@ def ablate(store, payload: dict) -> dict:
     trials = _trial_count(payload.get('trials'))
     skill_dir = Path(target['physical_path'])
     cases = ai_evals._cases(skill_dir, 10 if payload.get('max_cases') is None else payload['max_cases'])
-    documents, remaining = _documents(prefix, body, section)
+    documents, remaining = _documents(prefix, body, section, _placebo(payload.get('placebo')))
     prompts = {case['id']: ai_evals._case_prompt(skill_dir, case) for case in cases}
     estimate = payload.get('estimate') is True
     run = AiRun(store.data_dir, 'ablate', estimate_only=estimate)
     plan = run.review_plan(payload, [name, digest, None if section is None else
                                      [section['index'], section['start'], section['end']],
-                                     [[case['id'], prompts[case['id']]] for case in cases], trials])
+                                     [[case['id'], prompts[case['id']]] for case in cases], trials,
+                                     'placebo' in documents])
     removed = body[section['start']:section['end']] if section else prefix + body
     result = {**plan, 'kind': 'ablate', 'name': name, 'tree_hash': digest, 'sections': listed,
               'section': None if section is None else {k: section[k] for k in ('index', 'heading', 'line')},
               'target': 'section' if section else 'skill', 'trials': trials, 'cases_count': len(cases),
-              'calls_planned': len(cases) * 2 * trials, 'margin': MARGIN,
-              'saves_tokens': count_tokens(removed)[0],
-              'egress': [_egress(run, name, len(cases), trials, section)]}
+              'calls_planned': len(cases) * len(documents) * trials, 'margin': MARGIN,
+              'variants': list(documents), 'saves_tokens': count_tokens(removed)[0],
+              'egress': [_egress(run, name, len(cases), trials, section, len(documents))]}
     rows = _calls(run, cases, prompts, documents, trials)
     if not estimate:
         if not rows:
             raise AiError('the model returned no eval outputs', 'ai-bad-output', 502)
         stats = trial_stats.summarize(rows, 'full', 'ablated')
         decision, reason = decide(stats)
-        complete = len(rows) == len(cases) * 2 * trials and stats['excluded'] == 0
+        if 'placebo' in documents:
+            result['placebo_statistics'] = trial_stats.summarize(rows, 'full', 'placebo')
+        excluded = stats['excluded'] + (result.get('placebo_statistics') or {}).get('excluded', 0)
+        complete = len(rows) == len(cases) * len(documents) * trials and excluded == 0
         result.update({'statistics': stats, 'decision': decision, 'reason': reason,
-                       'cases': _per_case(rows, cases), 'status': 'complete' if complete else 'partial'})
+                       'cases': _per_case(rows, cases, documents), 'status': 'complete' if complete else 'partial'})
         if decision == 'remove' and not complete:
             decision, reason = 'uncertain', 'some answers are missing, so removal is not proposed; run it again'
             result.update({'decision': decision, 'reason': reason})

@@ -200,7 +200,7 @@ added. Exit codes remain 0/1/2/130. Argparse usage errors remain text on stderr.
 Detailed states, limits and private-artifact CI recipe:
 @docs/42-ai-cli-ci-2026-11-09.md.
 
-### `ai ablate NAME [--section N] [--trials N] [--max-cases N] [--run] [--json]`
+### `ai ablate NAME [--section N] [--trials N] [--max-cases N] [--placebo] [--run] [--json]`
 
 **[SPEC] docs/60 G1, approved 2026-11-22.** Tests whether a library skill, or
 one headed section of it, earns its place. It replays the skill's
@@ -218,7 +218,10 @@ check's pass rate differed, since such cases may not test the removed text. A se
 whole-skill `remove` prints the demotion ladder (slash-only, `disable`,
 `archive apply`) and writes nothing. A turned-off skill is refused. JSON is
 `{schema_version: 1, command: "ai ablate", status, result}`; saved evidence
-keeps pass counts, not outputs.
+keeps pass counts, not outputs. `--placebo` adds a third variant with the
+removed text swapped for neutral filler of the same length and reports
+`placebo_statistics` (whole skill against filler); the decision still compares
+the whole skill with the removal.
 
 ### `ai conflicts [--scope SCOPE] [--project PATH] [--judge] [--max-pairs N] [--run] [--json]`
 
@@ -238,7 +241,14 @@ outside the project are reported as unreadable. Precedence between the two
 sides is reported as `unknown`. Lines longer than 400 characters are skipped
 rather than cut, skill documents that are links are not read, line numbers
 count `\n`, `\r\n` and `\r` only, and inputs dropped by size bounds are listed in
-`inputs_limited`. Writes nothing except the saved run evidence.
+`inputs_limited`. The report also counts directive lines per instruction file
+(`density`, `dense` above 150) and, with `--project`, lists `stale_references`:
+code spans in the project's instruction files naming a path, a
+`npm`/`pnpm`/`yarn`/`bun` script, a `make` target or a Python file that does not
+exist in the project. Only spans resolving inside the project are checked; a
+bare file name is stale only when no file of that name exists in the project
+(trees over 50,000 entries are not judged). Writes nothing except the saved run
+evidence.
 
 ### `init [--json]`
 Create the data directory layout and initialize the SQLite index.

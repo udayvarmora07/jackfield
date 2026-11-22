@@ -171,18 +171,21 @@ Findings that change or confirm the plan:
   smallest loss the run could have seen.
 - The contradiction judge asks in both orders and keeps a verdict only when
   both agree.
+- Next batch, same day: the listing report marks `thin` descriptions (under
+  the validator's 20 characters); `ai ablate --placebo` adds a same-length
+  filler arm; `ai conflicts` reports directive density per instruction file
+  and deterministic stale references in project instruction files.
 
 **[NOTE]** Deliberately not applied: blocking `remove` whenever the minimum
 detectable effect exceeds the 10-point margin. With the 0.5 spread floor that
 needs about 200 cases, more than the 20-case limit, so the feature would never
 propose anything. Removal stays a reviewed, recoverable proposal that states
-its evidence limit. Remaining literature proposals, in report order: a
-length-matched placebo arm and per-model labels; confirming trigger results in
-the real agent runtime with randomised listing order; three-vote judging,
-deterministic repo-fact checks and a predictive-value estimate; held-out
-splits for AI edit loops; negative and action assertions; a staleness check
-with a "why" per rule; a density and phrasing lint for instruction files; and
-injection tests with planted instructions.
+its evidence limit. Remaining literature proposals: per-model labels;
+confirming trigger results in the real agent runtime with randomised listing
+order; three-vote judging and a predictive-value estimate; held-out splits for
+AI edit loops; action assertions (negative text assertions already exist as
+`not_contains`); a "why" per rule; phrasing lint; and injection tests with
+planted instructions.
 
 ## Consolidated feature catalogue
 

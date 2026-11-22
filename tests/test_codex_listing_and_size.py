@@ -97,6 +97,10 @@ class CodexListingTests(_Fixture):
         entry = self.report()["codex_listing"]["entries"][0]
         self.assertEqual((entry["cut_chars"], entry["over_cap"]), (0, False))
         self.assertEqual(entry["delivered_description_chars"], len("Use when testing."))
+        self.assertTrue(entry["thin"])  # 17 characters, under the validator's 20
+        self.skill("roomy", "Use when testing listing entries with enough words.")
+        roomy = [e for e in self.report()["codex_listing"]["entries"] if e["name"] == "roomy"][0]
+        self.assertFalse(roomy["thin"])
 
     def test_disabled_and_config_disabled_skills_are_not_listed(self):
         self.skill("kept", "Use when kept.")
