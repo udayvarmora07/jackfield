@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Skills Manager UI research reference board</title>
+<style>
+:root { color-scheme:light; font:16px/1.55 system-ui,sans-serif; color:#231e18; background:#f7f5ef; }
+*, *::before, *::after { box-sizing:border-box; }
+body { max-width:80rem; margin:auto; padding:clamp(1rem,4vw,3rem); }
+h1, h2, h3, p { margin:0; }
+h1 { font-size:clamp(2rem,5vw,3rem); line-height:1.1; }
+h2 { font-size:1.4rem; }
+h3 { font-size:1.175rem; }
+a { color:#813926; text-underline-offset:.14em; }
+a:focus-visible { outline:2px solid #813926; outline-offset:3px; }
+#skills-reference-board { display:grid; gap:1.5rem; }
+.board-header, .board-panel { display:grid; gap:.75rem; }
+.board-navigation, .board-evidence-key, .board-links { display:flex; flex-wrap:wrap; gap:.5rem .8rem; }
+.board-navigation a { display:inline-flex; align-items:center; min-height:44px; padding:0 .7rem; border:1px solid #e0d8cb; border-radius:6px; background:#fff; }
+.board-panel { scroll-margin-block-start:1rem; padding-top:1rem; border-top:1px solid #e0d8cb; }
+.board-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap:.75rem; align-items:start; }
+.board-card { display:grid; justify-items:start; gap:.6rem; padding:1rem; border:1px solid #e0d8cb; border-radius:8px; background:#fff; overflow-wrap:anywhere; }
+.board-source { display:block; width:100%; padding:.7rem; border:1px solid #e0d8cb; border-radius:6px; background:#f6f3ec; }
+.viz-badge { padding:.15rem .5rem; border-radius:5px; color:#5a4637; background:#f4ebe0; font-size:.85rem; font-weight:600; }
+.text-small { font-size:.875rem; }
+.text-muted { color:#635547; }
+.board-area, .board-kicker { color:#813926; font-weight:700; }
+.board-pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap:.5rem; width:100%; }
+dl { display:grid; gap:.2rem; margin:0; }
+dt { font-weight:700; }
+dd { margin:0 0 .4rem; }
+dd:last-child { margin-bottom:0; }
+</style>
+</head><body>
+<div id="skills-reference-board">
+  <header class="board-header">
+    <p class="text-small text-muted board-kicker">Skills Manager v2 · 21 November 2026</p>
+    <h1>UI research reference board</h1>
+    <p>Discover tools, inspect evidence, and recover the right copy.</p>
+  </header>
+
+  <nav aria-label="Reference board sections">
+    <div class="board-navigation">
+      <a href="#smr-overview">Overview</a>
+      <a href="#smr-find">Find &amp; navigate</a>
+      <a href="#smr-evidence">Evidence &amp; triage</a>
+      <a href="#smr-recovery">Recovery</a>
+      <a href="#smr-galleries">MCP galleries</a>
+    </div>
+  </nav>
+
+  <section class="board-panel" id="smr-overview" aria-labelledby="smr-overview-heading">
+    <h2 id="smr-overview-heading">Overview</h2>
+    <div class="viz-row board-evidence-key" aria-label="Evidence labels">
+      <span class="viz-badge">Live walkthrough</span>
+      <span class="viz-badge">Official documentation</span>
+      <span class="viz-badge">Gallery capture</span>
+    </div>
+    <div class="viz-grid board-grid">
+      <article class="card board-card">
+        <p class="board-area text-small">Quality</p>
+        <h3>Put findings near the top</h3>
+        <p>The phone shortcut helps, but the findings search still sits 3,194px from the document top in the synthetic fixture. Keep findings, query, severity and scan status together.</p>
+        <p class="text-small text-muted">GitHub Issues · Linear · IBM Carbon</p>
+      </article>
+      <article class="card board-card">
+        <p class="board-area text-small">Recovery</p>
+        <h3>Identify the copy before restoring</h3>
+        <p>Show the skill, scope, timestamp, destination and replacement effect at the decision point. Keep text snapshots, folder snapshots and full archives easy to distinguish.</p>
+        <p class="text-small text-muted">Time Machine · Google Docs and Drive · GitHub Desktop</p>
+      </article>
+      <article class="card board-card">
+        <p class="board-area text-small">Tools</p>
+        <h3>Search the way users describe the job</h3>
+        <p>Connect phrases like “check a skill” to the right destination. Keep tool discovery and choosing an exact skill recognizable as two different tasks.</p>
+        <p class="text-small text-muted">Raycast · Astro Docs · VS Code</p>
+      </article>
+    </div>
+    <p class="text-small text-muted">The measurement uses one Skills Manager fixture at 390 × 844 CSS pixels. The design ideas are candidates for usability testing.</p>
+  </section>
+
+  <section class="board-panel" id="smr-find" aria-labelledby="smr-find-heading">
+    <h2 id="smr-find-heading">Find &amp; navigate</h2>
+    <div class="viz-grid board-grid">
+      <article class="card board-card">
+        <span class="viz-badge">Live walkthrough</span>
+        <h3>Raycast Store</h3>
+        <a class="board-source" href="https://www.raycast.com/store" target="_blank" rel="noopener noreferrer">Public Raycast Store search showing extension results for clipboard ↗</a>
+        <dl><dt>Why I chose it</dt><dd>A real extension directory with both browsing and known-item search.</dd><dt>What I checked</dt><dd>Search focused the input. “clipboard” surfaced names and action-oriented descriptions, plus a link to the full results.</dd><dt>Use it here</dt><dd>Make Tools and Install searchable by task vocabulary and show what each result will open.</dd></dl>
+        <div class="board-links"><a href="https://www.raycast.com/store" target="_blank" rel="noopener noreferrer">Open Raycast Store</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Official documentation</span>
+        <h3>Raycast launcher</h3>
+        <dl><dt>Why I chose it</dt><dd>It covers the repeat-use path after someone already knows what they want.</dd><dt>What I checked</dt><dd>Root Search documents aliases, arrow-key navigation, a primary action and a separate item action panel.</dd><dt>Use it here</dt><dd>Align directory and command-palette vocabulary. A search result can open an existing review before any file change.</dd></dl>
+        <div class="board-links"><a href="https://manual.raycast.com/search-bar" target="_blank" rel="noopener noreferrer">Search Bar</a><a href="https://manual.raycast.com/action-panel" target="_blank" rel="noopener noreferrer">Action Panel</a><a href="https://manual.raycast.com/settings" target="_blank" rel="noopener noreferrer">Settings search</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Live walkthrough</span>
+        <h3>Astro Docs</h3>
+        <a class="board-source" href="https://docs.astro.build/en/basics/astro-pages/" target="_blank" rel="noopener noreferrer">Astro Docs mobile outline showing the current Custom 404 Error Page section ↗</a>
+        <dl><dt>Why I chose it</dt><dd>It separates site navigation from navigating within a long page.</dd><dt>What I checked</dt><dd>The desktop outline became a 49px mobile row. After choosing a heading, the outline collapsed and showed the current section.</dd><dt>Use it here</dt><dd>Test a compact section outline for Quality and Recovery, keeping destination focus and the current app route coherent.</dd></dl>
+        <div class="board-links"><a href="https://docs.astro.build/en/basics/astro-pages/" target="_blank" rel="noopener noreferrer">Open Astro Pages</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Official documentation</span>
+        <h3>VS Code Settings</h3>
+        <a class="board-source" href="https://code.visualstudio.com/docs/configure/settings" target="_blank" rel="noopener noreferrer">Microsoft’s documented VS Code Settings search with scope and matching setting rows ↗</a>
+        <dl><dt>Why I chose it</dt><dd>Workspace context changes how users interpret a densely labeled settings screen.</dd><dt>What I checked</dt><dd>The guide shows User and Workspace views, in-place search, groups and adjacent modified-state markers.</dd><dt>Use it here</dt><dd>Keep the selected project or agent close to the report or action it affects. Label observations by their source.</dd></dl>
+        <div class="board-links"><a href="https://code.visualstudio.com/docs/configure/settings" target="_blank" rel="noopener noreferrer">VS Code Settings guide</a></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="board-panel" id="smr-evidence" aria-labelledby="smr-evidence-heading">
+    <h2 id="smr-evidence-heading">Evidence &amp; triage</h2>
+    <div class="viz-grid board-grid">
+      <article class="card board-card">
+        <span class="viz-badge">Live walkthrough</span>
+        <h3>GitHub Issues</h3>
+        <a class="board-source" href="https://github.com/withastro/astro/issues" target="_blank" rel="noopener noreferrer">Public GitHub Issues list with the current query, clear control and no-match message ↗</a>
+        <dl><dt>Why I chose it</dt><dd>A dense public list with intentional empty results and editable filters.</dd><dt>What I checked</dt><dd>A no-match query stayed visible beside a clear control and a specific no-results heading.</dd><dt>Use it here</dt><dd>Keep a way back from no-match results. Distinguish them from a clean report, partial evidence and a failed scan.</dd></dl>
+        <div class="board-links"><a href="https://github.com/withastro/astro/issues" target="_blank" rel="noopener noreferrer">Public issue list</a><a href="https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/filtering-and-searching-issues-and-pull-requests" target="_blank" rel="noopener noreferrer">Filter guide</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Official documentation</span>
+        <h3>Linear Triage and Inbox</h3>
+        <a class="board-source" href="https://linear.app/docs/triage" target="_blank" rel="noopener noreferrer">Linear’s official documentation illustration showing Inbox display options ↗</a>
+        <dl><dt>Why I chose it</dt><dd>It combines triage intake, fast selection and contextual actions.</dd><dt>What I checked</dt><dd>The guides document queue search and snoozing. Filters change which records appear while display settings change the visible fields.</dd><dt>Use it here</dt><dd>Keep queue state separate from density. Make skipped, acknowledged and fixed items mean distinct things.</dd></dl>
+        <div class="board-links"><a href="https://linear.app/docs/triage" target="_blank" rel="noopener noreferrer">Triage</a><a href="https://linear.app/docs/inbox" target="_blank" rel="noopener noreferrer">Inbox</a><a href="https://linear.app/docs/filters" target="_blank" rel="noopener noreferrer">Filters</a><a href="https://linear.app/docs/display-options" target="_blank" rel="noopener noreferrer">Display options</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Design-system guidance</span>
+        <h3>IBM Carbon data table</h3>
+        <dl><dt>Why I chose it</dt><dd>Its table guidance applies to findings, agent matrices and exact-copy selection.</dd><dt>What I checked</dt><dd>The guidelines pair toolbar filtering with expandable secondary evidence and contextual batch actions.</dd><dt>Use it here</dt><dd>Expose scope and selection count when selecting Instances. Keep evidence accessible beside findings and preserve exact-target review.</dd></dl>
+        <div class="board-links"><a href="https://www.carbondesignsystem.com/building-blocks/core/components/data-table/guidelines" target="_blank" rel="noopener noreferrer">Carbon table guidelines</a></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="board-panel" id="smr-recovery" aria-labelledby="smr-recovery-heading">
+    <h2 id="smr-recovery-heading">Recovery</h2>
+    <div class="viz-grid board-grid">
+      <article class="card board-card">
+        <span class="viz-badge">Official documentation</span>
+        <h3>Apple Time Machine</h3>
+        <dl><dt>Why I chose it</dt><dd>It starts recovery with the original folder and the user's time context.</dd><dt>What I checked</dt><dd>Select a point in time and an item. The timeline marks the selected backup and can show that it is still loading. Restore returns the item to its original place.</dd><dt>Use it here</dt><dd>Carry the exact skill, agent scope and path from the reader or sync receipt into Recovery where supported.</dd></dl>
+        <div class="board-links"><a href="https://support.apple.com/en-au/guide/mac-help/mh11422/mac" target="_blank" rel="noopener noreferrer">Restore items</a><a href="https://support.apple.com/en-om/guide/mac-help/-mh15136/mac" target="_blank" rel="noopener noreferrer">Restore from a Finder search</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Official documentation</span>
+        <h3>Google Docs and Drive</h3>
+        <dl><dt>Why I chose it</dt><dd>Version inspection and restore are separate decisions.</dd><dt>What I checked</dt><dd>Docs offers inspect, restore and make a copy. Drive's separate bulk restore chooses a point and shows progress within its documented scope.</dd><dt>Use it here</dt><dd>Show what will change for text, folder and full-archive operations. Name the selected version and recovery outcome.</dd></dl>
+        <div class="board-links"><a href="https://support.google.com/docs/answer/190843?hl=en" target="_blank" rel="noopener noreferrer">Docs version history</a><a href="https://support.google.com/drive/answer/16482799?hl=en" target="_blank" rel="noopener noreferrer">Drive bulk restore</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Official documentation</span>
+        <h3>GitHub Desktop History</h3>
+        <dl><dt>Why I chose it</dt><dd>It makes a long history inspectable at the individual-file level.</dd><dt>What I checked</dt><dd>The guides show commit → changed file → diff, with split/unified layouts and expandable surrounding lines.</dd><dt>Use it here</dt><dd>Label current and incoming copies, identify both scopes, and keep narrow comparisons readable.</dd></dl>
+        <div class="board-links"><a href="https://docs.github.com/en/desktop/overview/creating-your-first-repository-using-github-desktop" target="_blank" rel="noopener noreferrer">History guide</a><a href="https://docs.github.com/en/desktop/making-changes-in-a-branch/committing-and-reviewing-changes-to-your-project-in-github-desktop" target="_blank" rel="noopener noreferrer">Diff guide</a><a href="https://docs.github.com/en/pull-requests/how-tos/commit-changes/comparing-commits" target="_blank" rel="noopener noreferrer">Commit comparisons</a></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="board-panel" id="smr-galleries" aria-labelledby="smr-galleries-heading">
+    <h2 id="smr-galleries-heading">MCP galleries</h2>
+    <div class="viz-grid board-grid">
+      <article class="card board-card">
+        <span class="viz-badge">Awwwards MCP</span>
+        <h3>Viture Dashboard</h3>
+        <div class="board-pair">
+          <a class="board-source" href="https://www.awwwards.com/sites/viture-dashboard" target="_blank" rel="noopener noreferrer">Viture desktop gallery image with the wearable centered between side controls ↗</a>
+          <a class="board-source" href="https://www.awwwards.com/sites/viture-dashboard" target="_blank" rel="noopener noreferrer">Viture mobile gallery image preserving the main product with a large low-page consent overlay ↗</a>
+        </div>
+        <dl><dt>Why I chose it</dt><dd>To examine visual hierarchy in a dashboard composition across screen sizes.</dd><dt>What I checked</dt><dd>Both images keep the product central. The desktop side controls are subdued and the mobile consent overlay obscures much of the lower screen. The current link provided no verified dashboard flow.</dd><dt>Use it here</dt><dd>Use one clear focal element while keeping common controls and status evidence easy to see.</dd></dl>
+        <div class="board-links"><a href="https://www.awwwards.com/sites/viture-dashboard" target="_blank" rel="noopener noreferrer">View the award entry</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Godly MCP · Recent Design</span>
+        <h3>Sidebar Sub-Menu</h3>
+        <a class="board-source" href="https://recent.design/i/b6hr2e5-sidebar-sub-menu-interaction" target="_blank" rel="noopener noreferrer">Frame from Pranav Patel’s Sidebar Sub-Menu concept ↗</a>
+        <dl><dt>Why I chose it</dt><dd>To see how expanded groups and a selected destination can read together.</dd><dt>What I checked</dt><dd>Pranav Patel’s clip shows an expanding group, tree connectors and an active child. Godly also surfaced Rauno Freiberg’s expressive Button Pile.</dd><dt>Use it here</dt><dd>Borrow the clarity of the active state. Animation earns its place when it helps users track a change.</dd></dl>
+        <div class="board-links"><a href="https://recent.design/i/b6hr2e5-sidebar-sub-menu-interaction" target="_blank" rel="noopener noreferrer">Pranav Patel’s sidebar</a><a href="https://recent.design/i/9m51f1y-button-pile" target="_blank" rel="noopener noreferrer">Rauno Freiberg’s Button Pile</a></div>
+      </article>
+      <article class="card board-card">
+        <span class="viz-badge">Inspo MCP</span>
+        <h3>Raycast, Linear and Astro Docs</h3>
+        <dl><dt>Why I chose them</dt><dd>To compare focus, type hierarchy and visual density across desktop and mobile captures.</dd><dt>What I checked</dt><dd>The archived pages cover Raycast’s launcher marketing, Linear’s product view embedded in its marketing page and the Astro Docs landing page.</dd><dt>Use it here</dt><dd>Take clear hierarchy and sparing accent use. The app’s warm paper, typography and measured contrast support its own long reading and comparison tasks.</dd></dl>
+        <div class="board-links"><a href="https://inspomcp.dev/d/raycast-com/DESIGN.md" target="_blank" rel="noopener noreferrer">Raycast capture</a><a href="https://inspomcp.dev/d/linear-app/DESIGN.md" target="_blank" rel="noopener noreferrer">Linear capture</a><a href="https://inspomcp.dev/d/docs-astro-build/DESIGN.md" target="_blank" rel="noopener noreferrer">Astro Docs capture</a></div>
+      </article>
+    </div>
+  </section>
+</div>
+
+</body></html>

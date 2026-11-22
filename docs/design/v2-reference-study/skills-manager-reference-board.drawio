@@ -1,0 +1,747 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" compressed="false" type="device">
+  <diagram id="reference-0" name="Overview">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1220" pageHeight="600" background="#F3F5FC" adaptiveColors="none" arrows="1" guides="1" connect="1" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="name" value="Skills Manager v2 · 21 November 2026" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="36" width="600" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="UI research reference board" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=41;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="63" width="1144" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Three findings for the next Skills Manager design pass" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="123" width="1144" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="170" width="366" height="318" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-0">
+          <mxGeometry x="0" y="0" width="366" height="318" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-status" value="Quality" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#ECF0FF;fontColor=#3F4CAB;strokeColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="21" width="76" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-title" value="Put findings near the top" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="59" width="318" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-0" value="The phone shortcut helps, but the&lt;br&gt;findings search still sits 3,194px&lt;br&gt;from the document top in the&lt;br&gt;synthetic fixture. Keep findings,&lt;br&gt;query, severity and scan status&lt;br&gt;together." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="126" width="318" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-1" value="GitHub Issues · Linear · IBM Carbon" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="264" width="318" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="426" y="170" width="366" height="318" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-1">
+          <mxGeometry x="0" y="0" width="366" height="318" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-status" value="Recovery" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#ECF0FF;fontColor=#3F4CAB;strokeColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="21" width="84" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-title" value="Identify the copy before restoring" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="59" width="318" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-0" value="Show the skill, scope, timestamp,&lt;br&gt;destination and replacement effect&lt;br&gt;at the decision point. Keep text&lt;br&gt;snapshots, folder snapshots and&lt;br&gt;full archives easy to distinguish." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="126" width="318" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-1" value="Time Machine · Google Docs and&lt;br&gt;Drive · GitHub Desktop" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="244" width="318" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="814" y="170" width="366" height="298" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-2">
+          <mxGeometry x="0" y="0" width="366" height="298" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-status" value="Tools" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#ECF0FF;fontColor=#3F4CAB;strokeColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="21" width="75" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-title" value="Search the way users describe the job" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="59" width="318" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-0" value="Connect phrases like “check a&lt;br&gt;skill” to the right destination.&lt;br&gt;Keep tool discovery and choosing an&lt;br&gt;exact skill recognizable as two&lt;br&gt;different tasks." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="126" width="318" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-1" value="Raycast · Astro Docs · VS Code" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="244" width="318" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="evidence-note" value="Evidence · Live walkthroughs, official documentation and gallery captures" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="524" width="1144" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="fixture-note" value="One locally measured fixture at 390 × 844 CSS pixels. The design ideas need usability testing." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=16;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="554" width="1144" height="26" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="reference-1" name="Find &amp; navigate">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1220" pageHeight="1551" background="#F3F5FC" adaptiveColors="none" arrows="1" guides="1" connect="1" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="name" value="Skills Manager v2 · 21 November 2026" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="36" width="600" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Find &amp;amp; navigate" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=41;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="63" width="1144" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Tool discovery, in-page wayfinding and scoped settings" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="123" width="1144" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="170" width="561" height="643" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-0">
+          <mxGeometry x="0" y="0" width="561" height="643" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-status" value="Live walkthrough" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#E5F5EE;fontColor=#185D4B;strokeColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="21" width="148" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-title" value="Raycast Store" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <UserObject id="card-0-0" label="Public Raycast Store search showing extension results for clipboard&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Public Raycast Store search showing extension results for clipboard" link="https://www.raycast.com/store">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="126" width="513" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-0-1" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="326" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-2" value="A real extension directory with both browsing and known-&lt;br&gt;item search." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="348" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-3" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="404" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-4" value="Search focused the input. “clipboard” surfaced names and&lt;br&gt;action-oriented descriptions, plus a link to the full&lt;br&gt;results." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="426" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-5" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="501" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-6" value="Make Tools and Install searchable by task vocabulary and&lt;br&gt;show what each result will open." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="523" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-7" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="579" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-0-8" label="Open Raycast Store ↗" link="https://www.raycast.com/store">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="603" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-1" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="621" y="170" width="561" height="491" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-1">
+          <mxGeometry x="0" y="0" width="561" height="491" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-status" value="Official documentation" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#EEF0FE;fontColor=#394694;strokeColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="21" width="196" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-title" value="Raycast launcher" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-0" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="126" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-1" value="It covers the repeat-use path after someone already knows&lt;br&gt;what they want." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="148" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-2" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="204" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-3" value="Root Search documents aliases, arrow-key navigation, a&lt;br&gt;primary action and a separate item action panel." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="226" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-4" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="282" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-5" value="Align directory and command-palette vocabulary. A search&lt;br&gt;result can open an existing review before any file&lt;br&gt;change." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="304" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-6" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="379" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-1-7" label="Search Bar ↗" link="https://manual.raycast.com/search-bar">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="403" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-1-8" label="Action Panel ↗" link="https://manual.raycast.com/action-panel">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="427" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-1-9" label="Settings search ↗" link="https://manual.raycast.com/settings">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="451" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-2" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="835" width="561" height="662" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-2">
+          <mxGeometry x="0" y="0" width="561" height="662" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-status" value="Live walkthrough" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#E5F5EE;fontColor=#185D4B;strokeColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="21" width="148" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-title" value="Astro Docs" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <UserObject id="card-2-0" label="Astro Docs mobile outline showing the current Custom 404 Error Page section&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Astro Docs mobile outline showing the current Custom 404 Error Page section" link="https://docs.astro.build/en/basics/astro-pages/">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="126" width="513" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-2-1" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="326" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-2" value="It separates site navigation from navigating within a&lt;br&gt;long page." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="348" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-3" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="404" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-4" value="The desktop outline became a 49px mobile row. After&lt;br&gt;choosing a heading, the outline collapsed and showed the&lt;br&gt;current section." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="426" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-5" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="501" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-6" value="Test a compact section outline for Quality and Recovery,&lt;br&gt;keeping destination focus and the current app route&lt;br&gt;coherent." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="523" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-7" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="598" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-2-8" label="Open Astro Pages ↗" link="https://docs.astro.build/en/basics/astro-pages/">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="622" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-3" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="621" y="835" width="561" height="624" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-3">
+          <mxGeometry x="0" y="0" width="561" height="624" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-status" value="Official documentation" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#EEF0FE;fontColor=#394694;strokeColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="21" width="196" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-title" value="VS Code Settings" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <UserObject id="card-3-0" label="Microsoft’s documented VS Code Settings search with scope and matching setting rows&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Microsoft’s documented VS Code Settings search with scope and matching setting rows" link="https://code.visualstudio.com/docs/configure/settings">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-3">
+            <mxGeometry x="24" y="126" width="513" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-3-1" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="326" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-2" value="Workspace context changes how users interpret a densely&lt;br&gt;labeled settings screen." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="348" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-3" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="404" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-4" value="The guide shows User and Workspace views, in-place&lt;br&gt;search, groups and adjacent modified-state markers." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="426" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-5" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="482" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-6" value="Keep the selected project or agent close to the report or&lt;br&gt;action it affects. Label observations by their source." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="504" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3-7" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+          <mxGeometry x="24" y="560" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-3-8" label="VS Code Settings guide ↗" link="https://code.visualstudio.com/docs/configure/settings">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-3">
+            <mxGeometry x="24" y="584" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="reference-2" name="Evidence &amp; triage">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1220" pageHeight="1404" background="#F3F5FC" adaptiveColors="none" arrows="1" guides="1" connect="1" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="name" value="Skills Manager v2 · 21 November 2026" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="36" width="600" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Evidence &amp;amp; triage" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=41;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="63" width="1144" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Explicit filter state, dense evidence and contextual actions" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="123" width="1144" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="170" width="561" height="648" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-0">
+          <mxGeometry x="0" y="0" width="561" height="648" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-status" value="Live walkthrough" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#E5F5EE;fontColor=#185D4B;strokeColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="21" width="148" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-title" value="GitHub Issues" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <UserObject id="card-0-0" label="Public GitHub Issues list with the current query, clear control and no-match message&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Public GitHub Issues list with the current query, clear control and no-match message" link="https://github.com/withastro/astro/issues">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="126" width="513" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-0-1" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="326" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-2" value="A dense public list with intentional empty results and&lt;br&gt;editable filters." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="348" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-3" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="404" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-4" value="A no-match query stayed visible beside a clear control&lt;br&gt;and a specific no-results heading." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="426" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-5" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="482" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-6" value="Keep a way back from no-match results. Distinguish them&lt;br&gt;from a clean report, partial evidence and a failed scan." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="504" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-7" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="560" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-0-8" label="Public issue list ↗" link="https://github.com/withastro/astro/issues">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="584" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-0-9" label="Filter guide ↗" link="https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/filtering-and-searching-issues-and-pull-requests">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="608" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-1" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="621" y="170" width="561" height="715" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-1">
+          <mxGeometry x="0" y="0" width="561" height="715" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-status" value="Official documentation" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#EEF0FE;fontColor=#394694;strokeColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="21" width="196" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-title" value="Linear Triage and Inbox" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <UserObject id="card-1-0" label="Linear’s official documentation illustration showing Inbox display options&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Linear’s official documentation illustration showing Inbox display options" link="https://linear.app/docs/triage">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="126" width="513" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-1-1" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="326" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-2" value="It combines triage intake, fast selection and contextual&lt;br&gt;actions." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="348" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-3" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="404" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-4" value="The guides document queue search and snoozing. Filters&lt;br&gt;change which records appear while display settings change&lt;br&gt;the visible fields." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="426" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-5" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="501" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-6" value="Keep queue state separate from density. Make skipped,&lt;br&gt;acknowledged and fixed items mean distinct things." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="523" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-7" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="579" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-1-8" label="Triage ↗" link="https://linear.app/docs/triage">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="603" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-1-9" label="Inbox ↗" link="https://linear.app/docs/inbox">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="627" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-1-10" label="Filters ↗" link="https://linear.app/docs/filters">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="651" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-1-11" label="Display options ↗" link="https://linear.app/docs/display-options">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="675" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-2" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="907" width="561" height="443" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-2">
+          <mxGeometry x="0" y="0" width="561" height="443" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-status" value="Design-system guidance" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#EBF0FB;fontColor=#394694;strokeColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="21" width="196" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-title" value="IBM Carbon data table" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-0" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="126" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-1" value="Its table guidance applies to findings, agent matrices&lt;br&gt;and exact-copy selection." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="148" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-2" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="204" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-3" value="The guidelines pair toolbar filtering with expandable&lt;br&gt;secondary evidence and contextual batch actions." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="226" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-4" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="282" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-5" value="Expose scope and selection count when selecting&lt;br&gt;Instances. Keep evidence accessible beside findings and&lt;br&gt;preserve exact-target review." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="304" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-6" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="379" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-2-7" label="Carbon table guidelines ↗" link="https://www.carbondesignsystem.com/building-blocks/core/components/data-table/guidelines">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="403" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="reference-3" name="Recovery">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1220" pageHeight="1185" background="#F3F5FC" adaptiveColors="none" arrows="1" guides="1" connect="1" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="name" value="Skills Manager v2 · 21 November 2026" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="36" width="600" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Recovery" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=41;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="63" width="1144" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Find the exact copy, compare revisions and understand what comes back" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="123" width="1144" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="170" width="561" height="467" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-0">
+          <mxGeometry x="0" y="0" width="561" height="467" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-status" value="Official documentation" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#EEF0FE;fontColor=#394694;strokeColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="21" width="196" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-title" value="Apple Time Machine" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-0" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="126" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-1" value="It starts recovery with the original folder and the&lt;br&gt;user&amp;#x27;s time context." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="148" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-2" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="204" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-3" value="Select a point in time and an item. The timeline marks&lt;br&gt;the selected backup and can show that it is still&lt;br&gt;loading. Restore returns the item to its original place." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="226" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-4" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="301" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-5" value="Carry the exact skill, agent scope and path from the&lt;br&gt;reader or sync receipt into Recovery where supported." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="323" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-6" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="379" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-0-7" label="Restore items ↗" link="https://support.apple.com/en-au/guide/mac-help/mh11422/mac">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="403" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-0-8" label="Restore from a Finder search ↗" link="https://support.apple.com/en-om/guide/mac-help/-mh15136/mac">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="427" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-1" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="621" y="170" width="561" height="467" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-1">
+          <mxGeometry x="0" y="0" width="561" height="467" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-status" value="Official documentation" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#EEF0FE;fontColor=#394694;strokeColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="21" width="196" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-title" value="Google Docs and Drive" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-0" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="126" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-1" value="Version inspection and restore are separate decisions." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="148" width="513" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-2" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="185" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-3" value="Docs offers inspect, restore and make a copy. Drive&amp;#x27;s&lt;br&gt;separate bulk restore chooses a point and shows progress&lt;br&gt;within its documented scope." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="207" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-4" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="282" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-5" value="Show what will change for text, folder and full-archive&lt;br&gt;operations. Name the selected version and recovery&lt;br&gt;outcome." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="304" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-6" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="379" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-1-7" label="Docs version history ↗" link="https://support.google.com/docs/answer/190843?hl=en">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="403" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-1-8" label="Drive bulk restore ↗" link="https://support.google.com/drive/answer/16482799?hl=en">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="427" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-2" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="659" width="561" height="472" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-2">
+          <mxGeometry x="0" y="0" width="561" height="472" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-status" value="Official documentation" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#EEF0FE;fontColor=#394694;strokeColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="21" width="196" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-title" value="GitHub Desktop History" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-0" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="126" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-1" value="It makes a long history inspectable at the individual-&lt;br&gt;file level." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="148" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-2" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="204" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-3" value="The guides show commit → changed file → diff, with&lt;br&gt;split/unified layouts and expandable surrounding lines." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="226" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-4" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="282" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-5" value="Label current and incoming copies, identify both scopes,&lt;br&gt;and keep narrow comparisons readable." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="304" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-6" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="360" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-2-7" label="History guide ↗" link="https://docs.github.com/en/desktop/overview/creating-your-first-repository-using-github-desktop">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="384" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-2-8" label="Diff guide ↗" link="https://docs.github.com/en/desktop/making-changes-in-a-branch/committing-and-reviewing-changes-to-your-project-in-github-desktop">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="408" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-2-9" label="Commit comparisons ↗" link="https://docs.github.com/en/pull-requests/how-tos/commit-changes/comparing-commits">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="432" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="reference-4" name="MCP galleries">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1220" pageHeight="1423" background="#F3F5FC" adaptiveColors="none" arrows="1" guides="1" connect="1" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="name" value="Skills Manager v2 · 21 November 2026" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="36" width="600" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="MCP galleries" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=41;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="63" width="1144" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Visual and motion references from Awwwards, Godly and Inspo" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#4F5878;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="123" width="1144" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="170" width="561" height="662" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-0">
+          <mxGeometry x="0" y="0" width="561" height="662" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-status" value="Awwwards MCP" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#F4EBFC;fontColor=#683885;strokeColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="21" width="116" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-title" value="Viture Dashboard" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <UserObject id="card-0-0" label="Viture desktop gallery image with the wearable centered between side controls&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Viture desktop gallery image with the wearable centered between side controls" link="https://www.awwwards.com/sites/viture-dashboard">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="126" width="250" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-0-1" label="Viture mobile gallery image preserving the main product with a large low-page consent overlay&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Viture mobile gallery image preserving the main product with a large low-page consent overlay" link="https://www.awwwards.com/sites/viture-dashboard">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-0">
+            <mxGeometry x="286" y="126" width="250" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-0-2" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="326" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-3" value="To examine visual hierarchy in a dashboard composition&lt;br&gt;across screen sizes." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="348" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-4" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="404" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-5" value="Both images keep the product central. The desktop side&lt;br&gt;controls are subdued and the mobile consent overlay&lt;br&gt;obscures much of the lower screen. The current link&lt;br&gt;provided no verified dashboard flow." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="426" width="513" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-6" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="520" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-7" value="Use one clear focal element while keeping common controls&lt;br&gt;and status evidence easy to see." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="542" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-0-8" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+          <mxGeometry x="24" y="598" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-0-9" label="View the award entry ↗" link="https://www.awwwards.com/sites/viture-dashboard">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-0">
+            <mxGeometry x="24" y="622" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-1" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="621" y="170" width="561" height="667" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-1">
+          <mxGeometry x="0" y="0" width="561" height="667" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-status" value="Godly MCP · Recent Design" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#F4EBFC;fontColor=#683885;strokeColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="21" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-title" value="Sidebar Sub-Menu" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <UserObject id="card-1-0" label="Frame from Pranav Patel’s Sidebar Sub-Menu concept&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Frame from Pranav Patel’s Sidebar Sub-Menu concept" link="https://recent.design/i/b6hr2e5-sidebar-sub-menu-interaction">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="126" width="513" height="180" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-1-1" value="Why I chose it" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="326" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-2" value="To see how expanded groups and a selected destination can&lt;br&gt;read together." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="348" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-3" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="404" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-4" value="Pranav Patel’s clip shows an expanding group, tree&lt;br&gt;connectors and an active child. Godly also surfaced Rauno&lt;br&gt;Freiberg’s expressive Button Pile." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="426" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-5" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="501" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-6" value="Borrow the clarity of the active state. Animation earns&lt;br&gt;its place when it helps users track a change." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="523" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1-7" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+          <mxGeometry x="24" y="579" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-1-8" label="Pranav Patel’s sidebar ↗" link="https://recent.design/i/b6hr2e5-sidebar-sub-menu-interaction">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="603" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-1-9" label="Rauno Freiberg’s Button Pile ↗" link="https://recent.design/i/9m51f1y-button-pile">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-1">
+            <mxGeometry x="24" y="627" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="card-2" value="" style="html=1;group;" vertex="1" parent="1">
+          <mxGeometry x="38" y="859" width="561" height="510" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-paper" value="" style="html=1;rounded=1;arcSize=12;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#DCE0EF;" vertex="1" parent="card-2">
+          <mxGeometry x="0" y="0" width="561" height="510" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-status" value="Inspo MCP" style="html=1;rounded=1;absoluteArcSize=1;arcSize=7;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=13;fontStyle=1;fillColor=#F4EBFC;fontColor=#683885;strokeColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="21" width="92" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-title" value="Raycast, Linear and Astro Docs" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=24;fontColor=#1D2240;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="59" width="513" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-0" value="Why I chose them" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="126" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-1" value="To compare focus, type hierarchy and visual density&lt;br&gt;across desktop and mobile captures." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="148" width="513" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-2" value="What I checked" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="204" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-3" value="The archived pages cover Raycast’s launcher marketing,&lt;br&gt;Linear’s product view embedded in its marketing page and&lt;br&gt;the Astro Docs landing page." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="226" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-4" value="Use it here" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="301" width="513" height="19" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-5" value="Take clear hierarchy and sparing accent use. The app’s&lt;br&gt;warm paper, typography and measured contrast support its&lt;br&gt;own long reading and comparison tasks." style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#3D4560;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="323" width="513" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2-6" value="Sources" style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#3F4CAB;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+          <mxGeometry x="24" y="398" width="513" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="card-2-7" label="Raycast capture ↗" link="https://inspomcp.dev/d/raycast-com/DESIGN.md">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="422" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-2-8" label="Linear capture ↗" link="https://inspomcp.dev/d/linear-app/DESIGN.md">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="446" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="card-2-9" label="Astro Docs capture ↗" link="https://inspomcp.dev/d/docs-astro-build/DESIGN.md">
+          <mxCell style="html=1;text;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#304497;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="card-2">
+            <mxGeometry x="24" y="470" width="513" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

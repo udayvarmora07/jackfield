@@ -1,0 +1,270 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" compressed="false" type="device">
+  <diagram id="research-0" name="Mobbin community">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1200" pageHeight="1072" background="#F7F5EF" adaptiveColors="none" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cell-2" value="Skills Manager v2 / Research" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="26" width="1000" height="23" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-3" value="What the Mobbin community surfaced" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=38;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="55" width="1124" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-4" value="Anonymous member collections and free research resources" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="113" width="1124" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-5" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="38" y="158" width="686" height="644" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-6" value="Side Panel collection" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="180" width="638" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-7" value="Intercom keeps the selected item in context" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=25;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="205" width="638" height="42" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-8" label="Selected conversation with a separate structured Details pane&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Selected conversation with a separate structured Details pane" link="https://mobbin.com/screens/6651eeee-af04-4b98-a423-cd75800b43f1">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="1">
+            <mxGeometry x="62" y="258" width="638" height="374" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-9" value="Use a compact detail region that keeps the exact skill name, scope and path in view while evidence changes. At narrow widths, place these identifiers above the evidence." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="650" width="632" height="66" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-10" label="Open Intercom capture ↗" link="https://mobbin.com/screens/6651eeee-af04-4b98-a423-cd75800b43f1">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="62" y="732" width="520" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-11" label="Browse Side Panel collection ↗" link="https://mobbin.com/collections/55f71e9c-5eff-470c-9fd6-3afdcd7d2234/web/screens">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="62" y="758" width="520" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-12" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="746" y="158" width="416" height="644" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-13" value="Critical States collection" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="770" y="180" width="368" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-14" value="Philips Hue explains a failed read" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=25;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="770" y="205" width="368" height="42" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-15" label="Philips Hue’s captured No Hue Bridge found state&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Philips Hue’s captured No Hue Bridge found state" link="https://mobbin.com/screens/50c83129-f5b4-4418-b2ee-bb5067095bcc">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="1">
+            <mxGeometry x="770" y="252" width="368" height="365" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-16" value="Name the scope or path that could not be read. Give people a retry and a clear route back to the selected item." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="770" y="650" width="368" height="68" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-17" label="Open Philips Hue capture ↗" link="https://mobbin.com/screens/50c83129-f5b4-4418-b2ee-bb5067095bcc">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="770" y="732" width="368" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-18" label="Browse Critical States collection ↗" link="https://mobbin.com/collections/599a2ca5-ca4c-4c99-be6b-3cdc4ee7f080/mobile/screens">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="770" y="758" width="368" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-19" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="38" y="822" width="1124" height="204" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-20" value="What opened without an account" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=23;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="844" width="1000" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-21" value="The Mobile and Web directories, member collections and selected screen previews opened anonymously. The screen previews show recorded states. Mobbin lists library search, flows and MCP on paid plans." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="887" width="1050" height="58" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-22" label="Web community directory ↗" link="https://mobbin.com/community/web/featured">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="62" y="965" width="250" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-23" label="Mobile community directory ↗" link="https://mobbin.com/community/mobile/featured">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="315" y="965" width="263" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-24" label="Official Free plan ↗" link="https://mobbin.com/pricing.md">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="585" y="965" width="240" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="research-1" name="Text comparison">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1200" pageHeight="1072" background="#F7F5EF" adaptiveColors="none" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cell-2" value="Skills Manager v2 / Research" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="26" width="1000" height="23" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-3" value="The same diff at desktop and phone widths" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=38;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="55" width="1124" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-4" value="Pierre Diffs in Chrome, with the same file before and after the layout switch" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="113" width="1124" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-5" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="38" y="158" width="708" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-6" value="Live demo / 1440 px" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="180" width="660" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-7" value="Side-by-side shows alignment" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=25;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="205" width="660" height="42" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-8" label="Pierre desktop layout with deletions and additions in aligned columns&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Pierre desktop layout with deletions and additions in aligned columns" link="https://diffs.com/#layout">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="1">
+            <mxGeometry x="62" y="252" width="660" height="425" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-9" value="The sample fit two 618 px panes without horizontal scrolling at desktop width. Keep the original and affected copies explicitly labeled above the panes." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="689" width="650" height="63" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-10" label="Open layout demo ↗" link="https://diffs.com/#layout">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="62" y="765" width="520" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-11" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="768" y="158" width="394" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-12" value="Live demo / 390 px" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="792" y="180" width="344" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-13" value="One column gives text space" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=25;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="792" y="205" width="344" height="42" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-14" label="Pierre phone layout with a single column for additions and deletions&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Pierre phone layout with a single column for additions and deletions" link="https://diffs.com/#layout">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="1">
+            <mxGeometry x="792" y="241" width="344" height="413" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-15" value="The view changed from two 173 px panes to one 348 px pane. The longest line still scrolled. Wrap on narrow screens and keep the current changed block in view." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="792" y="689" width="347" height="74" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-16" label="Open wrapping and change indicators ↗" link="https://diffs.com/#styles">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="792" y="777" width="347" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-17" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="38" y="829" width="1124" height="197" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-18" value="What the alternatives showed" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=23;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="851" width="1050" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-19" value="diff2html offers a multi-file summary. Its public demo exceeded the 390 px viewport. Diffchecker exposes “Go to first change” on desktop. Its layout buttons had no visible width on mobile." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="896" width="1055" height="48" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-20" label="Pierre GitHub source ↗" link="https://github.com/pierrecomputer/pierre/blob/4100176d8a3fe58f7c8e5fddf27dde64dc688ea1/packages/diffs/src/components/FileDiff.ts">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="62" y="965" width="250" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-21" label="diff2html demo ↗" link="https://diff2html.xyz/demo">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="315" y="965" width="240" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-22" label="Diffchecker ↗" link="https://www.diffchecker.com/">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="560" y="965" width="240" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="research-2" name="File evidence and recovery">
+    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1200" pageHeight="948" background="#F7F5EF" adaptiveColors="none" tooltips="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cell-2" value="Skills Manager v2 / Research" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="26" width="1000" height="23" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-3" value="What the comparison actually inspected" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=38;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="55" width="1124" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-4" value="Supporting-file evidence and exact-copy recovery" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=19;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="38" y="113" width="1124" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-5" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="38" y="158" width="624" height="484" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-6" value="Published product capture" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="180" width="576" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-7" value="Kaleidoscope pairs files by path" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=25;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="205" width="576" height="42" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-8" label="Kaleidoscope trees showing paired files and distinct file states&lt;br&gt;&lt;br&gt;&lt;b&gt;Open reference ↗&lt;/b&gt;" tooltip="Kaleidoscope trees showing paired files and distinct file states" link="https://kaleidoscope.app/help/docs/comparing-folders">
+          <mxCell style="rounded=1;html=1;whiteSpace=wrap;spacing=18;verticalAlign=middle;align=center;fillColor=#F6F3EC;strokeColor=#E4DED1;fontFamily=Helvetica;fontColor=#813926;fontSize=16;" vertex="1" parent="1">
+            <mxGeometry x="62" y="246" width="576" height="178" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-9" value="Show what was compared. A matching SKILL.md says the text matches. Supporting files need their own results, including missing, unreadable and uninspected states." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="457" width="576" height="65" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-10" label="Kaleidoscope folder comparison ↗" link="https://kaleidoscope.app/help/docs/comparing-folders">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="62" y="552" width="520" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-11" label="Meld folder mode and keyboard entry ↗" link="https://gnome.pages.gitlab.gnome.org/meld/help/folder-mode.html">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="62" y="580" width="520" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-12" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="684" y="158" width="478" height="484" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-13" value="Design direction" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=14;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="708" y="180" width="430" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-14" value="Keep the exact copy visible" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=25;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="708" y="205" width="430" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-15" value="Selection" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="708" y="258" width="430" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-16" value="Keep the query when the browsing view changes. Carry the selected scope and path into comparison and recovery." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="708" y="287" width="428" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-17" value="Restore coverage" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="708" y="378" width="430" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-18" value="Preview the exact entry. Inbox Undo restores the skill document and on/off state. Recovery handles the full earlier folder where it was retained." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="708" y="409" width="428" height="86" as="geometry" />
+        </mxCell>
+        <UserObject id="cell-19" label="Mobbin changelog on query persistence ↗" link="https://mobbin.com/changelog">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="708" y="552" width="428" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject id="cell-20" label="GitButler Operations History ↗" link="https://docs.gitbutler.com/features/timeline">
+          <mxCell style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+            <mxGeometry x="708" y="580" width="428" height="24" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="cell-21" value="" style="rounded=1;arcSize=10;absoluteArcSize=1;fillColor=#FFFFFF;strokeColor=#E6DED1;" vertex="1" parent="1">
+          <mxGeometry x="38" y="664" width="1124" height="233" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-22" value="What to test in Skills Manager" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=23;fontColor=#211D18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="690" width="1060" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-23" value="Open two copies that share a name. Check that a long path and changed lines remain readable at 320 and 390 px. Include equal skill text with different supporting files and an unreadable path. Then preview the earlier folder and identify exactly what would come back." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=17;fontColor=#594C41;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="738" width="1055" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="cell-24" value="The study tested reference sites. This Skills Manager workflow still needs a keyboard and screen-reader walkthrough." style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacing=0;fontFamily=Helvetica;fontSize=15;fontColor=#813926;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="62" y="831" width="1055" height="42" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
