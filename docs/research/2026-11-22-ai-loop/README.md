@@ -1,6 +1,6 @@
 # AI Features Research Loop — Raw Reports
 
-**Version 0.1.0**
+**Version 0.2.0**
 
 **AI manifest**: Evidence appendix for
 @docs/59-ai-everywhere-research-2026-11-22.md and
@@ -30,3 +30,6 @@ evidence, not decisions.
 | `12-non-developer-enterprise.md` | Vendor docs and non-developer users | 3 |
 | `13-literature-new-themes.md` | Literature on themes found in rounds 2–3 | 3 |
 | `14-fact-check.md` | 30 claims checked against sources | 3 |
+| `15-reddit-logged-in.md` | 31 Reddit threads read in the user's own Chrome | 4 |
+| `16-x-logged-in.md` | X timelines, threads and articles (search unavailable) | 4 |
+| `17-instagram-quora-logged-in.md` | 46 Instagram posts and 18 Quora questions | 4 |

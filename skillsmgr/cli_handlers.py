@@ -737,6 +737,19 @@ def _render_claude_listing_text(section: dict | None) -> None:
     print(
         f"  Claude Code listing: {chars:,} chars vs ~{budget:,} budget (estimate){advice}"
     )
+    _render_cut_descriptions(section)
+
+
+def _render_cut_descriptions(section: dict) -> None:
+    """The five largest description cuts an agent makes before the model sees them."""
+    rows = [entry for entry in section.get("entries") or []
+            if isinstance(entry, dict) and int(entry.get("cut_chars") or 0) > 0]
+    rows.sort(key=lambda entry: (-int(entry["cut_chars"]), str(entry.get("name"))))
+    for entry in rows[:5]:
+        print(f"    cut: {_display(str(entry.get('name')))} loses {int(entry['cut_chars']):,} of "
+              f"{int(entry.get('description_chars') or 0):,} description chars")
+    if len(rows) > 5:
+        print(f"    cut: {len(rows) - 5} more (see --json)")
 
 
 def _claude_candidate_advice(chars: int, budget: int, candidates: int) -> str:
@@ -806,6 +819,7 @@ def _render_codex_listing_text(section: dict | None) -> None:
         return
     if section.get("status") != "no_instances":
         print(_codex_listing_summary_line(section))
+        _render_cut_descriptions(section)
     _render_codex_explicit_only_text(section)
 
 

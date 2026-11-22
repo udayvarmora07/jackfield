@@ -1,6 +1,6 @@
 # Task Checklist — Skills Manager
 
-**Version 0.11.1**
+**Version 0.12.0**
 
 **AI manifest**: Live work and the remaining gated/deferred queue. `[ ]` means
 pending, `[/]` in progress, `[x]` completed. Historical milestones, including
@@ -39,10 +39,18 @@ records, not additional live work.
   Bilibili, V2EX, Quora, Instagram, products and literature, fact-check 30
   claims, and consolidate proposals G1–G15 in
   @docs/60-ai-features-research-loop-2026-11-22.md.
-- [ ] Decide the approval items before slice 2 (ablate and retire, delivered
-  listing report, contradiction check): CLI commands (`ai health`,
-  `ai recheck`, `ai ablate`, a listing report), new agent scopes, team-export
-  scope, and per-excerpt consent for sending transcript content to a model.
+- [x] Slice 2, approved 2026-11-22: `ai ablate` (G1: remove a skill or
+  section, replay saved cases, propose removal when not worse, staged review or
+  demotion ladder), `ai conflicts` (G2: heuristic contradiction candidates
+  between instruction files and skills, optional AI judge with file quotes),
+  and per-skill description cuts for Claude Code and Codex in the listing
+  report (G3). v2 tool pages "Does it earn its place?" and "Contradiction check".
+- [ ] Remaining approval items: `ai health` and `ai recheck`, new agent scopes,
+  team-export scope, and per-excerpt consent for sending transcript content to a
+  model.
+- [x] Round 4 research through the user's own browser (Reddit, X, Instagram,
+  Quora), reports 15–17 in @docs/research/2026-11-22-ai-loop/.
+- [/] Literature deep dive (report 18) and applying its design changes.
 
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 

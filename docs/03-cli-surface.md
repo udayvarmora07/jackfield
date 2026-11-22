@@ -4,7 +4,7 @@
 
 **AI manifest**: Authoritative inventory of every command, alias, flag, and exit code of the `skills-mgr` CLI. Facts verified against the parser/handler modules (`cli_parser.py`, `cli_handlers.py`, `cli_output.py` behind the stable `cli.py` adapter) plus live invocations on 2026-09-22. Usage consent, archive lifecycle and reviewed project changes are CLI-only. See @docs/08-web-ui.md for the shared web surface. Do not add commands or flags without updating this doc and @docs/02-modules.md.
 
-**[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **33 top-level commands + 26 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 62 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
+**[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **33 top-level commands + 28 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 64 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
 
 ## Usage, lifecycle and project controls
 
@@ -199,6 +199,43 @@ No credential argument, skill write, Store method or index initialization is
 added. Exit codes remain 0/1/2/130. Argparse usage errors remain text on stderr.
 Detailed states, limits and private-artifact CI recipe:
 @docs/42-ai-cli-ci-2026-11-09.md.
+
+### `ai ablate NAME [--section N] [--trials N] [--max-cases N] [--run] [--json]`
+
+**[SPEC] docs/60 G1, approved 2026-11-22.** Tests whether a library skill, or
+one headed section of it, earns its place. It replays the skill's
+`evals/evals.json` cases with the whole skill and without it (or without the
+section), `--trials` times each (1–5, default 3), in a random order. Without
+`--run` it prints the section numbers, the planned call count and the egress
+and sends nothing. The decision is `keep` when the whole 95% interval for the
+lift is above zero, otherwise `remove` when its upper end is at most 10 points
+(ties go to removal), `uncertain` otherwise, and `not-enough-evidence` below 3
+graded cases or 4 graded pairs. A run with a missing, cut-off or ungraded
+answer is `partial` and never proposes removal. `coverage_warning` says when no
+check's pass rate differed, since such cases may not test the removed text. A section
+`remove` stages an ordinary reviewed edit, applied with `update apply`; a
+whole-skill `remove` prints the demotion ladder (slash-only, `disable`,
+`archive apply`) and writes nothing. A turned-off skill is refused. JSON is
+`{schema_version: 1, command: "ai ablate", status, result}`; saved evidence
+keeps pass counts, not outputs.
+
+### `ai conflicts [--scope SCOPE] [--project PATH] [--judge] [--max-pairs N] [--run] [--json]`
+
+**[SPEC] docs/60 G2, approved 2026-11-22.** Lists heuristic candidate pairs of
+instruction lines that may contradict: `~/.claude/CLAUDE.md`,
+`~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`, the project's `CLAUDE.md`,
+`CLAUDE.local.md`, `.claude/CLAUDE.md`, `AGENTS.md` and `GEMINI.md`, against
+each other and against the enabled skills of one scope (default `global`;
+`all` is refused). Every pair involves at least one instruction file;
+skill-against-skill conflicts are the overlap judge's job. No model is used
+unless `--judge`; `--judge` alone estimates, and `--run` (which requires
+`--judge`) sends only the two quoted lines of the top `--max-pairs` pairs
+(1–40, default 20). Quotes always come from the files. Project files that link
+outside the project are reported as unreadable. Precedence between the two
+sides is reported as `unknown`. Lines longer than 400 characters are skipped
+rather than cut, skill documents that are links are not read, line numbers
+count `\n`, `\r\n` and `\r` only, and inputs dropped by size bounds are listed in
+`inputs_limited`. Writes nothing except the saved run evidence.
 
 ### `init [--json]`
 Create the data directory layout and initialize the SQLite index.

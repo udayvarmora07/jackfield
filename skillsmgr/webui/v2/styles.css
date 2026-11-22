@@ -185,6 +185,10 @@ a { color: inherit; }
 .side .card { padding: 22px; }
 .listing-budget { margin-top: 16px; overflow-wrap: anywhere; }
 .listing-budget h3 { font-size: var(--fs-ui); margin-bottom: 4px; }
+.listing-cuts { margin-top: 6px; font-size: var(--fs-small); }
+.listing-cuts summary { cursor: pointer; }
+.listing-cuts ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }
+.listing-cuts .mono { font-family: var(--mono); }
 .side h2 { font-size: var(--fs-title); font-weight: 800; }
 .look { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 16px 0; border-top: 1px solid var(--sunken); }
 .look:first-of-type { border-top: 0; margin-top: 8px; }

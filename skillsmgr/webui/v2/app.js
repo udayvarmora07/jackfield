@@ -1356,6 +1356,8 @@ app.component("listing-budgets", {
           budget: unknown && !metadataUnknown ? null : unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens,
           subtotal: metadataUnknown,
           basis: budget.basis || "Budget basis unavailable",
+          cuts: (section.entries || []).filter((e) => Number(e.cut_chars) > 0)
+            .sort((a, b) => Number(b.cut_chars) - Number(a.cut_chars) || String(a.name).localeCompare(String(b.name))).slice(0, 20),
           status: status + (section.confidence === "partial" ? " · partial evidence" : "") }];
       });
     },
@@ -1391,6 +1393,8 @@ app.component("listing-budgets", {
         <h3>{{ section.label }}</h3>
         <p class="num"><template v-if="section.subtotal">Known subtotal: </template>~{{ fmtN(section.used) }} {{ section.unit }}<template v-if="section.budget != null"> of ~{{ fmtN(section.budget) }}</template></p>
         <p class="sub">{{ section.status }}</p><p class="sub">{{ section.basis }}</p>
+        <details v-if="section.cuts.length" class="listing-cuts"><summary>{{ section.cuts.length }} description{{ section.cuts.length === 1 ? "" : "s" }} cut before the model sees {{ section.cuts.length === 1 ? "it" : "them" }}</summary>
+          <ul><li v-for="e in section.cuts" :key="e.name"><span class="mono">{{ e.name }}</span> loses {{ fmtN(e.cut_chars) }} of {{ fmtN(e.description_chars) }} characters</li></ul></details>
       </div>
       <p class="sub" v-if="!sections.length">No Claude Code or Codex listing instances observed.</p>
       <a class="see-all" href="#/tools/quality">Review listing evidence <ic name="arrow" cls="i-s"></ic></a>

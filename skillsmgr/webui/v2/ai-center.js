@@ -22,6 +22,9 @@
         explainName: "", explained: null,
         question: "", askScope: "all", asked: null, askEstimate: null, askKey: "",
         evalName: "", evalMax: 10, evalTrials: 3, evalResult: null, evalEstimate: null,
+        ablateName: "", ablateSection: "", ablateTrials: 3, ablateMax: 10, ablateSections: [], ablateEstimate: null, ablateEstimateKey: "",
+        ablateResult: null, ablateRequest: 0, ablateReviewOwned: true,
+        conflictsScope: "global", conflictsProject: "", conflictsMax: 20, conflictsReport: null, conflictsEstimate: null, conflictsRequest: 0,
         savedCount: 0, savedPrompts: [], savedNote: "", savedError: "", savedBusy: false, savedRequest: 0,
         pastRuns: [], pastRun: null, historyError: "", historyBusy: false, historyRequest: 0,
         draftScope: "", draftName: "", draftBrief: "", draftEstimate: null, draftEstimateKey: "", draftResult: null,
@@ -93,7 +96,7 @@
       profileDroppedCount() { const value = this.profileResult && this.profileResult.dropped_names; return Array.isArray(value) ? value.length : Number(value) || 0; },
     },
     watch: {
-      page: { immediate: true, handler(next, previous) { if (previous === "ai-concise" && next !== "ai-concise") this.clearConciseProposal(); if (previous === "ai-profile" && next !== "ai-profile") this.clearProfileSuggestion(); this.error = ""; this.note = ""; this.load(); this.takeHandoff(); this.loadSaved(); } },
+      page: { immediate: true, handler(next, previous) { if (previous === "ai-concise" && next !== "ai-concise") this.clearConciseProposal(); if (previous === "ai-profile" && next !== "ai-profile") this.clearProfileSuggestion(); if (previous === "ai-ablate" && next !== "ai-ablate") this.clearAblate(); this.error = ""; this.note = ""; this.load(); this.takeHandoff(); this.loadSaved(); } },
       explainName() { this.explained = null; },
       scope() { this.ported = null; this.explained = null; this.explainName = ""; this.loadSaved(); this.budget = null; this.budgetEstimate = null; this.pairs = []; this.overlap = null; this.overlapEstimate = null; this.chosen = []; this.estimate = null; this.result = null; this.improve = null; this.improveEstimate = null; },
       draftScope() { this.clearDraftProposal(); },
@@ -144,6 +147,70 @@
       },
       skillHref(name) { return "#/skill/" + encodeURIComponent(name); },
       librarySkills() { return [...new Set(this.records.filter((r) => r.scope === "global").map((r) => r.name))].sort(); },
+      ablateInputKey() { return JSON.stringify([this.ablateName, this.ablateSection, this.ablateTrials, this.ablateMax]); },
+      ablateBody(extra) {
+        return { name: this.ablateName, section: this.ablateSection === "" ? null : Number(this.ablateSection),
+          trials: Number(this.ablateTrials), max_cases: Number(this.ablateMax), ...extra };
+      },
+      clearAblate() {
+        this.ablateRequest++;
+        const old = this.ablateResult;
+        if (old && old.proposal && this.ablateReviewOwned) this.cancelConciseReview(old.proposal);
+        this.ablateEstimate = null; this.ablateEstimateKey = ""; this.ablateResult = null; this.ablateReviewOwned = true;
+      },
+      async chooseAblateSkill() {
+        this.clearAblate(); this.ablateSection = ""; this.ablateSections = [];
+        if (!this.ablateName) return;
+        const req = this.ablateRequest; const name = this.ablateName;
+        const r = await this.guard(() => post("/api/ai/ablate", this.ablateBody({ section: null, estimate: true })));
+        if (r && req === this.ablateRequest && name === this.ablateName) this.ablateSections = r.sections || [];
+      },
+      async estimateAblate() {
+        this.clearAblate(); const req = this.ablateRequest; const key = this.ablateInputKey();
+        const r = await this.guard(() => post("/api/ai/ablate", this.ablateBody({ estimate: true })));
+        if (r && req === this.ablateRequest && key === this.ablateInputKey()) { this.ablateEstimate = r; this.ablateEstimateKey = key; }
+      },
+      async runAblate() {
+        if (!this.ablateEstimate || this.ablateEstimateKey !== this.ablateInputKey()) return;
+        const req = ++this.ablateRequest; const key = this.ablateInputKey();
+        const r = await this.guard(() => post("/api/ai/ablate", this.ablateBody({ plan: this.ablateEstimate.plan })));
+        if (!r) return;
+        if (req !== this.ablateRequest || key !== this.ablateInputKey() || this.page !== "ai-ablate") { if (r.proposal) await this.cancelConciseReview(r.proposal); return; }
+        this.ablateResult = r; this.ablateReviewOwned = true; this.ablateEstimate = null; this.ablateEstimateKey = ""; this.loadRuns();
+      },
+      openAblateReview() {
+        const r = this.ablateResult; const review = r && r.proposal && r.proposal.review;
+        const record = this.records.find((x) => x.scope === "global" && x.name === r.name);
+        if (!review || !record) return;
+        this.ablateReviewOwned = false;
+        this.$emit("open-source-review", { target: record, reviewId: review.review_id });
+      },
+      ablateDecision(d) {
+        return { remove: ["warn", "Little or no loss without it: removal proposed"], keep: ["ok", "It helps: keep it"],
+          uncertain: ["off", "Uncertain: removal not shown to be safe"], "not-enough-evidence": ["off", "Not enough evidence"] }[d] || ["off", d];
+      },
+      conflictsBody(extra) { return { scope: this.conflictsScope, project: this.conflictsProject.trim() || null, ...extra }; },
+      async findConflicts() {
+        const req = ++this.conflictsRequest; this.conflictsEstimate = null; this.conflictsReport = null;
+        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({})));
+        if (req === this.conflictsRequest) this.conflictsReport = r;
+      },
+      async estimateConflictJudge() {
+        const req = ++this.conflictsRequest;
+        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), estimate: true })));
+        if (req === this.conflictsRequest) this.conflictsEstimate = r;
+      },
+      async runConflictJudge() {
+        if (!this.conflictsEstimate || !this.conflictsEstimate.plan) return;
+        const req = ++this.conflictsRequest;
+        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), plan: this.conflictsEstimate.plan })));
+        if (r && req === this.conflictsRequest) { this.conflictsReport = r; this.conflictsEstimate = null; this.loadRuns(); }
+      },
+      conflictLabel(pair) {
+        const j = pair.judge;
+        if (!j) return ["off", pair.kind === "choice" ? "Possible clash (word pattern)" : "Possible clash (opposite wording)"];
+        return { conflict: ["bad", "AI: conflict"], compatible: ["ok", "AI: compatible"], unclear: ["warn", "AI: unclear"] }[j.verdict] || ["off", j.verdict];
+      },
       evalBody(estimate) { return { name: this.evalName, max_cases: Number(this.evalMax), trials: Number(this.evalTrials), estimate }; },
       async estimateEvals() { this.evalResult = null; this.evalEstimate = await this.guard(() => post("/api/ai/evals", this.evalBody(true))); },
       async runEvals() { const r = await this.guard(() => post("/api/ai/evals", this.evalBody(false))); if (r) { this.evalResult = r; this.evalEstimate = null; this.load(); } },
@@ -459,8 +526,8 @@
         </section>
       </template>
 
-      <template v-else-if="!configured && settings">
-        <h1 class="h1" id="h1" tabindex="-1">{{ {'ai-concise':'Shorten a skill','ai-explain':'Explain risk findings','ai-port':'Porting notes','ai-ask':'Ask your library','ai-draft':'Draft a skill','ai-profile':'Suggest a profile','ai-trigger':'Trigger test','ai-improve':'Improve a description','ai-overlap':'Overlap check','ai-budget':'Fit the listing budget','ai-evals':'Does it help?'}[page] || 'AI assist' }}</h1>
+      <template v-else-if="!configured && settings && page !== 'ai-conflicts'">
+        <h1 class="h1" id="h1" tabindex="-1">{{ {'ai-concise':'Shorten a skill','ai-explain':'Explain risk findings','ai-port':'Porting notes','ai-ask':'Ask your library','ai-draft':'Draft a skill','ai-profile':'Suggest a profile','ai-trigger':'Trigger test','ai-improve':'Improve a description','ai-overlap':'Overlap check','ai-budget':'Fit the listing budget','ai-evals':'Does it help?','ai-ablate':'Does it earn its place?','ai-conflicts':'Contradiction check'}[page] || 'AI assist' }}</h1>
         <section class="card tp-panel"><p>AI features are off. Connect a model first; nothing is sent until you run a test.</p>
           <div class="tp-acts"><a class="btn btn-ink" href="#/tools/ai-settings">Open AI settings</a></div></section>
       </template>
@@ -779,6 +846,83 @@
             <tbody><tr v-for="c in [...new Set(evalResult.results.map(r => r.case))]" :key="c"><td class="tp-mono">{{ c }}</td>
               <td v-for="v in ['with_skill','without_skill']" :key="v">{{ (r => !r ? '–' : !r.graded ? 'Not graded' : r.passed + ' / ' + r.total + ' assertions')(evalResult.results.find(r => r.case===c && r.variant===v)) }}</td></tr></tbody></table>
           <p class="tp-fine">Graded only by the assertions in evals.json; ungraded cases: {{ evalResult.benchmark.ungraded_cases }}. {{ evalResult.run.advisory }}</p>
+        </section>
+      </template>
+
+      <template v-else-if="page==='ai-ablate'">
+        <h1 class="h1" id="h1" tabindex="-1">Does it earn its place?</h1>
+        <p class="lede">Runs a skill's own <code>evals/evals.json</code> cases with the whole skill and without one section, or without the skill at all. If results are not worse without it, removal is proposed: ties go to removal. Nothing changes until you review and save.</p>
+        <section class="card tp-panel" aria-labelledby="ai-ab-h">
+          <h2 id="ai-ab-h">Choose what to test</h2>
+          <div class="tp-set">
+            <div class="tp-set-row"><label for="ai-abn"><b>Skill</b><small>A turned-on skill in your library with cases in <code>evals/evals.json</code>.</small></label><select id="ai-abn" class="field" v-model="ablateName" @change="chooseAblateSkill()"><option value="">Choose…</option><option v-for="n in librarySkills()" :key="n" :value="n">{{ n }}</option></select></div>
+            <div class="tp-set-row"><label for="ai-abs"><b>Remove</b><small>A section includes its subsections.</small></label><select id="ai-abs" class="field" v-model="ablateSection" @change="clearAblate()" :disabled="!ablateName"><option value="">The whole skill</option><option v-for="sec in ablateSections" :key="sec.index" :value="String(sec.index)">{{ '#'.repeat(sec.level) }} {{ sec.heading }} (~{{ fmt(sec.tokens) }} tokens)</option></select></div>
+            <div class="tp-set-row"><label for="ai-abm"><b>Cases</b><small>At least 3 graded cases are needed for a decision.</small></label><select id="ai-abm" class="field" v-model.number="ablateMax" @change="clearAblate()"><option v-for="n in [3,5,10,15,20]" :key="n" :value="n">{{ n }}</option></select></div>
+            <div class="tp-set-row"><label for="ai-abt"><b>Repeats</b><small>Model answers vary; repeats narrow the range.</small></label><select id="ai-abt" class="field" v-model.number="ablateTrials" @change="clearAblate()"><option :value="1">Once</option><option :value="3">3 times</option><option :value="5">5 times</option></select></div>
+          </div>
+          <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !ablateName" @click="estimateAblate()">Check what will be sent</button></div>
+          <div v-if="ablateEstimate" class="ai-confirm" role="region" aria-label="Before sending">
+            <p v-for="(line,i) in ablateEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
+            <p class="tp-fine">{{ ablateEstimate.calls_planned }} model calls, at most about {{ fmt(ablateEstimate.run.estimated_input_tokens) }} tokens to {{ ablateEstimate.run.model }}. Removing it would save about {{ fmt(ablateEstimate.saves_tokens) }} tokens.</p>
+            <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="runAblate()">Send and run</button><button class="btn btn-line" :disabled="busy" @click="clearAblate()">Cancel</button></div>
+          </div>
+        </section>
+        <section v-if="ablateResult" class="card tp-panel" aria-labelledby="ai-abr-h" aria-live="polite">
+          <header class="tp-panel-h"><div><h2 id="ai-abr-h">{{ ablateResult.name }} · {{ ablateResult.section ? ablateResult.section.heading : 'whole skill' }}</h2><p>{{ ablateResult.cases_count }} cases × {{ ablateResult.trials }} · {{ ablateResult.run.model }}<template v-if="ablateResult.status==='partial'"> · some answers missing</template></p></div>
+            <span :class="['pill', ablateDecision(ablateResult.decision)[0]]">{{ ablateDecision(ablateResult.decision)[1] }}</span></header>
+          <p class="tp-fine">{{ ablateResult.reason }}.</p>
+          <p v-if="ablateResult.coverage_warning" class="tp-issue warn">{{ ablateResult.coverage_warning }}</p>
+          <trial-stats v-if="ablateResult.statistics" :stats="ablateResult.statistics" title="With it compared with without it" :labels="{ full: 'With it', ablated: 'Without it' }"></trial-stats>
+          <table class="ai-table"><thead><tr><th>Case</th><th>With it</th><th>Without it</th></tr></thead>
+            <tbody><tr v-for="c in ablateResult.cases" :key="c.case"><td class="tp-mono">{{ c.case }}</td>
+              <td v-for="v in ['full','ablated']" :key="v">{{ c[v].graded ? c[v].passed + ' / ' + c[v].graded + ' passed' : 'Not graded' }}</td></tr></tbody></table>
+          <template v-if="ablateResult.proposal && ablateResult.proposal.kind==='remove-section'">
+            <p class="tp-fine">A removal of this section is staged. Review the exact change; the current copy is kept in Recovery when you save.</p>
+            <div class="tp-acts"><button class="btn btn-ink" :disabled="busy || !ablateReviewOwned" @click="openAblateReview()">Review the removal…</button></div>
+          </template>
+          <template v-if="ablateResult.proposal && ablateResult.proposal.kind==='retire'">
+            <h3>Step it down instead of deleting it</h3>
+            <ol class="ai-list"><li v-for="step in ablateResult.proposal.ladder" :key="step.step"><b>{{ step.step }}</b>: {{ step.effect }} <span class="tp-mono">{{ step.action }}</span> <small>({{ step.applies_to }})</small></li></ol>
+          </template>
+          <p v-if="ablateResult.proposal_error" class="tp-issue warn">{{ ablateResult.proposal_error }}</p>
+          <p class="tp-fine">Graded only by the assertions in evals.json, for these requests only. {{ ablateResult.run.advisory }}</p>
+        </section>
+      </template>
+
+      <template v-else-if="page==='ai-conflicts'">
+        <h1 class="h1" id="h1" tabindex="-1">Contradiction check</h1>
+        <p class="lede">Finds lines in CLAUDE.md, AGENTS.md and GEMINI.md that may disagree with each other or with your skills. Finding candidates uses word patterns only and sends nothing. Optionally, your model judges the top pairs.</p>
+        <section class="card tp-panel" aria-labelledby="ai-cf-h">
+          <h2 id="ai-cf-h">Set up</h2>
+          <div class="tp-set">
+            <div class="tp-set-row"><label for="ai-cfs"><b>Skills from</b></label><select id="ai-cfs" class="field" v-model="conflictsScope" @change="conflictsReport=null; conflictsEstimate=null"><option v-for="sc in agentScopes" :key="sc.id" :value="sc.id">{{ sc.label }} ({{ sc.count }})</option></select></div>
+            <div class="tp-set-row"><label for="ai-cfp"><b>Project folder</b><small>Optional. Also reads that project's CLAUDE.md, AGENTS.md and GEMINI.md. It must be inside the folders this app may read.</small></label><input id="ai-cfp" class="field" type="text" v-model="conflictsProject" @change="conflictsReport=null; conflictsEstimate=null" placeholder="/path/to/project"></div>
+          </div>
+          <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !conflictsScope" @click="findConflicts()">Find possible contradictions</button></div>
+        </section>
+        <section v-if="conflictsReport" class="card tp-panel" aria-labelledby="ai-cfr-h" aria-live="polite">
+          <header class="tp-panel-h"><div><h2 id="ai-cfr-h">{{ conflictsReport.candidates.length }} possible contradiction{{ conflictsReport.candidates.length===1?'':'s' }}</h2><p>{{ conflictsReport.sources.length }} sources read<template v-if="conflictsReport.unreadable.length"> · {{ conflictsReport.unreadable.length }} unreadable</template><template v-if="conflictsReport.candidates_truncated"> · list cut at {{ conflictsReport.candidates.length }}</template></p></div></header>
+          <p v-if="conflictsReport.unreadable.length" class="tp-fine">Not read: <span class="tp-mono">{{ conflictsReport.unreadable.join(', ') }}</span></p>
+          <p v-for="(line,i) in (conflictsReport.inputs_limited || [])" :key="'lim'+i" class="tp-issue warn">{{ line }}</p>
+          <p class="tp-fine">{{ conflictsReport.limits }}</p>
+          <div v-if="configured && conflictsReport.candidates.length" class="tp-set">
+            <div class="tp-set-row"><label for="ai-cfn"><b>Pairs to judge</b><small>Only the two quoted lines of each pair are sent, never whole files.</small></label><select id="ai-cfn" class="field" v-model.number="conflictsMax" @change="conflictsEstimate=null"><option v-for="n in [5,10,20,40]" :key="n" :value="n">{{ n }}</option></select></div>
+          </div>
+          <div v-if="configured && conflictsReport.candidates.length && !conflictsEstimate" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="estimateConflictJudge()">Ask your model to judge…</button></div>
+          <p v-else-if="!configured && conflictsReport.candidates.length" class="tp-fine">To have a model judge these pairs, <a href="#/tools/ai-settings">connect one in AI settings</a>.</p>
+          <div v-if="conflictsEstimate && conflictsEstimate.status==='estimate'" class="ai-confirm" role="region" aria-label="Before sending">
+            <p v-for="(line,i) in conflictsEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
+            <p class="tp-fine">At most about {{ fmt(conflictsEstimate.run.estimated_input_tokens) }} tokens to {{ conflictsEstimate.run.model }}.</p>
+            <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="runConflictJudge()">Send and judge</button><button class="btn btn-line" :disabled="busy" @click="conflictsEstimate=null">Cancel</button></div>
+          </div>
+          <p v-if="conflictsReport.judged != null" class="tp-fine">{{ conflictsReport.judged }} pair{{ conflictsReport.judged===1?'':'s' }} judged; {{ conflictsReport.conflicts.length }} judged a conflict. {{ conflictsReport.run.advisory }}</p>
+          <ul class="ai-list ai-conflicts">
+            <li v-for="pair in conflictsReport.candidates" :key="pair.id">
+              <p><span :class="['pill', conflictLabel(pair)[0]]">{{ conflictLabel(pair)[1] }}</span> <template v-if="pair.facet">{{ pair.facet }}: </template>{{ pair.judge ? pair.judge.why : pair.detail }}</p>
+              <blockquote v-for="side in [pair.a, pair.b]" :key="side.source + side.line"><small class="tp-mono">{{ side.source }}:{{ side.line }} · {{ side.layer }}</small><br>{{ side.quote }}</blockquote>
+              <p class="tp-fine">Which one wins is not documented by any agent; the model sees both.</p>
+            </li>
+          </ul>
         </section>
       </template>
 

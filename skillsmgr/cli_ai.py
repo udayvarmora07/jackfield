@@ -1,7 +1,9 @@
-"""A14 CLI: advisory trigger evidence and conservative CI comparisons."""
+"""AI CLI: trigger evidence (A14), ablate and retire, and contradiction checks."""
 from __future__ import annotations
 
-from . import ai_skills
+from pathlib import Path
+
+from . import ai_ablate, ai_conflicts, ai_skills
 from .ai import AiError
 from .cli_output import err, print_json, sanitize_text
 
@@ -9,6 +11,8 @@ from .cli_output import err, print_json, sanitize_text
 def validate_args(parser, args):
     if getattr(args, "fail_on_regression", False) and not getattr(args, "run", False):
         parser.error("--fail-on-regression requires --run")
+    if getattr(args, "ai_command", None) == "conflicts" and args.run and not args.judge:
+        parser.error("--run requires --judge")
 
 
 def _baseline(data_dir, scope, run_id):
@@ -160,16 +164,100 @@ def _human_report(report):
         print("Saved run: " + sanitize_text(result["run_id"]))
 
 
+def _execute_ablate(args, store):
+    payload = {"name": args.name, "section": args.section, "trials": args.trials, "max_cases": args.max_cases}
+    estimate = ai_ablate.ablate(store, {**payload, "estimate": True})
+    if not args.run:
+        return {"status": "estimate", "result": estimate}, 0
+    result = ai_ablate.ablate(store, {**payload, "plan": estimate["plan"]})
+    return {"status": result["status"], "result": result}, 0
+
+
+def _human_ablate(report):
+    print("AI ablate: " + sanitize_text(report["status"]))
+    if "error" in report:
+        err(sanitize_text(report["error"]["message"]))
+        return
+    result = report["result"]
+    for row in result["sections"]:
+        print(f"  [{row['index']}] {'#' * row['level']} {sanitize_text(row['heading'])} (~{row['tokens']} tokens)")
+    target = "whole skill" if result["section"] is None else "section " + sanitize_text(result["section"]["heading"])
+    print(f"Testing: {target}; {result['calls_planned']} model calls; would save ~{result['saves_tokens']} tokens")
+    for line in result["egress"]:
+        print(sanitize_text(line))
+    if "decision" in result:
+        stats = result["statistics"]
+        print(f"Decision: {result['decision']} -- {sanitize_text(result['reason'])}")
+        print(f"Lift with it: {stats['lift']} (interval {stats['interval']}, {stats['paired_cases']} requests, "
+              f"{stats['trials']} trials)")
+    proposal = result.get("proposal") or {}
+    if proposal.get("kind") == "remove-section":
+        review_id = sanitize_text(proposal["review"]["review_id"])
+        print(f"Staged removal for review: {review_id}")
+        print(f"  review the diff in the web UI, or apply: skills-mgr update apply "
+              f"{sanitize_text(result['name'])} {review_id} --yes")
+    for step in proposal.get("ladder", []):
+        print(f"  {step['step']}: {sanitize_text(step['action'])}")
+    if result.get("proposal_error"):
+        err(sanitize_text(result["proposal_error"]))
+    if result.get("run_id"):
+        print("Saved run: " + sanitize_text(result["run_id"]))
+
+
+def _execute_conflicts(args, store):
+    payload = {"scope": args.scope, "project": str(Path(args.project).expanduser()) if args.project else None}
+    if not args.judge:
+        return {"status": "candidates", "result": ai_conflicts.check(store.data_dir, payload)}, 0
+    payload.update({"judge": True, "max_pairs": args.max_pairs})
+    estimate = ai_conflicts.check(store.data_dir, {**payload, "estimate": True})
+    if not args.run or "plan" not in estimate:
+        return {"status": estimate.get("status", "estimate"), "result": estimate}, 0
+    result = ai_conflicts.check(store.data_dir, {**payload, "plan": estimate["plan"]})
+    return {"status": result["status"], "result": result}, 0
+
+
+def _human_side(side):
+    return f"{sanitize_text(side['source'])}:{side['line']}: {sanitize_text(side['quote'])}"
+
+
+def _human_conflicts(report):
+    print("AI conflicts: " + sanitize_text(report["status"]))
+    if "error" in report:
+        err(sanitize_text(report["error"]["message"]))
+        return
+    result = report["result"]
+    print(f"Read {len(result['sources'])} sources; {len(result['candidates'])} candidate pairs (heuristic)")
+    for line in result.get("inputs_limited", []):
+        err(sanitize_text(line))
+    for line in result.get("egress", []):
+        print(sanitize_text(line))
+    shown = result["conflicts"] if "conflicts" in result else result["candidates"][:20]
+    for pair in shown:
+        judge = pair.get("judge")
+        label = f"AI: {judge['verdict']} -- {sanitize_text(judge['why'])}" if judge else sanitize_text(pair["detail"])
+        print(f"- {pair['kind']}: {label}")
+        print("    " + _human_side(pair["a"]))
+        print("    " + _human_side(pair["b"]))
+    print(sanitize_text(result["limits"]))
+
+
+_COMMANDS = {"trigger-test": (lambda args, store: _execute(args, store.data_dir), _human_report),
+             "ablate": (_execute_ablate, _human_ablate),
+             "conflicts": (_execute_conflicts, _human_conflicts)}
+
+
 def cmd_ai(args, store) -> int:
+    command = getattr(args, "ai_command", None) or "trigger-test"
+    execute, human = _COMMANDS[command]
     try:
-        report, code = _execute(args, store.data_dir)
+        report, code = execute(args, store)
     except AiError as exc:
         report, code = {"status": "error", "error": {"code": exc.code, "message": str(exc)}}, 1
     except (OSError, ValueError, TypeError, RecursionError):
         report, code = {"status": "error", "error": {"code": "ai-input", "message": "cannot read AI input or run evidence; check saved files"}}, 1
-    report = {"schema_version": 1, "command": "ai trigger-test", **report}
+    report = {"schema_version": 1, "command": "ai " + command, **report}
     if args.json:
         print_json(report)
     else:
-        _human_report(report)
+        human(report)
     return code

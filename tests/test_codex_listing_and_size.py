@@ -78,6 +78,25 @@ class CodexListingTests(_Fixture):
         section = self.report()["codex_listing"]
         self.assertEqual(section["truncated_descriptions"]["count"], 1)
         self.assertLess(section["listing_tokens_estimate"], 400)
+        entry = section["entries"][0]
+        # Codex keeps 1,021 characters and appends "..." (1,024 in all).
+        self.assertEqual((entry["description_chars"], entry["delivered_description_chars"], entry["cut_chars"]),
+                         (3009, 1021, 3009 - 1021))
+        self.assertEqual(entry["tokens"], section["listing_tokens_estimate"])
+
+    def test_entries_rank_the_largest_cuts_first(self):
+        for i in range(105):
+            self.skill(f"a{i:03d}", "Use when short.")
+        self.skill("zz-long", "Use when " + "z" * 2000)
+        entries = self.report()["codex_listing"]["entries"]
+        self.assertEqual(len(entries), 100)
+        self.assertEqual(entries[0]["name"], "zz-long")
+
+    def test_short_descriptions_are_delivered_whole(self):
+        self.skill("short", "Use when testing.")
+        entry = self.report()["codex_listing"]["entries"][0]
+        self.assertEqual((entry["cut_chars"], entry["over_cap"]), (0, False))
+        self.assertEqual(entry["delivered_description_chars"], len("Use when testing."))
 
     def test_disabled_and_config_disabled_skills_are_not_listed(self):
         self.skill("kept", "Use when kept.")
@@ -147,6 +166,26 @@ class CodexListingTextTests(unittest.TestCase):
             cli_handlers._render_codex_listing_text({"status": "no_instances"})
         self.assertEqual(out.getvalue().count("\n"), 1)
         self.assertIn("~10,600 tokens vs 8,000 budget", out.getvalue())
+
+    def test_cut_descriptions_are_listed_largest_first_and_bounded(self):
+        import contextlib
+        import io
+
+        from skillsmgr import cli_handlers
+        entries = [{"name": f"s{i}", "description_chars": 2000, "cut_chars": 100 * i} for i in range(8)]
+        entries.append({"name": "evil\x1b[2J", "description_chars": 3000, "cut_chars": 2000})
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            cli_handlers._render_codex_listing_text({"status": "within_budget", "listed_skills": 9,
+                                                     "listing_tokens_estimate": 10, "entries": entries,
+                                                     "budget": {"budget_tokens": 8000}})
+        lines = out.getvalue().splitlines()
+        cuts = [line for line in lines if line.startswith("    cut: ")]
+        self.assertEqual(len(cuts), 6)
+        self.assertIn("loses 2,000 of 3,000", cuts[0])
+        self.assertNotIn("\x1b", out.getvalue())
+        self.assertIn("s7 loses 700", cuts[1])
+        self.assertEqual(cuts[-1], "    cut: 3 more (see --json)")
 
 
 if __name__ == "__main__":

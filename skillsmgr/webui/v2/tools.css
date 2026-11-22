@@ -297,3 +297,5 @@
 .tp-hist-group { min-width: 0; flex: 1; }
 .tp-hist-group summary { cursor: pointer; list-style-position: outside; }
 .tp-hist-group p { margin-top: 6px; overflow-wrap: anywhere; }
+.ai-conflicts { list-style: none; padding-left: 0; gap: 14px; }
+.ai-conflicts blockquote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--line-strong); background: var(--sunken); overflow-wrap: anywhere; }

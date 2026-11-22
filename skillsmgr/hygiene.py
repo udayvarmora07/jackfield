@@ -1119,14 +1119,16 @@ def _listing_entry(record: dict, cap: int, setting: dict | None,
     if listing == "name-only":
         excluded["name_only"] += 1
     text = name if listing == "name-only" or not combined else f"{name}: {combined[:cap]}"
+    counted = min(len(combined), cap) if listing == "full" else 0
     entry = {
         "name": name,
         "scope": _bounded(record.get("scope", ""), 128),
         "path": _listing_path(record, home_prefix),
         "listing": listing,
         "description_chars": len(combined),
-        "counted_description_chars": min(len(combined), cap) if listing == "full" else 0,
+        "counted_description_chars": counted,
         "over_cap": listing == "full" and len(combined) > cap,
+        "cut_chars": (len(combined) - counted) * (listing == "full"),
         "entry_chars": len(text),
     }
     return entry, text
@@ -1539,6 +1541,14 @@ def _codex_line_tokens(name: str, description: str, document: str) -> tuple[int,
     return -(-len(line.encode("utf-8")) // _CODEX_BYTES_PER_TOKEN), truncated
 
 
+def _codex_entry(name: str, description: str, tokens: int, truncated: bool) -> dict:
+    """What Codex delivers for one listed skill: kept and cut description characters."""
+    kept = _CODEX_DESCRIPTION_CAP - 3 if truncated else len(description)
+    return {"name": _bounded(name, 128), "description_chars": len(description),
+            "delivered_description_chars": kept, "cut_chars": len(description) - kept,
+            "tokens": tokens, "over_cap": truncated}
+
+
 def _codex_budget(window: str, home=None) -> dict:
     """The observed user cap, otherwise 2% of a stated Codex model window."""
     basis = f"2% of the {window} context window"
@@ -1684,7 +1694,7 @@ def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[
     """Estimate Codex's user-root listing against its observed/default budget."""
     listed, excluded, explicit, unknown_metadata = _codex_listing_rows(prepared, home)
     explicit_block = _codex_explicit_block(explicit)
-    total, cut = 0, []
+    total, cut, entries = 0, [], []
     for record, document in listed:
         name = str(record.get("name", ""))
         description = record.get("description") if isinstance(record.get("description"), str) else ""
@@ -1692,6 +1702,7 @@ def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[
         total += cost
         if truncated:
             cut.append(name)
+        entries.append(_codex_entry(name, description, cost, truncated))
     budget = _codex_budget(window, home)
     budget_tokens = budget["budget_tokens"]
     status = _codex_listing_status(listed, total, budget_tokens, unknown_metadata["total"])
@@ -1700,6 +1711,8 @@ def _codex_listing_section(prepared: list[dict], *, home, window: str) -> tuple[
         "effective_state": "unknown", "confidence": "partial", "limits": _CODEX_LISTING_LIMITS,
         "status": status, "instances_observed": len(listed) + sum(excluded.values()),
         "listed_skills": len(listed), "excluded": excluded,
+        "entries": sorted(entries, key=lambda e: (-e["cut_chars"], e["name"]))[:MAX_GROUP_INSTANCES],
+        "entries_total": len(entries), "entries_truncated": len(entries) > MAX_GROUP_INSTANCES,
         "unknown_metadata": unknown_metadata,
         "listing_tokens_estimate": total,
         "listing_estimate_scope": "known metadata only",

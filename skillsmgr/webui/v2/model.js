@@ -477,6 +477,8 @@
       { id: "ai-improve", name: "Improve a description", text: "Get rewrites that are re-tested and recommended only when they measurably help.", commandLabel: "AI improve description" },
       { id: "ai-budget", name: "Fit the listing budget", text: "Propose shorter descriptions and compare their simulated selection rates.", commandLabel: "AI fit listing budget" },
       { id: "ai-evals", name: "Does it help?", text: "Run a skill's eval cases with and without it, graded by its own assertions.", commandLabel: "AI eval runner" },
+      { id: "ai-ablate", name: "Does it earn its place?", text: "Test a skill or one section by removing it; removal is proposed when results are not worse.", commandLabel: "AI ablate and retire" },
+      { id: "ai-conflicts", name: "Contradiction check", text: "Find lines in CLAUDE.md and AGENTS.md that may disagree with each other or your skills.", commandLabel: "Contradiction check" },
       { id: "ai-overlap", name: "Overlap check", text: "Find skills that compete for the same requests or give conflicting instructions.", commandLabel: "AI overlap check" },
       { id: "ai-explain", name: "Explain risk findings", text: "Scan an installed skill for risky patterns, then get a second opinion that can only demote a finding.", commandLabel: "AI explain risk findings" },
       { id: "ai-port", name: "Porting notes", text: "See what changes when another agent reads a skill, from documented facts.", commandLabel: "AI porting notes" },

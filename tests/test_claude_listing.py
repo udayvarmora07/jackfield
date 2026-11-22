@@ -92,6 +92,7 @@ class ClaudeListingContracts(unittest.TestCase):
         self.assertEqual(entries["alpha"]["entry_chars"], len("alpha"))
         self.assertEqual(entries["alpha"]["counted_description_chars"], 0)
         self.assertEqual(section["excluded"]["name_only"], 1)
+        self.assertEqual(entries["alpha"]["cut_chars"], 0)  # a setting, not a cut
         self.assertEqual(
             section["listing_chars"],
             len("alpha") + len("\n") + len("beta: " + "B" * 10),
@@ -159,6 +160,7 @@ class ClaudeListingContracts(unittest.TestCase):
         self.assertEqual(section["over_cap"]["count"], 1)
         self.assertEqual(section["over_cap"]["names"], ["alpha"])
         self.assertEqual(section["listing_chars"], len("alpha: " + "D" * 1536))
+        self.assertEqual(entry["cut_chars"], 1600 - 1536)
 
     def test_skill_listing_max_desc_chars_from_settings_wins(self):
         self.write_skill("alpha", "D" * 100)
@@ -166,6 +168,7 @@ class ClaudeListingContracts(unittest.TestCase):
         _report, section = self.section()
         self.assertEqual(section["max_description_chars"], 40)
         self.assertEqual(section["entries"][0]["counted_description_chars"], 40)
+        self.assertEqual(section["entries"][0]["cut_chars"], 60)
         self.assertTrue(section["entries"][0]["over_cap"])
         self.assertEqual(section["settings"]["max_desc_chars"], 40)
 

@@ -1,6 +1,6 @@
 # AI Features: Multi-Platform Research Loop
 
-**Version 0.1.0**
+**Version 0.2.0**
 
 **AI manifest**: Third research pass of 2026-11-22. It ran three rounds across
 Reddit, X, YouTube, Hacker News, GitHub, forums, Bilibili, V2EX, Quora,
@@ -195,6 +195,13 @@ product:
   to a model.
 
 ## Proposed slice 2
+
+**[NOTE]** Shipped 2026-11-22 as `ai ablate`, `ai conflicts` and per-skill
+description cuts in the listing report; see @docs/03-cli-surface.md and
+@docs/08-web-ui.md. Both checks below are covered by `tests/test_ai_ablate.py`,
+`tests/test_conflicts.py` and the listing tests. Contradiction pairs between
+two skills were left to the overlap judge after a real-library run showed
+they were mostly noise.
 
 | Ship | Check before expanding |
 |---|---|

@@ -21,7 +21,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import ai, ai_ask, ai_budget, ai_concise, ai_draft, ai_edit, ai_evals, ai_explain, ai_overlap, ai_port, ai_profiles, ai_review, ai_skills, batch, doctor, effective, evals, install, scopes
+from . import ai, ai_ablate, ai_ask, ai_budget, ai_concise, ai_conflicts, ai_draft, ai_edit, ai_evals, ai_explain, ai_overlap, ai_port, ai_profiles, ai_review, ai_skills, batch, doctor, effective, evals, install, scopes
 from .documents import document_text
 from .context import set_active_store
 from .store import Store, StoreError, SkillNotFound
@@ -1641,6 +1641,9 @@ class WebAppHandler(BaseHTTPRequestHandler):
             "review-briefing": lambda body: ai_review.review_briefing(data_dir, body),
             "prompt-sets": lambda body: ai_skills.save_prompt_set(data_dir, body),
             "evals": lambda body: ai_evals.run_evals(self.store, body),
+            "ablate": lambda body: ai_ablate.ablate(self.store, body),
+            "conflicts": lambda body: ai_conflicts.check(
+                data_dir, body, allowed_roots=getattr(self.server, "diagnostics_roots", None) or [data_dir]),
             "ask": lambda body: ai_ask.ask_library(data_dir, body),
             "porting-notes": lambda body: ai_port.porting_notes(data_dir, body),
             "explain-findings": lambda body: ai_explain.explain_findings(data_dir, body),

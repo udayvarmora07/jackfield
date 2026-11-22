@@ -348,7 +348,7 @@
       if(!t)return;
       await this.read('/api/source-updates/snapshots?name='+enc(t.name)+'&scope='+enc(t.scope)+'&target_path='+enc(t.physical_path||t.path),'snapshots')},
     /* Snapshot taken just before an applied AI proposal: restoring it undoes that change. */
-    provenanceLabel(p){const what={'edit-skill':'AI edit','concise':'AI shortening'}[p.feature]||'AI change';
+    provenanceLabel(p){const what={'edit-skill':'AI edit','concise':'AI shortening','ablate':'removal test'}[p.feature]||'AI change';
       const kept=Number.isInteger(p.accepted_hunks)&&Number.isInteger(p.total_hunks)?' · kept '+p.accepted_hunks+' of '+p.total_hunks+' changes':'';
       return 'Before '+what+(p.model?' by '+p.model+(p.local?' (local)':''):'')+(p.request?': “'+p.request+'”':'')+kept;},
       async snapshotReview(s){const t=this.selected;

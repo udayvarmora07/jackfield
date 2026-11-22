@@ -7,6 +7,29 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Ablate and retire, contradiction check, description cuts (slice 2)
+
+- `skillsmgr/ai_ablate.py` and `skills-mgr ai ablate` (docs/60 G1): replays a
+  library skill's eval cases with the whole skill and without one section or
+  the whole skill. Removal is proposed when the interval's upper end is at most
+  10 points; a section removal is staged as an ordinary reviewed edit (Recovery
+  labels it "removal test"), a whole skill gets the slash-only, disable,
+  archive ladder. A `coverage_warning` says when no check ever differed, since
+  such cases may not test the removed text.
+- `skillsmgr/conflicts.py`, `skillsmgr/ai_conflicts.py` and `skills-mgr ai
+  conflicts` (G2): heuristic candidate pairs between user and project
+  CLAUDE.md/AGENTS.md/GEMINI.md and one scope's skills, with verbatim quotes and
+  file line numbers; an optional AI judge sees only the two quoted lines.
+  Skill-against-skill pairs were dropped after a run on a real 220-skill
+  library produced 200 noisy pairs; with that rule it produced 5 plausible ones.
+- Listing report (G3): `cut_chars` per Claude Code entry and per-skill
+  `entries` for Codex; `doctor --hygiene` prints the five largest cuts and the
+  v2 listing card lists them.
+- v2 tool pages "Does it earn its place?" and "Contradiction check", checked in
+  the browser against a fake local model. Fixed during that check: library
+  skills had no body in the conflict scan (the index holds none).
+- Command inventory is now 33 + 28 + 3 = 64.
+
 ## 2026-11-22 — AI features research loop
 
 - Ran three rounds with twelve research agents across Reddit, X, YouTube,

@@ -61,6 +61,22 @@ def _add_ai_parser(sub, commands) -> None:
     p.add_argument("--fail-on-regression", action="store_true", help="with --run: require a comparable baseline and fail on observed loss")
     p.add_argument("--json", action="store_true", help="versioned JSON evidence (includes prompt text)")
     p.set_defaults(func=commands["cmd_ai"])
+    p = ai_sub.add_parser("ablate", help="test whether a library skill or one section earns its place (no send without --run)")
+    p.add_argument("name", help="library skill with evals/evals.json cases")
+    p.add_argument("--section", type=int, metavar="N", help="section number from the estimate; default: the whole skill")
+    p.add_argument("--trials", type=int, choices=range(1, 6), default=3)
+    p.add_argument("--max-cases", type=int, default=10, metavar="N")
+    p.add_argument("--run", action="store_true", help="send the skill and eval prompts to the configured provider")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=commands["cmd_ai"])
+    p = ai_sub.add_parser("conflicts", help="find instructions that may contradict CLAUDE.md/AGENTS.md (no model unless --judge --run)")
+    add_scope_arg(p)
+    p.add_argument("--project", metavar="PATH", help="also read this project's CLAUDE.md, AGENTS.md and GEMINI.md")
+    p.add_argument("--judge", action="store_true", help="ask the configured model about the top candidates (estimate without --run)")
+    p.add_argument("--max-pairs", type=int, default=20, metavar="N")
+    p.add_argument("--run", action="store_true", help="with --judge: send the quoted lines to the configured provider")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=commands["cmd_ai"])
 
 
 def _lifecycle_action(parser, handler):
