@@ -187,7 +187,7 @@
       },
       ablateDecision(d) {
         return { remove: ["warn", "Little or no loss without it: removal proposed"], keep: ["ok", "It helps: keep it"],
-          uncertain: ["off", "Uncertain: removal not shown to be safe"], "not-enough-evidence": ["off", "Not enough evidence"] }[d] || ["off", d];
+          uncertain: ["off", "Uncertain: removal not shown to be safe"], untested: ["warn", "Untested: these cases cannot show its effect"], "not-enough-evidence": ["off", "Not enough evidence"] }[d] || ["off", d];
       },
       conflictsBody(extra) { return { scope: this.conflictsScope, project: this.conflictsProject.trim() || null, ...extra }; },
       async findConflicts() {
@@ -1112,6 +1112,7 @@
       <p><span :class="['pill', verdict[0]]">{{ verdict[1] }}</span> {{ title }}</p>
       <p v-if="stats.lift !== null" class="tp-fine">{{ name(stats.treatment) }} passed {{ Math.round(stats.pass_rate[stats.treatment] * 100) }}% and {{ name(stats.baseline) }} {{ Math.round(stats.pass_rate[stats.baseline] * 100) }}% of graded outputs. Difference {{ signed(stats.lift) }}, {{ Math.round(stats.confidence * 100) }}% interval {{ signed(stats.interval[0]) }} to {{ signed(stats.interval[1]) }}, over {{ stats.paired_cases }} {{ stats.paired_cases === 1 ? 'case' : 'cases' }} × {{ stats.trials }} {{ stats.trials === 1 ? 'trial' : 'trials' }}: {{ stats.reason }}.</p>
       <p v-else class="tp-fine">{{ stats.reason }}.</p>
+      <p v-if="stats.min_detectable != null" class="tp-fine">With {{ stats.paired_cases }} {{ stats.paired_cases === 1 ? 'case' : 'cases' }}, only a true difference of about {{ Math.round(stats.min_detectable * 100) }} points or more would reliably show. More cases narrow this; more repeats help less.</p>
       <p v-if="stats.excluded" class="tp-fine">{{ stats.excluded }} incomplete or ungraded {{ stats.excluded === 1 ? 'output was' : 'outputs were' }} left out.</p>
       <p v-if="stats.tokens.regression" class="tp-issue warn">{{ name(stats.treatment) }} uses more output tokens: about {{ tokens(stats.treatment) }} against {{ tokens(stats.baseline) }} per answer.</p>
       <p v-for="f in stats.non_discriminating" :key="f.case + '-' + f.assertion" class="tp-issue warn">{{ caseName(f.case) }}, check {{ f.assertion + 1 }} always {{ f.always === 'passes' ? 'passes' : 'fails' }}, so it cannot tell the versions apart.</p>

@@ -1,6 +1,6 @@
 # AI Features: Multi-Platform Research Loop
 
-**Version 0.2.0**
+**Version 0.3.0**
 
 **AI manifest**: Third research pass of 2026-11-22. It ran three rounds across
 Reddit, X, YouTube, Hacker News, GitHub, forums, Bilibili, V2EX, Quora,
@@ -126,6 +126,63 @@ severity only.
     (xingkongliang/skills-manager, 7,681) but ship no AI. Eval and security
     tools do no library management. Nothing combines sync, observed usage,
     measured lift and reviewed apply, which is Skills Manager's position.
+
+## Round 4: the user's own browser and a literature deep dive
+
+**[NOTE]** Reports 15–18 in @docs/research/2026-11-22-ai-loop/. Earlier rounds
+were blocked on Reddit search (403), X search and Instagram (404). Round 4 ran
+read-only through the user's own Chrome via the opencli bridge: Reddit search
+and threads, Instagram keyword pages and Quora all worked, and automated or
+headless Chrome stayed blocked by Reddit. X search failed on every route, so
+X evidence comes from timelines, threads and articles. The literature pass
+cited about 58 papers and read 18 in full.
+
+Findings that change or confirm the plan:
+
+- **G3 is the strongest social signal.** A user with 91 skills found 34
+  without a description in context, and all 12 "never fired" skills were among
+  them; they nearly deleted them (r/ClaudeAI). SkillReducer reports 26.4% of
+  55,315 skills with missing or thin descriptions, so the listing report should
+  also flag thin descriptions, not only cut ones.
+- **G1 is wanted but needs power.** Three subreddits ask how to tell a working
+  rule from one the model follows anyway, and on/off comparison is the answer
+  people trust. A user's mutation test caught 6 of 15 deliberate config breaks.
+  Simulating the shipped rule with the real `trial_stats` and `decide`: it
+  wrongly retires a 20-point loss at most 1% of the time, but proposes a
+  harmless removal only 10–30% of the time even at 40 cases. Detecting 10
+  points needs on the order of 100 cases (Miller, arXiv 2411.00640).
+- **G2 judges need care at low prevalence.** At 2% prevalence, a judge with
+  90% sensitivity and specificity is right only about 15% of the time when it
+  says "conflict"; judges also favour one position and markdown over prose.
+- **Simulation is optimistic.** SkillReducer found 40.8% of
+  simulation-approved descriptions needed repair in the real runtime, and the
+  first-listed tool won about 72 points more often in one study.
+- Unverified but notable: commenters report Claude Code `/doctor` checks for
+  stale or contradictory instructions, and that Claude Code reads AGENTS.md
+  only when no CLAUDE.md exists [?].
+
+**[SPEC]** Applied on 2026-11-22:
+
+- `trial_stats` resamples cases only (resampling trials again double counted
+  trial noise) and reports `min_detectable`, shown on every eval, comparison
+  and ablation.
+- `ai ablate` returns `untested` instead of `remove` when every answer passes
+  or every answer fails in both variants, and its `remove` reason states the
+  smallest loss the run could have seen.
+- The contradiction judge asks in both orders and keeps a verdict only when
+  both agree.
+
+**[NOTE]** Deliberately not applied: blocking `remove` whenever the minimum
+detectable effect exceeds the 10-point margin. With the 0.5 spread floor that
+needs about 200 cases, more than the 20-case limit, so the feature would never
+propose anything. Removal stays a reviewed, recoverable proposal that states
+its evidence limit. Remaining literature proposals, in report order: a
+length-matched placebo arm and per-model labels; confirming trigger results in
+the real agent runtime with randomised listing order; three-vote judging,
+deterministic repo-fact checks and a predictive-value estimate; held-out
+splits for AI edit loops; negative and action assertions; a staleness check
+with a "why" per rule; a density and phrasing lint for instruction files; and
+injection tests with planted instructions.
 
 ## Consolidated feature catalogue
 

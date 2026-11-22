@@ -50,7 +50,13 @@ records, not additional live work.
   model.
 - [x] Round 4 research through the user's own browser (Reddit, X, Instagram,
   Quora), reports 15–17 in @docs/research/2026-11-22-ai-loop/.
-- [/] Literature deep dive (report 18) and applying its design changes.
+- [x] Literature deep dive (report 18). Applied: cases-only bootstrap,
+  minimum detectable effect, `untested` ablation decision, two-order judge.
+- [ ] Remaining literature proposals in @docs/60-ai-features-research-loop-2026-11-22.md
+  "Round 4": placebo arm, real-runtime trigger checks, three-vote judge with
+  repo-fact checks, held-out splits, negative assertions, staleness check,
+  instruction density lint, injection tests; and thin-description flags in the
+  listing report.
 
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 

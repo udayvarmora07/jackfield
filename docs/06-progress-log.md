@@ -7,6 +7,17 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Round 4 research and literature-driven statistics fixes
+
+- Read Reddit, X, Instagram and Quora through the user's own Chrome (reports
+  15–17) and about 58 papers (report 18); summarized in docs/60 "Round 4".
+- `trial_stats` bootstrap resamples cases only and adds `min_detectable`;
+  `ai ablate` adds the `untested` decision for all-pass or all-fail runs and
+  states the detectable loss; the contradiction judge requires agreement in
+  both orders. v2 shows the detectable difference on every statistics card.
+- Two X handles of accounts that are not public figures were redacted from
+  report 16.
+
 ## 2026-11-22 — Ablate and retire, contradiction check, description cuts (slice 2)
 
 - `skillsmgr/ai_ablate.py` and `skills-mgr ai ablate` (docs/60 G1): replays a

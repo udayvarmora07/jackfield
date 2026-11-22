@@ -10,6 +10,8 @@ says removing it costs at most ``MARGIN`` of the pass rate on these requests.
 * ``remove`` -- removal costs at most ``MARGIN`` (ties go to deletion).
 * ``keep`` -- the whole interval is above zero: it helps on these requests.
 * ``uncertain`` -- the interval is too wide to show removal is safe.
+* ``untested`` -- every answer passes (or fails) in both variants, so the
+  cases cannot show harm (a ceiling or floor); nothing is proposed.
 * ``not-enough-evidence`` -- fewer graded requests or observations than the
   statistics need; nothing is proposed.
 
@@ -134,12 +136,19 @@ def decide(stats: dict) -> tuple[str, str]:
         return 'not-enough-evidence', (
             f"needs at least {trial_stats.MIN_CASES} graded requests and {trial_stats.MIN_OBSERVATIONS} "
             'graded pairs; add eval cases with assertions or more trials')
+    rates = set((stats.get('pass_rate') or {}).values())
+    if rates in ({1.0}, {0.0}):
+        state = 'passes' if rates == {1.0} else 'fails'
+        return 'untested', (f'every answer {state} with and without it, so these cases cannot show '
+                            'what it does; add a case that needs it')
     low, high = stats['interval']
     if low > 0:
         return 'keep', 'it helps on these requests: the whole interval is above zero'
     if high <= MARGIN:
         return 'remove', (f'removing it costs at most {round(high * 100)} points of pass rate on these '
-                          f'requests (limit {round(MARGIN * 100)}); ties go to removal')
+                          f'requests (limit {round(MARGIN * 100)}); ties go to removal. With '
+                          f"{stats['paired_cases']} cases, only losses of about "
+                          f"{round((stats.get('min_detectable') or 1) * 100)} points or more were likely to show")
     return 'uncertain', 'the interval is too wide to show removal is safe; add cases or trials'
 
 

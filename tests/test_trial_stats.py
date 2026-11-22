@@ -94,6 +94,29 @@ class SummaryTests(unittest.TestCase):
         self.assertGreaterEqual(covered / 60, 0.85)
 
 
+class PowerTests(unittest.TestCase):
+    def test_min_detectable_shrinks_with_more_cases_and_has_a_floor(self):
+        def run(n):
+            outcomes = {}
+            for case in range(n):
+                outcomes[(case, 't')] = [True]
+                outcomes[(case, 'b')] = [True]
+            return trial_stats.summarize(_rows(outcomes), 't', 'b')['min_detectable']
+        # Identical cases show no spread; the 0.5 floor keeps the estimate honest.
+        self.assertAlmostEqual(run(4), 0.7)
+        self.assertAlmostEqual(run(100), 0.14)
+        self.assertIsNone(trial_stats.summarize([], 't', 'b')['min_detectable'])
+
+    def test_trials_are_not_resampled_twice(self):
+        # One case flips within trials but every case has the same mean difference,
+        # so a cases-only bootstrap gives a zero-width interval.
+        outcomes = {}
+        for case in 'abcd':
+            outcomes[(case, 't')] = [True, False]
+            outcomes[(case, 'b')] = [False, False]
+        self.assertEqual(trial_stats.summarize(_rows(outcomes), 't', 'b')['interval'], [0.5, 0.5])
+
+
 class FlagTests(unittest.TestCase):
     def test_token_regression_needs_ratio_and_absolute_delta(self):
         outcomes = {('a', 't'): [True], ('a', 'b'): [True]}

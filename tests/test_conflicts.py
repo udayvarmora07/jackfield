@@ -188,7 +188,7 @@ class CheckTests(ConflictFixture):
             sent.append(user)
             if run.estimate_only:
                 return None
-            ids = [line.split()[1] for line in user.splitlines() if line.startswith('Pair ')]
+            ids = [line.split()[1].rstrip(':') for line in user.splitlines() if line.startswith('Pair ')]
             return {'verdicts': [{'id': ids[0], 'verdict': 'conflict', 'why': 'npm vs pnpm',
                                   'quote': 'invented text'},
                                  {'id': ids[0], 'verdict': 'compatible', 'why': 'duplicate'},
@@ -208,6 +208,26 @@ class CheckTests(ConflictFixture):
         self.assertNotIn(USER_RULES.splitlines()[3], ''.join(sent))  # unrelated line never sent
         saved = ai_skills.read_run(self.data, result['run_id'])
         self.assertEqual(saved['conflicts'][0]['id'], conflict['id'])
+
+    def test_verdicts_must_survive_swapping_the_order(self):
+        calls = []
+
+        def ask(run, system, user, **_kwargs):
+            if run.estimate_only:
+                return None
+            calls.append(user)
+            ids = [line.split()[1].rstrip(':') for line in user.splitlines() if line.startswith('Pair ')]
+            verdict = 'conflict' if len(calls) == 1 else 'compatible'
+            return {'verdicts': [{'id': i, 'verdict': verdict, 'why': 'x'} for i in ids]}
+        with patch.object(ai, 'resolve_config', side_effect=lambda *_: dict(_CONFIG)), \
+                patch.object(ai.AiRun, 'ask_json', autospec=True, side_effect=ask):
+            estimate = self.report(judge=True, max_pairs=1, estimate=True)
+            result = self.report(judge=True, max_pairs=1, plan=estimate['plan'])
+        judged = [p for p in result['candidates'] if 'judge' in p]
+        self.assertEqual(judged[0]['judge']['verdict'], 'unclear')
+        self.assertEqual(result['conflicts'], [])
+        self.assertEqual(len(calls), 2)
+        self.assertNotEqual(calls[0], calls[1])  # the second call lists the lines in the other order
 
     def test_changed_files_after_preview_are_refused(self):
         with patch.object(ai, 'resolve_config', side_effect=lambda *_: dict(_CONFIG)), \

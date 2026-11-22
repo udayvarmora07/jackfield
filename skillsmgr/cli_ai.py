@@ -190,6 +190,10 @@ def _human_ablate(report):
         print(f"Decision: {result['decision']} -- {sanitize_text(result['reason'])}")
         print(f"Lift with it: {stats['lift']} (interval {stats['interval']}, {stats['paired_cases']} requests, "
               f"{stats['trials']} trials)")
+        if stats.get("min_detectable") is not None:
+            print(f"Smallest difference this run could reliably show: ~{round(stats['min_detectable'] * 100)} points")
+        if result.get("coverage_warning"):
+            err(sanitize_text(result["coverage_warning"]))
     proposal = result.get("proposal") or {}
     if proposal.get("kind") == "remove-section":
         review_id = sanitize_text(proposal["review"]["review_id"])

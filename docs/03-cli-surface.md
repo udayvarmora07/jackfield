@@ -207,8 +207,9 @@ one headed section of it, earns its place. It replays the skill's
 `evals/evals.json` cases with the whole skill and without it (or without the
 section), `--trials` times each (1–5, default 3), in a random order. Without
 `--run` it prints the section numbers, the planned call count and the egress
-and sends nothing. The decision is `keep` when the whole 95% interval for the
-lift is above zero, otherwise `remove` when its upper end is at most 10 points
+and sends nothing. The decision is `untested` when every answer passes (or
+every answer fails) with and without it, since such cases cannot show harm;
+`keep` when the whole 95% interval for the lift is above zero; otherwise `remove` when its upper end is at most 10 points
 (ties go to removal), `uncertain` otherwise, and `not-enough-evidence` below 3
 graded cases or 4 graded pairs. A run with a missing, cut-off or ungraded
 answer is `partial` and never proposes removal. `coverage_warning` says when no
@@ -230,7 +231,9 @@ each other and against the enabled skills of one scope (default `global`;
 skill-against-skill conflicts are the overlap judge's job. No model is used
 unless `--judge`; `--judge` alone estimates, and `--run` (which requires
 `--judge`) sends only the two quoted lines of the top `--max-pairs` pairs
-(1–40, default 20). Quotes always come from the files. Project files that link
+(1–40, default 20), twice with the two lines in opposite orders; a verdict
+counts only when both orders agree, otherwise it is `unclear`. Quotes always
+come from the files. Project files that link
 outside the project are reported as unreadable. Precedence between the two
 sides is reported as `unknown`. Lines longer than 400 characters are skipped
 rather than cut, skill documents that are links are not read, line numbers

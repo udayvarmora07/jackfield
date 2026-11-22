@@ -33,3 +33,4 @@ evidence, not decisions.
 | `15-reddit-logged-in.md` | 31 Reddit threads read in the user's own Chrome | 4 |
 | `16-x-logged-in.md` | X timelines, threads and articles (search unavailable) | 4 |
 | `17-instagram-quora-logged-in.md` | 46 Instagram posts and 18 Quora questions | 4 |
+| `18-literature-deep-dive.md` | About 58 papers, 18 read in full; checks on what was built | 4 |

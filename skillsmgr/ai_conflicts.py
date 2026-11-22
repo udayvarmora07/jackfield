@@ -50,13 +50,14 @@ def _limit(value) -> int:
     return value
 
 
-def _request(batch: list) -> str:
+def _request(batch: list, swapped: bool = False) -> str:
     parts = ['Answer as JSON: {"verdicts":[{"id":"<id>","verdict":"conflict|compatible|unclear",'
              '"why":"<one sentence>"}]}\n']
     for pair in batch:
-        parts.append(f"Pair {pair['id']} ({pair['detail']}):\n"
-                     + untrusted_block(f"{pair['a']['layer']} instruction", pair["a"]["quote"]) + "\n"
-                     + untrusted_block(f"{pair['b']['layer']} instruction", pair["b"]["quote"]) + "\n")
+        first, second = (pair["b"], pair["a"]) if swapped else (pair["a"], pair["b"])
+        parts.append(f"Pair {pair['id']}:\n"
+                     + untrusted_block(f"{first['layer']} instruction", first["quote"]) + "\n"
+                     + untrusted_block(f"{second['layer']} instruction", second["quote"]) + "\n")
     return "".join(parts)
 
 
@@ -74,13 +75,28 @@ def _verdicts(answer, batch: list) -> dict:
     return found
 
 
+def _agree(first: dict, second: dict) -> dict:
+    """A verdict both orders gave; any disagreement is ``unclear``."""
+    if first["verdict"] == second["verdict"]:
+        return first
+    return {"verdict": "unclear", "why": "the two orders disagreed: " + first["why"][:240]}
+
+
 def _judge(run: AiRun, chosen: list) -> dict:
+    """Ask in both orders and keep only pairs answered both times.
+
+    Judges favour one position (arXiv 2606.13685, 2604.23178), so a verdict
+    counts only when it survives swapping the two lines.
+    """
     verdicts = {}
     for start in range(0, len(chosen), _BATCH):
         batch = chosen[start:start + _BATCH]
-        answer = run.ask_json(_SYSTEM, _request(batch), max_output=200 + 120 * len(batch))
-        if answer is not None:
-            verdicts.update(_verdicts(answer, batch))
+        answers = [run.ask_json(_SYSTEM, _request(batch, swapped), max_output=200 + 120 * len(batch))
+                   for swapped in (False, True)]
+        if answers[0] is None or answers[1] is None:
+            continue
+        first, second = _verdicts(answers[0], batch), _verdicts(answers[1], batch)
+        verdicts.update({ident: _agree(first[ident], second[ident]) for ident in first if ident in second})
     return verdicts
 
 
@@ -105,7 +121,8 @@ def check(data_dir: Path, payload: dict, *, allowed_roots=None) -> dict:
     where = ("a model running on this machine" if run.config["local"]
              else f"{run.config['label']} ({run.config['base_url']})")
     result = {**report, **plan, "judged_ids": [pair["id"] for pair in chosen],
-              "egress": [f"The two quoted lines of {len(chosen)} candidate pairs (not whole files) go to {where}."]}
+              "egress": [f"The two quoted lines of {len(chosen)} candidate pairs (not whole files) go to {where}, "
+                         "twice, once in each order."]}
     verdicts = _judge(run, chosen)
     result["run"] = run.label()
     if estimate:

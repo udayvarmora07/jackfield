@@ -83,10 +83,14 @@ class AblateTests(unittest.TestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
 
-    def write_cases(self, expected, count):
+    def write_cases(self, expected, count, hard=True):
+        # A "hard" case fails with and without the skill, so the cases are not
+        # all at the ceiling and a "no difference" result is a real tie.
         cases = {'skill_name': 'magic', 'evals': [
             {'id': n, 'prompt': f'What is the magic word? ({n})', 'expected_output': expected,
-             'assertions': [{'type': 'contains', 'value': expected}]} for n in range(1, count + 1)]}
+             'assertions': [{'type': 'contains', 'value': expected}]} for n in range(1, count + 1)]
+            + ([{'id': 99, 'prompt': 'Name the fruit.', 'expected_output': 'BANANA',
+                 'assertions': [{'type': 'contains', 'value': 'BANANA'}]}] if hard else [])}
         directory = self.skill / 'evals'
         directory.mkdir(exist_ok=True)
         (directory / 'evals.json').write_text(json.dumps(cases), encoding='utf-8')
@@ -104,7 +108,7 @@ class AblateTests(unittest.TestCase):
         self.assertEqual(result['decision'], 'remove')
         self.assertEqual(result['statistics']['interval'], [0.0, 0.0])
         self.assertIn('may not test what it does', result['coverage_warning'])
-        self.assertEqual(len(self.sent), 4 * 2 * 2)
+        self.assertEqual(len(self.sent), 5 * 2 * 2)
         proposal = result['proposal']
         self.assertEqual(proposal['kind'], 'remove-section')
         self.assertNotIn('## Style', proposal['proposed'])
@@ -121,7 +125,7 @@ class AblateTests(unittest.TestCase):
     def test_useful_section_is_kept_and_nothing_is_staged(self):
         result = self.run_ablation(section=0)
         self.assertEqual(result['decision'], 'keep')
-        self.assertEqual(result['statistics']['lift'], 1.0)
+        self.assertEqual(result['statistics']['lift'], 0.8)  # 4 of 5 cases need the section
         self.assertNotIn('coverage_warning', result)
         self.assertNotIn('proposal', result)
         self.assertEqual(result['cases'][0]['full']['passed'], 1)
@@ -151,8 +155,15 @@ class AblateTests(unittest.TestCase):
         self.assertEqual((result['status'], result['decision']), ('partial', 'uncertain'))
         self.assertNotIn('proposal', result)
 
+    def test_cases_at_the_ceiling_cannot_justify_removal(self):
+        self.write_cases('PINEAPPLE', 4, hard=False)
+        result = self.run_ablation(section=2)
+        self.assertEqual(result['decision'], 'untested')
+        self.assertIn('cannot show', result['reason'])
+        self.assertNotIn('proposal', result)
+
     def test_too_few_cases_propose_nothing(self):
-        self.write_cases('.', trial_stats.MIN_CASES - 1)
+        self.write_cases('.', trial_stats.MIN_CASES - 1, hard=False)
         result = self.run_ablation(section=2, trials=5)
         self.assertEqual(result['decision'], 'not-enough-evidence')
         self.assertNotIn('proposal', result)
@@ -220,7 +231,9 @@ class AblateCliTests(unittest.TestCase):
         store.create('magic', 'Use magic when asked for the magic word.', body=_BODY)
         cases = {'skill_name': 'magic', 'evals': [
             {'id': n, 'prompt': f'Word? ({n})', 'expected_output': 'x',
-             'assertions': [{'type': 'contains', 'value': 'PINEAPPLE'}]} for n in range(1, 5)]}
+             'assertions': [{'type': 'contains', 'value': 'PINEAPPLE'}]} for n in range(1, 5)]
+            + [{'id': 9, 'prompt': 'Fruit?', 'expected_output': 'x',
+                'assertions': [{'type': 'contains', 'value': 'BANANA'}]}]}
         (store.skills_dir / 'magic/evals').mkdir()
         (store.skills_dir / 'magic/evals/evals.json').write_text(json.dumps(cases), encoding='utf-8')
         self.sent = []

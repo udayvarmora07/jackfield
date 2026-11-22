@@ -4,8 +4,12 @@ Pure and stdlib-only. Each observation is one graded model output for one case,
 one variant (for example ``with_skill``) and one trial. The summary compares a
 treatment variant with a baseline variant case by case. It reports the mean
 paired lift in case pass rate with a percentile bootstrap interval that
-resamples cases and, within each case, trials. A fixed seed makes the interval
-a pure function of the observations.
+resamples cases. Trials are not resampled again: a case's mean already carries
+its trial noise, and resampling both would count it twice (Miller 2024,
+arXiv 2411.00640). A fixed seed makes the interval a pure function of the
+observations. ``min_detectable`` is the smallest lift this run could detect
+with 80% power at the 5% level, from the spread of per-case differences with a
+worst-case floor of 0.5, because a few identical cases show no spread at all.
 
 A result is "inconclusive" when the interval includes zero, when fewer than
 three requests were graded (repeats of one request say nothing about others),
@@ -40,19 +44,29 @@ def _mean(values: list) -> float:
 
 
 def _bootstrap(pairs: list, rng: random.Random) -> tuple[float, float]:
+    differences = [_mean(treated) - _mean(base) for treated, base in pairs]
     estimates = []
     for _ in range(RESAMPLES):
-        total = 0.0
-        for _case in range(len(pairs)):
-            treated, base = pairs[rng.randrange(len(pairs))]
-            total += (_mean([treated[rng.randrange(len(treated))] for _ in treated])
-                      - _mean([base[rng.randrange(len(base))] for _ in base]))
-        estimates.append(total / len(pairs))
+        estimates.append(_mean([differences[rng.randrange(len(differences))] for _ in differences]))
     estimates.sort()
     tail = (1 - CONFIDENCE) / 2
     low = estimates[int(tail * (RESAMPLES - 1))]
     high = estimates[int((1 - tail) * (RESAMPLES - 1))]
     return round(low, 4), round(high, 4)
+
+
+POWER_Z = 2.8  # z(0.975) + z(0.80)
+_SPREAD_FLOOR = 0.5
+
+
+def min_detectable(pairs: list) -> float | None:
+    """Smallest true lift this many cases would detect with 80% power, as a fraction."""
+    if not pairs:
+        return None
+    differences = [_mean(treated) - _mean(base) for treated, base in pairs]
+    centre = _mean(differences)
+    spread = (sum((d - centre) ** 2 for d in differences) / max(1, len(differences) - 1)) ** 0.5
+    return round(min(1.0, POWER_Z * max(spread, _SPREAD_FLOOR) / len(differences) ** 0.5), 4)
 
 
 def _verdict(cases: int, observations: int, interval) -> tuple[str, str]:
@@ -134,5 +148,6 @@ def summarize(rows: list, treatment: str, baseline: str) -> dict:
                                baseline: round(_mean([_mean(b) for _, b in pairs]), 4)}
         result['lift'] = round(_mean([_mean(t) - _mean(b) for t, b in pairs]), 4)
         result['interval'] = list(_bootstrap(pairs, random.Random(_SEED)))
+    result['min_detectable'] = min_detectable(pairs)
     result['verdict'], result['reason'] = _verdict(len(cases), observations, result['interval'])
     return result
