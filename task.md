@@ -25,6 +25,15 @@ records, not additional live work.
   study below. The research report also tracks capture automation, executable
   bundles, and managed publishing as separate follow-ons.
 
+## AI across every feature: second research pass (2026-11-22)
+
+- [x] Research user demand, competitors, literature and AI UX patterns beyond
+  the shipped authoring flow. Map every product surface to current and proposed
+  AI support in @docs/59-ai-everywhere-research-2026-11-22.md.
+- [ ] Decide the approval items listed there (new CLI commands or flags for
+  `ai health`, `ai recheck`, `--trials`; transcript-content consent) before
+  building slice 1 (honest test statistics, per-hunk accept and provenance).
+
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 
 - [x] Audit the existing layouts with agent-browser and agent-desktop. Consult

@@ -7,6 +7,15 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Research AI across every feature
+
+- Ran four sourced research passes (user demand, competitors, literature, AI UX
+  patterns) and checked their reported gaps against the repository. Mapped all
+  CLI and v2 surfaces to current and proposed AI support, and ranked 15 new
+  proposals led by a library health and retire assistant, a model-upgrade
+  recheck and repeated-trial statistics. Recorded the approval decisions they
+  need. See @docs/59-ai-everywhere-research-2026-11-22.md. Documentation only.
+
 ## 2026-11-22 — Integrate AI authoring into the v2 skill lifecycle
 
 - Added editable drafts with optional examples and confirmed trigger cases to
