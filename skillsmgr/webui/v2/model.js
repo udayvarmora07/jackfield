@@ -303,7 +303,7 @@
 
   /* ---------- Line diff (LCS) ---------- */
   const MAX_DIFF_CELLS = 4000000;
-  function diffLines(a, b) {
+  function diffLines(a, b, includeEmpty = false) {
     const n = a.length, m = b.length;
     if (n * m > MAX_DIFF_CELLS) { return [...a.map((x) => ({ t: "del", x })), ...b.map((x) => ({ t: "add", x }))].filter((l) => l.x.trim()); }
     const dp = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
@@ -316,13 +316,51 @@
     }
     while (i < n) out.push({ t: "del", x: a[i++] });
     while (j < m) out.push({ t: "add", x: b[j++] });
-    return out.filter((l) => l.x.trim());
+    return includeEmpty ? out : out.filter((l) => l.x.trim());
   }
   const plainLine = (l) => String(l).replace(/^#{1,3}\s+/, "").replace(/^[-*]\s+/, "").replace(/^>\s?/, "").replace(/\*\*(.+?)\*\*/g, "$1");
   /* Only changed lines, plus one line of context before each change. */
   function changes(fromBody, toBody) {
     const d = diffLines(String(fromBody).split("\n"), String(toBody).split("\n"));
     return d.filter((l, i) => l.t !== "same" || (d[i + 1] && d[i + 1].t !== "same" && (!d[i - 1] || d[i - 1].t === "same")));
+  }
+
+  /* Preserve Markdown, whitespace and document line numbers. A replacement
+   * occupies one row in split view, with its deletion first in unified view. */
+  function documentPreview(before, after, limit = 48) {
+    if (before === after) return { status: "same" };
+    const a = before.split(/\r?\n/), b = after.split(/\r?\n/);
+    const oversizedLine = (line) => line.length > 4096;
+    if (a.length * b.length > MAX_DIFF_CELLS || a.some(oversizedLine) || b.some(oversizedLine)) return { status: "too-large" };
+    const diff = diffLines(a, b, true);
+    const rows = [], removed = [], added = [];
+    let oldLine = 0, newLine = 0, total = 0;
+    const append = (row) => {
+      total++;
+      if (rows.length < limit) rows.push(row);
+    };
+    const flush = () => {
+      for (let i = 0; i < Math.max(removed.length, added.length); i++) {
+        append({ before: removed[i], after: added[i] });
+      }
+      removed.length = 0;
+      added.length = 0;
+    };
+    for (const [i, line] of diff.entries()) {
+      if (line.t === "del") removed.push({ number: ++oldLine, text: line.x, kind: "del" });
+      else if (line.t === "add") added.push({ number: ++newLine, text: line.x, kind: "add" });
+      else {
+        flush();
+        oldLine++;
+        newLine++;
+        if (line.x.trim() && diff[i + 1] && diff[i + 1].t !== "same") {
+          append({ before: { number: oldLine, text: line.x, kind: "same" },
+            after: { number: newLine, text: line.x, kind: "same" }, context: true });
+        }
+      }
+    }
+    flush();
+    return total ? { status: "changes", rows, omitted: total - rows.length } : { status: "line-endings" };
   }
 
   /* ---------- Escaped Markdown (with optional highlighted lines) ---------- */
@@ -532,6 +570,6 @@
   window.SkillsV2Model = Object.freeze({
     plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
     toolGroups: Object.freeze(toolGroups), toolItems, toolIds,
-    diffLines, changes, plainLine, renderDoc, stripFrontmatter, documentBaseline, consumerDiscovery,
+    diffLines, changes, documentPreview, plainLine, renderDoc, stripFrontmatter, documentBaseline, consumerDiscovery,
   });
 })();

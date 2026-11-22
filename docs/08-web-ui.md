@@ -748,6 +748,33 @@ panel. Opening a different copy clears previous repair selections, including
 within the same scope. Tied and read-only copies require review in Skills or
 the Inbox.
 
+**[SPEC] Document comparison and exact-copy recovery.** A name search can
+carry from Skills to Sync map. Shelf and Exact instances share the Skills
+query. Sync map opens the comparison directly beneath the selected row and
+loads its two documents on demand. If no reference has a majority, the row
+links to that skill's Inbox item for a source selection. Inbox lets the user
+choose which exact target to inspect while listing every copy Sync will
+overwrite. Changing the inspected target has no effect on the write set.
+
+The comparison labels both scopes and folder paths. It shows Markdown source,
+original and changed line numbers, and explicit addition and removal markers.
+It uses a wrapped unified view in narrow panels and offers a layout switch
+when there is room for two panes. It bounds the preview and reports failed
+reads or documents that exceed the preview budget. The preview covers the returned skill document
+text. It does not compare supporting files. The skill reader shows its selected
+path and reports when an explicitly selected copy disappears.
+
+[Desktop fixture](design/v2-reference-study/skills-manager-sync-map-desktop.png) ·
+[Phone fixture](design/v2-reference-study/skills-manager-sync-map-phone.png).
+
+In Recovery, **Review restore** shows the selected agent trash entry's scope,
+saved time, copy number where needed, and the saved folder path before sending
+a restore request. That path addresses the existing move operation. The review
+explains that restore brings the folder back and requires a vacant original
+location. A conflict keeps the exact entry visible for retry or cancellation.
+An unreadable agent trash listing identifies the affected agent and offers a
+retry while successful listings stay available.
+
 Home also shows Claude Code and Codex listing-budget estimates in a side card.
 The card reads the existing `GET /api/doctor?scope=all&hygiene=1` report after
 the inventory renders, independently of inventory loading. It states the
@@ -759,8 +786,11 @@ not infer agent loading or replace the separate full-document reading meter.
 **[SPEC] Tools pages share one composition (2026-11-06 design pass).** Tools is a
 real primary tab at every width (the former floating "Tools & settings" link was
 hidden below 1200px and is gone, as is the header's second search button; the
-command palette stays on Ctrl/Cmd K). The index groups destinations and drops the
-side navigation; each tool page keeps it. Only the page title is serif; section
+command palette stays on Ctrl/Cmd K). The index groups destinations and filters
+by words in tool names, descriptions, groups and command labels. Tool pages
+show a grouped sidebar above 860px and an All tools link at narrower widths.
+The search remains in place when returning from a tool in the same visit.
+Only the page title is serif; section
 titles use the Home side-card voice. Settings-like forms are label-left /
 control-right rows; Profiles and Templates are list + detail panes; Quality is a
 severity filter that doubles as the count summary over one findings list, with
@@ -769,6 +799,13 @@ is a numbered three-step flow. Status is always a worded pill, API slugs pass
 through a humanizer (`outside-managed-roots` -> "Outside managed roots"), dates
 use the regional-format preference, and raw JSON lives only behind a disclosure.
 Styles are in `webui/v2/tools.css` and use only declared v2 tokens.
+
+**[SPEC] Section shortcuts.** Quality offers jumps to available findings,
+document comparison, Claude Code listing evidence and diagnostics. Recovery
+offers jumps to both trash lists, backup download, backup loading and history.
+Activating a shortcut scrolls to and focuses its heading while keeping the
+current route. Recovery presents library and full-archive downloads as distinct
+actions and states which data each includes.
 
 | Area | Integrated workflows |
 |---|---|

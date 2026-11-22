@@ -7,6 +7,76 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Compare exact copies and review agent restores
+
+- Applied the comparison research to Sync map and Inbox. Both show the
+  actual copy paths and bounded Markdown changes, with aligned panes where
+  they fit and a wrapped unified view on narrow screens. Inbox allows review
+  of any affected target. Skills carries the typed name into Sync map and
+  keeps the exact reader selection visible.
+- Agent trash restores show the saved folder and restore coverage before the
+  action. The dialog keeps the selected entry visible on failure. Agent trash
+  read errors identify their scope and expose a retry. See @docs/08-web-ui.md.
+- Exercised keyboard retry and cancellation, same-name restore selection,
+  occupied destinations, and wrapped changes at 320 px and 390 px in Chrome.
+  Checked comparison roles and change labels in the Linux accessibility tree.
+
+## 2026-11-21 — Compare public Mobbin collections and narrow-screen diff views
+
+- Opened public Mobbin collections and screen previews anonymously. Selected
+  Intercom for keeping item identity and details together and Philips Hue for
+  wording and actions after a failed read.
+- Exercised Pierre Diffs, diff2html and Diffchecker in Chrome. Selected
+  Pierre's single-column layout for narrow text comparison and documented
+  its demo's inner scrolling and page overflow. Reviewed Kaleidoscope and
+  Meld for file-level comparison and evidence coverage.
+  See @docs/57-v2-mobbin-and-comparison-references-2026-11-21.md.
+- Verified all three pages and five embedded captures in the editable
+  Draw.io comparison board on 2026-11-22 without an account.
+
+## 2026-11-21 — Repeat reference selection with live screens and source
+
+- Replaced the initial reference shortlist with Zed Extensions, Obsidian
+  Community, Playwright Trace Viewer and GitButler Operations History. The
+  selection went through discovery, live walkthroughs or published product
+  captures, and a comparison against alternatives.
+- Reviewed pinned frontend source from GitHub and opened a synthetic
+  comparison trace in the actual viewer. The trace showed different
+  evidence in Before and After while retaining the selected action.
+  See @docs/56-v2-reference-selection-loop-2026-11-21.md.
+
+## 2026-11-21 — Study reference workflows for the next v2 design pass
+
+- Compared live Raycast Store search, Astro's mobile page outline and a
+  public GitHub Issues empty-result flow. Studied native and signed-in
+  recovery, scope and triage flows through the vendors' guides.
+- Measured current v2 positions at 390 × 844 CSS pixels in a synthetic
+  workspace. Documented which patterns fit local skill workflows, which
+  claims the references support, and what to test with participants.
+  See @docs/55-v2-ui-reference-study-2026-11-21.md.
+- Assembled 13 source-linked reference cards and eight screenshots into a
+  five-page editable Draw.io board. Checked every page in the Draw.io editor
+  without signing in.
+
+## 2026-11-21 — Make Tools, Quality and Recovery easier to navigate
+
+- Tools now filters its grouped directory by name or task. Narrow tool pages
+  show an All tools link above the page title. The desktop sidebar scrolls
+  independently when needed.
+- Quality and Recovery provide section shortcuts that scroll and move keyboard
+  focus without rewriting the route. Recovery uses a two-column layout when
+  space permits and labels the library backup and full archive separately.
+- Consulted Awwwards' Viture Dashboard for hierarchy, Godly/Recent Design's
+  Sidebar Sub-Menu by Pranav Patel for grouped navigation, and Inspo's Raycast
+  and Astro Docs results for search and section navigation. The changes use
+  existing v2 layout, type and color tokens.
+- The native desktop accessibility tree showed focus on the Findings heading
+  after activating its shortcut. Axe 4.10.2 reported zero violations across the
+  three changed pages at 320px and 1440px in both themes.
+- Verified with 2,489 unit tests (13 skipped), 53 v2 browser scenarios,
+  40 classic browser scenarios, both smoke tests and the documentation,
+  design-token and complexity checks.
+
 ## 2026-11-21 — Close the delegated review and add library archiving
 
 - Added explicit, previewed `archive apply` and guarded `archive restore`

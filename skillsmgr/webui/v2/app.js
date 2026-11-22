@@ -16,7 +16,7 @@ if (!Domain || !Model) {
 
 const { api } = Domain;
 const { createApp, markRaw } = Vue;
-const { plural, join, words, titleCase, shortPath, BROKEN_WHY, changes, plainLine, renderDoc, stripFrontmatter, validName, toolIds, toolItems } = Model;
+const { plural, join, words, titleCase, shortPath, BROKEN_WHY, documentPreview, renderDoc, stripFrontmatter, validName, toolIds, toolItems } = Model;
 
 /* ---------- Icons (constant, trusted markup) ---------- */
 const PATHS = {
@@ -75,7 +75,7 @@ const app = createApp({
       historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "",
       exportPending: false, exportError: "",
       query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name",
-      front: null, skipped: [], dismissed: [], done: 0, srcChoice: "",
+      front: null, skipped: [], dismissed: [], done: 0, srcChoice: "", inboxComparisonScope: "",
       bodies: {}, bodyInflight: {}, bodyErrors: {},
       treeQuery: "", edit: null, highlight: true, compareWith: "",
       mapSelId: "", mapPicked: [], peek: null,
@@ -150,17 +150,18 @@ const app = createApp({
       return list;
     },
     treeHidden() { return Math.max(0, this.treeAll.length - 200); },
+    readerCompareCopies() {
+      const hash = this.refCopy?.hash;
+      return hash ? this.skill.copies.filter((copy) => copy.hash && copy.hash !== hash) : [];
+    },
     cmp() {
-      const s = this.skill;
-      if (!s || !s.differing.length) return null;
-      return s.differing.find((c) => c.scope === this.compareWith) || s.differing[0];
+      return this.readerCompareCopies.find((c) => this.bodyKey(c) === this.compareWith) || this.readerCompareCopies[0] || null;
     },
     refCopy() {
       const s = this.skill;
       if (!s) return null;
       if (this.readCopyName === s.name && this.readCopyScope) {
-        const exact = s.copies.find(c => c.scope === this.readCopyScope && c.path === this.readCopyPath);
-        if (exact) return exact;
+        return s.copies.find(c => c.scope === this.readCopyScope && c.path === this.readCopyPath) || null;
       }
       return s.ref.holders[0] || s.primary;
     },
@@ -178,9 +179,15 @@ const app = createApp({
     /* A copy this tool never reads (a link it refuses to follow, or a folder
      * name it cannot address) is not "still loading": it is unreadable here,
      * and the reader says why instead of waiting forever. */
-    docPending() { const c = this.refCopy; return !!this.skill && !!c && this.bodyFetchable(c) && !this.bodyReady(c); },
+    docPending() {
+      const copy = this.refCopy;
+      return !!this.skill && this.bodyFetchable(copy) && !this.bodyReady(copy) && !this.bodyErrorOf(copy);
+    },
     docWhy() {
       const c = this.refCopy;
+      if (!c && this.readCopyName === this.skill?.name && this.readCopyScope) {
+        return { title: "Selected copy is no longer listed", text: "Refresh files or choose another copy from Exact instances.", missing: true };
+      }
       if (!c || this.bodyFetchable(c)) return null;
       const why = BROKEN_WHY[c.kind];
       return why ? { title: why[0], text: why[1] } : { title: "Not readable here", text: "" };
@@ -245,14 +252,13 @@ const app = createApp({
       const cell = this.mapCell(skill, this.mapSel.id);
       return cell.state === "missing" ? null : { skill, ...cell };
     },
-    peekLines() {
-      if (!this.peek || !this.mapSel) return null;
-      const s = this.m.byName.get(this.peek);
-      const mine = s && s.copies.find((c) => c.scope === this.mapSel.id);
-      const ref = s && s.ref.holders[0];
-      if (!mine || !ref || !this.bodyReady(mine) || !this.bodyReady(ref)) return null;
-      return changes(stripFrontmatter(this.bodyOf(mine)), stripFrontmatter(this.bodyOf(ref))).slice(0, 80);
+    mapComparePair() {
+      const skill = this.mapSel?.differing.slice(0, 12).find((s) => s.name === this.peek);
+      if (!skill || skill.ref.ambiguous) return null;
+      const { copy } = this.mapCell(skill, this.mapSel.id);
+      return copy && skill.ref.holders[0] ? [copy, skill.ref.holders[0]] : null;
     },
+    mapComparisonEvidence() { return this.comparisonEvidence(this.mapComparePair); },
     queue() {
       if (!this.m) return [];
       const all = this.m.problems.filter((p) => !this.dismissed.includes(p.id));
@@ -283,12 +289,11 @@ const app = createApp({
       const target = this.curSyncTargets.length === 1 ? this.agentOf(this.curSyncTargets[0].scope).name : `${this.curSyncTargets.length} copies`;
       return `Sync ${target} from ${this.agentOf(this.curSyncSource.scope).name}`;
     },
-    curChanges() {
-      const src = this.curSyncSource;
-      const tgt = this.curSyncTargets[0];
-      if (!src || !tgt || !this.bodyReady(src) || !this.bodyReady(tgt)) return null;
-      return changes(stripFrontmatter(this.bodyOf(tgt)), stripFrontmatter(this.bodyOf(src))).slice(0, 60);
+    inboxComparePair() {
+      const target = this.curSyncTargets.find((c) => c.scope === this.inboxComparisonScope) || this.curSyncTargets[0];
+      return target && this.curSyncSource ? [target, this.curSyncSource] : null;
     },
+    inboxComparisonEvidence() { return this.comparisonEvidence(this.inboxComparePair); },
     curBig() {
       if (!this.cur || this.cur.key !== "info" || !this.m) return [];
       const inf = this.m.info(this.cur.agent);
@@ -317,15 +322,15 @@ const app = createApp({
     libraryView(value) {try{localStorage.setItem("skillsmgr-v2-library-view",value);}catch(e){}},
     density(value) {try{localStorage.setItem("skillsmgr-v2-density",value);}catch(e){}},
     cur: { immediate: true, handler(c) { this.srcChoice = c && c.key === "warn" && this.m && this.m.byName.get(c.skill) ? (this.m.byName.get(c.skill).ref.ambiguous ? "" : (this.m.byName.get(c.skill).ref.holders[0] || {}).scope || "") : ""; if (c && c.key === "warn" && this.curSkill) this.ensureBodies(this.curSkill.copies); } },
+    "cur.id"() { this.inboxComparisonScope = ""; },
     "route.name"() { this.compareWith = ""; this.loadSkillHistory(); this.primeBodies(); },
     "route.page"(page) { if (page !== "map") this.mapOrigin = null; },
     skill(s) { if (!s && this.edit) this.edit = null; if (s) this.ensureBodies(s.copies); },
-    mapSel() { if (this.route.page === "map") this.ensureMapBodies(); },
     mapQuery() { this.resetMapPage(); },
     mapReviewOnly() { this.resetMapPage(); },
   },
   methods: {
-    enc: encodeURIComponent, plural, join, words, titleCase, shortPath, plainLine, renderDoc,
+    enc: encodeURIComponent, plural, join, words, titleCase, shortPath, renderDoc,
     fmt(n) {return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale).format(Number(n));},
     /* The informative end of a long folder path ("…/.claude/skills"); the full
      * path stays in the element's title. A leading ellipsis cut the useful part. */
@@ -396,7 +401,7 @@ const app = createApp({
      * always refetches, and two callers asking for the same copy share one
      * request. A body is never assumed loaded: `bodyLoaded` tells an empty
      * document from one that has not been read yet. */
-    bodyKey(c) { return `${c && c.scope ? c.scope : ""}\u0000${(c && c.name) || ""}\u0000${(c && c.hash) || ""}`; },
+    bodyKey(c) { return JSON.stringify([c?.scope, c?.name, c?.path, c?.hash]); },
     /* `key in` goes through the reactive proxy's tracked `has` trap;
      * Object.prototype.hasOwnProperty.call does not, so a computed that read
      * it never re-ran when the body arrived (Edit stayed disabled). */
@@ -459,6 +464,7 @@ const app = createApp({
           .then((rows) => this.bodiesByPath(c, Array.isArray(rows) ? rows : []));
         this.bodyInflight[flightKey] = request;
         request.then((byPath) => {
+          if (this.bodyInflight[flightKey] !== request) return;
           for (const sibling of this.pairCopies(c)) {
             const body = byPath.get(sibling.path);
             if (typeof body === "string") this.applyBody(sibling, body);
@@ -473,9 +479,16 @@ const app = createApp({
       let request = this.bodyInflight[key];
       if (!request) {
         request = api(`/api/skills/${encodeURIComponent(c.name)}?scope=${encodeURIComponent(c.scope)}`)
-          .then((record) => (record && typeof record.body === "string" ? record.body : ""));
+          .then((record) => {
+            const path = record?.physical_path || record?.path;
+            if (path && c.path && path !== c.path) throw new Error("The copy moved. Refresh files to find its current folder.");
+            if (record?.decode_error || typeof record?.body !== "string") throw new Error("The document could not be read.");
+            return record.body;
+          });
         this.bodyInflight[key] = request;
-        request.then((body) => { this.bodies[key] = body; delete this.bodyErrors[key]; })
+        request.then((body) => {
+          if (this.bodyInflight[key] === request) { this.bodies[key] = body; delete this.bodyErrors[key]; }
+        })
           .catch(() => { /* the caller reports the failure next to its own view */ })
           .finally(() => { if (this.bodyInflight[key] === request) delete this.bodyInflight[key]; });
       }
@@ -484,16 +497,17 @@ const app = createApp({
     async ensureBodies(copies) {
       const list = (Array.isArray(copies) ? copies : [copies]).filter((c) => c && !c.bodyLoaded && this.bodyFetchable(c));
       if (!list.length) return;
+      const cache = this.bodies;
       const pairs = this.bodyPairs(list);
       await Promise.all(list.map(async (c) => {
         const key = this.bodyKey(c);
         try {
-          if (!this.bodyDuplicated(c, pairs)) { this.applyBody(c, await this.namedBody(c)); return; }
-          /* Never guess: a copy that matches no single row keeps its error. */
-          const body = (await this.duplicateBodyMap(c)).get(c.path);
+          const body = this.bodyDuplicated(c, pairs) ? (await this.duplicateBodyMap(c)).get(c.path) : await this.namedBody(c);
           if (typeof body !== "string") throw new Error("This copy could not be matched to a single document.");
-          this.applyBody(c, body);
-        } catch (e) { this.bodyErrors[key] = this.friendly(e && e.message ? e.message : "The document could not be read."); }
+          if (cache === this.bodies) this.applyBody(c, body);
+        } catch (e) {
+          if (cache === this.bodies) this.bodyErrors[key] = this.friendly(e?.message || "The document could not be read.");
+        }
       }));
     },
     primeBodies() {
@@ -501,21 +515,24 @@ const app = createApp({
       const page = this.route && this.route.page;
       if (page === "skill" && this.skill) return this.ensureBodies(this.skill.copies);
       if (page === "inbox" && this.curSkill) return this.ensureBodies(this.curSkill.copies);
-      if (page === "map") return this.ensureMapBodies();
+      if (page === "map") return this.ensureBodies(this.mapComparePair);
       return undefined;
     },
-    /* The map computes line counts per visible row; load exactly the pairs it
-     * compares instead of every copy of every skill. */
-    ensureMapBodies() {
-      const sel = this.mapSel;
-      if (!sel) return undefined;
-      const copies = [];
-      for (const s of sel.differing.slice(0, 12)) {
-        const mine = s.copies.find((c) => c.scope === sel.id), ref = s.ref.holders[0];
-        if (mine) copies.push(mine);
-        if (ref && ref !== mine) copies.push(ref);
-      }
-      return this.ensureBodies(copies);
+    comparisonEvidence(pair) {
+      if (!pair) return null;
+      const copies = pair.map((copy) => ({
+        scope: this.agentOf(copy.scope).name,
+        path: copy.path,
+        error: this.bodyErrorOf(copy),
+      }));
+      const preview = pair.every((copy) => this.bodyReady(copy))
+        ? documentPreview(this.bodyOf(pair[0]), this.bodyOf(pair[1])) : null;
+      return { copies, preview };
+    },
+    async retryDocument() {
+      const copy = this.refCopy;
+      await this.ensureBodies(copy);
+      if (this.refCopy === copy && this.bodyReady(copy)) this.$refs.readerIdentity?.focus();
     },
 
     /* ----- search / filter ----- */
@@ -524,7 +541,8 @@ const app = createApp({
     capReset() { this.extra = {}; },
     showMore(id) { this.extra = { ...this.extra, [id]: (this.extra[id] || 0) + 96 }; },
     clearFilters() { this.query = ""; this.filter = "all"; this.agentFilter = "all"; this.tagFilter="";this.extra = {}; this.$nextTick(() => { const q = document.getElementById("q"); if (q) q.focus(); }); },
-    pickAgent(id) { this.agentFilter = id; this.filter = "all"; this.query = ""; this.extra = {}; },
+    pickAgent(id, query = "") { this.agentFilter = id; this.filter = "all"; this.query = query; this.extra = {}; },
+    findInMap() { this.mapQuery = this.query.trim(); location.hash = "#/map"; },
     skipToContent() { const h = document.getElementById("h1") || this.$refs.main; if (h) h.focus(); },
     focusH1() { this.$nextTick(() => { const h = document.getElementById("h1"); if (h) h.focus({ preventScroll: true }); }); },
 
@@ -566,7 +584,13 @@ const app = createApp({
         const f = this.dialog.form;
         this.live = this.formErrors.name || this.formErrors.desc || (!f.name.trim() ? "Add a name." : "Add a description.");
         return;
-      } const d = this.dialog; if(!d?.form)this.dialog = null; if (d && d.onConfirm) await d.onConfirm(d); this.$nextTick(() => { if (!this.dialog && this.opener && this.opener.isConnected) this.opener.focus(); }); },
+      }
+      const d = this.dialog;
+      if (d?.recovery) return this.restoreAgentTrash(d.recovery);
+      if (!d?.form) this.dialog = null;
+      if (d?.onConfirm) await d.onConfirm(d);
+      this.$nextTick(() => { if (!this.dialog && this.opener && this.opener.isConnected) this.opener.focus(); });
+    },
     dialogKeys(e) {
       if (e.key === "Escape") { e.stopPropagation(); this.closeDialog(); return; }
       if (e.key !== "Tab") return;
@@ -704,6 +728,7 @@ const app = createApp({
       return null;
     },
     openShare() {
+      if (!this.refCopy) return;
       const s = this.skill, from = this.refCopy.scope;
       this.openDialog({
         title: `Add “${s.name}” to another agent`, lines: ["Choose where to copy it. The copy comes from " + this.agentOf(from).name + ". Whether it is on or off, and its supporting files, are copied too."],
@@ -812,18 +837,39 @@ const app = createApp({
       }
       this.agentTrash = rows; this.agentTrashErrors = errors; this.agentTrashLoading = false;
     },
+    async retryAgentTrash() {
+      if (this.agentTrashLoading) return;
+      await this.loadAgentTrash();
+      if (!this.agentTrashErrors.length) this.$refs.agentTrashHeading?.focus();
+    },
     agentRestoreLabel(row) {
-      const target = `Restore ${row.name} to ${row.scopeLabel}`;
+      const target = `Review restore for ${row.name} in ${row.scopeLabel}`;
       return row.copyLabel ? `${target}, ${row.copyLabel}` : target;
+    },
+    reviewAgentTrash(row) {
+      this.openDialog({
+        title: `Restore ${row.name}?`,
+        recovery: row,
+        confirm: "Restore folder",
+        error: "",
+      });
     },
     async restoreAgentTrash(t) {
       if (this.busy) return;
+      const dialog = this.dialog;
       this.busy = true;
       try {
         await this.restoreTrashed(t.name, t.scope, t.trash_path);
+        this.dialog = null;
         await this.refresh();
         this.toast(`${t.name} restored to ${t.scopeLabel}.`);
-      } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
+        this.$refs.agentTrashHeading?.focus();
+      } catch (e) {
+        if (this.dialog === dialog) {
+          dialog.error = this.friendly(e.message);
+          this.$nextTick(() => this.$refs.restoreError?.focus());
+        }
+      } finally { this.busy = false; }
     },
     /* A reviewed batch removal reports the trash path of every copy it moved;
      * the toast keeps those exact paths so Undo restores each one it removed. */
@@ -975,7 +1021,7 @@ const app = createApp({
       const comparison = this.mapComparison(skill, copy);
       const label = copy.state === "off" ? MAP_STATES.off.label : copy.readOnly ? "Linked copy (read-only)" : MAP_STATES.on.label;
       const state = comparison ? "warn" : copy.state === "off" ? "off" : copy.readOnly ? "link" : "on";
-      const detail = comparison || (copy.hash && skill.ref.holders.length > 1 ? "Matches reference content" : "");
+      const detail = comparison || (copy.hash && skill.ref.holders.length > 1 ? "Document text matches the reference" : "");
       return { state, label: detail ? `${label} · ${detail}` : label, copy };
     },
     tagFor(inf) {
@@ -1013,11 +1059,12 @@ const app = createApp({
       return info ? info.differing.slice(0, 12).filter((s) => this.mapSyncable(s, id)).map((s) => s.name) : [];
     },
     togglePick(n) { this.mapPicked = this.mapPicked.includes(n) ? this.mapPicked.filter((x) => x !== n) : [...this.mapPicked, n]; },
-    togglePeek(s) { const next = this.peek === s.name ? null : s.name; this.peek = next; if (next) { const mine = s.copies.find((c) => c.scope === this.mapSel.id); return this.ensureBodies([mine, s.ref.holders[0]]); } return undefined; },
-    diffCount(s, scope) {
-      const mine = s.copies.find((c) => c.scope === scope), ref = s.ref.holders[0];
-      if (!mine || !ref || !this.bodyReady(mine) || !this.bodyReady(ref)) return null;
-      return changes(stripFrontmatter(this.bodyOf(mine)), stripFrontmatter(this.bodyOf(ref))).filter((l) => l.t !== "same").length;
+    togglePeek(skill) {
+      this.peek = this.peek === skill.name ? null : skill.name;
+      if (this.peek) this.$nextTick(() => {
+        document.querySelector("#map-comparison .copy-compare-head")?.scrollIntoView({ block: "nearest" });
+      });
+      return this.ensureBodies(this.mapComparePair);
     },
     brokenShort(s, scope) { const c = s.copies.find((x) => x.scope === scope); return (BROKEN_WHY[c && c.kind] || BROKEN_WHY.invalid)[0]; },
     async syncPicked() {
@@ -1053,6 +1100,11 @@ const app = createApp({
     },
 
     /* ----- inbox ----- */
+    openInboxFor(skillName) {
+      const issue = this.queue.find((p) => p.skill === skillName && p.key === "warn");
+      if (issue) this.front = issue.id;
+      location.hash = "#/inbox";
+    },
     async fixCurrent() {
       const p = this.cur; if (!p || this.busy) return null;
       if (p.key === "warn" && !this.curSyncTargets.length) return null;
@@ -1214,6 +1266,86 @@ app.component("listing-budgets", {
 });
 
 app.component("library-tools", window.SkillsV2LibraryTools);
+app.component("copy-comparison", {
+  props: {
+    evidence: { type: Object, required: true },
+    fromLabel: { type: String, required: true },
+    toLabel: { type: String, required: true },
+    reload: { type: Function, required: true },
+  },
+  data() { return { unified: false, retrying: false }; },
+  computed: {
+    errors() { return this.evidence.copies.filter((copy) => copy.error); },
+    preview() { return this.evidence.preview; },
+  },
+  methods: {
+    async retry() {
+      if (this.retrying) return;
+      this.retrying = true;
+      try { await this.reload(); }
+      finally {
+        this.retrying = false;
+        await this.$nextTick();
+        if (document.activeElement === document.body) (this.$refs.retryButton || this.$refs.heading)?.focus();
+      }
+    },
+  },
+  template: `<section class="copy-compare" aria-label="Document comparison">
+    <header class="copy-compare-head">
+      <h3 tabindex="-1" ref="heading">Document comparison</h3>
+      <button v-if="preview?.status === 'changes'" class="btn btn-line btn-sm compare-layout" type="button"
+        :aria-pressed="unified" @click="unified = !unified">Unified view</button>
+    </header>
+    <dl class="compare-identities">
+      <div v-for="(copy, index) in evidence.copies" :key="index">
+        <dt>{{ index === 0 ? fromLabel : toLabel }}</dt>
+        <dd><b>{{ copy.scope }}</b><code v-if="copy.path" translate="no">{{ copy.path }}</code></dd>
+      </div>
+    </dl>
+    <p class="compare-coverage">Preview covers SKILL.md text. Supporting files haven’t been compared here.</p>
+    <div v-if="errors.length" class="compare-error">
+      <ul role="alert"><li v-for="copy in errors" :key="copy.scope"><b>{{ copy.scope }}.</b> {{ copy.error }}</li></ul>
+      <button type="button" class="btn btn-line btn-sm" ref="retryButton" :disabled="retrying" @click="retry()">{{ retrying ? 'Reading…' : 'Retry comparison' }}</button>
+    </div>
+    <p v-else-if="!preview" class="compare-status" role="status">Reading both documents…</p>
+    <p v-else-if="preview.status === 'too-large'" class="compare-status" role="status">These documents exceed the comparison preview limit. Open the individual copies to review their text.</p>
+    <p v-else-if="preview.status === 'same'" class="compare-status" role="status">The returned document text matches.</p>
+    <p v-else-if="preview.status === 'line-endings'" class="compare-status" role="status">Only line endings differ in the returned text.</p>
+    <template v-else>
+      <ul :class="['compare-lines', { unified }]" aria-label="Changed lines with context">
+        <li v-for="(row, index) in preview.rows" :key="index" class="compare-row" :class="{ 'compare-context': row.context }">
+          <template v-for="side in ['before', 'after']" :key="side">
+            <div :class="['compare-line', side, row[side]?.kind || 'gap']" :aria-hidden="row[side] ? null : 'true'">
+              <template v-if="row[side]">
+                <span class="sr-only">{{ row[side].kind === 'del' ? 'Removed, original line ' : row[side].kind === 'add' ? 'Added, new line ' : 'Context, line ' }}</span>
+                <span class="compare-number num">{{ row[side].number }}</span>
+                <span class="compare-sign" aria-hidden="true">{{ row[side].kind === 'del' ? '−' : row[side].kind === 'add' ? '+' : '' }}</span>
+                <code translate="no">{{ row[side].text }}</code>
+              </template>
+            </div>
+          </template>
+        </li>
+      </ul>
+      <p v-if="preview.omitted" class="compare-status">Showing the first {{ preview.rows.length }} rows. {{ preview.omitted }} more rows omitted.</p>
+    </template>
+  </section>`,
+});
+app.component("section-jumps", {
+  props: { sections: { type: Array, required: true } },
+  methods: {
+    jumpTo(id) {
+      // The page address already uses the fragment for routing.
+      const heading = document.getElementById(id);
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      heading.scrollIntoView({ block: "start" });
+    },
+  },
+  template: `<div class="section-jumps" role="group" aria-label="On this page">
+    <span aria-hidden="true">On this page</span>
+    <button v-for="[id, label] in sections" :key="id" type="button" class="btn btn-line btn-sm" @click="jumpTo(id)">{{ label }}</button>
+  </div>`,
+});
 app.component("tool-center", window.SkillsV2ToolCenter);
 app.component("ai-center", window.SkillsV2AiCenter);
 app.component("ai-briefing", window.SkillsV2AiBriefing);

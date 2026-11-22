@@ -136,10 +136,15 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.match(await targets.innerText(), /Codex/);
     assert((await targets.innerText()).includes(path.dirname(file('.codex', 'majority-minor'))));
     await page.getByRole('radio', {name:'Codex'}).check();
-    await page.locator('.vs header').last().filter({hasText:"Codex's copy"}).waitFor();
+    const comparison = page.getByRole('region', {name:'Document comparison'});
+    await comparison.locator('.compare-identities > div').last().getByText('Codex', {exact:true}).waitFor();
     assert.match(await page.locator('[data-primary]').innerText(), /^Sync 3 copies from Codex$/);
     assert.equal(await targets.locator('li').count(), 3);
     assert.doesNotMatch(await targets.innerText(), /Codex/);
+    await page.getByLabel('Compare target').selectOption('agents');
+    assert.match(await comparison.locator('.compare-identities > div').first().innerText(), /Shared skills folder/);
+    assert.match(await comparison.innerText(), /Supporting files haven’t been compared here/);
+    assert.match(await page.locator('[data-primary]').innerText(), /^Sync 3 copies from Codex$/);
   });
   await test('Inbox Sync stays clear of navigation after scrolling', async () => {
     try {
@@ -297,7 +302,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Backup conflict explains retry and leaves the full download available',async()=>{
     await go('recovery');
     const backup=page.getByRole('region',{name:'Backup',exact:true});
-    const full=backup.getByRole('button',{name:'Include trash and templates'});
+    const full=backup.getByRole('button',{name:'Download full archive'});
     const pattern=/\/api\/export\?full=1$/;
     let release, downloads=0;
     const pending=new Promise(resolve=>{release=resolve;});
@@ -384,7 +389,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       const codexCopy = table.getByRole('button', {name:/majority-minor, Codex:.*Different copy/});
       await table.getByRole('button', {name:/damaged-one, Codex: Can't be read/}).waitFor();
       await table.getByRole('button', {name:/target-disabled, Codex: Turned off on disk.*no majority/}).waitFor();
-      await table.getByRole('button', {name:/same-everywhere, Codex:.*Matches reference content/}).waitFor();
+      await table.getByRole('button', {name:/same-everywhere, Codex:.*Document text matches the reference/}).waitFor();
       assert((await table.getByRole('row').filter({hasText:'sole-copy'}).getByText('No copy listed').count()) > 0);
       assert(await page.locator('.map-scroll').evaluate(el => el.scrollWidth > el.clientWidth));
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -410,6 +415,72 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     } finally {
       await page.setViewportSize({width:1280,height:900});
+    }
+  });
+  await test('Copy comparison wraps on phones, reads the selected path and recovers after a read failure', async () => {
+    const target = file('.codex', 'majority-minor');
+    const original = fs.readFileSync(target);
+    const longLine = '# ' + 'long-unbroken-markdown-path-'.repeat(30);
+    fs.appendFileSync(target, '\n'+longLine+'\n');
+    let allowRead = false;
+    const match = url => url.pathname==='/api/skills/majority-minor' && url.searchParams.get('scope')==='codex';
+    const request = route => allowRead ? route.continue() : route.fulfill({status:503, contentType:'application/json', body:'{"error":"Fixture read unavailable"}'});
+    await page.route(match, request);
+    try {
+      await page.setViewportSize({width:1440,height:960});
+      await go('map');
+      await page.getByRole('button', {name:/majority-minor, Codex:.*Different copy/}).click();
+      await page.getByRole('button', {name:'Show changes in majority-minor'}).focus();
+      await page.keyboard.press('Enter');
+      const panel = page.getByRole('region', {name:'Document comparison'});
+      assert.match(await panel.getByRole('alert').innerText(), /Codex.*Fixture read unavailable/);
+      assert((await panel.innerText()).includes(path.dirname(target)));
+      allowRead = true;
+      await panel.getByRole('button', {name:'Retry comparison'}).focus();
+      await page.keyboard.press('Enter');
+      const removed = panel.locator('.compare-line.del code').filter({hasText:longLine});
+      await removed.waitFor();
+      assert.equal(await panel.getByRole('alert').count(), 0);
+      assert.equal(await page.evaluate(()=>document.activeElement.textContent.trim()), 'Document comparison');
+      const chooser = panel.getByRole('button', {name:'Unified view'});
+      assert(await chooser.isVisible());
+      assert.equal(await chooser.getAttribute('aria-pressed'), 'false');
+      await chooser.click();
+      assert.equal(await chooser.getAttribute('aria-pressed'), 'true');
+      await chooser.click();
+      await panel.screenshot({path:path.join(root,'copy-comparison-desktop.png')});
+      for (const width of [390,320]) {
+        await page.setViewportSize({width,height:844});
+        assert(!(await chooser.isVisible()));
+        assert(await removed.evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+        await panel.screenshot({path:path.join(root,'copy-comparison-'+width+'.png')});
+      }
+      await page.getByRole('button', {name:'Hide changes in majority-minor'}).focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await panel.count(), 0);
+      assert.equal(await page.getByRole('button',{name:'Show changes in majority-minor'}).getAttribute('aria-expanded'),'false');
+    } finally {
+      fs.writeFileSync(target, original);
+      await page.unroute(match, request);
+      await page.setViewportSize({width:1280,height:900});
+    }
+  });
+  await test('Skills retains the search when opening Sync map', async () => {
+    await go('skills');
+    await page.getByRole('searchbox',{name:'Search skills',exact:true}).fill('majority-minor');
+    await page.getByRole('button',{name:'Exact instances',exact:true}).click();
+    assert.equal(await page.getByRole('searchbox',{name:'Search skills',exact:true}).inputValue(),'majority-minor');
+    try {
+      await page.getByRole('link',{name:'Find name in Sync map'}).focus();
+      await page.keyboard.press('Enter');
+      const mapSearch = page.getByRole('searchbox',{name:'Find a skill in Sync map'});
+      await mapSearch.waitFor();
+      assert.equal(await mapSearch.inputValue(),'majority-minor');
+      assert.equal(await page.getByRole('rowheader',{name:'majority-minor',exact:true}).count(),1);
+    } finally {
+      await go('skills');
+      await page.getByRole('button',{name:'Shelf',exact:true}).click();
     }
   });
   await test('Sync map bounds rows and resets pagination on search', async () => {
@@ -701,16 +772,56 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert(!fs.existsSync(filePath));
     await go('recovery');
     const agentTrash=page.locator('section[aria-labelledby="rec-agent-trash"]');
-    const older=agentTrash.getByRole('button',{name:`Restore ${name} to Shared skills folder, copy 2 of 2`,exact:true});
+    const reviewLabel=`Review restore for ${name} in Shared skills folder`;
+    const older=agentTrash.getByRole('button',{name:reviewLabel+', copy 2 of 2',exact:true});
     await older.waitFor();
-    assert.equal(await agentTrash.getByRole('button',{name:`Restore ${name} to Shared skills folder, copy 1 of 2`,exact:true}).count(),1);
-    const restore=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/trash/'+name+'?scope=agents'));
+    assert.equal(await agentTrash.getByRole('button',{name:reviewLabel+', copy 1 of 2',exact:true}).count(),1);
+    await older.focus();
+    await page.keyboard.press('Enter');
+    const review=page.getByRole('dialog',{name:`Restore ${name}?`});
+    assert.match(await review.innerText(), /supporting files[\s\S]*copy 2 of 2/);
+    const savedFolder=await review.locator('code').innerText();
+    const entries=await (await page.request.get(base+'/api/trash?scope=agents')).json();
+    assert.equal(savedFolder,entries.filter(row=>row.name===name)[1].trash_path);
+    assert(!fs.existsSync(filePath));
+    await page.keyboard.press('Escape');
+    assert(await older.evaluate(b=>b===document.activeElement));
     await older.click();
-    assert((await restore).ok());
+    fs.mkdirSync(path.dirname(filePath));
+    fs.writeFileSync(filePath, original);
+    try {
+      await review.getByRole('button',{name:'Restore folder',exact:true}).click();
+      assert.match(await review.getByRole('alert').innerText(), /already exists/);
+      assert.equal(await review.locator('code').innerText(), savedFolder);
+      assert.deepEqual(fs.readFileSync(filePath), original);
+      assert(fs.existsSync(savedFolder));
+    } finally {
+      fs.unlinkSync(filePath);
+      fs.rmdirSync(path.dirname(filePath));
+    }
+    const restore=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/trash/'+name+'?scope=agents'));
+    await review.getByRole('button',{name:'Restore folder',exact:true}).click();
+    const response=await restore;
+    assert(response.ok());
+    assert.equal(response.request().postDataJSON().trash_path,savedFolder);
     await page.waitForTimeout(300);
     assert(fs.existsSync(filePath));
     assert.deepEqual(fs.readFileSync(filePath),original);
-    await agentTrash.getByRole('button',{name:`Restore ${name} to Shared skills folder`,exact:true}).waitFor();
+    await agentTrash.getByRole('button',{name:reviewLabel,exact:true}).waitFor();
+  });
+  await test('Recovery labels an unreadable agent scope and retries its listing', async () => {
+    const matches = url => url.pathname==='/api/trash' && url.searchParams.get('scope')==='codex';
+    const fail = route => route.fulfill({status:503, contentType:'application/json', body:'{"error":"Fixture trash unavailable"}'});
+    await page.route(matches, fail);
+    const section = page.locator('section[aria-labelledby="rec-agent-trash"]');
+    try {
+      await go('recovery');
+      assert.match(await section.getByRole('alert').innerText(), /Codex.*Fixture trash unavailable/);
+    } finally { await page.unroute(matches, fail); }
+    await section.getByRole('button',{name:'Retry agent trash'}).focus();
+    await page.keyboard.press('Enter');
+    await section.getByRole('alert').waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'rec-agent-trash');
   });
   await test('V2 tool read failure stays visible and a retry recovers',async()=>{
     await page.route('**/api/catalog',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Fixture catalog unavailable'})}));
@@ -738,17 +849,64 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.equal(await manifest.count(),0);
     assert.equal(await apmAudit.count(),0);
   });
+  await test('Tool directory filters by task and stays searchable after opening a tool',async()=>{
+    await page.setViewportSize({width:390,height:844});
+    await go('tools');
+    const search=page.getByRole('searchbox',{name:'Find a tool',exact:true});
+    await search.fill('  INDEX   maintenance  ');
+    const links=page.locator('.tp-index').getByRole('link');
+    assert.equal(await links.count(),1);
+    assert.match(await links.innerText(),/Settings/);
+    await search.press('Tab');
+    assert(await links.evaluate(link=>link===document.activeElement));
+    await page.keyboard.press('Enter');
+    await page.getByRole('heading',{name:'Settings',exact:true}).waitFor();
+    const nav=page.getByRole('navigation',{name:'Tools navigation'});
+    assert.equal(await nav.getByRole('link').count(),1);
+    await nav.getByRole('link',{name:'All tools',exact:true}).click();
+    assert.match(await search.inputValue(),/INDEX/);
+    await search.fill('<unmatched>');
+    assert.equal(await links.count(),0);
+    await page.getByRole('status').filter({hasText:'0 matching tools'}).waitFor();
+    await search.fill('');
+    assert(await links.count()>10);
+  });
+  await test('Recovery and Quality jumps focus headings without changing the route',async()=>{
+    await page.setViewportSize({width:320,height:780});
+    for(const [route,targets] of [
+      ['recovery',[['Load backup','rec-import'],['History','rec-history']]],
+      ['tools/quality',[['Findings','tp-findings'],['Diagnostics','tp-diagnostics']]],
+    ]){
+      await go(route);
+      const url=page.url();
+      const jumps=page.getByRole('group',{name:'On this page'});
+      for(const [label,id] of targets){
+        await jumps.getByRole('button',{name:label,exact:true}).press('Enter');
+        assert.equal(page.url(),url);
+        assert(await page.locator('#'+id).evaluate(heading=>{
+          const top=heading.getBoundingClientRect().top;
+          return heading===document.activeElement && top>=document.querySelector('.top').getBoundingClientRect().bottom && top<innerHeight/2;
+        }),id);
+      }
+    }
+  });
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
     for(const width of [320,768,1280])for(const mode of ['light','dark']){
       await page.setViewportSize({width,height:900});await go('tools/settings');await page.getByLabel('Theme',{exact:true}).selectOption(mode);
-      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','skills','recovery']){
+      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','tools/ai-settings','skills','recovery']){
         await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`${route} ${width} ${mode}`);
         if (route.startsWith('tools/')) {
-          const active = page.locator('.v2-tool-nav [aria-current="page"]');
-          assert(await active.evaluate(link => {
-            const tab = link.getBoundingClientRect(), nav = link.closest('nav').getBoundingClientRect();
-            return tab.left >= nav.left - 1 && tab.right <= nav.right + 1;
-          }), `active tool is clipped on ${route} at ${width}px`);
+          const nav = page.getByRole('navigation',{name:'Tools navigation'});
+          if(width<=860){
+            assert(await nav.getByRole('link',{name:'All tools',exact:true}).isVisible());
+            assert.equal(await nav.getByRole('link').count(),1);
+          }else{
+            const active = nav.locator('[aria-current="page"]');
+            assert(await active.evaluate(link => {
+              const tab = link.getBoundingClientRect(), nav = link.closest('nav').getBoundingClientRect();
+              return tab.top >= nav.top - 1 && tab.bottom <= nav.bottom + 1 && nav.bottom <= innerHeight;
+            }), `active tool is clipped on ${route} at ${width}px`);
+          }
         }
       }
     }

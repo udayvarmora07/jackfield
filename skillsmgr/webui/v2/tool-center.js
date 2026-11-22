@@ -13,10 +13,10 @@
   const projectPicker=(action)=>`
         <form class="tp-project card tp-panel" @submit.prevent="${action}">
           <label class="tp-field" for="tp-proj">Project path
-            <input id="tp-proj" class="field tp-mono" :value="project" @input="changeProject($event.target.value)" list="tp-project-roots" placeholder="Choose an allowed folder or enter a path" autocomplete="off" spellcheck="false" aria-describedby="tp-project-help">
+            <input id="tp-proj" class="field tp-mono" :value="project" @input="changeProject($event.target.value)" list="tp-project-roots" placeholder="Enter a folder path" autocomplete="off" spellcheck="false" aria-describedby="tp-project-help">
           </label>
           <datalist id="tp-project-roots"><option v-for="root in projectRoots" :key="root" :value="root"></option></datalist>
-          <p id="tp-project-help" class="tp-fine">Optional. Choose an allowed folder or a project inside it. Leave this blank to use the default report context.</p>
+          <p id="tp-project-help" class="tp-fine">Use an allowed folder or a project inside it. Leave blank for the default report.</p>
           <details class="tp-more"><summary>Allowed folders</summary><ul v-if="projectRoots.length" class="tp-rows"><li v-for="root in projectRoots" :key="root" class="tp-mono">{{ root }}</li></ul><p v-else class="tp-fine">Allowed folders could not be loaded. <button type="button" class="btn btn-soft btn-sm" @click="loadProjectRoots">Retry folders</button></p><p class="tp-fine">This picker cannot add folders to the server's allowed list.</p></details>
           <div class="tp-acts"><button class="btn btn-ink" :disabled="loading.qualityEnvelope||loading.workspace">Inspect project</button><button v-if="project" type="button" class="btn btn-soft" @click="clearProject">Clear project</button></div>
         </form>`;
@@ -42,6 +42,7 @@
       busy:false,error:'',result:null,sequence:0,readTokens:{},loading:{},qualityEnvelope:null, tab:'registry', source:'',op:'browse',view:'all-time',stale:false, pageNo:0,review:null,trust:false,
       runnerPreview:'',runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
       catalog:null,profile:{name:'',description:'',skills:'',targets:'',nativeOff:''},profileBase:null,profilePreview:null,plan:null,planTargets:[],
+      toolQuery:'',
       templates:null,templateName:'',templateBody:'',templatePreview:null,creating:false,skill:{name:'',description:'',category:'',version:'',license:'',compatibility:'',allowed_tools:'',body:'',scope:'global'},
       quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',projectRoots:[],projectCatalog:null,workspace:null,consumer:'',
       documentBaseline:null,baselineRaw:null,baselineError:'',baselineMessage:'',baselineSaving:false,discoveryName:'',
@@ -55,6 +56,27 @@
        * event stays a plain row; the names stay reachable in a native <details>. */
       historyGroups(){const out=[];for(const row of (this.history||[])){const minute=String(row.at||'').slice(0,16);const last=out[out.length-1];if(last&&last.action===row.action&&last.minute===minute&&row.action){last.rows.push(row);}else{out.push({action:row.action,minute,at:row.at,rows:[row]});}}return out;},
       toolGroups(){return TOOL_GROUPS;},
+      matchingToolGroups() {
+        const terms = this.toolQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        if (!terms.length) return TOOL_GROUPS;
+        return TOOL_GROUPS.map(group => ({
+          ...group,
+          items: group.items.filter(item => {
+            const text = [group.label, item.name, item.text, item.commandLabel].join(' ').toLowerCase();
+            return terms.every(term => text.includes(term));
+          }),
+        })).filter(group => group.items.length);
+      },
+      matchingToolCount(){return this.matchingToolGroups.reduce((total, group) => total + group.items.length, 0);},
+      qualitySections() {
+        const sections = [];
+        if (this.quality) {
+          sections.push(['tp-document-changes', 'Document changes']);
+          if (this.claudeListing) sections.push(['tp-cl-h', 'Claude Code listing']);
+          sections.push(['tp-findings', 'Findings']);
+        }
+        return [...sections, ['tp-diagnostics', 'Diagnostics']];
+      },
       fieldLabels(){return {name:'Name',description:'Description',category:'Category',version:'Version',license:'License',compatibility:'Compatibility',allowed_tools:'Allowed tools'};},
       severityNames(){return {all:'All',error:'Errors',warning:'Warnings',info:'Info'};},
       severityCounts(){const c={all:0};for(const f of (this.quality&&this.quality.findings)||[]){c.all++;c[f.severity]=(c[f.severity]||0)+1;}return c;},
@@ -117,10 +139,10 @@
       revealActiveTool() {
         const nav = this.$refs.toolNav;
         const active = nav?.querySelector('[aria-current="page"]');
-        if (!active || nav.scrollWidth <= nav.clientWidth) return;
+        if (!active || !active.getClientRects().length || nav.scrollHeight <= nav.clientHeight) return;
         const viewport = nav.getBoundingClientRect(), link = active.getBoundingClientRect();
-        if (link.left < viewport.left) nav.scrollLeft += link.left - viewport.left;
-        else if (link.right > viewport.right) nav.scrollLeft += link.right - viewport.right;
+        if (link.top < viewport.top + 6) nav.scrollTop += link.top - viewport.top - 6;
+        else if (link.bottom > viewport.bottom - 6) nav.scrollTop += link.bottom - viewport.bottom + 6;
       },
       human(v){const t=String(v==null?'':v).replace(/[-_]+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'Unknown';},
       when(iso){if(!iso)return 'Not returned';const d=new Date(iso);if(isNaN(d))return String(iso);try{return new Intl.DateTimeFormat(this.locale==='system'?undefined:this.locale,{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(e){return String(iso)}},
@@ -383,8 +405,10 @@
         <nav v-if="page!=='recovery-extra'&&page!=='tools'" ref="toolNav" class="v2-tool-nav" aria-label="Tools navigation">
           <a class="v2-tool-nav-home" href="#/tools"><span aria-hidden="true">←</span> All tools</a>
           <template v-for="g in toolGroups" :key="g.label">
-            <span class="v2-tool-nav-label">{{g.label}}</span>
-            <a v-for="item in g.items" :key="item.id" :href="'#/tools/'+item.id" :aria-current="page===item.id?'page':null">{{item.name}}</a>
+            <div class="v2-tool-nav-group">
+              <span class="v2-tool-nav-label">{{g.label}}</span>
+              <a v-for="item in g.items" :key="item.id" :href="'#/tools/'+item.id" :aria-current="page===item.id?'page':null">{{item.name}}</a>
+            </div>
           </template>
         </nav>
         <div class="v2-tool-content" :data-tool-page="page">
@@ -393,18 +417,26 @@
 
       <template v-if="page==='tools'">
         <h1 class="h1" id="h1" tabindex="-1">Tools</h1>
-        <p class="lede">Less frequent jobs: bring skills in, group them, check their health and tune this app.</p>
+        <p class="lede">Install skills, check your library, and configure Skills Manager.</p>
+        <div class="tp-directory-search" role="search" aria-label="Tool directory">
+          <div class="tp-directory-field">
+            <ic name="search"></ic>
+            <label class="sr-only" for="tp-dir-query">Find a tool</label>
+            <input id="tp-dir-query" class="field" type="search" v-model="toolQuery" placeholder="Find a tool…" autocomplete="off">
+          </div>
+          <p class="tp-count" role="status">{{toolQuery.trim() ? pl(matchingToolCount, 'matching tool') : ''}}</p>
+        </div>
         <div class="tp-index">
-          <section v-for="g in toolGroups" :key="g.label" :aria-labelledby="'tg-'+g.key">
+          <section v-for="g in matchingToolGroups" :key="g.key" :class="{'tp-index-ai':g.key==='ai'}" :aria-labelledby="'tg-'+g.key">
             <h2 class="tp-eyebrow" :id="'tg-'+g.key">{{g.label}}</h2>
             <div class="v2-tool-links">
               <a v-for="item in g.items" :key="item.id" :href="'#/tools/'+item.id">
-                <strong>{{item.name}}</strong>
-                <span>{{item.text}}</span>
-                <svg class="i i-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                <span><strong>{{item.name}}</strong><small>{{item.text}}</small></span>
+                <ic name="arrow" cls="i-s"></ic>
               </a>
             </div>
           </section>
+          <p v-if="!matchingToolCount" class="tp-empty">Try a tool name or a task, such as “profile” or “registry”.</p>
         </div>
       </template>
 
@@ -638,11 +670,12 @@ ${scanPanel('(review.inspection||{}).external_scan')}
       <template v-else-if="page==='quality'">
         <h1 class="h1" id="h1" tabindex="-1">Quality</h1>
         <p class="lede">What the files say about your skills: broken documents, weak descriptions, copies that drifted apart. It does not certify safety or which copy an agent loads.</p>
+        <section-jumps v-if="quality" :sections="qualitySections"></section-jumps>
         ${projectPicker('loadQuality')}
         <template v-if="quality">
           <p v-if="qualityEnvelope&&qualityEnvelope.project" class="tp-fine" role="status">Project checked: <span class="tp-mono">{{ qualityEnvelope.project.path }}</span></p>
           <section class="card tp-panel document-changes" aria-labelledby="tp-document-changes">
-            <header class="tp-panel-h"><div><h2 id="tp-document-changes">Skill document changes</h2><p>Compare observed primary documents with a baseline you save in this browser.</p></div><span v-if="documentComparison.changed_count" class="pill warn">{{fmtN(documentComparison.changed_count)}} changed</span></header>
+            <header class="tp-panel-h"><div><h2 id="tp-document-changes" tabindex="-1">Skill document changes</h2><p>Compare observed primary documents with a baseline you save in this browser.</p></div><span v-if="documentComparison.changed_count" class="pill warn">{{fmtN(documentComparison.changed_count)}} changed</span></header>
             <p class="tp-fine">Covers primary SKILL.md text only. Scripts, references, settings, activation changes and selected-project-only listing entries are outside this comparison. A match does not certify safety.</p>
             <p v-if="baselineError" class="v2-tool-error" role="alert">{{baselineError}}</p>
             <p v-if="baselineMessage" class="tp-fine" role="status">{{baselineMessage}}</p>
@@ -668,7 +701,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
           </section>
           <section v-if="claudeListing" class="card tp-panel claude-listing" aria-labelledby="tp-cl-h">
             <header class="tp-panel-h">
-              <div><h2 id="tp-cl-h">What Claude Code sees</h2><p>The skill listing Claude Code builds from the copies this report observed.</p></div>
+              <div><h2 id="tp-cl-h" tabindex="-1">What Claude Code sees</h2><p>The skill listing Claude Code builds from the copies this report observed.</p></div>
               <span class="tp-acts"><span :class="['pill', listingVerdict(claudeListing).tone]">{{ listingVerdict(claudeListing).text }}</span><span v-if="claudeListing.confidence==='partial'" class="pill off">Partial</span></span>
             </header>
             <p v-if="(claudeListing.partial_reasons||[]).length" class="claude-flags"><span v-for="(reason,i) in claudeListing.partial_reasons" :key="i" class="claude-reason">{{ reason }}</span></p>
@@ -701,6 +734,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             </details>
           </section>
           <p v-else class="tp-empty">No Claude Code skills were observed in this report, so the listing budget is not estimated.</p>
+          <h2 id="tp-findings" class="tp-findings-title" tabindex="-1">Findings</h2>
           <div class="tp-toolbar">
             <div class="seg" role="group" aria-label="Severity">
               <button v-for="s in ['all','error','warning','info']" :key="s" type="button" :aria-pressed="severity===s" @click="severity=s">{{severityNames[s]}} <span class="n">{{severityCounts[s]||0}}</span></button>
@@ -726,7 +760,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
               </details>
             </li>
           </ul>
-          <p v-if="!findings.length" class="tp-empty">Nothing matches this filter.</p>
+          <p v-if="!findings.length" class="tp-empty">{{severityCounts.all ? 'No findings match these filters.' : 'No findings in this report.'}}</p>
           <details v-if="unavailableSignals.length" class="tp-more evidence-limits">
             <summary>{{unavailableSignals.length}} kinds of evidence are unavailable</summary>
             <p v-for="(signal,i) in unavailableSignals" :key="i">{{human(signal.signal)}} — {{signal.explanation}} <span v-if="signal.count>1">({{signal.count}} instances)</span></p>
@@ -736,7 +770,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
         <p v-else-if="loading.qualityEnvelope" class="tp-empty">Reading hygiene evidence…</p>
         <p v-else class="tp-empty">Hygiene evidence is unavailable. <button type="button" class="btn btn-soft btn-sm" @click="loadQuality">Retry</button></p>
 
-        <h2 class="tp-eyebrow tp-gap">Diagnostics</h2>
+        <h2 id="tp-diagnostics" class="tp-diagnostics-title tp-gap" tabindex="-1">Diagnostics</h2>
         <div class="tp-cards">
           <section class="card tp-mini" aria-labelledby="tp-d1">
             <h3 id="tp-d1">Validate a copy</h3><p>Check one document against the skill format.</p>
@@ -909,7 +943,7 @@ ${scanPanel('sourceReview.external_scan')}
       </template>
 
       <template v-else-if="page==='recovery-extra'">
-        <div class="tp-sec-h tp-gap"><h2>History and text snapshots</h2><a class="tp-link" href="#/tools/source-update">Whole-folder snapshots →</a></div>
+        <div class="tp-sec-h tp-gap tp-history-head"><h2 id="rec-history" tabindex="-1">History and text snapshots</h2><a class="tp-link" href="#/tools/source-update">Whole-folder snapshots →</a></div>
         <p class="tp-fine">Text rollback restores an older skill document only; supporting files and the on/off state are not restored.</p>
         <form class="tp-inline" @submit.prevent="loadHistory">
           <label class="tp-field">Skill name <input class="field" v-model="historyName" placeholder="All skills" list="tp-names"></label>

@@ -295,6 +295,24 @@ class RenderSafetyTests(unittest.TestCase):
         self.assertIn("add:x", out["small"])
         self.assertLess(out["ms"], 5000)  # the cell budget degrades to a plain replace, never a hang
 
+    def test_document_preview_preserves_source_lines_and_bounds_large_diffs(self):
+        out = _node(HELPERS + r"""
+        const a = '---\ndescription: before\n---\n# Heading\n\n-  Keep Markdown';
+        const b = '---\ndescription: after\n---\n# Heading\n-  Keep Markdown';
+        return { preview:M.documentPreview(a,b), capped:M.documentPreview(a,b,2),
+          same:M.documentPreview('', ''), endings:M.documentPreview('a\r\nb', 'a\nb'),
+          large:M.documentPreview('a\n'.repeat(2000),'b\n'.repeat(2000)),
+          longLine:M.documentPreview('', 'x'.repeat(4097)) };""")
+        rows = out["preview"]["rows"]
+        self.assertEqual(rows[1]["before"], {"number": 2, "text": "description: before", "kind": "del"})
+        self.assertEqual(rows[1]["after"], {"number": 2, "text": "description: after", "kind": "add"})
+        self.assertEqual(rows[-1]["before"], {"number": 5, "text": "", "kind": "del"})
+        self.assertEqual(out["capped"]["omitted"], 2)
+        self.assertEqual(out["same"]["status"], "same")
+        self.assertEqual(out["endings"]["status"], "line-endings")
+        self.assertEqual(out["large"]["status"], "too-large")
+        self.assertEqual(out["longLine"]["status"], "too-large")
+
 
 @unittest.skipUnless(NODE, "node is required")
 class ErrorPresentationTests(unittest.TestCase):

@@ -8,6 +8,32 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## V2 Tools, Quality and Recovery usability (2026-11-21)
+
+- [x] Audit the existing layouts with agent-browser and agent-desktop. Consult
+  Awwwards, Godly/Recent Design and Inspo MCP references.
+- [x] Add a searchable tool directory and a visible All tools link at narrow
+  widths. Keep the grouped desktop sidebar.
+- [x] Add keyboard-accessible section shortcuts in Quality and Recovery,
+  clarify backup modes, and cover tool search and shortcut focus in browser tests.
+- [x] Complete the deeper product and gallery reference study with rationale,
+  live walkthroughs, current v2 measurements and proposed usability tasks.
+  See @docs/55-v2-ui-reference-study-2026-11-21.md.
+- [x] Build and verify an editable reference board in a tool that opens local
+  files without account authentication.
+- [x] Reopen the reference selection after feedback. Screen new live products
+  and reference libraries, walk through shortlisted tasks, verify frontend
+  source on GitHub, and deliver a revised editable board.
+  See @docs/56-v2-reference-selection-loop-2026-11-21.md.
+- [x] Inspect anonymous Mobbin collections and free resources, test two
+  open-source diff demos at phone widths, and update the shortlist for
+  exact-copy comparison and recovery evidence. Verify the editable Draw.io
+  board opens without an account.
+  See @docs/57-v2-mobbin-and-comparison-references-2026-11-21.md.
+- [x] Apply the reference research to v2. Carry a name search into Sync map,
+  compare exact document copies at desktop and phone widths, and review the
+  saved folder before restoring an agent trash entry. See @docs/08-web-ui.md.
+
 ## Claude Code recovery hardening handoff (2026-11-20)
 
 - [x] Complete forced-Sync companion preservation and show affected v2 Inbox
