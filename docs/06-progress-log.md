@@ -7,6 +7,20 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — AI features research loop
+
+- Ran three rounds with twelve research agents across Reddit, X, YouTube,
+  GitHub, Hacker News, forums, Bilibili, V2EX, Quora, Instagram, vendor docs,
+  products and literature, using `opencli`, `agent-reach`, `agent-browser` and
+  `gh` read-only. Instagram search returned nothing usable and Zhihu and
+  Xiaohongshu were blocked.
+- Fact-checked 30 weight-bearing claims: 23 confirmed, 7 partly right with
+  corrections applied, none wrong.
+- Consolidated proposals G1–G15 and a proposed slice 2 (ablate and retire,
+  delivered-listing report, contradiction check) in
+  @docs/60-ai-features-research-loop-2026-11-22.md, with sanitized raw reports
+  in @docs/research/2026-11-22-ai-loop/README.md. Documentation only.
+
 ## 2026-11-22 — Honest AI test statistics and per-hunk accept (slice 1)
 
 - Added `trial_stats.py`: paired lift over cases with a 95% bootstrap interval

@@ -35,9 +35,14 @@ records, not additional live work.
   token-regression and non-discriminating-assertion flags; per-hunk accept for
   AI edits (`/api/ai/edit-select`); AI provenance on Recovery snapshots. AI
   evals had no CLI command, so no CLI flag was needed.
-- [ ] Decide the remaining approval items before slice 2: CLI commands for
-  `ai health` and `ai recheck`, and per-excerpt consent for sending transcript
-  content to a model.
+- [x] Run a three-round research loop across Reddit, X, YouTube, GitHub, HN,
+  Bilibili, V2EX, Quora, Instagram, products and literature, fact-check 30
+  claims, and consolidate proposals G1–G15 in
+  @docs/60-ai-features-research-loop-2026-11-22.md.
+- [ ] Decide the approval items before slice 2 (ablate and retire, delivered
+  listing report, contradiction check): CLI commands (`ai health`,
+  `ai recheck`, `ai ablate`, a listing report), new agent scopes, team-export
+  scope, and per-excerpt consent for sending transcript content to a model.
 
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 
