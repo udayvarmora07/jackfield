@@ -1322,6 +1322,12 @@ def _claude_listing_finding(section: dict, records: list[dict]) -> dict:
     )
 
 
+def _largest_cuts(pairs: list, limit: int = 20) -> list[dict]:
+    """The entries losing the most description text, from all entries, not the first page."""
+    cut = [entry for entry, _text, _record in pairs if entry.get("cut_chars")]
+    return sorted(cut, key=lambda entry: (-entry["cut_chars"], entry["name"]))[:limit]
+
+
 def _claude_listing_section(prepared: list[dict], *, home, project_root, window: str,
                             degraded: list[dict]) -> tuple[dict, list[dict]]:
     """Estimate Claude Code's skill-listing budget from observed instances."""
@@ -1360,6 +1366,7 @@ def _claude_listing_section(prepared: list[dict], *, home, project_root, window:
         "entries": [entry for entry, _text, _record in pairs[:MAX_GROUP_INSTANCES]],
         "entries_total": len(pairs),
         "entries_truncated": len(pairs) > MAX_GROUP_INSTANCES,
+        "largest_cuts": _largest_cuts(pairs),
         "listing_chars": listing_chars,
         "listing_tokens_estimate": listing_tokens,
         "listing_tokens_method": method,

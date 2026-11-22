@@ -5,7 +5,7 @@ _skills_mgr_table() {
         '') candidates='ai init list ls create add view edit open remove rm disable enable validate search import export backup restore doctor stats trash templates history db sync scopes tokens install update usage lock native-profile archive webui gui -h --help --version --data-dir --color --no-color'; value_options='--data-dir' ;;
         'ai') candidates='trigger-test ablate conflicts -h --help'; value_options='' ;;
         'ai/ablate') candidates='-h --help --section --trials --max-cases --placebo --run --json'; value_options='--section --trials --max-cases' ;;
-        'ai/conflicts') candidates='-h --help --scope --project --judge --max-pairs --run --json'; value_options='--scope --project --max-pairs' ;;
+        'ai/conflicts') candidates='-h --help --scope --project --judge --max-pairs --votes --run --json'; value_options='--scope --project --max-pairs --votes' ;;
         'ai/trigger-test') candidates='-h --help --scope --saved --repeats --seed --run --baseline --fail-on-regression --json'; value_options='--scope --repeats --seed --baseline' ;;
         'init') candidates='-h --help --json'; value_options='' ;;
         'list') candidates='-h --help --json --disabled --category --scope'; value_options='--category --scope' ;;

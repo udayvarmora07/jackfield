@@ -16,6 +16,23 @@ def _rows(outcomes: dict, tokens: dict | None = None) -> list:
 
 
 class SummaryTests(unittest.TestCase):
+    def test_row_order_does_not_change_the_interval_or_removal_decision(self):
+        from skillsmgr import ai_ablate
+
+        counts = [(0, 4), (1, 1), (0, 1), (4, 4), (3, 0), (4, 2),
+                  (2, 3), (0, 4), (4, 5), (0, 3), (0, 2), (2, 0)]
+
+        def summary(order):
+            outcomes = {(case, variant): [True] * passed + [False] * (5 - passed)
+                        for case in order
+                        for variant, passed in zip(('full', 'ablated'), counts[case])}
+            return trial_stats.summarize(_rows(outcomes), 'full', 'ablated')
+
+        original = summary(range(len(counts)))
+        shuffled = summary([8, 4, 5, 0, 2, 9, 6, 10, 11, 3, 7, 1])
+        self.assertEqual(original, shuffled)
+        self.assertEqual(ai_ablate.decide(original), ai_ablate.decide(shuffled))
+
     def test_no_rows_is_ungraded(self):
         result = trial_stats.summarize([], 'with_skill', 'without_skill')
         self.assertEqual(result['verdict'], 'ungraded')

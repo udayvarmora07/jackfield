@@ -164,6 +164,15 @@ class ClaudeListingContracts(unittest.TestCase):
         self.assertEqual(section["listing_chars"], len("alpha: " + "D" * 1536))
         self.assertEqual(entry["cut_chars"], 1600 - 1536)
 
+    def test_largest_cuts_are_ranked_across_all_entries(self):
+        for n in range(105):
+            self.write_skill(f"a{n:03d}", "short enough description")
+        self.write_skill("zz-long", "D" * 2000)
+        _report, section = self.section()
+        self.assertTrue(section["entries_truncated"])
+        self.assertNotIn("zz-long", [e["name"] for e in section["entries"]])
+        self.assertEqual([e["name"] for e in section["largest_cuts"]], ["zz-long"])
+
     def test_skill_listing_max_desc_chars_from_settings_wins(self):
         self.write_skill("alpha", "D" * 100)
         self.write_settings({"skillListingMaxDescChars": 40})

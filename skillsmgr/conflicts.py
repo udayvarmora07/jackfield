@@ -51,7 +51,7 @@ _LAYERS = {
 }
 
 _LINES = re.compile(r"\r\n|\n|\r")
-_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+_FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 _BULLET = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 _DIRECTIVE = re.compile(
     r"\b(always|never|must|mustn't|should|shouldn't|do not|don't|avoid|prefer|only|required|"
@@ -92,12 +92,10 @@ _FACET_CONTEXT = {"indentation": re.compile(r"\bindent", re.I),
 
 
 def _home_label(path: Path, home: Path | None) -> str:
-    text = str(path)
-    if home is not None:
-        prefix = str(home).rstrip("/") + "/"
-        if text.startswith(prefix):
-            return "~/" + text[len(prefix):]
-    return text
+    if home is not None and path.is_relative_to(home):
+        relative = path.relative_to(home)
+        return "~/" + relative.as_posix() if relative.parts else "~"
+    return str(path)
 
 
 def _quote(line: str) -> str:
@@ -116,10 +114,10 @@ def rules(text: str) -> list[dict]:
     for number, line in enumerate(_LINES.split(text), 1):
         opened = _FENCE.match(line)
         if opened:
-            marker = opened.group(1)
+            marker, tail = opened.groups()
             if fence is None:
                 fence = marker
-            elif marker[0] == fence[0] and len(marker) >= len(fence):
+            elif marker[0] == fence[0] and len(marker) >= len(fence) and not tail.strip(" \t"):
                 fence = None
             continue
         stripped = line.strip()
@@ -355,13 +353,35 @@ _PACKAGE_BUILTINS = frozenset("install i ci add remove rm uninstall exec x dlx c
                               "publish link unlink audit view info why list ls config login version help".split())
 
 
+# A stated reason ("because", "so that", ...). 74.0% of directives in studied
+# instruction files give none (arXiv 2610.31715), which later blocks deletion.
+_REASON = re.compile(r"\b(because|so that|to avoid|to prevent|otherwise|in order to|why:|reason:)", re.I)
+_MARKUP = re.compile(r"^(?:\d+[.)]\s+|[*_`]+)+")
+
+
+# Wording that agents follow less often than plain prescriptive rules
+# (arXiv 2611.04367): "if/when ..., do ..." and "never/don't ...". The ranking
+# differs between models, so these are counts, not errors.
+_CONDITIONAL = re.compile(r"^(?:if|when|whenever|unless)\b", re.I)
+_PROHIBITIVE = re.compile(r"^(?:never|don't|do not|must not|mustn't|should not|shouldn't|avoid|no)\b", re.I)
+
+
+def _plain(text: str) -> str:
+    """A rule without leading numbering or emphasis markers, for wording checks."""
+    return _MARKUP.sub("", text)
+
+
 def density(sources: list) -> list:
-    """Directive lines per always-loaded file; many directives dilute each one."""
+    """Directive lines per always-loaded file, with reason and wording counts."""
     rows = []
     for source in sources:
         if source["kind"] == "instructions":
-            count = len(rules(source["text"]))
+            found = rules(source["text"])
+            count = len(found)
             rows.append({"source": source["label"], "directives": count,
+                         "with_reason": sum(1 for rule in found if _REASON.search(rule["text"])),
+                         "conditional": sum(1 for rule in found if _CONDITIONAL.match(_plain(rule["text"]))),
+                         "prohibitive": sum(1 for rule in found if _PROHIBITIVE.match(_plain(rule["text"]))),
                          "capped": count >= MAX_RULES_PER_SOURCE, "dense": count > DENSE_DIRECTIVES})
     return rows
 

@@ -221,9 +221,12 @@ whole-skill `remove` prints the demotion ladder (slash-only, `disable`,
 keeps pass counts, not outputs. `--placebo` adds a third variant with the
 removed text swapped for neutral filler of the same length and reports
 `placebo_statistics` (whole skill against filler); the decision still compares
-the whole skill with the removal.
+the whole skill with the removal. `previous` names the newest saved ablation
+for the same target with its decision, model, and whether the model and skill
+revision match. For a section run, both the section and skill revision must
+match to avoid attributing a result to the wrong section after an edit.
 
-### `ai conflicts [--scope SCOPE] [--project PATH] [--judge] [--max-pairs N] [--run] [--json]`
+### `ai conflicts [--scope SCOPE] [--project PATH] [--judge] [--max-pairs N] [--votes 2|3] [--run] [--json]`
 
 **[SPEC] docs/60 G2, approved 2026-11-22.** Lists heuristic candidate pairs of
 instruction lines that may contradict: `~/.claude/CLAUDE.md`,
@@ -234,15 +237,18 @@ each other and against the enabled skills of one scope (default `global`;
 skill-against-skill conflicts are the overlap judge's job. No model is used
 unless `--judge`; `--judge` alone estimates, and `--run` (which requires
 `--judge`) sends only the two quoted lines of the top `--max-pairs` pairs
-(1–40, default 20), twice with the two lines in opposite orders; a verdict
-counts only when both orders agree, otherwise it is `unclear`. Quotes always
+(1–40, default 20), twice with the two lines in opposite orders, or three times
+with `--votes 3` (both orders and a repeat that lists the pairs in reverse order
+under a distinct header; it adds evidence only when the model samples); a
+verdict counts only when every call agrees, otherwise it is `unclear`. Quotes always
 come from the files. Project files that link
 outside the project are reported as unreadable. Precedence between the two
 sides is reported as `unknown`. Lines longer than 400 characters are skipped
 rather than cut, skill documents that are links are not read, line numbers
 count `\n`, `\r\n` and `\r` only, and inputs dropped by size bounds are listed in
 `inputs_limited`. The report also counts directive lines per instruction file
-(`density`, `dense` above 150) and, with `--project`, lists `stale_references`:
+(`density`, `dense` above 150, `with_reason` for lines that state a reason,
+`conditional` for "if/when…" and `prohibitive` for "never/don't…" lines) and, with `--project`, lists `stale_references`:
 code spans in the project's instruction files naming a path, a
 `npm`/`pnpm`/`yarn`/`bun` script, a `make` target or a Python file that does not
 exist in the project. Only spans resolving inside the project are checked; a

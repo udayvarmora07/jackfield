@@ -461,7 +461,7 @@
       "lineno": 568
     },
     "skillsmgr/ai_skills.py::_improves": {
-      "complexity": 9,
+      "complexity": 7,
       "end_lineno": 589,
       "lineno": 583
     },

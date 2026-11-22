@@ -24,7 +24,7 @@
         evalName: "", evalMax: 10, evalTrials: 3, evalResult: null, evalEstimate: null,
         ablateName: "", ablateSection: "", ablateTrials: 3, ablateMax: 10, ablatePlacebo: false, ablateSections: [], ablateEstimate: null, ablateEstimateKey: "",
         ablateResult: null, ablateRequest: 0, ablateReviewOwned: true,
-        conflictsScope: "global", conflictsProject: "", conflictsMax: 20, conflictsReport: null, conflictsEstimate: null, conflictsRequest: 0,
+        conflictsScope: "global", conflictsProject: "", conflictsMax: 20, conflictsVotes: 2, conflictsReport: null, conflictsEstimate: null, conflictsRequest: 0,
         savedCount: 0, savedPrompts: [], savedNote: "", savedError: "", savedBusy: false, savedRequest: 0,
         pastRuns: [], pastRun: null, historyError: "", historyBusy: false, historyRequest: 0,
         draftScope: "", draftName: "", draftBrief: "", draftEstimate: null, draftEstimateKey: "", draftResult: null,
@@ -197,13 +197,13 @@
       },
       async estimateConflictJudge() {
         const req = ++this.conflictsRequest;
-        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), estimate: true })));
+        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), votes: Number(this.conflictsVotes), estimate: true })));
         if (req === this.conflictsRequest) this.conflictsEstimate = r;
       },
       async runConflictJudge() {
         if (!this.conflictsEstimate || !this.conflictsEstimate.plan) return;
         const req = ++this.conflictsRequest;
-        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), plan: this.conflictsEstimate.plan })));
+        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), votes: Number(this.conflictsVotes), plan: this.conflictsEstimate.plan })));
         if (r && req === this.conflictsRequest) { this.conflictsReport = r; this.conflictsEstimate = null; this.loadRuns(); }
       },
       conflictLabel(pair) {
@@ -872,6 +872,7 @@
           <header class="tp-panel-h"><div><h2 id="ai-abr-h">{{ ablateResult.name }} · {{ ablateResult.section ? ablateResult.section.heading : 'whole skill' }}</h2><p>{{ ablateResult.cases_count }} cases × {{ ablateResult.trials }} · {{ ablateResult.run.model }}<template v-if="ablateResult.status==='partial'"> · some answers missing</template></p></div>
             <span :class="['pill', ablateDecision(ablateResult.decision)[0]]">{{ ablateDecision(ablateResult.decision)[1] }}</span></header>
           <p class="tp-fine">{{ ablateResult.reason }}.</p>
+          <p v-if="ablateResult.previous" :class="ablateResult.previous.same_model && ablateResult.previous.same_revision ? 'tp-fine' : 'tp-issue warn'">Last time: {{ ablateDecision(ablateResult.previous.decision)[1] }} with {{ ablateResult.previous.model }}<template v-if="!ablateResult.previous.same_model"> (a different model; skill effects often differ between models)</template><template v-if="!ablateResult.previous.same_revision"> on an earlier version of the skill</template>.</p>
           <p v-if="ablateResult.coverage_warning" class="tp-issue warn">{{ ablateResult.coverage_warning }}</p>
           <trial-stats v-if="ablateResult.statistics" :stats="ablateResult.statistics" title="With it compared with without it" :labels="{ full: 'With it', ablated: 'Without it' }"></trial-stats>
           <trial-stats v-if="ablateResult.placebo_statistics" :stats="ablateResult.placebo_statistics" title="With it compared with same-length filler" :labels="{ full: 'With it', placebo: 'Filler' }"></trial-stats>
@@ -907,8 +908,8 @@
           <p v-if="conflictsReport.unreadable.length" class="tp-fine">Not read: <span class="tp-mono">{{ conflictsReport.unreadable.join(', ') }}</span></p>
           <p v-for="(line,i) in (conflictsReport.inputs_limited || [])" :key="'lim'+i" class="tp-issue warn">{{ line }}</p>
           <details v-if="(conflictsReport.density || []).length" class="listing-cuts"><summary>Directives per always-loaded file<template v-if="conflictsReport.density.some(d => d.dense)"> · {{ conflictsReport.density.filter(d => d.dense).length }} over {{ conflictsReport.dense_threshold }}</template></summary>
-            <p class="tp-fine">Every directive in these files is read in every session. Research finds compliance falls as directives accumulate, with early ones favoured past about {{ conflictsReport.dense_threshold }}.</p>
-            <ul><li v-for="d in conflictsReport.density" :key="d.source"><span class="tp-mono">{{ d.source }}</span>: {{ d.directives }}{{ d.capped ? '+' : '' }} directive lines<span v-if="d.dense" class="pill warn">dense</span></li></ul></details>
+            <p class="tp-fine">Every directive in these files is read in every session. Research finds compliance falls as directives accumulate, with early ones favoured past about {{ conflictsReport.dense_threshold }}. Agents also followed "if…, do…" and "never…" wording less often than plain rules, though the effect differs by model.</p>
+            <ul><li v-for="d in conflictsReport.density" :key="d.source"><span class="tp-mono">{{ d.source }}</span>: {{ d.directives }}{{ d.capped ? '+' : '' }} directive lines, {{ d.with_reason || 0 }} with a reason, {{ d.conditional || 0 }} conditional ("if…"), {{ d.prohibitive || 0 }} prohibitive ("never…")<span v-if="d.dense" class="pill warn">dense</span></li></ul></details>
           <template v-if="(conflictsReport.stale_references || []).length">
             <h3>{{ conflictsReport.stale_references.length }} stale reference{{ conflictsReport.stale_references.length === 1 ? '' : 's' }} in project instructions</h3>
             <p class="tp-fine">Checked against the project without a model. An agent that follows a stale path or command wastes tool calls and gets no error.</p>
@@ -917,6 +918,7 @@
           <p class="tp-fine">{{ conflictsReport.limits }}</p>
           <div v-if="configured && conflictsReport.candidates.length" class="tp-set">
             <div class="tp-set-row"><label for="ai-cfn"><b>Pairs to judge</b><small>Only the two quoted lines of each pair are sent, never whole files.</small></label><select id="ai-cfn" class="field" v-model.number="conflictsMax" @change="conflictsEstimate=null"><option v-for="n in [5,10,20,40]" :key="n" :value="n">{{ n }}</option></select></div>
+            <div class="tp-set-row"><label for="ai-cfv"><b>Votes per pair</b><small>Each pair is always asked in both orders. A third vote catches answers that flip between runs; every vote must agree.</small></label><select id="ai-cfv" class="field" v-model.number="conflictsVotes" @change="conflictsEstimate=null"><option :value="2">2 (both orders)</option><option :value="3">3 (both orders and a repeat)</option></select></div>
           </div>
           <div v-if="configured && conflictsReport.candidates.length && !conflictsEstimate" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="estimateConflictJudge()">Ask your model to judge…</button></div>
           <p v-else-if="!configured && conflictsReport.candidates.length" class="tp-fine">To have a model judge these pairs, <a href="#/tools/ai-settings">connect one in AI settings</a>.</p>
@@ -1037,9 +1039,11 @@
           <div class="ai-cand"><h3>Current</h3><p>{{ improve.current }}</p>
             <p class="tp-fine">Picked for {{ pct(improve.baseline.overall.recall) }} of its prompts ({{ pct(improve.baseline.holdout.recall) }} held-out); stayed out of {{ pct(improve.baseline.overall.near_miss_avoided) }} of the others.</p></div>
           <div v-for="(c,i) in improve.candidates" :key="i" class="ai-cand">
+            <p v-if="i===0 && improve.selection_note" class="tp-fine">{{ improve.selection_note }}</p>
             <h3>Proposal {{ i+1 }} <span :class="['pill', c.recommended ? 'ok' : 'off']">{{ c.recommended ? 'Recommended' : 'Not better' }}</span></h3>
             <p>{{ c.description }}</p>
             <p class="tp-fine">Picked for {{ pct(c.overall.recall) }} ({{ pct(c.holdout.recall) }} held-out); stayed out of {{ pct(c.overall.near_miss_avoided) }} of the others. {{ c.chars }} characters. {{ c.rationale }}</p>
+            <p v-if="c.overfit" class="tp-issue warn">It does {{ Math.round(c.gap * 100) }} points better on the prompts it was written from than on held-out prompts, so it may fit those examples more than new requests.</p>
             <div class="tp-acts"><button class="btn" :class="c.recommended ? 'btn-ink' : 'btn-line'" :disabled="busy || applied===c.description" @click="applyCandidate(c)">{{ applied===c.description ? 'Saved' : 'Use this description' }}</button></div>
           </div>
           <p class="tp-fine">{{ improve.run.advisory }} {{ fmt(improve.run.input_tokens) }} input tokens used.</p>

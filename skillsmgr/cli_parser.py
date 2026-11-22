@@ -75,6 +75,7 @@ def _add_ai_parser(sub, commands) -> None:
     p.add_argument("--project", metavar="PATH", help="also read this project's CLAUDE.md, AGENTS.md and GEMINI.md")
     p.add_argument("--judge", action="store_true", help="ask the configured model about the top candidates (estimate without --run)")
     p.add_argument("--max-pairs", type=int, default=20, metavar="N")
+    p.add_argument("--votes", type=int, choices=(2, 3), default=2, help="2: both orders; 3: both orders and a repeat")
     p.add_argument("--run", action="store_true", help="with --judge: send the quoted lines to the configured provider")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=commands["cmd_ai"])

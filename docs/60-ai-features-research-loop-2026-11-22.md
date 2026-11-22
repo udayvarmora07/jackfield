@@ -2,13 +2,13 @@
 
 **Version 0.3.0**
 
-**AI manifest**: Third research pass of 2026-11-22. It ran three rounds across
+**AI manifest**: Research loop of 2026-11-22. The first three rounds covered
 Reddit, X, YouTube, Hacker News, GitHub, forums, Bilibili, V2EX, Quora,
 Instagram, vendor documentation and hands-on product walkthroughs, then
 fact-checked 30 weight-bearing claims. It extends the F1–F15 proposals in
 @docs/59-ai-everywhere-research-2026-11-22.md, whose slice 1 (honest test
-statistics, per-hunk accept, AI provenance) shipped as `bb33fac`. Everything
-below is a proposal. Raw sourced reports are in
+statistics, per-hunk accept, AI provenance) shipped as `bb33fac`. Round 4
+records later research, shipped changes and remaining proposals. Sourced reports are in
 @docs/research/2026-11-22-ai-loop/README.md.
 
 **[NOTE]**
@@ -180,12 +180,14 @@ Findings that change or confirm the plan:
 detectable effect exceeds the 10-point margin. With the 0.5 spread floor that
 needs about 200 cases, more than the 20-case limit, so the feature would never
 propose anything. Removal stays a reviewed, recoverable proposal that states
-its evidence limit. Remaining literature proposals: per-model labels;
-confirming trigger results in the real agent runtime with randomised listing
-order; three-vote judging and a predictive-value estimate; held-out splits for
-AI edit loops; action assertions (negative text assertions already exist as
-`not_contains`); a "why" per rule; phrasing lint; and injection tests with
-planted instructions.
+its evidence limit. Batch 3 added the held-out gap and a selection
+note to description rewrites (held-out prompts already existed), optional
+three-vote judging, reason and wording counts per instruction file, and
+planted-instruction tests, and labels ablations with the previous run's model and revision.
+Remaining literature proposals: confirming trigger
+results in the real agent runtime (listing order is already shuffled per
+repeat); a predictive-value estimate for the judge; action assertions
+(negative text assertions already exist as `not_contains`).
 
 ## Consolidated feature catalogue
 

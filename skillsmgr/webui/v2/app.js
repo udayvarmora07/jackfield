@@ -1356,7 +1356,7 @@ app.component("listing-budgets", {
           budget: unknown && !metadataUnknown ? null : unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens,
           subtotal: metadataUnknown,
           basis: budget.basis || "Budget basis unavailable",
-          cuts: (section.entries || []).filter((e) => Number(e.cut_chars) > 0)
+          cuts: (section.largest_cuts || section.entries || []).filter((e) => Number(e.cut_chars) > 0)
             .sort((a, b) => Number(b.cut_chars) - Number(a.cut_chars) || String(a.name).localeCompare(String(b.name))).slice(0, 20),
           thin: (section.entries || []).filter((e) => e.thin).map((e) => e.name).sort(),
           status: status + (section.confidence === "partial" ? " · partial evidence" : "") }];

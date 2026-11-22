@@ -743,7 +743,7 @@ def _render_claude_listing_text(section: dict | None) -> None:
 
 def _render_cut_descriptions(section: dict) -> None:
     """The five largest description cuts an agent makes before the model sees them."""
-    rows = [entry for entry in section.get("entries") or []
+    rows = [entry for entry in section.get("largest_cuts") or section.get("entries") or []
             if isinstance(entry, dict) and int(entry.get("cut_chars") or 0) > 0]
     rows.sort(key=lambda entry: (-int(entry["cut_chars"]), str(entry.get("name"))))
     for entry in rows[:5]:

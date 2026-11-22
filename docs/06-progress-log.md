@@ -7,6 +7,41 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Resume AI feature QA
+
+- Resumed the interrupted Claude QA on the staged batch 3 tree and recovered
+  the CLI, browser, accessibility, static-analysis and mutation evidence.
+- Fixed ablation intervals that changed when identical outcomes arrived in a
+  different order. Section ablations match historical runs only for the same
+  section and skill revision. Form feeds no longer create section boundaries.
+- Kept fenced examples out of contradiction candidates when a would-be
+  closing fence has an info string. Malformed judge and routing answers no
+  longer abort the run when their IDs or choices are arrays or objects.
+- Fixed home-relative source labels for Windows in contradiction reports,
+  following failures in the hosted Windows suites.
+- The CDP smoke harness opens a blank tab and attaches scenario hooks before
+  navigating, so it starts one navigation per check.
+- Description rewrites need usable held-out scores to recommend a candidate.
+  The gap needs four answered prompts per split. Repeats of one prompt count
+  once toward that minimum.
+
+## 2026-11-22 — Rewrite gap, three-vote judge, reasons per rule
+
+- Description rewrites report `gap` (seen-prompt score minus held-out score),
+  flag `overfit` at 0.2 or more, and add a `selection_note` when several
+  candidates compete on the same prompts.
+- The contradiction judge accepts `votes` 3 (both orders plus a repeat,
+  unanimous or `unclear`); `--votes` on the CLI and a v2 control.
+- `density` rows count `with_reason`, `conditional` and `prohibitive`
+  directive lines (wording effect from arXiv 2611.04367, model-dependent).
+- New test: instruction text planted in a skill reaches the judge only inside
+  an untrusted block and never in the system prompt.
+- `ai ablate` adds `previous`: the last ablation of the same skill and section,
+  labelled with its model and whether model and revision still match.
+- Claude Code listing sections add `largest_cuts`, ranked across all entries,
+  because `entries` stops at 100 and could hide the biggest cuts.
+- Built in a separate worktree while the previous batch's ladder ran.
+
 ## 2026-11-22 — Thin descriptions, placebo arm, density and stale references
 
 - Listing entries carry `thin` (description under the validator's 20

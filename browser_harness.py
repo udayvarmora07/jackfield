@@ -187,7 +187,8 @@ const url = process.argv[1], width = Number(process.argv[2]), height = Number(pr
 const navigationStarted = Date.now();
 function getJson(path) { return new Promise((resolve, reject) => { const req=http.request('http://127.0.0.1:' + port + path, {method:'PUT'}, r => { let b=''; r.on('data', x=>b+=x); r.on('end',()=>resolve(JSON.parse(b))); }); req.on('error',reject); req.end(); }); }
 (async () => {
-  const tabs = await getJson('/json/new?' + encodeURIComponent(url));
+  // Navigate after attaching CDP and installing the scenario hooks.
+  const tabs = await getJson('/json/new?about%3Ablank');
   const ws = new WebSocket(tabs.webSocketDebuggerUrl);
   let id = 0, pending = new Map(), errors = [], warnings = [], failed = [];
   ws.onmessage = event => { const m = JSON.parse(event.data); if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); } else if (m.method === 'Runtime.consoleAPICalled') { const t=m.params.type; const text=(m.params.args||[]).map(a=>a.value||a.description||'').join(' '); (t==='error'?errors:warnings).push(text); } else if (m.method === 'Runtime.exceptionThrown') { const d=m.params.exceptionDetails; errors.push(d.exception && (d.exception.description || d.exception.value) || d.text || 'runtime exception'); } else if (m.method === 'Network.loadingFailed') failed.push(m.params.errorText); };

@@ -24,6 +24,14 @@ def _answer(system):
 
 
 class SectionTests(unittest.TestCase):
+    def test_sections_split_only_on_markdown_line_endings(self):
+        body = 'Preamble\f## Inline text\r\n## First\rBody\n## Second\n'
+        rows = ai_ablate.sections(body)
+        self.assertEqual([(row['heading'], row['line']) for row in rows],
+                         [('First', 2), ('Second', 4)])
+        self.assertEqual(ai_ablate._without(body, rows[0]),
+                         'Preamble\f## Inline text\r\n## Second\n')
+
     def test_sections_nest_ignore_fences_and_carry_offsets(self):
         rows = ai_ablate.sections(_BODY)
         self.assertEqual([(r['heading'], r['level']) for r in rows],
@@ -168,6 +176,42 @@ class AblateTests(unittest.TestCase):
         self.assertIn('same-length filler', result['egress'][0])
         saved = ai_skills.read_run(self.data, result['run_id'])
         self.assertEqual(set(saved['cases'][0]), {'case', 'full', 'ablated', 'placebo'})
+
+    def test_a_repeat_run_points_to_the_previous_verdict_and_model(self):
+        first = self.run_ablation(section=0)
+        self.assertIsNone(first['previous'])
+        _CONFIG['model'] = 'other-model'
+        self.addCleanup(_CONFIG.__setitem__, 'model', 'primary-model')
+        self.sent.clear()
+        second = self.run_ablation(section=0)
+        self.assertEqual(second['previous'], {'run_id': first['run_id'], 'decision': 'keep', 'model': 'primary-model',
+                                              'same_model': False, 'same_revision': True})
+        self.sent.clear()
+        self.assertIsNone(self.run_ablation(section=2)['previous'])  # a different section
+
+    def test_damaged_earlier_runs_are_skipped_not_fatal(self):
+        first = self.run_ablation(section=0)
+        self.sent.clear()
+        runs = self.data / 'ai' / 'runs'
+        runs.mkdir(parents=True, exist_ok=True)
+        for n, body in enumerate(({'name': 'magic', 'decision': 'keep', 'run': 'oops', 'section': {'heading': 'Magic word'}},
+                                  {'name': 'magic', 'decision': '\x1b[2Jevil', 'section': {'heading': 'Magic word'}},
+                                  {'name': 'magic', 'decision': 'keep', 'section': 'not-a-dict'})):
+            (runs / f'ablate-20990101T00000{n}Z-0000000{n}.json').write_text(json.dumps(body), encoding='utf-8')
+        result = self.run_ablation(section=0)
+        self.assertEqual(result['previous']['run_id'], first['run_id'])
+        self.assertNotIn('evil', json.dumps(result['previous']))
+
+    def test_a_previous_section_must_match_the_index_and_revision(self):
+        self.store.edit('magic', body=_BODY.replace('## Style', '## Magic word'))
+        first = self.run_ablation(section=0)
+        self.sent.clear()
+        self.assertIsNone(self.run_ablation(section=2)['previous'])
+        self.sent.clear()
+        self.assertEqual(self.run_ablation(section=0)['previous']['run_id'], first['run_id'])
+        self.sent.clear()
+        self.store.edit('magic', body=_BODY + '\nUpdated style.\n')
+        self.assertIsNone(self.run_ablation(section=0)['previous'])
 
     def test_placebo_choice_is_bound_to_the_preview(self):
         estimate = ai_ablate.ablate(self.store, {'name': 'magic', 'section': 0, 'estimate': True})

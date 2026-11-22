@@ -174,6 +174,40 @@ def _execute_ablate(args, store):
     return {"status": result["status"], "result": result}, 0
 
 
+def _human_ablate_decision(result):
+    stats = result["statistics"]
+    print(f"Decision: {result['decision']} -- {sanitize_text(result['reason'])}")
+    print(f"Lift with it: {stats['lift']} (interval {stats['interval']}, {stats['paired_cases']} requests, "
+          f"{stats['trials']} trials)")
+    previous = result.get("previous")
+    if previous:
+        note = "" if previous["same_model"] else " (different model)"
+        note += "" if previous["same_revision"] else " (earlier skill version)"
+        print(f"Last time: {sanitize_text(str(previous['decision']))} with "
+              f"{sanitize_text(str(previous['model']))}{note}")
+    placebo = result.get("placebo_statistics")
+    if placebo:
+        print(f"Against same-length filler: lift {placebo['lift']} (interval {placebo['interval']}), "
+              f"{placebo['verdict']}")
+    if stats.get("min_detectable") is not None:
+        print(f"Smallest difference this run could reliably show: ~{round(stats['min_detectable'] * 100)} points")
+    if result.get("coverage_warning"):
+        err(sanitize_text(result["coverage_warning"]))
+
+
+def _human_ablate_proposal(result):
+    proposal = result.get("proposal") or {}
+    if proposal.get("kind") == "remove-section":
+        review_id = sanitize_text(proposal["review"]["review_id"])
+        print(f"Staged removal for review: {review_id}")
+        print(f"  review the diff in the web UI, or apply: skills-mgr update apply "
+              f"{sanitize_text(result['name'])} {review_id} --yes")
+    for step in proposal.get("ladder", []):
+        print(f"  {step['step']}: {sanitize_text(step['action'])}")
+    if result.get("proposal_error"):
+        err(sanitize_text(result["proposal_error"]))
+
+
 def _human_ablate(report):
     print("AI ablate: " + sanitize_text(report["status"]))
     if "error" in report:
@@ -187,28 +221,8 @@ def _human_ablate(report):
     for line in result["egress"]:
         print(sanitize_text(line))
     if "decision" in result:
-        stats = result["statistics"]
-        print(f"Decision: {result['decision']} -- {sanitize_text(result['reason'])}")
-        print(f"Lift with it: {stats['lift']} (interval {stats['interval']}, {stats['paired_cases']} requests, "
-              f"{stats['trials']} trials)")
-        placebo = result.get("placebo_statistics")
-        if placebo:
-            print(f"Against same-length filler: lift {placebo['lift']} (interval {placebo['interval']}), "
-                  f"{placebo['verdict']}")
-        if stats.get("min_detectable") is not None:
-            print(f"Smallest difference this run could reliably show: ~{round(stats['min_detectable'] * 100)} points")
-        if result.get("coverage_warning"):
-            err(sanitize_text(result["coverage_warning"]))
-    proposal = result.get("proposal") or {}
-    if proposal.get("kind") == "remove-section":
-        review_id = sanitize_text(proposal["review"]["review_id"])
-        print(f"Staged removal for review: {review_id}")
-        print(f"  review the diff in the web UI, or apply: skills-mgr update apply "
-              f"{sanitize_text(result['name'])} {review_id} --yes")
-    for step in proposal.get("ladder", []):
-        print(f"  {step['step']}: {sanitize_text(step['action'])}")
-    if result.get("proposal_error"):
-        err(sanitize_text(result["proposal_error"]))
+        _human_ablate_decision(result)
+    _human_ablate_proposal(result)
     if result.get("run_id"):
         print("Saved run: " + sanitize_text(result["run_id"]))
 
@@ -217,7 +231,7 @@ def _execute_conflicts(args, store):
     payload = {"scope": args.scope, "project": str(Path(args.project).expanduser()) if args.project else None}
     if not args.judge:
         return {"status": "candidates", "result": ai_conflicts.check(store.data_dir, payload)}, 0
-    payload.update({"judge": True, "max_pairs": args.max_pairs})
+    payload.update({"judge": True, "max_pairs": args.max_pairs, "votes": args.votes})
     estimate = ai_conflicts.check(store.data_dir, {**payload, "estimate": True})
     if not args.run or "plan" not in estimate:
         return {"status": estimate.get("status", "estimate"), "result": estimate}, 0
@@ -249,7 +263,9 @@ def _human_conflicts(report):
         print("    " + _human_side(pair["b"]))
     for row in result.get("density", []):
         flag = " (dense)" if row["dense"] else ""
-        print(f"  {sanitize_text(row['source'])}: {row['directives']}{'+' if row['capped'] else ''} directive lines{flag}")
+        print(f"  {sanitize_text(row['source'])}: {row['directives']}{'+' if row['capped'] else ''} directive lines, "
+              f"{row.get('with_reason', 0)} with a reason, {row.get('conditional', 0)} conditional, "
+              f"{row.get('prohibitive', 0)} prohibitive{flag}")
     for row in result.get("stale_references", []):
         print(f"- stale: {sanitize_text(row['reference'])}: {sanitize_text(row['reason'])} "
               f"({sanitize_text(row['source'])}:{row['line']})")

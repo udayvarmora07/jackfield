@@ -55,10 +55,16 @@ records, not additional live work.
 - [x] Literature batch 2: thin-description flags in the listing report,
   `ai ablate --placebo`, directive density and stale project references in
   `ai conflicts`.
+- [x] Literature batch 3: held-out gap and selection note for description
+  rewrites, `--votes 3` for the contradiction judge, reason counts per
+  instruction file, conditional and prohibitive wording counts, and
+  planted-instruction tests for the judge.
+- [x] Resume batch 3 QA and cover the confirmed regressions in ablation
+  statistics and history, Markdown section and directive parsing, Windows
+  source labels, model response validation, and held-out rewrite evidence.
 - [ ] Remaining literature proposals in @docs/60-ai-features-research-loop-2026-11-22.md
-  "Round 4": per-model labels, real-runtime trigger checks, three-vote judge,
-  held-out splits, action assertions, a "why" per rule, phrasing lint,
-  injection tests.
+  "Round 4": real-runtime trigger checks, a predictive-value estimate for the
+  contradiction judge, and action assertions.
 
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 

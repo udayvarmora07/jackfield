@@ -23,10 +23,11 @@ nothing is written. The saved evidence holds pass counts, never outputs.
 """
 from __future__ import annotations
 
+import io
 import random
 from pathlib import Path
 
-from . import ai_concise, ai_evals, evals, source_update, trial_stats
+from . import ai_concise, ai_evals, ai_skills, evals, source_update, trial_stats
 from .ai import AiError, AiRun
 from .ai_skills import _save_run
 from .tokens import count_tokens
@@ -44,7 +45,7 @@ def sections(body: str) -> list[dict]:
     fences are ignored. Text before the first heading is not a section.
     """
     heads, fence, offset = [], None, 0
-    for number, line in enumerate(body.splitlines(keepends=True), 1):
+    for number, line in enumerate(io.StringIO(body, newline=''), 1):
         bare = line.rstrip('\r\n')
         match = ai_concise._FENCE.match(bare)
         if match:
@@ -260,6 +261,48 @@ def _evidence(result: dict) -> dict:
     return kept
 
 
+def _previous(data_dir, name: str, section, model: str, digest: str) -> dict | None:
+    """Newest retained run for the skill or the same section of the same revision.
+
+    Effects of a skill differ between models (arXiv 2608.23067: cross-model
+    correlation |r| <= 0.12), so an earlier verdict is context, not a result.
+    Only the newest runs of all kinds are retained, so an old ablation may be
+    gone. Run files are local data that may be damaged; a malformed one is
+    skipped, never trusted.
+    """
+    files = sorted(ai_skills._runs_dir(data_dir).glob('ablate-*.json'),
+                   key=lambda path: (ai_skills._run_mtime(path), path.name), reverse=True)
+    for path in files[:ai_skills.KEEP_RUNS]:
+        try:
+            old = ai_skills.read_run(data_dir, path.stem)
+        except AiError:
+            continue
+        found = _previous_row(old, name, section, digest)
+        if found:
+            tree = found.pop('tree_hash')
+            return {'run_id': path.stem, **found, 'same_model': found['model'] == model,
+                    'same_revision': tree == digest}
+    return None
+
+
+_DECISIONS = ('remove', 'keep', 'uncertain', 'untested', 'not-enough-evidence')
+
+
+def _previous_row(old: dict, name: str, section, digest: str) -> dict | None:
+    if old.get('kind') != 'ablate' or old.get('name') != name or old.get('decision') not in _DECISIONS:
+        return None
+    tree = old.get('tree_hash')
+    if 'section' not in old or old['section'] != section or not isinstance(tree, str):
+        return None
+    if section is not None and tree != digest:
+        return None
+    run = old.get('run')
+    model = run.get('model') if isinstance(run, dict) else None
+    if not isinstance(model, str) or not model:
+        return None
+    return {'decision': old['decision'], 'model': model[:160], 'tree_hash': tree}
+
+
 def ablate(store, payload: dict) -> dict:
     """Estimate or run one ablation; a section removal is staged for review."""
     payload = payload if isinstance(payload, dict) else {}
@@ -308,6 +351,7 @@ def ablate(store, payload: dict) -> dict:
     if estimate:
         result['status'] = 'estimate'
         return result
+    result['previous'] = _previous(store.data_dir, name, result['section'], run.config['model'], digest)
     result['run_id'] = _save_run(store.data_dir, _evidence(result))
     if result['decision'] == 'remove' and section is None:
         result['proposal'] = {'kind': 'retire', 'ladder': _ladder(name)}

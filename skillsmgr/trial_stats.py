@@ -50,8 +50,9 @@ def _bootstrap(pairs: list, rng: random.Random) -> tuple[float, float]:
         estimates.append(_mean([differences[rng.randrange(len(differences))] for _ in differences]))
     estimates.sort()
     tail = (1 - CONFIDENCE) / 2
-    low = estimates[int(tail * (RESAMPLES - 1))]
-    high = estimates[int((1 - tail) * (RESAMPLES - 1))]
+    lower_index = int(tail * (RESAMPLES - 1))
+    low = estimates[lower_index]
+    high = estimates[-1 - lower_index]
     return round(low, 4), round(high, 4)
 
 
@@ -128,7 +129,7 @@ def summarize(rows: list, treatment: str, baseline: str) -> dict:
     optional ``assertions`` (a list of booleans).
     """
     treated, base = _outcomes(rows, treatment), _outcomes(rows, baseline)
-    cases = [case for case in treated if case in base]
+    cases = sorted(treated.keys() & base.keys(), key=lambda case: (type(case).__name__, str(case)))
     pairs = [(treated[case], base[case]) for case in cases]
     observations = sum(min(len(t), len(b)) for t, b in pairs)
     relevant = [row for row in rows if row.get('variant') in (treatment, baseline)]

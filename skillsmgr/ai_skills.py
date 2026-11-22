@@ -123,6 +123,10 @@ def _clean_text(value, what: str, limit: int = MAX_PROMPT_CHARS) -> str:
     return text[:limit]
 
 
+def _listed_name(value, names: set[str]) -> bool:
+    return isinstance(value, str) and value in names
+
+
 def normalize_prompts(raw, names: set[str]) -> list[dict]:
     """``[{text, expected}]`` → validated prompts with stable ids."""
     if not isinstance(raw, list) or not raw:
@@ -138,7 +142,7 @@ def normalize_prompts(raw, names: set[str]) -> list[dict]:
         expected = item.get("expected")
         if expected in ("", NONE):
             expected = None
-        if expected is not None and expected not in names:
+        if expected is not None and not _listed_name(expected, names):
             raise AiError(f"prompt {index + 1} expects {expected!r}, which this scope does "
                           "not list", "ai-input")
         prompts.append({"id": f"p{index + 1}", "text": _clean_text(item.get("text"), "a prompt"),
@@ -196,7 +200,7 @@ def _parse_generated(answer, targets: list[str], names: set[str]) -> list[dict]:
         if isinstance(item.get("text"), str):
             better = item.get("better")
             prompts.append({"text": item["text"][:MAX_PROMPT_CHARS],
-                            "expected": better if better in names and better not in targets else None})
+                            "expected": better if _listed_name(better, names) and better not in targets else None})
     if not prompts:
         raise AiError("the model produced no usable prompts; try again", "ai-bad-output", 502)
     return prompts[:MAX_PROMPTS]
@@ -240,14 +244,15 @@ def _batch_request(batch: list[dict]) -> str:
 
 def _record_answers(answer, batch: list[dict], names: set, answers: dict) -> None:
     ids = {p["id"] for p in batch}
-    for row in (answer.get("answers") if isinstance(answer, dict) else None) or []:
-        if not isinstance(row, dict) or row.get("id") not in ids:
+    for row in _items(answer, "answers"):
+        ident = row.get("id")
+        if not _listed_name(ident, ids):
             continue
         choice = row.get("skill")
         runner = row.get("runner_up")
-        answers[row["id"]] = (
-            choice if choice in names else (None if choice in (None, "", "null") else "?invalid"),
-            runner if runner in names else None,
+        answers[ident] = (
+            choice if _listed_name(choice, names) else (None if choice in (None, "", "null") else "?invalid"),
+            runner if _listed_name(runner, names) else None,
         )
 
 
@@ -694,26 +699,55 @@ def _improve_inputs(run: AiRun, listing: dict, name: str, payload: dict) -> tupl
 
 def _improves(overall: dict, holdout: dict, base_all: dict, base_hold: dict) -> bool:
     """Recommend only a candidate that wins overall without losing on held-out prompts."""
-    if overall["score"] is None or base_all["score"] is None:
+    if any(row["score"] is None for row in (overall, holdout, base_all, base_hold)):
         return False
     return (overall["score"] > base_all["score"]
-            and (holdout["score"] or 0) >= (base_hold["score"] or 0)
+            and holdout["score"] >= base_hold["score"]
             and (overall["recall"] or 0) >= (base_all["recall"] or 0))
+
+
+OVERFIT_GAP = 0.2
+MIN_GAP_PROMPTS = 4
+
+
+def _gap(summary: dict) -> float | None:
+    """Score on prompts the rewriter saw minus score on held-out prompts.
+
+    A large gap means the rewrite fits the examples it was shown more than new
+    requests (reflective prompt optimizers show this at small validation sizes,
+    arXiv 2610.12601).
+    """
+    sizes = [sum(1 for r in summary["prompts"] if r.get("split") == split and r["answered"] > 0)
+             for split in ("train", "holdout")]
+    if min(sizes) < MIN_GAP_PROMPTS:
+        return None  # one prompt would swing a tiny split by 25 points or more
+    train, hold = _score(summary, "train")["score"], _score(summary, "holdout")["score"]
+    return None if train is None or hold is None else round(train - hold, 4)
+
+
+def _candidate_row(candidate: dict, summary: dict, base_all: dict, base_hold: dict) -> dict:
+    overall, holdout, gap = _score(summary), _score(summary, "holdout"), _gap(summary)
+    return {**candidate, "overall": overall, "holdout": holdout, "gap": gap,
+            "overfit": gap is not None and gap >= OVERFIT_GAP,
+            "recommended": _improves(overall, holdout, base_all, base_hold),
+            "chars": len(candidate["description"]), "prompts": _strip_marks(summary)["prompts"]}
+
+
+def _selection_note(count: int) -> str:
+    if count < 2:
+        return ""
+    return (f"The best of {count} proposals can score higher here than on new requests. "
+            "The held-out prompts also help select proposals, so an independent test set gives a better estimate.")
 
 
 def _ranked(baseline: dict, scored: list[tuple[dict, dict]]) -> dict:
     base_all, base_hold = _score(baseline), _score(baseline, "holdout")
-    ranked = []
-    for candidate, summary in scored:
-        overall, holdout = _score(summary), _score(summary, "holdout")
-        ranked.append({**candidate, "overall": overall, "holdout": holdout,
-                       "recommended": _improves(overall, holdout, base_all, base_hold),
-                       "chars": len(candidate["description"]),
-                       "prompts": _strip_marks(summary)["prompts"]})
+    ranked = [_candidate_row(candidate, summary, base_all, base_hold) for candidate, summary in scored]
     ranked.sort(key=lambda c: (c["recommended"], c["overall"]["score"] or 0), reverse=True)
     return {"baseline": {"overall": base_all, "holdout": base_hold,
                          "prompts": _strip_marks(baseline)["prompts"]},
             "candidates": ranked,
+            "selection_note": _selection_note(len(ranked)),
             "verdict": "improved" if any(c["recommended"] for c in ranked) else "no-better-candidate"}
 
 
