@@ -424,6 +424,12 @@ def _with_external_evidence(source_review: dict, staged: Path, options: dict | N
     return source_review
 
 
+def _with_local_edit(record: dict, local_edit: bool) -> dict:
+    if local_edit:
+        record['local_edit'] = True
+    return record
+
+
 def _prepare_from_source(
     data_dir: Path,
     name: str,
@@ -434,6 +440,7 @@ def _prepare_from_source(
     source_record: dict,
     rollback_from_snapshot: str | None = None,
     external_scan: dict | None = None,
+    local_edit: bool = False,
 ) -> dict:
     target = _resolve_target(data_dir, name, scope, target_path)
     try:
@@ -497,7 +504,7 @@ def _prepare_from_source(
             "resulting_disabled": target["disabled"],
             "rollback_from_snapshot": rollback_from_snapshot,
         }
-        _write_record(directory, record)
+        _write_record(directory, _with_local_edit(record, local_edit))
         return _copy_public_preview(record)
     except SourceUpdateError:
         if directory.exists() and directory.is_dir() and not directory.is_symlink():
@@ -518,6 +525,7 @@ def prepare_local_update(
     target_path: str | Path | None = None,
     source_value: str | None = None,
     external_scan: dict | None = None,
+    local_edit: bool = False,
 ) -> dict:
     """Stage and preview one local candidate without changing the target."""
     data = _data_path(data_dir)
@@ -528,7 +536,7 @@ def prepare_local_update(
     except (SourceLockError, OSError) as exc:
         raise SourceUpdateError("candidate-unsafe", "source identity is not safe to retain") from exc
     return _prepare_from_source(data, name, scope, source, target_path, source_record=source_record,
-                                external_scan=external_scan)
+                                external_scan=external_scan, local_edit=local_edit)
 
 
 def _path_digest(target: dict) -> str:
@@ -822,6 +830,7 @@ def commit_update_review(
                     snapshot_root=snapshot_root,
                     name=name,
                     source=record["source"],
+                    local_edit=record.get("local_edit") is True,
                 )
             except SourceLockError as exc:
                 raise _commit_error(exc, Path(target["physical_path"]), candidate, record) from exc

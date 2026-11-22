@@ -20,6 +20,7 @@ from . import sidecar_binding
 from .sidecar_binding import MANAGER_SIDECARS, PROVENANCE_FILENAME, SOURCE_LOCK_FILENAME
 from .atomic_io import atomic_write_text, mutation_lock
 from .diagnostics import diagnose as _diagnose
+from .file_reads import read_regular_file
 from .risk import risk_file_listing, risk_scan
 from .validator import validate_text
 from .clock import now_iso
@@ -665,7 +666,12 @@ def _source_recovery_error(error: OSError, backup: Path, staged_root: Path,
     )
 
 
-def _swap_and_bind(current: Path, staged_root: Path, backup: Path) -> None:
+def _bind_update_destination(current: Path, bind: bool) -> None:
+    if bind:
+        _bind_staged_lock(current, current)
+
+
+def _swap_and_bind(current: Path, staged_root: Path, backup: Path, *, bind: bool = True) -> None:
     """Swap trees and restore the prior tree and binding if binding fails."""
     if backup.exists() or backup.is_symlink():
         raise SourceLockError("rollback staging path already exists")
@@ -684,7 +690,7 @@ def _swap_and_bind(current: Path, staged_root: Path, backup: Path) -> None:
                 raise _source_recovery_error(exc, backup, staged_root, binding_backup) from exc
             raise
         try:
-            _bind_staged_lock(current, current)
+            _bind_update_destination(current, bind)
         except Exception:
             try:
                 os.replace(current, staged_root)
@@ -710,10 +716,36 @@ def _remove_stage_binding(staged_root: Path) -> None:
         pass
 
 
+def _preserve_edit_sidecars(current: Path, staged_root: Path) -> None:
+    # Keep the original bytes and existing path bindings. An edited skill's
+    # content will still compare against the upstream baseline it was installed from.
+    for name in MANAGER_SIDECARS:
+        source = current / name
+        if os.path.lexists(source):
+            try:
+                raw = read_regular_file(source, MAX_SOURCE_FILE_BYTES, follow_symlinks=False)
+            except (OSError, ValueError) as exc:
+                raise SourceLockError('existing install metadata could not be preserved') from exc
+            (staged_root / name).write_bytes(raw)
+            (staged_root / name).chmod(0o600)
+
+
+def _stage_update_lock(staged_root: Path, current: Path, fresh: dict, source, review: dict, local_edit: bool):
+    if local_edit:
+        _preserve_edit_sidecars(current, staged_root)
+        return None
+    lock_source = source or fresh['source']
+    state = 'known-verified' if isinstance(lock_source, dict) and lock_source.get('digest') else 'known-unverified'
+    lock = source_lock_record(lock_source, fresh['candidate_hash'], fresh['target'],
+                              state=state, review_id=review['review_id'])
+    write_source_lock(staged_root, lock)
+    return lock
+
+
 def commit_local_update(current: str | Path, candidate: str | Path, *, target: dict,
                         review: dict, approve: bool = False, snapshot_root: str | Path | None = None,
                         provenance: dict | None = None, name: str | None = None,
-                        source: dict | None = None) -> dict:
+                        source: dict | None = None, local_edit: bool = False) -> dict:
     """Apply one previously reviewed candidate with a recoverable snapshot.
 
     The review is re-run while holding the same cross-process mutation lock used
@@ -746,14 +778,8 @@ def commit_local_update(current: str | Path, candidate: str | Path, *, target: d
         try:
             _copy_tree_without_manager_sidecars(candidate, stage / current.name)
             staged_root = stage / current.name
-            lock_source = source or fresh["source"]
-            state = "known-verified" if isinstance(lock_source, dict) and lock_source.get("digest") else "known-unverified"
-            lock = source_lock_record(
-                lock_source, fresh["candidate_hash"],
-                fresh["target"], state=state, review_id=review["review_id"],
-            )
-            write_source_lock(staged_root, lock)
-            _swap_and_bind(current, staged_root, backup)
+            lock = _stage_update_lock(staged_root, current, fresh, source, review, local_edit)
+            _swap_and_bind(current, staged_root, backup, bind=not local_edit)
             # The transaction is committed; cleanup must not report a failed
             # update after its rollback tree has already been partly removed.
             shutil.rmtree(backup, ignore_errors=True)

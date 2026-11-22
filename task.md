@@ -8,6 +8,23 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## AI authoring and skill lifecycle research (2026-11-22)
+
+- [x] Review public user reports, comparable products, evaluation research, and
+  current AI code. Record the recommended authoring and testing sequence and
+  later maintenance options in @docs/58-ai-authoring-and-skill-lifecycle-research-2026-11-22.md.
+- [x] Integrate AI drafting and text editing into the v2 create and edit entry
+  points. Bind confirmed requests to the previewed inputs and model destination,
+  and use exact-copy source review and snapshots for edits.
+- [x] Compare reviewed versions and optionally a second model. Connect a failed
+  request to discovery checks, simulation, saved regression cases and edit review.
+- [x] Surface AI maintenance from the reader, compare upstream candidates and
+  explain Sync map and Inbox excerpts. Let users download comparison evidence.
+- [ ] Extend attended native-agent validation beyond the existing evidence and
+  verify support before adding more native trace formats. See the gated fidelity
+  study below. The research report also tracks capture automation, executable
+  bundles, and managed publishing as separate follow-ons.
+
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 
 - [x] Audit the existing layouts with agent-browser and agent-desktop. Consult

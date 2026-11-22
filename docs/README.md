@@ -54,6 +54,7 @@
 | @docs/50-rust-size-and-performance-assessment-2026-11-17.md | Measured size/performance, Rust/native/hybrid tradeoffs and migration gates | Before changing language, runtime or UI stack |
 | @docs/52-list-request-performance-2026-11-19.md | Profile and measured speed-ups of the all-scope list request, rejected options, equivalence pins | Before touching the list route, path containment helpers or response serialization |
 | @docs/53-apm-and-interface-decisions-2026-11-20.md | APM audit handoff, v2 type-scale comparison and contrast measurements | Before extending APM support or changing the v2 type scale or palette |
+| @docs/58-ai-authoring-and-skill-lifecycle-research-2026-11-22.md | User reports, comparable products, shipped AI inventory, and ranked authoring, evaluation and maintenance proposals | Before selecting the next AI feature or changing the skill authoring flow |
 | @docs/57-v2-mobbin-and-comparison-references-2026-11-21.md | Public Mobbin community references, narrow-screen diff walkthroughs and supporting-file evidence | Before revising selected-copy details, Sync map, Inbox or Recovery |
 | @docs/56-v2-reference-selection-loop-2026-11-21.md | Cross-product shortlist, exact workflow comparisons, and the GitHub source review | Before revising v2 Skills, Install, Quality, Sync map or Recovery |
 | @docs/55-v2-ui-reference-study-2026-11-21.md | Earlier reference selection and local v2 measurements | When comparing against the original discovery and recovery baseline |

@@ -31,7 +31,8 @@ def _library(scope_id: str) -> dict[str, dict]:
     library: dict[str, dict] = {}
     for record in records:
         name = record.get("name")
-        if not isinstance(name, str) or record.get("disabled") or record.get("decode_error"):
+        if not isinstance(name, str) or any(record.get(key) for key in (
+                "disabled", "decode_error", "malformed", "document_missing", "link_escape")):
             continue
         entry = library.setdefault(name, {"description": "", "scopes": []})
         if not entry["description"] and isinstance(record.get("description"), str):
@@ -65,18 +66,22 @@ def _question(payload: dict) -> tuple[str, str]:
 
 def _matches(answer, library: dict[str, dict], sent: list[str]) -> tuple[list[dict], int]:
     """Suggested skills that exist; duplicates skipped, invented names counted."""
-    matches, invented, allowed = [], 0, set(sent)
+    matches, invented = [], 0
     for item in _items(answer, "skills")[:MAX_MATCHES * 2]:
         name = item.get("name")
         if any(m["name"] == name for m in matches):
             continue
-        if name not in allowed:
+        if name not in sent:
             invented += 1
             continue
         matches.append({"name": name, "scopes": library[name]["scopes"],
                         "description": library[name]["description"][:300],
                         "why": str(item.get("why") or "")[:300]})
     return matches[:MAX_MATCHES], invented
+
+
+def _ask_plan(run: AiRun, payload: dict, scope: str, request: str) -> dict:
+    return run.review_plan(payload, [scope, request]) if payload.get('reviewed') is True else {}
 
 
 def ask_library(data_dir: Path, payload: dict) -> dict:
@@ -89,15 +94,17 @@ def ask_library(data_dir: Path, payload: dict) -> dict:
     listing = "\n".join(f"- {n} [{', '.join(str(s) for s in library[n]['scopes'])}]: "
                         f"{library[n]['description'][:300]}" for n in sent)
     run = AiRun(data_dir, "ask-library", estimate_only=bool(payload.get("estimate")))
-    answer = run.ask_json(_SYSTEM, "Skill listing:\n" + untrusted_block("skill-listing", listing)
-                          + "\n\nQuestion:\n" + untrusted_block("question", question)
-                          + '\n\nAnswer as JSON: {"answer":"<two sentences>",'
-                            '"skills":[{"name":"<exact name>","why":"<one sentence>"}]}',
-                          max_output=700)
+    request = ("Skill listing:\n" + untrusted_block("skill-listing", listing)
+               + "\n\nQuestion:\n" + untrusted_block("question", question)
+               + '\n\nAnswer as JSON: {"answer":"<two sentences>",'
+                 '"skills":[{"name":"<exact name>","why":"<one sentence>"}]}')
+    plan = _ask_plan(run, payload, scope_id, request)
+    answer = run.ask_json(_SYSTEM, request, max_output=700)
     where = ("a model running on this machine" if run.config["local"]
              else f"{run.config['label']} ({run.config['base_url']})")
-    result = {"kind": "ask-library", "scope": scope_id, "question": question,
+    result = {**plan, "kind": "ask-library", "scope": scope_id, "question": question,
               "searched": len(library), "sent": len(sent),
+              "shortlist": sent,
               "egress": [f"Your question and the names and first 300 description characters of "
                          f"{len(sent)} skills go to {where}. No skill bodies are sent."],
               "run": run.label()}

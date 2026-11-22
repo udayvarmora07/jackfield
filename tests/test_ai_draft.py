@@ -29,7 +29,9 @@ class DraftProvider(FakeProvider):
                 text = '---\nname: [one, two]\ndescription: Use for reports.\n---\n# Test\nDo it.'
             if self.mode == 'oversized':
                 text += 'line\n' * 501
-            answer = {'skill': text}
+            answer = {'skill': text, 'cases': [{'text': 'Build a database report', 'should_trigger': True},
+                                              {'text': 'Write a poem', 'should_trigger': False}],
+                      'assumptions': ['Which database engine?']}
         elif 'realistic test requests' in system:
             import re
             names = re.findall(r'^- ([a-z0-9-]+):', user, re.M)
@@ -117,6 +119,24 @@ class DraftTests(unittest.TestCase):
         self.assertGreater(result['run']['estimated_input_tokens'], 0)
         self.assertEqual(DraftProvider.calls, [])
         self.assertFalse((self.root / 'ai' / 'runs').exists())
+
+    def test_authoring_needs_one_call_and_excludes_the_catalog(self):
+        payload = {'verify': False, 'context': 'Use the example output'}
+        estimate = self.run_draft(**payload, estimate=True)
+        self.assertEqual(estimate['status'], 'estimate')
+        self.assertEqual(DraftProvider.calls, [])
+        with self.assertRaises(ai.AiError):
+            self.run_draft(**{**payload, 'context': 'An unreviewed example'}, plan=estimate['plan'])
+        self.assertEqual(DraftProvider.calls, [])
+        result = self.run_draft(**payload, plan=estimate['plan'])
+        self.assertEqual(result['status'], 'draft')
+        self.assertEqual([row['should_trigger'] for row in result['cases']], [True, False])
+        self.assertEqual(result['assumptions'], ['Which database engine?'])
+        self.assertEqual(len(DraftProvider.calls), 1)
+        request = DraftProvider.calls[0]['messages'][1]['content']
+        self.assertIn('Use the example output', request)
+        self.assertNotIn('existing', request)
+        self.assertFalse((self.root / 'scope' / 'draft-demo').exists())
 
     def test_hidden_name_collision_and_empty_scope(self):
         self.records = [{'name': 'draft-demo', 'disabled': True}]

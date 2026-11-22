@@ -37,7 +37,7 @@
 
   window.SkillsV2ToolCenter = {
     props: {page:String, records:{type:Array,default:()=>[]}, scopes:{type:Array,default:()=>[]}, target:Object, sourceReviewHandoff:Object},
-    emits:['changed','inspect','preference','use-draft','open-source-review','source-review-consumed'],
+    emits:['changed','inspect','preference','use-draft','open-source-review','source-review-consumed','open-record'],
     data() { return {
       busy:false,error:'',result:null,sequence:0,readTokens:{},loading:{},qualityEnvelope:null, tab:'registry', source:'',op:'browse',view:'all-time',stale:false, pageNo:0,review:null,trust:false,
       runnerPreview:'',runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
@@ -441,7 +441,7 @@
       </template>
 
       <template v-else-if="page.startsWith('ai-')">
-        <ai-center :page="page" :records="records" :scopes="scopes" :target="target" @changed="$emit('changed')" @use-draft="$emit('use-draft',$event)" @open-source-review="$emit('open-source-review',$event)"></ai-center>
+        <ai-center :page="page" :records="records" :scopes="scopes" :target="target" @changed="$emit('changed')" @use-draft="$emit('use-draft',$event)" @open-source-review="$emit('open-source-review',$event)" @open-record="$emit('open-record',$event)"></ai-center>
       </template>
 
       <template v-else-if="page==='install'">
@@ -921,6 +921,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
               <p v-if="!((sourceReview.comparison||{}).changed_files||[]).length" class="tp-empty">No file changes — nothing to apply.</p>
               <details v-for="change in ((sourceReview.comparison||{}).changed_files||[])" :key="change.path" class="tp-more"><summary><span :class="['tp-chg', change.status]">{{human(change.status)}}</span> <span class="tp-mono">{{change.path}}</span><span v-if="change.diff_truncated" class="tp-count"> · diff truncated</span></summary><p class="tp-fine">{{change.explanation}}</p><pre v-if="change.diff">{{change.diff}}</pre></details>
               <ai-briefing v-if="((sourceReview.comparison||{}).changed_files||[]).length" kind="update" :review-id="sourceReview.review_id"></ai-briefing>
+              <ai-compare v-if="sourceReview.review_state==='pending' && sourceReview.validation?.valid" :key="sourceReview.review_id" :review-id="sourceReview.review_id"></ai-compare>
               <template v-if="((sourceReview.validation||{}).errors||[]).length || ((sourceReview.validation||{}).warnings||[]).length"><h3>Validation</h3>
               <p v-for="(issue,i) in ((sourceReview.validation||{}).errors||[])" :key="'e'+i" class="tp-issue bad">{{issue.message||issue}}</p>
               <p v-for="(issue,i) in ((sourceReview.validation||{}).warnings||[])" :key="'w'+i" class="tp-issue warn">Warning: {{issue.message||issue}}</p></template>

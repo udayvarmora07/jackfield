@@ -14,6 +14,7 @@ from .ai_skills import (MAX_LISTED, _egress, _generation_request, _GEN_SYSTEM, _
 MAX_BRIEF = 10_000
 MAX_DRAFT = 64_000
 MAX_SAMPLE = 10
+MAX_CONTEXT = 16_000
 _DRAFT_SYSTEM = ('You draft a skill for an AI coding agent from the user brief. '
                  'Return JSON only with a skill field containing complete SKILL.md text. '
                  'Include only name and description frontmatter, followed by instructions. '
@@ -35,7 +36,7 @@ def _inputs(payload: dict) -> tuple[str, str, str | None]:
     return scope, brief.strip(), name or None
 
 
-def _scope_listing(scope: str) -> tuple[dict, set, Path]:
+def _scope_listing(scope: str, *, routing: bool = True) -> tuple[dict, set, Path]:
     try:
         info = scopes.scope_by_id(scope)
         if info is None or not info.writable:
@@ -45,6 +46,8 @@ def _scope_listing(scope: str) -> tuple[dict, set, Path]:
     except Exception as exc:
         raise AiError(f'cannot read scope {scope!r}: {exc}', 'ai-input') from None
     names = {r.get('name') for r in records if isinstance(r.get('name'), str)}
+    if not routing:
+        return {}, names, info.base
     entries, seen = [], set()
     for record in records:
         name = record.get('name')
@@ -79,6 +82,50 @@ def _draft_request(brief: str, name: str | None) -> str:
     return ('Create a skill from this brief:\n' + untrusted_block('brief', brief)
             + ('\nRequired name: ' + untrusted_block('name', name) if name else '')
             + '\nReturn {"skill":"<complete SKILL.md>"}.')
+
+
+def _author_request(brief: str, name: str | None, context: str) -> str:
+    return (_draft_request(brief, name)
+            + '\nUse this optional source material for facts and examples:\n'
+            + untrusted_block('source excerpts', context)
+            + '\nAlso return a cases array (up to six) with text and should_trigger boolean, '
+              'including realistic matches and near misses. Include an assumptions array '
+              'of short unresolved questions. Do not invent prerequisites.')
+
+
+def _draft_suggestions(answer: dict) -> dict:
+    cases, seen = [], set()
+    for row in _items(answer, 'cases')[:12]:
+        if not isinstance(row, dict) or not isinstance(row.get('text'), str) or type(row.get('should_trigger')) is not bool:
+            continue
+        prompt = row['text'].strip()[:600]
+        if prompt and prompt not in seen:
+            seen.add(prompt)
+            cases.append({'text': prompt, 'should_trigger': row['should_trigger']})
+    raw = answer.get('assumptions')
+    assumptions = [x.strip()[:300] for x in raw[:6] if isinstance(x, str) and x.strip()] if isinstance(raw, list) else []
+    return {'cases': cases[:6], 'assumptions': assumptions}
+
+
+def _author_draft(data_dir: Path, payload: dict, scope: str, brief: str, name: str | None) -> dict:
+    context = payload.get('context', '')
+    if not isinstance(context, str) or len(context) > MAX_CONTEXT:
+        raise AiError(f'source excerpts must be at most {MAX_CONTEXT} characters', 'ai-input')
+    _, names, root = _scope_listing(scope, routing=False)
+    if name and (name in names or _entry_exists(root, name)):
+        raise AiError('a skill with this name already exists in this scope', 'ai-input', 409)
+    estimate = payload.get('estimate') is True
+    run = AiRun(data_dir, 'draft-skill', estimate_only=estimate)
+    request = _author_request(brief, name, context)
+    plan = run.review_plan(payload, [scope, request])
+    answer = run.ask_json(_DRAFT_SYSTEM, request, max_output=5000)
+    result = {**plan, 'kind': 'draft-skill', 'scope': scope, 'status': 'estimate', 'run': run.label(),
+              'egress': ['Your brief, optional name, and pasted source excerpts go to the configured model.']}
+    if not estimate:
+        draft, validation = _validate_draft(answer, name, names, root)
+        result.update(draft=draft, validation=validation, **_draft_suggestions(answer),
+                      status='draft' if validation['valid'] else 'invalid')
+    return result
 
 
 def _entry_exists(root: Path, name: str) -> bool:
@@ -191,6 +238,8 @@ def draft_skill(data_dir: Path, payload: dict) -> dict:
     """Produce and verify a draft without writing to any skill directory."""
     payload = payload if isinstance(payload, dict) else {}
     scope, brief, requested = _inputs(payload)
+    if payload.get('verify') is False:
+        return _author_draft(data_dir, payload, scope, brief, requested)
     listing, names, root = _scope_listing(scope)
     if requested and (requested in names or _entry_exists(root, requested)):
         raise AiError('a skill with this name already exists in this scope', 'ai-input', 409)

@@ -106,7 +106,7 @@ def _walk(directory: int, prefix: str, files: dict, directories: dict, budget: l
 
 def _tree_hash(files: dict) -> str:
     digest = hashlib.sha256()
-    for path, (raw, _mode) in sorted(files.items()):
+    for path, (raw, _mode) in sorted(files.items(), key=lambda item: item[0].split('/')):
         encoded = path.encode('utf-8')
         digest.update(len(encoded).to_bytes(8, 'big'))
         digest.update(encoded)
@@ -264,18 +264,19 @@ def _write_candidate(root: Path, files: dict, directories: dict) -> None:
 
 
 def _stage(data_dir: Path, target: dict, original: dict, directories: dict, digest: str,
-           primary: str, prefix: str, proposal: dict) -> dict:
+           primary: str, prefix: str, proposal: dict, *, local_edit: bool = False) -> dict:
     files = dict(original)
     files[primary] = ((prefix + proposal['body']).encode('utf-8'), original[primary][1])
     for ref in proposal['references']:
         files[ref['path']] = (ref['text'].encode('utf-8'), 0o600)
-    with tempfile.TemporaryDirectory(prefix='skillsmgr-concise-') as temp:
+    with tempfile.TemporaryDirectory(prefix='skillsmgr-ai-candidate-') as temp:
         candidate = Path(temp) / 'candidate'
         candidate.mkdir(mode=0o700)
         _write_candidate(candidate, files, directories)
         review = source_update.prepare_local_update(data_dir, target['name'], target['scope'], candidate,
                                                     target_path=target['physical_path'],
-                                                    source_value='skillsmgr-ai-concise')
+                                                    source_value='skillsmgr-ai-edit' if local_edit else 'skillsmgr-ai-concise',
+                                                    local_edit=local_edit)
     try:
         current_files, current_directories, current_digest = _capture(Path(target['physical_path']))
         if (review.get('current_hash') != digest or current_digest != digest

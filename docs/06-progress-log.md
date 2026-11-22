@@ -7,6 +7,35 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Integrate AI authoring into the v2 skill lifecycle
+
+- Added editable drafts with optional examples and confirmed trigger cases to
+  New skill. Added selected-text and whole-body proposals to the exact-copy
+  editor, with a current-tree check, explicit apply and Recovery snapshot.
+- Integrated paired output comparisons, downloadable evidence, agent discovery
+  and routing diagnosis, browser-local OpenCode trace reading, and a handoff
+  from a failed request to the editor. Added shortlist preview and copy links
+  to library search, plus cited explanations in Sync map and Inbox comparisons.
+  See @docs/08-web-ui.md.
+- Hostile review fixes: the edit preview plan now binds the selected offsets,
+  so a repeated phrase cannot be swapped after preview. A failing second
+  comparison model keeps the first model's paid results as a `partial` run with
+  `alternate_error`, and results list every model used. A JSON `null` example
+  counts as absent. Added plan-binding, second-model and CRLF round-trip tests.
+  Verified: 2,494-test suite, docs, complexity, both smoke tests and the v2
+  browser e2e suite (56 checks), rerun after the fixes with 2,500 tests.
+
+## 2026-11-22 — Research AI authoring and the skill lifecycle
+
+- Compared current AI workflows with user reports, vendor implementations and
+  paired skills evaluations. Recommended in-context AI creation and exact-copy
+  editing, followed by comparative tests and runtime diagnosis.
+- Documented shipped capabilities, a ranked backlog, proposed acceptance tasks,
+  and the limits of present simulation and native evidence. See
+  @docs/58-ai-authoring-and-skill-lifecycle-research-2026-11-22.md.
+- Passed the documentation consistency check and the focused AI verification
+  runner, including 85 tests and the saved-evidence dry run.
+
 ## 2026-11-22 — Compare exact copies and review agent restores
 
 - Applied the comparison research to Sync map and Inbox. Both show the

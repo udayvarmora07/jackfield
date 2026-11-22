@@ -38,7 +38,7 @@
 
   <main id="main" ref="main" tabindex="-1" :inert="!!dialog">
     <!-- loading / failure -->
-    <tool-center v-if="route.page === 'tools'" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
+    <tool-center v-if="route.page === 'tools'" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
     <div class="page" v-else-if="loading && !m">
       <h1 class="h1" id="h1" tabindex="-1">Looking at your agents…</h1>
       <p class="lede">Reading the skill folders on this computer.</p>
@@ -172,6 +172,7 @@
         <div class="nb-main">
           <div class="nb-bar"><a href="#/skills">Skills</a><span aria-hidden="true">/</span><b>{{ skill.name }}</b>
             <span class="acts" v-if="!edit">
+              <button type="button" class="btn btn-line btn-sm" v-if="refCopy" @click="openAiDiagnosis()">Why didn’t it run?</button>
               <button type="button" class="btn btn-line btn-sm" @click="openShare()" v-if="refCopy && shareTargets.length"><ic name="share" cls="i-s"></ic>Add to agent</button>
               <button type="button" class="btn btn-ink btn-sm" @click="startEdit()" :disabled="!canEdit || docPending" :title="editWhy || null"><ic name="pencil" cls="i-s"></ic>Edit<span class="sr-only" v-if="editWhy"> — {{ editWhy }}</span></button></span></div>
 
@@ -220,6 +221,9 @@
               <div class="note"><h2 class="note-h">Length</h2><p>About {{ fmt(words(skill.tokens)) }} words · {{ lengthPct }}% of a reading window</p></div>
               <div class="note"><h2 class="note-h">History</h2><p class="state-note err" v-if="skillHistoryError">{{skillHistoryError}} <button class="btn btn-line btn-sm" @click="loadSkillHistory()">Retry</button></p><ul class="hist"><li v-for="(h, i) in skillHistory" :key="i">{{ h.action }}<small>{{ fmtDate(h.at) }}</small></li><li v-if="!skillHistory.length && !skillHistoryError">No recorded changes<small>Edits made here are listed</small></li></ul><a href="#/recovery">Open history and snapshots</a></div>
               <div class="note"><details class="paths"><summary>Folder locations and source updates</summary><div v-for="c in skill.copies" :key="c.scope + '/' + (c.record.path || c.path)"><code>{{ shortPath(c.record.path || c.path) }}</code><button class="btn btn-line btn-sm" v-if="!c.readOnly && c.record.addressable !== false && agentOf(c.scope).writable && c.state !== 'link'" @click="openSource(c.record)">Review local update</button></div></details></div>
+              <div class="note" v-if="refCopy"><details class="paths"><summary>AI maintenance</summary>
+                <div class="tp-acts"><button type="button" class="btn btn-line btn-sm" @click="openSkillTool('ai-ask')">Find related skills</button><button type="button" class="btn btn-line btn-sm" v-if="refCopy.state === 'on'" @click="openSkillTool('ai-port')">Check agent compatibility</button><a class="tp-link" href="#/tools/ai-overlap">Check collection overlap</a><a class="tp-link" href="#/tools/ai-profile">Suggest a project profile</a></div>
+              </details></div>
               <div><button type="button" class="btn btn-danger btn-sm" @click="openTrash()"><ic name="trash" cls="i-s"></ic>Move to trash</button></div>
               <details><summary>Permanent removal</summary><p class="sub">Deletes selected copies without trash or Undo.</p><button type="button" class="btn btn-danger btn-sm" @click="openPermanentDelete()">Delete permanently</button></details>
             </aside>
@@ -239,8 +243,9 @@
                 <div class="ed-tabs" role="tablist" aria-label="Editor">
                   <button type="button" role="tab" :aria-selected="edit.tab === 'write'" @click="edit.tab = 'write'">Write</button>
                   <button type="button" role="tab" :aria-selected="edit.tab === 'preview'" @click="edit.tab = 'preview'">Preview</button>
-                  <span class="ed-tools" role="toolbar" aria-label="Formatting" v-if="edit.tab === 'write'">
+                  <span class="ed-tools" role="toolbar" aria-label="Edit instructions" v-if="edit.tab === 'write'">
                     <button type="button" title="Heading" @click="insertText('## ')">H</button><button type="button" title="Bullet list" @click="insertText('- ')">• List</button><button type="button" title="Numbered list" @click="insertText('1. ')">1. List</button><button type="button" title="Bold" @click="wrapText('**')"><b>B</b></button></span>
+                  <button type="button" class="btn btn-line btn-sm" v-if="edit.tab === 'write'" :disabled="busy || !edit.copy.hash" @click="openAiEdit()">Edit with AI</button>
                 </div>
                 <template v-if="edit.tab === 'write'"><label class="sr-only" for="ed-body">Instructions</label><textarea class="ed-area" id="ed-body" ref="edbody" spellcheck="true" v-model="edit.body"></textarea></template>
                 <div class="doc" style="margin-top:20px" v-else v-html="renderDoc(edit.body)"></div>
@@ -485,6 +490,35 @@
       <div class="dlg-h"><h2 id="dlg-t">{{ dialog.title }}</h2></div>
       <div class="dlg-b">
         <p v-for="(line, i) in dialog.lines" :key="i">{{ line }}</p>
+        <ai-diagnostic v-if="dialog.diagnosis" :copy="dialog.diagnosis" :records="records" :editable="canEdit" @repair="repairAiDiagnosis($event)"></ai-diagnostic>
+        <template v-if="dialog.aiEdit">
+          <p>{{ dialog.aiEdit.name }} in {{ agentOf(dialog.aiEdit.target.scope).name }} <code>{{ dialog.aiEdit.target.path }}</code></p>
+          <details v-if="dialog.aiEdit.selectedText" class="tp-more"><summary>Selected text</summary><pre>{{ dialog.aiEdit.selectedText }}</pre></details>
+          <p v-else>The proposal will cover the full instructions.</p>
+          <label class="ed-label" for="ai-edit-instruction">What should change?</label>
+          <textarea class="field instance-create-body" id="ai-edit-instruction" rows="3" maxlength="4000" v-model="dialog.aiEdit.instruction" :disabled="busy"></textarea>
+          <label class="ed-label" for="ai-edit-example">Failed request or example (optional)</label>
+          <textarea class="field instance-create-body" id="ai-edit-example" rows="3" maxlength="8000" v-model="dialog.aiEdit.example" :disabled="busy"></textarea>
+          <div class="tp-acts"><button type="button" class="btn btn-line" :disabled="busy || dialog.aiEdit.pending || !dialog.aiEdit.instruction.trim()" @click="requestAiEdit(true)">Preview AI request</button></div>
+          <p v-if="dialog.aiEdit.pending" role="status">Preparing edit…</p>
+          <p v-if="dialog.aiEdit.error" class="state-note err" role="alert">{{ dialog.aiEdit.error }}</p>
+          <div v-if="dialog.aiEdit.estimate && dialog.aiEdit.key === JSON.stringify(aiEditInput(true))" class="ai-confirm">
+            <template v-if="!dialog.aiEdit.result">
+              <p>{{ dialog.aiEdit.estimate.egress[0] }} {{ dialog.aiEdit.estimate.run.model }} at <code>{{ dialog.aiEdit.estimate.destination }}</code> · estimated {{ fmt(dialog.aiEdit.estimate.run.estimated_input_tokens) }} input tokens.</p>
+              <button type="button" class="btn btn-ink" :disabled="dialog.aiEdit.pending" @click="requestAiEdit(false)">Generate edit</button>
+            </template>
+            <template v-else>
+              <h3>Review changes</h3>
+              <pre v-for="file in dialog.aiEdit.result.review.comparison?.changed_files" :key="file.path" class="ai-run-text">{{ file.diff?.join('\n') }}</pre>
+              <details class="tp-more"><summary>Full proposed instructions</summary><pre>{{ dialog.aiEdit.result.proposed }}</pre></details>
+              <p v-if="dialog.aiEdit.result.status === 'no-change'">The draft matches the current skill.</p>
+              <p v-for="(issue, i) in dialog.aiEdit.result.review.validation?.errors" :key="i" class="state-note err">{{ issue.message || issue }}</p>
+              <p v-for="(finding, i) in dialog.aiEdit.result.review.risk?.findings" :key="'risk'+i" class="tp-issue warn">{{ finding.message || finding }}</p>
+              <ai-compare v-if="dialog.aiEdit.result.status === 'pending'" :key="dialog.aiEdit.result.review.review_id" :review-id="dialog.aiEdit.result.review.review_id" :example="dialog.aiEdit.example"></ai-compare>
+              <button type="button" class="btn btn-ink" v-if="dialog.aiEdit.result.status === 'pending' && dialog.aiEdit.result.review.validation?.valid" :disabled="busy || dialog.aiEdit.pending" @click="applyAiEdit()">Save reviewed edit</button>
+            </template>
+          </div>
+        </template>
         <template v-if="dialog.recovery">
           <p>This restores the selected skill folder, including its supporting files and on/off state. The original location must be free.</p>
           <dl class="recovery-entry">
@@ -504,6 +538,37 @@
           <p :class="formErrors.desc ? 'ed-err' : 'ed-hint'" id="nf-dhint" style="text-align:left">{{ formErrors.desc || 'Start with “Use this when…”.' }}</p>
           <label class="ed-label" for="nf-scope">Create it in</label>
           <select class="field" id="nf-scope" v-model="dialog.form.scope" style="width:100%"><option v-for="a in createTargets" :key="a.id" :value="a.id">{{ a.name }}</option></select>
+          <details v-if="dialog.author" class="instance-metadata">
+            <summary>Create with AI</summary>
+            <label class="ed-label" for="nf-brief">What should the skill do?</label>
+            <textarea class="field instance-create-body" id="nf-brief" rows="3" maxlength="10000" v-model="dialog.author.brief"></textarea>
+            <label class="ed-label" for="nf-excerpts">Source excerpts or examples (optional)</label>
+            <textarea class="field instance-create-body" id="nf-excerpts" rows="3" maxlength="16000" v-model="dialog.author.context"></textarea>
+            <div class="tp-acts">
+              <button type="button" class="btn btn-line" :disabled="dialog.author.pending || !dialog.author.brief.trim()" @click="requestAuthorDraft(true)">Preview AI request</button>
+            </div>
+            <div v-if="dialog.author.estimate && dialog.author.key === JSON.stringify(authorInput(true)) && !dialog.author.result" class="ai-confirm">
+              <p>{{ dialog.author.estimate.egress[0] }} {{ dialog.author.estimate.run.model }} at <code>{{ dialog.author.estimate.destination }}</code> · estimated {{ fmt(dialog.author.estimate.run.estimated_input_tokens) }} input tokens.</p>
+              <button type="button" class="btn btn-ink" :disabled="dialog.author.pending" @click="requestAuthorDraft(false)">Generate draft</button>
+            </div>
+            <p v-if="dialog.author.pending" role="status">Preparing draft…</p>
+            <p class="state-note err" v-if="dialog.author.error" role="alert">{{ dialog.author.error }}</p>
+            <div v-if="dialog.author.result" class="ai-confirm">
+              <template v-if="dialog.author.result.validation.valid">
+                <p><strong>{{ dialog.author.result.draft.name }}</strong> · {{ dialog.author.result.draft.description }}</p>
+                <pre class="ai-run-text">{{ dialog.author.result.draft.body }}</pre>
+                <ul v-if="dialog.author.result.assumptions.length"><li v-for="(item, i) in dialog.author.result.assumptions" :key="i">{{ item }}</li></ul>
+                <button type="button" class="btn btn-line" @click="useAuthorDraft()">Use draft in form</button>
+              </template>
+              <ul v-else><li v-for="(issue, i) in dialog.author.result.validation.issues" :key="i">{{ issue.message }}</li></ul>
+            </div>
+            <fieldset v-if="dialog.author.cases.length" class="instance-metadata">
+              <legend>Save selected trigger cases with this skill</legend>
+              <label v-for="row in dialog.author.cases" :key="row.text" class="pick">
+                <input type="checkbox" v-model="row.selected"><span>{{ row.text }}<small>{{ row.should_trigger ? 'Should trigger' : 'Near miss' }}</small></span>
+              </label>
+            </fieldset>
+          </details>
           <label class="ed-label" for="nf-template">Start from a stored template</label><select class="field" id="nf-template" v-model="dialog.form.template" @change="loadCreateTemplate()"><option value="">Default structure</option><option v-for="name in createTemplates" :key="name" :value="name">{{name}}</option></select>
           <details class="instance-metadata"><summary>Additional metadata</summary><div class="instance-fields"><label v-for="field in ['category','version','license','compatibility','allowed_tools']" :key="field">{{field==='allowed_tools'?'Allowed tools':titleCase(field)}}<input class="field" v-model="dialog.form[field]"></label></div></details>
           <label class="ed-label" for="nf-body">Instructions</label><textarea class="field instance-create-body" id="nf-body" rows="8" v-model="dialog.form.body" :disabled="dialog.templateLoading"></textarea>
@@ -527,6 +592,7 @@
 <script src="model.js"></script>
 <script src="library-tools.js"></script>
 <script src="ai-center.js"></script>
+<script src="ai-diagnostic.js"></script>
 <script src="tool-center.js"></script>
 <script src="app.js"></script>
 </body>

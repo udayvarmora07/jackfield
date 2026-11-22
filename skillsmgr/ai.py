@@ -995,6 +995,16 @@ class AiRun:
             "input_sha256": hashlib.sha256(sent.encode("utf-8")).hexdigest(),
         })
 
+    def review_plan(self, payload: dict, inputs: object) -> dict:
+        """Bind an explicit send to the previewed inputs and model destination."""
+        destination = {key: self.config[key] for key in ('provider', 'model', 'base_url')}
+        encoded = json.dumps([self.feature, destination, inputs], ensure_ascii=True,
+                             sort_keys=True, separators=(',', ':')).encode('utf-8')
+        digest = hashlib.sha256(encoded).hexdigest()
+        if not self.estimate_only and payload.get('plan') != digest:
+            raise AiError('the inputs or model connection changed. Preview the request again', 'ai-conflict', 409)
+        return {'plan': digest, 'destination': destination['base_url']}
+
     def label(self) -> dict:
         """Provenance attached to every result: who answered, what it cost."""
         return {

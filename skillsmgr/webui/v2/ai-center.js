@@ -11,7 +11,7 @@
 
   window.SkillsV2AiCenter = {
     props: { page: String, records: { type: Array, default: () => [] }, scopes: { type: Array, default: () => [] }, target: Object },
-    emits: ["changed", "use-draft", "open-source-review"],
+    emits: ["changed", "use-draft", "open-source-review", "open-record"],
     data() {
       return {
         settings: null, form: { provider: "", model: "", base_url: "", api_key: "", max_run_tokens: 300000, max_day_tokens: 2000000 },
@@ -20,7 +20,7 @@
         estimate: null, result: null,
         portName: "", portTarget: "codex", ported: null,
         explainName: "", explained: null,
-        question: "", askScope: "all", asked: null,
+        question: "", askScope: "all", asked: null, askEstimate: null, askKey: "",
         evalName: "", evalMax: 10, evalResult: null, evalEstimate: null,
         savedCount: 0, savedPrompts: [], savedNote: "", savedError: "", savedBusy: false, savedRequest: 0,
         pastRuns: [], pastRun: null, historyError: "", historyBusy: false, historyRequest: 0,
@@ -128,7 +128,20 @@
       async explain(estimate) { const r = await this.guard(() => post("/api/ai/explain-findings", { scope: this.scope, name: this.explainName, estimate })); if (r) { this.explained = r; if (!estimate) this.load(); } },
       opinionFor(i) { return ((this.explained && this.explained.opinions) || []).find((o) => o.index === i) || null; },
       opinionLabel(o) { return { "likely-real": ["warn", "Likely a real concern"], "likely-false-positive": ["ok", "Likely a false positive"], unclear: ["off", "No clear opinion"] }[o] || ["off", o]; },
-      async ask() { const r = await this.guard(() => post("/api/ai/ask", { question: this.question, scope: this.askScope })); if (r) { this.asked = r; this.load(); } },
+      askInputKey() { return JSON.stringify([this.question.trim(), this.askScope]); },
+      async ask(estimate) {
+        const key = this.askInputKey();
+        if (this.busy || !this.question.trim() || (!estimate && this.askKey !== key)) return;
+        this.asked = null;
+        const result = await this.guard(() => post("/api/ai/ask", { question: this.question, scope: this.askScope,
+          reviewed: true, estimate, plan: estimate ? undefined : this.askEstimate?.plan }));
+        if (!result || key !== this.askInputKey() || this.page !== "ai-ask") return;
+        if (estimate) { this.askEstimate = result; this.askKey = key; }
+        else this.asked = result;
+      },
+      matchingCopies(match) {
+        return this.records.filter(r => r.name === match.name && match.scopes.includes(r.scope) && !r.disabled).slice(0, 12);
+      },
       skillHref(name) { return "#/skill/" + encodeURIComponent(name); },
       librarySkills() { return [...new Set(this.records.filter((r) => r.scope === "global").map((r) => r.name))].sort(); },
       evalBody(estimate) { return { name: this.evalName, max_cases: Number(this.evalMax), estimate }; },
@@ -281,6 +294,13 @@
       takeHandoff() {
         let t = null;
         try { t = JSON.parse(sessionStorage.getItem(HANDOFF) || "null"); sessionStorage.removeItem(HANDOFF); } catch (e) { t = null; }
+        if (this.target && this.page === "ai-ask") {
+          this.question = `Find skills related to ${this.target.name}. ${this.target.description || ''}`.slice(0, 500);
+          this.askScope = "all";
+        }
+        if (this.target && this.page === "ai-port") {
+          this.scope = this.target.scope; this.portName = this.target.name;
+        }
         if (!t && this.target && this.page === "ai-improve") t = { scope: this.target.scope, name: this.target.name };
         if (t && t.scope) { this.scope = t.scope; this.$nextTick(() => { if (t.name) this.improveName = t.name; }); }
       },
@@ -663,20 +683,26 @@
         <p class="lede">Describe a task in your own words and get the skills that fit it. Every suggested skill is checked against your real library.</p>
         <section class="card tp-panel" aria-labelledby="ai-ask-h">
           <h2 id="ai-ask-h" class="sr-only">Question</h2>
-          <form class="tp-stack" @submit.prevent="ask()">
+          <form class="tp-stack" @submit.prevent="ask(true)">
             <label for="ai-q" class="tp-fine">Question</label>
             <input id="ai-q" class="field" v-model="question" maxlength="500" placeholder="Which skill helps me write release notes?" autocomplete="off">
             <div class="tp-set"><div class="tp-set-row"><label for="ai-asks"><b>Search</b></label><select id="ai-asks" class="field" v-model="askScope"><option value="all">All agents</option><option v-for="s in agentScopes" :key="s.id" :value="s.id">{{ s.label }}</option></select></div></div>
             <p class="tp-fine">Sends your question with skill names and the first 300 characters of each description; never skill bodies. At most 300 skills, narrowed by matching words first.</p>
-            <div class="tp-acts"><button class="btn btn-ink" type="submit" :disabled="busy || !question.trim()">Ask</button></div>
+            <div class="tp-acts"><button class="btn btn-ink" type="submit" :disabled="busy || !question.trim()">Preview AI request</button></div>
           </form>
+          <div class="ai-confirm" v-if="askEstimate && askKey === askInputKey() && !asked">
+            <p>{{ askEstimate.egress[0] }}</p>
+            <details class="tp-more"><summary>Skill shortlist</summary><p>{{ askEstimate.shortlist.join(', ') }}</p></details>
+            <button type="button" class="btn btn-ink" :disabled="busy" @click="ask(false)">Ask with this shortlist</button>
+          </div>
         </section>
-        <section v-if="asked" class="card tp-panel" aria-labelledby="ai-ans-h" aria-live="polite">
+        <section v-if="asked && askKey === askInputKey()" class="card tp-panel" aria-labelledby="ai-ans-h" aria-live="polite">
           <header class="tp-panel-h"><div><h2 id="ai-ans-h">Answer</h2><p>Searched {{ asked.searched }} skills, sent {{ asked.sent }} · {{ asked.run.model }}</p></div></header>
           <p>{{ asked.answer }}</p>
-          <p v-if="!asked.matches.length" class="tp-empty">No skill in your library fits.</p>
+          <p v-if="!asked.matches.length" class="tp-empty">No match suggested from the shortlist. <a class="tp-link" href="#/tools/install">Browse the registry</a></p>
           <ul class="tp-rows"><li v-for="m in asked.matches" :key="m.name" class="v2-tool-row">
-            <span class="tp-row-main"><a class="tp-link tp-mono" :href="skillHref(m.name)">{{ m.name }}</a><small>{{ m.why }}</small><small>{{ m.scopes.join(', ') }}</small></span></li></ul>
+            <span class="tp-row-main"><strong class="tp-mono">{{ m.name }}</strong><small>{{ m.why }}</small>
+              <button v-for="copy in matchingCopies(m)" :key="copy.scope + ':' + (copy.physical_path || copy.path)" type="button" class="btn btn-line btn-sm" @click="$emit('open-record', copy)" :title="copy.physical_path || copy.path">Open {{ copy.scope }} copy</button></span></li></ul>
           <p v-if="asked.dropped_unknown" class="tp-fine">{{ asked.dropped_unknown }} suggestion(s) were dropped because no such skill exists.</p>
         </section>
       </template>
@@ -878,6 +904,124 @@
           <pre class="ai-run-text tp-mono" tabindex="0" aria-label="Saved run details">{{ runText(pastRun) }}</pre></div>
       </section>
     </div>`,
+  };
+  window.SkillsV2AiCopyBrief = {
+    props: { rows: Array, fromLabel: String, toLabel: String },
+    data() { return { estimate: null, result: null, key: "", busy: false, error: "" }; },
+    computed: {
+      excerpts() {
+        const text = side => this.rows.map(row => row[side]?.text || "").join("\n").slice(0, 12000);
+        return { before: text("before"), after: text("after") };
+      },
+      inputKey() { return JSON.stringify(this.excerpts); },
+    },
+    methods: {
+      async brief(estimate) {
+        const key = this.inputKey;
+        if (this.busy || (!estimate && this.key !== key)) return;
+        this.busy = true; this.error = ""; this.result = null;
+        try {
+          const result = await post("/api/ai/copy-diff", { ...this.excerpts, estimate,
+            plan: estimate ? undefined : this.estimate?.plan });
+          if (key !== this.inputKey) return;
+          if (estimate) { this.estimate = result; this.key = key; }
+          else this.result = result;
+        } catch (error) { if (key === this.inputKey) this.error = error.message; }
+        finally { this.busy = false; }
+      },
+    },
+    template: `<details class="tp-more">
+      <summary>Explain changes with AI</summary>
+      <p class="tp-fine">Uses excerpts from the comparison above, up to 12,000 characters per copy.</p>
+      <button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="brief(true)">Preview AI request</button>
+      <p v-if="busy" role="status">Preparing explanation…</p><p v-if="error" class="state-note err" role="alert">{{ error }}</p>
+      <div v-if="estimate && key === inputKey && !result" class="ai-confirm">
+        <p>{{ estimate.egress }} {{ estimate.run.model }} at <code>{{ estimate.destination }}</code>.</p>
+        <button type="button" class="btn btn-ink btn-sm" :disabled="busy" @click="brief(false)">Explain changes</button>
+      </div>
+      <div v-if="result && key === inputKey" class="ai-confirm">
+        <p v-if="!result.changes.length">The model returned no changes with a matching quote.</p>
+        <p v-for="(change, i) in result.changes" :key="i">{{ change.text }} <b>{{ change.file === 'before' ? fromLabel : toLabel }}</b> <q>{{ change.quote }}</q></p>
+        <p class="tp-fine">Review the underlying differences before syncing. {{ result.run.model }}</p>
+      </div>
+    </details>`,
+  };
+
+  window.SkillsV2AiCompare = {
+    props: { reviewId: String, example: String },
+    data() { return { cases: [{ prompt: this.example || "", contains: "", not_contains: "" }], without: false, comparisonModel: "",
+      busy: false, error: "", estimate: null, result: null, key: "" }; },
+    computed: {
+      inputKey() { return JSON.stringify([this.reviewId, this.cases, this.without, this.comparisonModel.trim()]); },
+      ready() { return this.cases.every(row => row.prompt.trim()); },
+      modelResults() { return this.result ? [{ model: this.result.run.model, cases: this.result.cases },
+        ...(this.result.comparison_model ? [{ model: this.result.comparison_model, cases: this.result.alternate_cases }] : [])] : []; },
+    },
+    methods: {
+      addCase() { if (this.cases.length < 6) this.cases.push({ prompt: "", contains: "", not_contains: "" }); },
+      async compare(estimate) {
+        if (this.busy || !this.ready || (!estimate && this.key !== this.inputKey)) return;
+        const key = this.inputKey;
+        this.busy = true; this.error = ""; this.result = null;
+        try {
+          const result = await post("/api/ai/compare-edit", { review_id: this.reviewId, cases: this.cases,
+            without_skill: this.without, comparison_model: this.comparisonModel.trim(),
+            estimate, plan: estimate ? undefined : this.estimate?.plan });
+          if (key !== this.inputKey) return;
+          if (estimate) { this.estimate = result; this.key = key; }
+          else this.result = result;
+        } catch (error) { if (key === this.inputKey) this.error = error.message; }
+        finally { this.busy = false; }
+      },
+      label(key) { return {current: "Current", candidate: "Proposed", without_skill: "Without skill"}[key] || key; },
+      async downloadEvidence() {
+        const id = this.result?.run_id;
+        if (!id || this.busy) return;
+        this.busy = true; this.error = "";
+        try {
+          const evidence = await api(`/api/ai/runs/${encodeURIComponent(id)}`);
+          const url = URL.createObjectURL(new Blob([JSON.stringify(evidence, null, 2) + "\n"], {type: "application/json"}));
+          const link = document.createElement("a");
+          link.href = url; link.download = id + ".json"; link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) { this.error = error.message; }
+        finally { this.busy = false; }
+      },
+    },
+    template: `<details class="tp-more">
+      <summary>Compare outputs with AI</summary>
+      <p class="tp-fine">Compare the same requests with each version supplied as instructions. Use the trigger test to check skill selection.</p>
+      <fieldset class="instance-metadata" v-for="(row, i) in cases" :key="i" :disabled="busy">
+        <legend>Test request {{ i + 1 }}</legend>
+        <label class="tp-field">Request<textarea class="field instance-create-body" rows="2" maxlength="4000" v-model="row.prompt"></textarea></label>
+        <label class="tp-field">Output should contain (optional)<input class="field" maxlength="500" v-model="row.contains"></label>
+        <label class="tp-field">Output should exclude (optional)<input class="field" maxlength="500" v-model="row.not_contains"></label>
+        <button type="button" class="btn btn-soft btn-sm" v-if="cases.length > 1" @click="cases.splice(i, 1)">Remove request {{ i + 1 }}</button>
+      </fieldset>
+      <label class="tp-check"><input type="checkbox" :disabled="busy" v-model="without"> Include an output without skill instructions</label>
+      <label class="tp-field">Second model ID on the same provider (optional)<input class="field" maxlength="160" :disabled="busy" v-model="comparisonModel"></label>
+      <div class="tp-acts">
+        <button type="button" class="btn btn-line btn-sm" :disabled="busy || cases.length >= 6" @click="addCase()">Add request</button>
+        <button type="button" class="btn btn-line btn-sm" :disabled="busy || !ready" @click="compare(true)">Preview comparison</button>
+      </div>
+      <p v-if="busy" role="status">Preparing comparison…</p>
+      <p v-if="error" class="state-note err" role="alert">{{ error }}</p>
+      <div v-if="estimate && key === inputKey && !result" class="ai-confirm">
+        <p>{{ estimate.egress[0] }} {{ estimate.calls_planned }} calls to {{ estimate.run.model }}<template v-if="estimate.comparison_model"> and {{ estimate.comparison_model }}</template> at <code>{{ estimate.destination }}</code>.</p>
+        <button type="button" class="btn btn-ink btn-sm" :disabled="busy" @click="compare(false)">Run comparison</button>
+      </div>
+      <template v-if="result && key === inputKey">
+        <p class="tp-fine">{{ result.run.model }} · evidence {{ result.run_id }}</p>
+        <p v-if="result.alternate_error" class="tp-fine" role="status">{{ result.comparison_model }} did not finish: {{ result.alternate_error }} Results from {{ result.run.model }} are kept.</p>
+        <button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="downloadEvidence()">Download test evidence</button>
+        <section v-for="group in modelResults" :key="group.model" class="ai-confirm">
+          <h4>{{ group.model }}</h4>
+          <div v-for="(pair, i) in group.cases" :key="i"><p>Request {{ i + 1 }}</p>
+            <details v-for="(variant, name) in pair" :key="name"><summary>{{ label(name) }} · {{ !variant.complete ? 'Incomplete' : variant.grade.graded ? variant.grade.passed + '/' + variant.grade.total + ' checks passed' : 'Review output' }}</summary><pre class="ai-run-text">{{ variant.output }}</pre></details>
+          </div>
+        </section>
+      </template>
+    </details>`,
   };
 })();
 

@@ -134,7 +134,7 @@ def _cited(items: list[dict], files: dict[str, str], extra: tuple[str, ...] = ()
     kept, dropped = [], 0
     normalized = {path: _norm(text) for path, text in files.items()}
     for item in items[:12]:
-        quote, path = _norm(item.get("quote", "")), item.get("file")
+        quote, path = _norm(item.get("quote", "")), str(item.get("file", ""))
         if len(quote) >= 6 and path in normalized and quote in normalized[path]:
             row = {"file": path, "quote": str(item["quote"])[:300],
                    "text": str(item.get("text") or item.get("detail") or "")[:400]}
@@ -144,6 +144,24 @@ def _cited(items: list[dict], files: dict[str, str], extra: tuple[str, ...] = ()
         else:
             dropped += 1
     return kept, dropped
+
+
+def explain_copy_diff(data_dir: Path, payload: dict) -> dict:
+    """Explain supplied excerpts without reading any caller-selected path."""
+    files = {side: payload.get(side) for side in ('before', 'after')}
+    if any(not isinstance(text, str) or len(text) > 12_000 for text in files.values()) or all(not text for text in files.values()):
+        raise AiError('provide up to 12,000 characters on each side of the comparison', 'ai-input')
+    run = AiRun(data_dir, 'copy-diff', estimate_only=payload.get('estimate') is True)
+    plan = run.review_plan(payload, files)
+    request = '\n'.join(untrusted_block(side, text) for side, text in files.items())
+    answer = run.ask_json(
+        'Explain behavioral changes between the supplied excerpts of two skill documents. '
+        'Use only the excerpts. Include changes to requirements, scope or examples, and '
+        'skip uncertain claims. Return JSON {"changes":[{"file":"before or after",'
+        '"quote":"exact excerpt","text":"why the change matters"}]}.', request, max_output=1250)
+    changes, dropped = _cited(_items(answer, 'changes'), files)
+    return {**plan, 'changes': changes, 'dropped': dropped, 'run': run.label(),
+            'egress': 'Only the displayed Markdown excerpts go to the configured model.'}
 
 
 def _opinions(answer, findings: list) -> list[dict]:

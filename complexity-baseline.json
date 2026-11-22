@@ -4146,7 +4146,7 @@
       "lineno": 445
     },
     "skillsmgr/source_lock.py::commit_local_update": {
-      "complexity": 20,
+      "complexity": 17,
       "end_lineno": 768,
       "lineno": 697
     },

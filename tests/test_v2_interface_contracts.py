@@ -816,7 +816,7 @@ class InterfaceSourceTests(unittest.TestCase):
     def test_tooling_uses_only_the_documented_api_families(self):
         modules = self.app + (V2 / "library-tools.js").read_text(encoding="utf-8") + (V2 / "tool-center.js").read_text(encoding="utf-8")
         called = set(re.findall(r"[\"'`](/api/[a-z-]+)", modules))
-        self.assertLessEqual(called, {"/api/scopes", "/api/skills", "/api/history", "/api/sync", "/api/trash", "/api/import", "/api/export", "/api/catalog", "/api/templates", "/api/batch", "/api/install", "/api/doctor", "/api/stats", "/api/tokens", "/api/workspaces", "/api/source-updates", "/api/validate"})
+        self.assertLessEqual(called, {"/api/scopes", "/api/skills", "/api/history", "/api/sync", "/api/trash", "/api/import", "/api/export", "/api/catalog", "/api/templates", "/api/batch", "/api/install", "/api/doctor", "/api/stats", "/api/tokens", "/api/workspaces", "/api/source-updates", "/api/validate", "/api/ai"})
         self.assertIn("/api/templates", called)
         self.assertIn("/api/batch", called)
 

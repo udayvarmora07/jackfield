@@ -339,6 +339,7 @@ const app = createApp({
     preferencesChanged() {this.theme=savedPreference("skillsmgr-theme",THEMES,"system");this.formatLocale=savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system");document.documentElement.dataset.textSize=savedPreference("skillsmgr-text-size",["standard","large"],"standard");this.applyTheme(); },
     skillTags(name) {return (this.catalog.tags || {})[name] || [];},
     openSource(record) { this.toolTarget=markRaw(record);location.hash="#/tools/source-update"; },
+    openSkillTool(tool) { if (this.refCopy) { this.toolTarget = markRaw(this.refCopy.record); location.hash = "#/tools/" + tool; } },
     openConciseReview(handoff) { if(!handoff||!handoff.target||!handoff.reviewId)return;this.toolTarget=markRaw(handoff.target);this.sourceReviewHandoff={...handoff,target:this.toolTarget};location.hash="#/tools/source-update"; },
     sourceReviewConsumed(reviewId) { if(this.sourceReviewHandoff&&this.sourceReviewHandoff.reviewId===reviewId)this.sourceReviewHandoff=null; },
     inspectRecord(record) { this.query=record.name;this.filter="all";this.tagFilter="";this.agentFilter=record.scope||"all";this.libraryView="instances";location.hash="#/skills"; },
@@ -576,8 +577,8 @@ const app = createApp({
       this.busy = true;
       try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast(t.undoText); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
     },
-    openDialog(d) { this.opener = document.activeElement; this.dialog = { cancel: "Cancel", ...d }; this.$nextTick(() => { const d = this.$refs.dlg; const b = d && (d.querySelector("input:not(.sr-only), select") || d.querySelector("button:not(.sr-only)")); if (b) b.focus(); }); },
-    closeDialog() { if(this.busy)return;this.dialog = null; this.$nextTick(() => { if (this.opener && this.opener.isConnected) this.opener.focus(); }); },
+    openDialog(d) { this.opener = document.activeElement; this.dialog = { cancel: "Cancel", ...d }; this.$nextTick(() => { const d = this.$refs.dlg; const b = d && (d.querySelector("input:not(.sr-only), select, textarea") || d.querySelector("button:not(.sr-only)")); if (b) b.focus(); }); },
+    closeDialog() { if(this.busy)return;if(this.dialog?.aiEdit)this.retireAiEdit(this.dialog.aiEdit.result);this.dialog = null; this.$nextTick(() => { if (this.opener && this.opener.isConnected) this.opener.focus(); }); },
     async confirmDialog() {
       if(this.busy || this.dialog?.templateLoading)return;
       if (this.dialog && this.dialog.form && this.formInvalid) {
@@ -594,7 +595,7 @@ const app = createApp({
     dialogKeys(e) {
       if (e.key === "Escape") { e.stopPropagation(); this.closeDialog(); return; }
       if (e.key !== "Tab") return;
-      const f = [...this.$refs.dlg.querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]")].filter(el=>el.offsetParent!==null);
+      const f = [...this.$refs.dlg.querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], summary")].filter(el=>el.tabIndex!==-1&&el.offsetParent!==null);
       if (!f.length) return;
       const first = f[0], last = f[f.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -761,17 +762,58 @@ const app = createApp({
     openPermanentDelete() {const skill=this.skill;if(!skill)return;this.openDialog({title:`Permanently delete “${skill.name}”?`,danger:true,confirm:"Delete permanently",lines:["This removes the selected copies without moving them to trash. There is no Undo or trash restore for this action."],picks:skill.copies.filter(c=>!c.readOnly&&c.record.addressable!==false&&c.state!=="link"&&this.agentOf(c.scope).writable).map(c=>({id:c.scope,label:this.agentOf(c.scope).name,path:shortPath(c.path)})),chosen:[],onConfirm:async d=>{this.busy=true;try{for(const scope of d.chosen)await api(`/api/skills/${encodeURIComponent(skill.name)}?scope=${encodeURIComponent(scope)}&purge=1`,{method:"DELETE"});await this.refresh();this.toast("Selected copies permanently deleted.");if(!this.m.byName.get(skill.name))location.hash="#/skills";}catch(e){await this.refresh();this.toast(e.message,{err:true});}finally{this.busy=false;}}});},
 
     /* ----- create, recovery, theme, help ----- */
+    authorInput(estimate) {
+      const { form, author } = this.dialog;
+      return { scope: form.scope, name: form.name.trim(), brief: author.brief.trim(),
+        context: author.context, verify: false, estimate, plan: estimate ? undefined : author.estimate?.plan };
+    },
+    async requestAuthorDraft(estimate) {
+      const d = this.dialog, a = d.author;
+      if (!a.brief.trim() || a.pending) return;
+      const key = JSON.stringify(this.authorInput(true));
+      const revision = JSON.stringify(d.form);
+      if (!estimate && key !== a.key) { a.estimate = null; a.error = "Preview the request again after changing its inputs."; return; }
+      a.pending = true; a.error = ""; a.result = null;
+      try {
+        const result = await api("/api/ai/draft-skill", { method: "POST", body: JSON.stringify(this.authorInput(estimate)) });
+        if (this.dialog !== d || key !== JSON.stringify(this.authorInput(true))) return;
+        if (estimate) { a.estimate = result; a.key = key; }
+        else { a.result = result; a.revision = revision; }
+      } catch (error) { if (this.dialog === d) a.error = this.friendly(error.message); }
+      finally { a.pending = false; }
+    },
+    useAuthorDraft() {
+      const { form, author } = this.dialog;
+      if (author.revision !== JSON.stringify(form) || author.key !== JSON.stringify(this.authorInput(true))) {
+        author.error = "The form changed after drafting. Preview a fresh request."; return;
+      }
+      const draft = author.result.draft;
+      Object.assign(form, { name: draft.name, desc: draft.description, body: draft.body });
+      author.cases = author.result.cases || [];
+      author.result = null; author.estimate = null; author.key = "";
+    },
+    async saveAuthorCases(d, name) {
+      const prompts = d.author.cases.filter((row) => row.selected).map((row) => ({
+        text: row.text, expected: row.should_trigger ? name : null,
+      }));
+      if (prompts.length) {
+        try { await api("/api/ai/prompt-sets", { method: "POST", body: JSON.stringify({ scope: d.form.scope, prompts }) }); }
+        catch (error) { this.toast("Skill created. Test cases could not be saved. " + this.friendly(error.message), { err: true }); }
+      }
+    },
     openCreate(prefill = {}) {
       const first = this.createTargets.find((x) => !x.library) || this.createTargets[0];
       const target = this.createTargets.find((x) => x.id === prefill.scope);
       this.openDialog({
         title: "New skill", form: { name: prefill.name || "", desc: prefill.description || "", scope: target ? target.id : first ? first.id : "global", category:prefill.category || "",version:prefill.version || "",license:prefill.license || "",compatibility:prefill.compatibility || "",allowed_tools:prefill.allowed_tools || "",body:typeof prefill.body === "string" ? prefill.body : "## When to use\n\nDescribe the situations where an agent should use this skill.\n\n## Steps\n\n1. \n",template:"" }, confirm: "Create skill",
+        author: { brief: "", context: "", estimate: null, key: "", result: null, revision: "", cases: [], pending: false, error: "" },
         onConfirm: async (d) => {
           const f = d.form; this.busy = true;
           try {
             await api("/api/skills?scope=" + encodeURIComponent(f.scope), { method: "POST",
               body: JSON.stringify({ name: f.name.trim(), description: f.desc.trim(), category:f.category,version:f.version,license:f.license,compatibility:f.compatibility,allowed_tools:f.allowed_tools,body:f.body.replaceAll("{name}",f.name.trim()) }) });
             this.dialog=null;
+            await this.saveAuthorCases(d, f.name.trim());
             await this.refresh();
             this.toast(`${f.name.trim()} created in ${this.agentOf(f.scope).name}.`);
             location.hash = "#/skill/" + encodeURIComponent(f.name.trim());
@@ -949,10 +991,79 @@ const app = createApp({
       await this.ensureBodies([c]);
       if (!this.skill || this.skill.name !== s.name || this.route.page !== "skill") return;
       if (!this.bodyReady(c)) { this.toast(this.bodyErrorOf(c) || "The document could not be read. Try again.", { err: true }); return; }
-      const body = stripFrontmatter(this.bodyOf(c));
+      const body = stripFrontmatter(this.bodyOf(c).replace(/^\uFEFF/, ""));
       const metadata={category:c.record.category||"",version:c.record.version||"",license:c.record.license||"",compatibility:Domain.formatCompat(c.record.compatibility),allowed_tools:Domain.formatTools(c.record.allowed_tools)};
-      this.edit = { name: s.name, desc: c.description, baseDesc: c.description, body, baseBody: body, metadata,baseMetadata:{...metadata},tab: "write", targets: this.readCopyPath ? [c.scope] : this.editTargets.map((x) => x.scope) };
+      this.edit = { name: s.name, desc: c.description, baseDesc: c.description, body, baseBody: body, metadata,baseMetadata:{...metadata},tab: "write", targets: this.readCopyPath ? [c.scope] : this.editTargets.map((x) => x.scope), copy: { path: c.path, scope: c.scope, hash: c.hash } };
       this.$nextTick(() => { this.growArea(); const d = document.getElementById("ed-desc"); if (d) d.focus(); });
+    },
+    openAiDiagnosis() {
+      if (this.refCopy) this.openDialog({ title: "Why didn’t this skill run?", diagnosis: this.refCopy });
+    },
+    async repairAiDiagnosis(prompt) {
+      const dialog = this.dialog;
+      await this.startEdit();
+      await this.$nextTick();
+      if (this.dialog === dialog && this.edit?.copy.path === dialog.diagnosis.path) this.openAiEdit(prompt);
+    },
+    openAiEdit(example = "") {
+      const e = this.edit, area = this.$refs.edbody;
+      if (!e?.copy.hash || !area || this.busy) return;
+      const body = area.value;
+      const start = area.selectionStart, end = area.selectionEnd;
+      const selection = start < end ? [Array.from(body.slice(0, start)).length, Array.from(body.slice(0, end)).length] : null;
+      this.openDialog({ title: "Edit with AI", aiEdit: {
+        target: e.copy, name: e.name, body, selection, selectedText: selection ? body.slice(start, end) : "",
+        instruction: "", example, estimate: null, key: "", result: null, pending: false, error: "",
+      } });
+    },
+    aiEditInput(estimate) {
+      const a = this.dialog.aiEdit;
+      return { name: a.name, scope: a.target.scope, target_path: a.target.path, document_hash: a.target.hash,
+        body: a.body, selection: a.selection, instruction: a.instruction.trim(), example: a.example.trim(),
+        tree_hash: estimate ? undefined : a.estimate?.tree_hash, plan: estimate ? undefined : a.estimate?.plan, estimate };
+    },
+    async retireAiEdit(result) {
+      const review = result?.review;
+      if (review?.review_state !== "pending") return;
+      try { await api(`/api/source-updates/reviews/${encodeURIComponent(review.review_id)}`, { method: "DELETE" }); }
+      catch (error) { this.toast(this.friendly(error.message), { err: true }); }
+    },
+    async requestAiEdit(estimate) {
+      const d = this.dialog, a = d.aiEdit;
+      if (a.pending || !a.instruction.trim()) return;
+      const key = JSON.stringify(this.aiEditInput(true));
+      if (!estimate && key !== a.key) return;
+      a.pending = true; a.error = "";
+      try {
+        const previous = a.result;
+        a.result = null;
+        await this.retireAiEdit(previous);
+        if (this.dialog !== d || key !== JSON.stringify(this.aiEditInput(true))) return;
+        const result = await api("/api/ai/edit-skill", { method: "POST", body: JSON.stringify(this.aiEditInput(estimate)) });
+        if (this.dialog !== d || key !== JSON.stringify(this.aiEditInput(true))) { await this.retireAiEdit(result); return; }
+        if (estimate) { a.estimate = result; a.key = key; }
+        else a.result = result;
+      } catch (error) { if (this.dialog === d) a.error = this.friendly(error.message); }
+      finally { a.pending = false; }
+    },
+    async applyAiEdit() {
+      const d = this.dialog, a = d.aiEdit, e = this.edit, review = a.result?.review;
+      if (!e || this.busy || a.pending || review?.review_state !== "pending" || !review.validation?.valid) return;
+      if (e.copy !== a.target || a.key !== JSON.stringify(this.aiEditInput(true))) return;
+      this.busy = true; a.error = "";
+      try {
+        const committed = await api(`/api/source-updates/reviews/${encodeURIComponent(review.review_id)}/commit`, {
+          method: "POST", body: JSON.stringify({ name: a.name, scope: a.target.scope, target_path: a.target.path, approve: true }),
+        });
+        this.dialog = null;
+        e.body = e.baseBody = a.result.proposed;
+        e.targets = [a.target.scope];
+        await this.refresh();
+        e.copy.hash = this.skill?.copies.find(c => c.path === a.target.path && c.scope === a.target.scope)?.hash || "";
+        this.toast(committed.warning || "AI edit saved. The previous folder is available in Recovery.");
+        this.$nextTick(() => { this.growArea(); this.$refs.edbody?.focus(); });
+      } catch (error) { a.error = this.friendly(error.message); }
+      finally { this.busy = false; }
     },
     async cancelEdit() {
       if (this.editDirty) return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true, onConfirm: () => { this.edit = null; } });
@@ -1159,7 +1270,7 @@ const app = createApp({
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==="k" && !this.dialog && !document.querySelector("dialog[open]")) {e.preventDefault();this.openCommands();}
       if (e.key === "?" && !typing && !this.dialog) { e.preventDefault(); this.openHelp(); }
       if (e.key === "/" && !typing && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.$refs.gsearch.focus(); }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && this.edit) { e.preventDefault(); this.saveEdit(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && this.edit) { e.preventDefault(); if (!this.dialog) this.saveEdit(); }
       if (this.route.page === "inbox" && this.cur && !typing && !this.dialog && !e.ctrlKey && !e.metaKey && !e.altKey) {
         /* Shortcuts never fire from a link, button or field: Enter on "Open
          * skill" must open the skill, not run the fix (screen-reader E2E SR-1). */
@@ -1327,6 +1438,7 @@ app.component("copy-comparison", {
         </li>
       </ul>
       <p v-if="preview.omitted" class="compare-status">Showing the first {{ preview.rows.length }} rows. {{ preview.omitted }} more rows omitted.</p>
+      <ai-copy-brief :rows="preview.rows" :from-label="fromLabel" :to-label="toLabel"></ai-copy-brief>
     </template>
   </section>`,
 });
@@ -1349,5 +1461,8 @@ app.component("section-jumps", {
 app.component("tool-center", window.SkillsV2ToolCenter);
 app.component("ai-center", window.SkillsV2AiCenter);
 app.component("ai-briefing", window.SkillsV2AiBriefing);
+app.component("ai-compare", window.SkillsV2AiCompare);
+app.component("ai-copy-brief", window.SkillsV2AiCopyBrief);
+app.component("ai-diagnostic", window.SkillsV2AiDiagnostic);
 
 app.mount("#app");

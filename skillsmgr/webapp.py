@@ -21,7 +21,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import ai, ai_ask, ai_budget, ai_concise, ai_draft, ai_evals, ai_explain, ai_overlap, ai_port, ai_profiles, ai_review, ai_skills, batch, doctor, effective, evals, install, scopes
+from . import ai, ai_ask, ai_budget, ai_concise, ai_draft, ai_edit, ai_evals, ai_explain, ai_overlap, ai_port, ai_profiles, ai_review, ai_skills, batch, doctor, effective, evals, install, scopes
 from .documents import document_text
 from .context import set_active_store
 from .store import Store, StoreError, SkillNotFound
@@ -1630,6 +1630,9 @@ class WebAppHandler(BaseHTTPRequestHandler):
                 data_dir, body, allowed_roots=getattr(self.server, "diagnostics_roots", None) or [data_dir]),
             "concise": lambda body: ai_concise.concise_skill(data_dir, body),
             "draft-skill": lambda body: ai_draft.draft_skill(data_dir, body),
+            "edit-skill": lambda body: ai_edit.propose_edit(data_dir, body),
+            "compare-edit": lambda body: ai_edit.compare_edit(data_dir, body),
+            "copy-diff": lambda body: ai_review.explain_copy_diff(data_dir, body),
             "trigger-test": lambda body: ai_skills.trigger_test(data_dir, body),
             "improve-description": lambda body: ai_skills.improve_description(data_dir, body),
             "overlap-judge": lambda body: ai_overlap.overlap_judge(data_dir, body),
