@@ -30,9 +30,14 @@ records, not additional live work.
 - [x] Research user demand, competitors, literature and AI UX patterns beyond
   the shipped authoring flow. Map every product surface to current and proposed
   AI support in @docs/59-ai-everywhere-research-2026-11-22.md.
-- [ ] Decide the approval items listed there (new CLI commands or flags for
-  `ai health`, `ai recheck`, `--trials`; transcript-content consent) before
-  building slice 1 (honest test statistics, per-hunk accept and provenance).
+- [x] Slice 1: repeated trials with paired lift, a 95% bootstrap interval and
+  an inconclusive verdict for AI evals and current-vs-proposed comparisons;
+  token-regression and non-discriminating-assertion flags; per-hunk accept for
+  AI edits (`/api/ai/edit-select`); AI provenance on Recovery snapshots. AI
+  evals had no CLI command, so no CLI flag was needed.
+- [ ] Decide the remaining approval items before slice 2: CLI commands for
+  `ai health` and `ai recheck`, and per-excerpt consent for sending transcript
+  content to a model.
 
 ## V2 Tools, Quality and Recovery usability (2026-11-21)
 

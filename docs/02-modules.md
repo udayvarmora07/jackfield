@@ -708,7 +708,18 @@ its budget and marks each shorter version safe only if it still triggers.
 `ai_review.py` (A5) briefs a pending update or registry review; every claim
 must quote its file, and risk opinions never change a finding. `ai_evals.py`
 (A8) produces with/without-skill outputs for `evals.record_runs`, which grades
-them with the case assertions; no model grading. `AiRun.ask_text` serves
+them with the case assertions; no model grading. With `trials` above one, each
+repeat is its own iteration and `trial_stats.py` (pure, stdlib) reports the paired
+lift with a bootstrap interval, an "inconclusive" verdict when the interval
+includes zero, fewer than three requests were graded, or there are fewer than
+four graded paired observations,
+output-token regressions and assertions that never discriminate. `ai_edit.py`
+uses the same statistics for current-vs-proposed comparisons, splits an AI edit
+into line hunks (unchanged leading and trailing lines are skipped, and a changed
+region above 90,000 line comparisons is one hunk so diff time stays bounded),
+and restages a review from the accepted hunks without a model call
+(`select_hunks`); the old review is cancelled only after the new one is pending,
+and a failed cancel retires the new review instead. `AiRun.ask_text` serves
 plain-text answers. `ai_ask.py` (A9) answers "which skill fits" from names and
 descriptions only and keeps only skills that exist. `ai_port.py` (A10) finds
 portability facts without AI (undocumented keys via `key_support`, agent-specific

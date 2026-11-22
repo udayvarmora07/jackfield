@@ -11,13 +11,18 @@ pass rates are exactly as reliable as the assertions the author wrote.
 When the model passes the cases just as well without the skill, the result
 says so: the skill may no longer be needed for this model (Anthropic's
 "capability uplift" check).  Advisory only; scores never gate anything.
+
+With ``trials`` above one, every case runs repeatedly in a random order and
+``statistics`` (``trial_stats``) reports the paired lift with an interval, so
+a single lucky or unlucky output cannot decide the verdict.
 """
 from __future__ import annotations
 
+import random
 import time
 from pathlib import Path
 
-from . import evals
+from . import evals, trial_stats
 from .ai import AiError, AiRun, untrusted_block
 from .ai_skills import _save_run
 from .errors import StoreError
@@ -27,6 +32,7 @@ from .validator import validate_skill_name
 MAX_CASES_PER_RUN = 20
 MAX_INPUT_FILE_CHARS = 8_000
 MAX_EVAL_OUTPUT = 1_500
+MAX_TRIALS = 5
 _BASE = ("You are an AI coding agent working for a developer. Answer the request "
          "directly and completely.")
 
@@ -97,10 +103,76 @@ def _verdict(bench: dict) -> str:
     return "no-gain" if with_rate == without else "hurts"
 
 
+def _trial_count(value) -> int:
+    if value is None:
+        return 1
+    if type(value) is not int or not 1 <= value <= MAX_TRIALS:
+        raise AiError(f"trials must be a whole number from 1 to {MAX_TRIALS}", "ai-input")
+    return value
+
+
+def _observations(recordings: list) -> list:
+    """Graded per-trial rows for ``trial_stats`` from ``(trial, recording)`` pairs."""
+    rows = []
+    for trial, recording in recordings:
+        for run in recording["runs"]:
+            graded = run.get("graded") and run.get("passed") is not None
+            rows.append({"case": run.get("case"), "variant": run.get("variant"), "trial": trial,
+                         "passed": (run["passed"] == run["total"]) if graded else None,
+                         "tokens": run.get("tokens"),
+                         "assertions": [item.get("passed") for item in run.get("assertions") or []]
+                         if graded else None})
+    return rows
+
+
+def _run_shuffled(run: AiRun, cases: list, prompts: dict, systems: tuple, trials: int) -> list:
+    """Every (trial, case, variant) call in a random order; returns one run list per trial."""
+    order = [(trial, case["id"], system, variant) for trial in range(trials) for case in cases
+             for system, variant in systems]
+    random.SystemRandom().shuffle(order)
+    runs = [[] for _ in range(trials)]
+    for trial, case_id, system, variant in order:
+        row = _run_case(run, system, prompts[case_id], case_id, variant)
+        if row:
+            runs[trial].append(row)
+    return runs
+
+
+def _record_trials(store, name: str, cases: list, runs: list) -> dict:
+    """Record each trial with completed calls as its own iteration and summarize them all."""
+    workspace = evals.ensure_workspace_outside(evals.workspace_for(store.data_dir, name), store.data_dir)
+    numbered = [(trial, evals.record_runs(workspace, _next_iteration(workspace), cases, trial_runs))
+                 for trial, trial_runs in enumerate(runs, start=1) if trial_runs]
+    if not numbered:
+        raise AiError("the model returned no eval outputs", "ai-bad-output", 502)
+    recordings = [recording for _, recording in numbered]
+    first = recordings[0]
+    return {"iteration": first["iteration"], "benchmark": first["benchmark"],
+            "iterations": [recording["iteration"] for recording in recordings],
+            "results": [{k: r.get(k) for k in ("case", "variant", "graded", "passed", "total",
+                                               "duration_ms", "tokens")} for r in first["runs"]],
+            "verdict": _verdict(first["benchmark"]),
+            "statistics": trial_stats.summarize(_observations(numbered), "with_skill", "without_skill")}
+
+
+def _egress(run: AiRun, name: str, count: int, trials: int) -> str:
+    where = ("a model running on this machine" if run.config["local"]
+             else f"{run.config['label']} ({run.config['base_url']})")
+    times = "twice" if trials == 1 else f"{trials * 2} times"
+    return (f"{name}'s SKILL.md and {count} eval prompts (with their input files) go to {where}, "
+            f"each case {times} (with and without the skill).")
+
+
 def run_evals(store, payload: dict) -> dict:
-    """Run a library skill's eval cases with and without it and record the results."""
+    """Run a library skill's eval cases with and without it and record the results.
+
+    ``trials`` (1-5, default 1) repeats every case. Each trial is recorded as
+    its own iteration, calls run in a random order, and ``statistics`` reports
+    the paired lift with an interval across all trials.
+    """
     payload = payload if isinstance(payload, dict) else {}
     name = payload.get("name")
+    trials = _trial_count(payload.get("trials"))
     skill_dir = _skill_dir(store, name)
     cases = _cases(skill_dir, payload.get("max_cases") or 10)
     body = (skill_dir / "SKILL.md").read_text(encoding="utf-8", errors="replace") \
@@ -108,27 +180,14 @@ def run_evals(store, payload: dict) -> dict:
     if not body:
         raise AiError("this skill's SKILL.md cannot be read (it may be turned off)", "ai-input")
     run = AiRun(store.data_dir, "eval-run", estimate_only=bool(payload.get("estimate")))
-    with_system = _BASE + "\n\nFollow this skill whenever it applies:\n\n" + body
-    runs = []
-    for case in cases:
-        prompt = _case_prompt(skill_dir, case)
-        for system, variant in ((with_system, "with_skill"), (_BASE, "without_skill")):
-            row = _run_case(run, system, prompt, case["id"], variant)
-            if row:
-                runs.append(row)
-    where = ("a model running on this machine" if run.config["local"]
-             else f"{run.config['label']} ({run.config['base_url']})")
-    result = {"kind": "eval-run", "scope": "global", "name": name, "cases": len(cases),
-              "egress": [f"{name}'s SKILL.md and {len(cases)} eval prompts (with their input "
-                         f"files) go to {where}, each case twice (with and without the skill)."]}
+    systems = ((_BASE + "\n\nFollow this skill whenever it applies:\n\n" + body, "with_skill"),
+               (_BASE, "without_skill"))
+    prompts = {case["id"]: _case_prompt(skill_dir, case) for case in cases}
+    runs = _run_shuffled(run, cases, prompts, systems, trials)
+    result = {"kind": "eval-run", "scope": "global", "name": name, "cases": len(cases), "trials": trials,
+              "calls_planned": len(cases) * 2 * trials, "egress": [_egress(run, name, len(cases), trials)]}
     if not run.estimate_only:
-        workspace = evals.ensure_workspace_outside(evals.workspace_for(store.data_dir, name), store.data_dir)
-        recording = evals.record_runs(workspace, _next_iteration(workspace), cases, runs)
-        result.update({"iteration": recording["iteration"], "benchmark": recording["benchmark"],
-                       "results": [{k: r.get(k) for k in ("case", "variant", "graded", "passed", "total",
-                                                          "duration_ms", "tokens")}
-                                   for r in recording["runs"]],
-                       "verdict": _verdict(recording["benchmark"])})
+        result.update(_record_trials(store, name, cases, runs))
     result["run"] = run.label()
     if not run.estimate_only:
         result["run_id"] = _save_run(store.data_dir, result)

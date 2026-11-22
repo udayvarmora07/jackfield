@@ -261,7 +261,7 @@
       "lineno": 87
     },
     "skillsmgr/ai_evals.py::run_evals": {
-      "complexity": 13,
+      "complexity": 8,
       "end_lineno": 135,
       "lineno": 100
     },

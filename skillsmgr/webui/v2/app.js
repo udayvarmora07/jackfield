@@ -1013,7 +1013,7 @@ const app = createApp({
       const selection = start < end ? [Array.from(body.slice(0, start)).length, Array.from(body.slice(0, end)).length] : null;
       this.openDialog({ title: "Edit with AI", aiEdit: {
         target: e.copy, name: e.name, body, selection, selectedText: selection ? body.slice(start, end) : "",
-        instruction: "", example, estimate: null, key: "", result: null, pending: false, error: "",
+        instruction: "", example, estimate: null, key: "", result: null, keep: [], pending: false, error: "",
       } });
     },
     aiEditInput(estimate) {
@@ -1042,13 +1042,35 @@ const app = createApp({
         const result = await api("/api/ai/edit-skill", { method: "POST", body: JSON.stringify(this.aiEditInput(estimate)) });
         if (this.dialog !== d || key !== JSON.stringify(this.aiEditInput(true))) { await this.retireAiEdit(result); return; }
         if (estimate) { a.estimate = result; a.key = key; }
-        else a.result = result;
+        else { a.result = result; a.keep = (result.hunks || []).map(h => h.id); }
+      } catch (error) { if (this.dialog === d) a.error = this.friendly(error.message); }
+      finally { a.pending = false; }
+    },
+    aiEditPartial(a) { const hunks = a?.result?.hunks || []; return hunks.length > 1 && a.keep.length !== hunks.length; },
+    hunkText(h) {
+      const lines = (text, mark) => text ? text.replace(/\n$/, "").split("\n").map(line => mark + line) : [];
+      return [...lines(h.removed, "- "), ...lines(h.added, "+ ")].join("\n");
+    },
+    /* Keep only the checked hunks: the server restages a fresh review from them
+     * (no model call) and cancels the full proposal, so the comparison, the
+     * checks and the saved edit all describe exactly what is kept. */
+    async selectAiHunks() {
+      const d = this.dialog, a = d?.aiEdit, review = a?.result?.review;
+      if (!a || a.pending || this.busy || !this.aiEditPartial(a) || !a.keep.length || review?.review_state !== "pending") return;
+      a.pending = true; a.error = "";
+      try {
+        const result = await api("/api/ai/edit-select", { method: "POST",
+          body: JSON.stringify({ review_id: review.review_id, body: a.body, accepted: [...a.keep] }) });
+        if (this.dialog !== d) { await this.retireAiEdit(result); return; }
+        a.result = { ...a.result, ...result };
+        a.keep = (result.hunks || []).map(h => h.id);
       } catch (error) { if (this.dialog === d) a.error = this.friendly(error.message); }
       finally { a.pending = false; }
     },
     async applyAiEdit() {
       const d = this.dialog, a = d.aiEdit, e = this.edit, review = a.result?.review;
       if (!e || this.busy || a.pending || review?.review_state !== "pending" || !review.validation?.valid) return;
+      if (this.aiEditPartial(a)) return;
       if (e.copy !== a.target || a.key !== JSON.stringify(this.aiEditInput(true))) return;
       this.busy = true; a.error = "";
       try {
@@ -1462,6 +1484,7 @@ app.component("tool-center", window.SkillsV2ToolCenter);
 app.component("ai-center", window.SkillsV2AiCenter);
 app.component("ai-briefing", window.SkillsV2AiBriefing);
 app.component("ai-compare", window.SkillsV2AiCompare);
+app.component("trial-stats", window.SkillsV2TrialStats);
 app.component("ai-copy-brief", window.SkillsV2AiCopyBrief);
 app.component("ai-diagnostic", window.SkillsV2AiDiagnostic);
 

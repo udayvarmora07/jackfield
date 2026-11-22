@@ -1,6 +1,6 @@
 # AI Across Every Skills Manager Feature
 
-**Version 0.1.0**
+**Version 0.1.1**
 
 **AI manifest**: Second research pass of 2026-11-22. It looks for AI features
 beyond those shipped through `4da3fb7`, which are listed in
@@ -242,7 +242,7 @@ comparison.
 
 | Slice | Ship | Check before expanding |
 |---|---|---|
-| 1. Trust the numbers | F3 trials, CI, inconclusive; F4 per-hunk accept and provenance | On fixtures with known lift, confirm interval coverage and that non-discriminating assertions are flagged. Confirm that a partial hunk set applies exactly. |
+| 1. Trust the numbers (**shipped 2026-11-22** for AI evals and current-vs-proposed comparisons; trigger tests keep their existing repeats) | F3 trials, CI, inconclusive; F4 per-hunk accept and provenance | On fixtures with known lift, confirm interval coverage and that non-discriminating assertions are flagged. Confirm that a partial hunk set applies exactly. |
 | 2. Keep the library lean | F1 health and retire; F2 model recheck; F8 scorecard | Run on empty, 1, and 10,000-skill fixtures and on missing or partial usage data. Measure how many recommendations a user accepts and whether archived skills are restored. |
 | 3. Grounded authoring | F5 draft from real work; F6 judge calibration; F7 bounded loop | Grounded drafts must show positive held-out lift more often than brief-only drafts on a small labelled set. Confirm the redaction preview catches seeded secrets. |
 | 4. Safer intake | F11 install fit; F13 semantic updates; F14 agent-write gate; F15 security depth | Measure false positives on benign skills, including CJK text, and truncation under token caps. |

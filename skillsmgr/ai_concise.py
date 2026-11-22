@@ -264,7 +264,8 @@ def _write_candidate(root: Path, files: dict, directories: dict) -> None:
 
 
 def _stage(data_dir: Path, target: dict, original: dict, directories: dict, digest: str,
-           primary: str, prefix: str, proposal: dict, *, local_edit: bool = False) -> dict:
+           primary: str, prefix: str, proposal: dict, *, local_edit: bool = False,
+           provenance: dict | None = None) -> dict:
     files = dict(original)
     files[primary] = ((prefix + proposal['body']).encode('utf-8'), original[primary][1])
     for ref in proposal['references']:
@@ -276,7 +277,7 @@ def _stage(data_dir: Path, target: dict, original: dict, directories: dict, dige
         review = source_update.prepare_local_update(data_dir, target['name'], target['scope'], candidate,
                                                     target_path=target['physical_path'],
                                                     source_value='skillsmgr-ai-edit' if local_edit else 'skillsmgr-ai-concise',
-                                                    local_edit=local_edit)
+                                                    local_edit=local_edit, provenance=provenance)
     try:
         current_files, current_directories, current_digest = _capture(Path(target['physical_path']))
         if (review.get('current_hash') != digest or current_digest != digest
@@ -312,7 +313,10 @@ def concise_skill(data_dir: Path, payload: dict) -> dict:
               'run': run.label()}
     if not estimate:
         proposal = _proposal(answer, files, directories)
-        review = _stage(data_dir, target, files, directories, digest, primary, prefix, proposal)
+        provenance = {'feature': 'concise', 'model': run.config['model'], 'provider': run.config['label'],
+                      'local': bool(run.config['local']), 'request': 'Shorten this skill', 'section': 'whole tree'}
+        review = _stage(data_dir, target, files, directories, digest, primary, prefix, proposal,
+                        provenance=provenance)
         status = {'pending': 'review-required', 'blocked': 'blocked', 'no-change': 'no-change'}.get(
             review.get('review_state'), 'blocked')
         result.update({'status': status, 'proposal': proposal, 'review': review,

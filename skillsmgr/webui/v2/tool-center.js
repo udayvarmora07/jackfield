@@ -347,6 +347,10 @@
       async loadSnapshots(){const t=this.selected;
       if(!t)return;
       await this.read('/api/source-updates/snapshots?name='+enc(t.name)+'&scope='+enc(t.scope)+'&target_path='+enc(t.physical_path||t.path),'snapshots')},
+    /* Snapshot taken just before an applied AI proposal: restoring it undoes that change. */
+    provenanceLabel(p){const what={'edit-skill':'AI edit','concise':'AI shortening'}[p.feature]||'AI change';
+      const kept=Number.isInteger(p.accepted_hunks)&&Number.isInteger(p.total_hunks)?' · kept '+p.accepted_hunks+' of '+p.total_hunks+' changes':'';
+      return 'Before '+what+(p.model?' by '+p.model+(p.local?' (local)':''):'')+(p.request?': “'+p.request+'”':'')+kept;},
       async snapshotReview(s){const t=this.selected;
       if(!t||!s.snapshot_id)return;
       await this.task(async()=>{const r=await api('/api/source-updates/reviews/from-snapshot',json({name:t.name,scope:t.scope,target_path:t.physical_path||t.path,snapshot_id:s.snapshot_id,external_scan:this.scanOption()}));
@@ -910,7 +914,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             </form>
             <div v-if="snapshots && !sourceReview">
               <p v-if="!(Array.isArray(snapshots)?snapshots:snapshots.snapshots||[]).length" class="tp-empty">No snapshots kept for this copy yet.</p>
-              <ul class="tp-rows"><li class="v2-tool-row" v-for="s in (Array.isArray(snapshots)?snapshots:snapshots.snapshots||[])" :key="s.snapshot_id"><span class="tp-row-main"><strong>{{when(s.created_at)}}</strong><small class="tp-mono">{{s.snapshot_id}}</small></span><span class="tp-acts"><span v-if="s.available===false" class="pill off">Unavailable</span><button class="btn btn-line btn-sm" :disabled="busy||s.available===false" @click="snapshotReview(s)">Review rollback</button></span></li></ul>
+              <ul class="tp-rows"><li class="v2-tool-row" v-for="s in (Array.isArray(snapshots)?snapshots:snapshots.snapshots||[])" :key="s.snapshot_id"><span class="tp-row-main"><strong>{{when(s.created_at)}}</strong><small v-if="s.provenance">{{provenanceLabel(s.provenance)}}</small><small class="tp-mono">{{s.snapshot_id}}</small></span><span class="tp-acts"><span v-if="s.available===false" class="pill off">Unavailable</span><button class="btn btn-line btn-sm" :disabled="busy||s.available===false" @click="snapshotReview(s)">Review rollback</button></span></li></ul>
             </div>
           </li>
           <li v-if="sourceReview">

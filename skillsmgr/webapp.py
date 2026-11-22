@@ -1632,6 +1632,7 @@ class WebAppHandler(BaseHTTPRequestHandler):
             "draft-skill": lambda body: ai_draft.draft_skill(data_dir, body),
             "edit-skill": lambda body: ai_edit.propose_edit(data_dir, body),
             "compare-edit": lambda body: ai_edit.compare_edit(data_dir, body),
+            "edit-select": lambda body: ai_edit.select_hunks(data_dir, body),
             "copy-diff": lambda body: ai_review.explain_copy_diff(data_dir, body),
             "trigger-test": lambda body: ai_skills.trigger_test(data_dir, body),
             "improve-description": lambda body: ai_skills.improve_description(data_dir, body),

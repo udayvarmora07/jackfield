@@ -21,7 +21,7 @@
         portName: "", portTarget: "codex", ported: null,
         explainName: "", explained: null,
         question: "", askScope: "all", asked: null, askEstimate: null, askKey: "",
-        evalName: "", evalMax: 10, evalResult: null, evalEstimate: null,
+        evalName: "", evalMax: 10, evalTrials: 3, evalResult: null, evalEstimate: null,
         savedCount: 0, savedPrompts: [], savedNote: "", savedError: "", savedBusy: false, savedRequest: 0,
         pastRuns: [], pastRun: null, historyError: "", historyBusy: false, historyRequest: 0,
         draftScope: "", draftName: "", draftBrief: "", draftEstimate: null, draftEstimateKey: "", draftResult: null,
@@ -144,7 +144,7 @@
       },
       skillHref(name) { return "#/skill/" + encodeURIComponent(name); },
       librarySkills() { return [...new Set(this.records.filter((r) => r.scope === "global").map((r) => r.name))].sort(); },
-      evalBody(estimate) { return { name: this.evalName, max_cases: Number(this.evalMax), estimate }; },
+      evalBody(estimate) { return { name: this.evalName, max_cases: Number(this.evalMax), trials: Number(this.evalTrials), estimate }; },
       async estimateEvals() { this.evalResult = null; this.evalEstimate = await this.guard(() => post("/api/ai/evals", this.evalBody(true))); },
       async runEvals() { const r = await this.guard(() => post("/api/ai/evals", this.evalBody(false))); if (r) { this.evalResult = r; this.evalEstimate = null; this.load(); } },
       evalVerdict(v) { return { helps: ["ok", "The skill helps"], "not-needed": ["warn", "Passes without the skill: it may no longer be needed"], "no-gain": ["warn", "No difference with the skill"], hurts: ["bad", "Worse with the skill"], ungraded: ["off", "No assertions to grade"] }[v] || ["off", v]; },
@@ -757,6 +757,7 @@
           <div class="tp-set">
             <div class="tp-set-row"><label for="ai-evn"><b>Skill</b><small>Skills in your library. Add cases in <code>evals/evals.json</code> inside the skill's folder first.</small></label><select id="ai-evn" class="field" v-model="evalName"><option value="">Choose…</option><option v-for="n in librarySkills()" :key="n" :value="n">{{ n }}</option></select></div>
             <div class="tp-set-row"><label for="ai-evm"><b>Cases</b><small>At most this many, in file order.</small></label><select id="ai-evm" class="field" v-model.number="evalMax"><option v-for="n in [1,3,5,10,15,20]" :key="n" :value="n">{{ n }}</option></select></div>
+            <div class="tp-set-row"><label for="ai-evt"><b>Repeats</b><small>Model answers vary. Repeats show whether a difference holds up; each repeat is saved as its own iteration.</small></label><select id="ai-evt" class="field" v-model.number="evalTrials" @change="evalEstimate=null"><option :value="1">Once</option><option :value="3">3 times</option><option :value="5">5 times</option></select></div>
           </div>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !evalName" @click="estimateEvals()">Check what will be sent</button></div>
           <div v-if="evalEstimate" class="ai-confirm" role="region" aria-label="Before sending">
@@ -766,8 +767,10 @@
           </div>
         </section>
         <section v-if="evalResult" class="card tp-panel" aria-labelledby="ai-evr-h" aria-live="polite">
-          <header class="tp-panel-h"><div><h2 id="ai-evr-h">{{ evalResult.name }} · iteration {{ evalResult.iteration }}</h2><p>{{ evalResult.cases }} cases · {{ evalResult.run.model }} · {{ fmt(evalResult.run.input_tokens) }} input tokens</p></div>
-            <span :class="['pill', evalVerdict(evalResult.verdict)[0]]">{{ evalVerdict(evalResult.verdict)[1] }}</span></header>
+          <header class="tp-panel-h"><div><h2 id="ai-evr-h">{{ evalResult.name }} · {{ (evalResult.iterations || [evalResult.iteration]).length > 1 ? 'iterations ' + evalResult.iterations[0] + '–' + evalResult.iterations[evalResult.iterations.length - 1] : 'iteration ' + evalResult.iteration }}</h2><p>{{ evalResult.cases }} cases · {{ evalResult.run.model }} · {{ fmt(evalResult.run.input_tokens) }} input tokens</p></div>
+            <span v-if="(evalResult.trials || 1) === 1" :class="['pill', evalVerdict(evalResult.verdict)[0]]">{{ evalVerdict(evalResult.verdict)[1] }}</span></header>
+          <trial-stats v-if="evalResult.statistics" :stats="evalResult.statistics" title="With the skill compared with without it, across every repeat" :labels="{ with_skill: 'With the skill', without_skill: 'Without it' }"></trial-stats>
+          <p v-if="(evalResult.trials || 1) > 1" class="tp-fine">The figures and table below show the first repeat.</p>
           <div class="ai-stats">
             <div><b class="num">{{ pct((evalResult.benchmark.variants.with_skill||{}).pass_rate) }}</b><small>cases passed with the skill</small></div>
             <div><b class="num">{{ pct((evalResult.benchmark.variants.without_skill||{}).pass_rate) }}</b><small>without it</small></div>
@@ -947,15 +950,39 @@
     </details>`,
   };
 
+  /* Paired trial statistics (skillsmgr/trial_stats.py). "Inconclusive" is a
+   * real answer: the interval includes zero or there were too few trials. */
+  window.SkillsV2TrialStats = {
+    props: { stats: Object, title: String, labels: Object, numbered: Boolean },
+    computed: {
+      verdict() { return { helps: ["ok", "Helps"], hurts: ["bad", "Worse"], inconclusive: ["warn", "Inconclusive"],
+        ungraded: ["off", "Not graded"] }[this.stats.verdict] || ["off", this.stats.verdict]; },
+    },
+    methods: {
+      signed(n) { const v = Math.round(n * 100); return (v > 0 ? "+" : "") + v + " pts"; },
+      name(key) { return (this.labels && this.labels[key]) || key; },
+      caseName(c) { return this.numbered ? "Request " + (c + 1) : "Case " + c; },
+      tokens(key) { const v = this.stats.tokens.mean_output_tokens[key]; return v === null ? "unknown" : Math.round(v); },
+    },
+    template: `<div class="ai-confirm" role="group" :aria-label="title">
+      <p><span :class="['pill', verdict[0]]">{{ verdict[1] }}</span> {{ title }}</p>
+      <p v-if="stats.lift !== null" class="tp-fine">{{ name(stats.treatment) }} passed {{ Math.round(stats.pass_rate[stats.treatment] * 100) }}% and {{ name(stats.baseline) }} {{ Math.round(stats.pass_rate[stats.baseline] * 100) }}% of graded outputs. Difference {{ signed(stats.lift) }}, {{ Math.round(stats.confidence * 100) }}% interval {{ signed(stats.interval[0]) }} to {{ signed(stats.interval[1]) }}, over {{ stats.paired_cases }} {{ stats.paired_cases === 1 ? 'case' : 'cases' }} × {{ stats.trials }} {{ stats.trials === 1 ? 'trial' : 'trials' }}: {{ stats.reason }}.</p>
+      <p v-else class="tp-fine">{{ stats.reason }}.</p>
+      <p v-if="stats.excluded" class="tp-fine">{{ stats.excluded }} incomplete or ungraded {{ stats.excluded === 1 ? 'output was' : 'outputs were' }} left out.</p>
+      <p v-if="stats.tokens.regression" class="tp-issue warn">{{ name(stats.treatment) }} uses more output tokens: about {{ tokens(stats.treatment) }} against {{ tokens(stats.baseline) }} per answer.</p>
+      <p v-for="f in stats.non_discriminating" :key="f.case + '-' + f.assertion" class="tp-issue warn">{{ caseName(f.case) }}, check {{ f.assertion + 1 }} always {{ f.always === 'passes' ? 'passes' : 'fails' }}, so it cannot tell the versions apart.</p>
+    </div>`,
+  };
+
   window.SkillsV2AiCompare = {
     props: { reviewId: String, example: String },
-    data() { return { cases: [{ prompt: this.example || "", contains: "", not_contains: "" }], without: false, comparisonModel: "",
+    data() { return { cases: [{ prompt: this.example || "", contains: "", not_contains: "" }], without: false, comparisonModel: "", trials: 3,
       busy: false, error: "", estimate: null, result: null, key: "" }; },
     computed: {
-      inputKey() { return JSON.stringify([this.reviewId, this.cases, this.without, this.comparisonModel.trim()]); },
+      inputKey() { return JSON.stringify([this.reviewId, this.cases, this.without, this.comparisonModel.trim(), this.trials]); },
       ready() { return this.cases.every(row => row.prompt.trim()); },
-      modelResults() { return this.result ? [{ model: this.result.run.model, cases: this.result.cases },
-        ...(this.result.comparison_model ? [{ model: this.result.comparison_model, cases: this.result.alternate_cases }] : [])] : []; },
+      modelResults() { const r = this.result; return r ? [{ model: r.run.model, cases: r.cases, statistics: r.statistics },
+        ...(r.comparison_model && r.alternate_cases.length ? [{ model: r.comparison_model, cases: r.alternate_cases, statistics: r.alternate_statistics }] : [])] : []; },
     },
     methods: {
       addCase() { if (this.cases.length < 6) this.cases.push({ prompt: "", contains: "", not_contains: "" }); },
@@ -965,7 +992,7 @@
         this.busy = true; this.error = ""; this.result = null;
         try {
           const result = await post("/api/ai/compare-edit", { review_id: this.reviewId, cases: this.cases,
-            without_skill: this.without, comparison_model: this.comparisonModel.trim(),
+            without_skill: this.without, comparison_model: this.comparisonModel.trim(), trials: this.trials,
             estimate, plan: estimate ? undefined : this.estimate?.plan });
           if (key !== this.inputKey) return;
           if (estimate) { this.estimate = result; this.key = key; }
@@ -974,6 +1001,15 @@
         finally { this.busy = false; }
       },
       label(key) { return {current: "Current", candidate: "Proposed", without_skill: "Without skill"}[key] || key; },
+      outcome(variant) {
+        if (variant.trials.length > 1) {
+          const graded = variant.trials.filter(t => t.passed !== null);
+          return graded.length ? graded.filter(t => t.passed).length + "/" + graded.length + " trials passed" : "Review outputs";
+        }
+        return !variant.complete ? "Incomplete" : variant.grade.graded ? variant.grade.passed + "/" + variant.grade.total + " checks passed" : "Review output";
+      },
+      statRows(stats) { return Object.entries(stats || {}).map(([key, value]) => ({ key, value,
+        title: key === "candidate_vs_current" ? "Proposed compared with current" : "Proposed compared with no skill" })); },
       async downloadEvidence() {
         const id = this.result?.run_id;
         if (!id || this.busy) return;
@@ -1000,6 +1036,8 @@
       </fieldset>
       <label class="tp-check"><input type="checkbox" :disabled="busy" v-model="without"> Include an output without skill instructions</label>
       <label class="tp-field">Second model ID on the same provider (optional)<input class="field" maxlength="160" :disabled="busy" v-model="comparisonModel"></label>
+      <label class="tp-field">Repeat each request<select class="field" :disabled="busy" v-model.number="trials"><option :value="1">Once</option><option :value="3">3 times</option><option :value="5">5 times</option></select></label>
+      <p class="tp-fine">Model answers vary between runs. Repeats show whether a difference holds up; one run is reported as inconclusive.</p>
       <div class="tp-acts">
         <button type="button" class="btn btn-line btn-sm" :disabled="busy || cases.length >= 6" @click="addCase()">Add request</button>
         <button type="button" class="btn btn-line btn-sm" :disabled="busy || !ready" @click="compare(true)">Preview comparison</button>
@@ -1016,8 +1054,10 @@
         <button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="downloadEvidence()">Download test evidence</button>
         <section v-for="group in modelResults" :key="group.model" class="ai-confirm">
           <h4>{{ group.model }}</h4>
+          <trial-stats v-for="row in statRows(group.statistics)" :key="row.key" :stats="row.value" :title="row.title" numbered
+            :labels="{ current: 'Current', candidate: 'Proposed', without_skill: 'Without skill' }"></trial-stats>
           <div v-for="(pair, i) in group.cases" :key="i"><p>Request {{ i + 1 }}</p>
-            <details v-for="(variant, name) in pair" :key="name"><summary>{{ label(name) }} · {{ !variant.complete ? 'Incomplete' : variant.grade.graded ? variant.grade.passed + '/' + variant.grade.total + ' checks passed' : 'Review output' }}</summary><pre class="ai-run-text">{{ variant.output }}</pre></details>
+            <details v-for="(variant, name) in pair" :key="name"><summary>{{ label(name) }} · {{ outcome(variant) }}</summary><pre class="ai-run-text">{{ variant.output }}</pre><p v-if="variant.trials.length > 1" class="tp-fine">Showing trial 1 of {{ variant.trials.length }}.</p></details>
           </div>
         </section>
       </template>

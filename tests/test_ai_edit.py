@@ -66,7 +66,10 @@ class ReviewEditTests(EditFixture):
     def test_compare_uses_reviewed_revisions_and_keeps_output_private(self):
         prepared = self.prepare()
         with patch.object(ai_edit, 'AiRun') as model:
-            model.return_value.ask_text.side_effect = ['Old response', 'New response private', 'Bare response']
+            model.return_value.ask_text.side_effect = lambda system, *_a, **_k: (
+                'New response private' if 'Updated line' in system
+                else 'Old response' if 'Change this' in system else 'Bare response')
+            model.return_value.output_tokens = 0
             model.return_value.last_truncated = False
             model.return_value.label.return_value = {'model': 'fake'}
             model.return_value.config = {'model': 'fake'}
@@ -74,7 +77,10 @@ class ReviewEditTests(EditFixture):
                        'cases': [{'prompt': 'Private test request', 'contains': 'New'}]}
             result = ai_edit.compare_edit(self.data, payload)
         variants = result['cases'][0]
-        self.assertEqual([variants[key]['grade']['passed'] for key in variants], [0, 1, 0])
+        self.assertEqual({key: variants[key]['grade']['passed'] for key in variants},
+                         {'current': 0, 'candidate': 1, 'without_skill': 0})
+        self.assertEqual(result['statistics']['candidate_vs_current']['verdict'], 'inconclusive')
+        self.assertIn('candidate_vs_without_skill', result['statistics'])
         receipt = (self.data / 'ai' / 'runs' / (result['run_id'] + '.json')).read_text()
         self.assertNotIn('Private test request', receipt)
         self.assertNotIn('New response private', receipt)
@@ -147,6 +153,44 @@ class PlanBindingTests(EditFixture):
         self.assertEqual(result['cases'][0]['candidate']['grade']['passed'], 1)
         self.assertEqual(result['run']['model'], 'primary-model')
 
+    def test_repeated_trials_report_statistics_and_bind_the_count(self):
+        prepared = self.prepare()
+        payload = {'review_id': prepared['review']['review_id'], 'trials': 3,
+                   'cases': [{'prompt': 'Private request', 'contains': 'Updated'}]}
+        calls = []
+
+        def send(run, system, *_args, **_kwargs):
+            if run.estimate_only:
+                return None
+            calls.append(system)
+            return 'Updated private output' if 'Updated line' in system else 'Plain'
+
+        with patch.object(ai.AiRun, 'ask_text', autospec=True, side_effect=send):
+            estimate = ai_edit.compare_edit(self.data, {**payload, 'estimate': True})
+            self.assertEqual(estimate['calls_planned'], 6)
+            with self.assertRaises(ai.AiError) as changed:
+                ai_edit.compare_edit(self.data, {**payload, 'trials': 2, 'plan': estimate['plan']})
+            self.assertEqual(changed.exception.status, 409)
+            result = ai_edit.compare_edit(self.data, {**payload, 'plan': estimate['plan']})
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(result['status'], 'complete')
+        candidate = result['cases'][0]['candidate']
+        self.assertEqual([t['passed'] for t in candidate['trials']], [True, True, True])
+        stats = result['statistics']['candidate_vs_current']
+        self.assertEqual((stats['trials'], stats['observations'], stats['lift']), (3, 3, 1.0))
+        self.assertEqual(stats['verdict'], 'inconclusive')
+        receipt = (self.data / 'ai' / 'runs' / (result['run_id'] + '.json')).read_text()
+        self.assertIn('candidate_vs_current', receipt)
+        self.assertNotIn('Private request', receipt)
+        self.assertNotIn('private output', receipt)
+
+    def test_trial_count_is_validated(self):
+        prepared = self.prepare()
+        for bad in (0, 6, True, '3', 2.0):
+            with self.subTest(bad=bad), self.assertRaises(ai.AiError):
+                ai_edit.compare_edit(self.data, {'review_id': prepared['review']['review_id'], 'trials': bad,
+                                                 'estimate': True, 'cases': [{'prompt': 'Request'}]})
+
     def test_same_second_model_is_refused(self):
         prepared = self.prepare()
         with self.assertRaises(ai.AiError):
@@ -171,3 +215,116 @@ class CrlfEditTests(EditFixture):
         saved = self.document.read_bytes()
         self.assertTrue(saved.endswith(b'Updated line\r\n'))
         self.assertNotIn(b'\n', saved.replace(b'\r\n', b''))
+
+
+@unittest.skipUnless(os.name == 'posix' and getattr(os, 'O_NOFOLLOW', 0)
+                     and os.scandir in os.supports_fd, 'descriptor capture unavailable')
+class HunkSelectionTests(EditFixture):
+    """Keep only some AI changes; the result is a fresh review with provenance."""
+
+    def setUp(self):
+        super().setUp()
+        self.body = 'One.\nTwo.\nThree.\nFour.\n'
+        store = Store(self.data)
+        store.edit('example', body=self.body)
+        self.original = self.document.read_bytes()
+        self.input.update({'document_hash': hashlib.sha256(self.original).hexdigest(), 'body': self.body,
+                           'selection': None, 'instruction': 'Rewrite two and four.'})
+
+    def propose(self):
+        with patch.object(ai_edit, 'AiRun') as run:
+            fake = run.return_value
+            fake.ask_json.return_value = {'replacement': 'One.\nTWO!\nThree.\nFOUR!\n'}
+            fake.config = {'model': 'fake-model', 'label': 'Fake', 'local': True}
+            estimate = ai_edit.propose_edit(self.data, {**self.input, 'estimate': True})
+            return ai_edit.propose_edit(self.data, {**self.input, 'tree_hash': estimate['tree_hash']})
+
+    def test_two_hunks_are_reported_with_provenance(self):
+        result = self.propose()
+        self.assertEqual([(h['line'], h['removed'], h['added']) for h in result['hunks']],
+                         [(2, 'Two.\n', 'TWO!\n'), (4, 'Four.\n', 'FOUR!\n')])
+        self.assertEqual(result['review']['provenance']['model'], 'fake-model')
+        self.assertEqual(result['review']['provenance']['request'], 'Rewrite two and four.')
+
+    def test_partial_selection_restages_and_retires_the_full_proposal(self):
+        result = self.propose()
+        first = result['hunks'][0]['id']
+        selected = ai_edit.select_hunks(self.data, {'review_id': result['review']['review_id'],
+                                                    'body': self.body, 'accepted': [first]})
+        self.assertEqual(selected['proposed'], 'One.\nTWO!\nThree.\nFour.\n')
+        self.assertEqual(selected['provenance']['accepted_hunks'], 1)
+        self.assertEqual(selected['provenance']['total_hunks'], 2)
+        old = source_update.read_update_review(self.data, result['review']['review_id'])
+        self.assertEqual(old['review_state'], 'cancelled')
+        self.assertEqual(self.document.read_bytes(), self.original)
+        committed = source_update.commit_update_review(self.data, selected['review']['review_id'],
+                                                       name='example', scope='global', approve=True)
+        self.assertTrue(self.document.read_text().endswith('One.\nTWO!\nThree.\nFour.\n'))
+        snapshots = source_update.list_update_snapshots(self.data, 'example', 'global',
+                                                        target_path=str(self.target))
+        labelled = [s for s in snapshots if s['snapshot_id'] == committed['snapshot_id']]
+        self.assertEqual(labelled[0]['provenance']['feature'], 'edit-skill')
+        self.assertEqual(labelled[0]['provenance']['accepted_hunks'], 1)
+
+    def test_failed_replacement_cancels_the_new_review_and_keeps_the_old(self):
+        result = self.propose()
+        review_id = result['review']['review_id']
+        first = result['hunks'][0]['id']
+        created = []
+        real_stage = ai_edit.ai_concise._stage
+
+        def stage(*args, **kwargs):
+            staged = real_stage(*args, **kwargs)
+            created.append(staged['review_id'])
+            return staged
+
+        with patch.object(ai_edit.ai_concise, '_stage', side_effect=stage), \
+                patch.object(ai_edit.source_update, 'cancel_update_review',
+                             wraps=source_update.cancel_update_review) as cancel:
+            cancel.side_effect = [source_update.SourceUpdateError('review-not-pending', 'gone'), None]
+            with self.assertRaises(ai.AiError) as failure:
+                ai_edit.select_hunks(self.data, {'review_id': review_id, 'body': self.body, 'accepted': [first]})
+        self.assertEqual(failure.exception.status, 409)
+        self.assertEqual([call.args[1] for call in cancel.call_args_list], [review_id, created[0]])
+
+    def test_unreviewable_selection_keeps_the_full_proposal(self):
+        result = self.propose()
+        review_id = result['review']['review_id']
+        with patch.object(ai_edit.ai_concise, '_stage', return_value={'review_state': 'blocked', 'review_id': None}):
+            with self.assertRaises(ai.AiError):
+                ai_edit.select_hunks(self.data, {'review_id': review_id, 'body': self.body,
+                                                 'accepted': [result['hunks'][0]['id']]})
+        self.assertEqual(source_update.read_update_review(self.data, review_id)['review_state'], 'pending')
+
+    def test_selection_rejects_all_none_unknown_and_stale(self):
+        result = self.propose()
+        review_id = result['review']['review_id']
+        ids = [h['id'] for h in result['hunks']]
+        for accepted in ([], ids, ['0' * 16], [ids[0], ids[0]], 'x'):
+            with self.subTest(accepted=accepted), self.assertRaises(ai.AiError):
+                ai_edit.select_hunks(self.data, {'review_id': review_id, 'body': self.body, 'accepted': accepted})
+        with self.assertRaises(ai.AiError):
+            ai_edit.select_hunks(self.data, {'review_id': review_id, 'body': 'Different\n', 'accepted': ids[:1]})
+        (self.target / 'example.txt').write_text('changed', encoding='utf-8')
+        with self.assertRaises(ai.AiError) as stale:
+            ai_edit.select_hunks(self.data, {'review_id': review_id, 'body': self.body, 'accepted': ids[:1]})
+        self.assertEqual(stale.exception.status, 409)
+        self.assertEqual(source_update.read_update_review(self.data, review_id)['review_state'], 'pending')
+
+
+class HunkBoundTests(unittest.TestCase):
+    def test_large_repetitive_bodies_diff_quickly_as_one_hunk(self):
+        import time
+        before = 'x\n' * 2000
+        after = ''.join('y\n' if i % 2 else 'x\n' for i in range(2000))
+        started = time.monotonic()
+        hunks = ai_edit._hunks(before, after)
+        self.assertLess(time.monotonic() - started, 2)
+        self.assertEqual(len(hunks), 1)
+        self.assertEqual(ai_edit._merge(before, after, hunks, {hunks[0]['id']}), after)
+        self.assertEqual(ai_edit._merge(before, after, hunks, set()), before)
+
+    def test_common_ends_are_not_reported(self):
+        hunks = ai_edit._hunks('a\nb\nc\nd\n', 'a\nB\nc\nd\n')
+        self.assertEqual([(h['line'], h['removed'], h['added']) for h in hunks], [(2, 'b\n', 'B\n')])
+        self.assertEqual(ai_edit._hunks('same\n', 'same\n'), [])

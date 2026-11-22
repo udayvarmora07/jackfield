@@ -538,6 +538,23 @@ class AiFeatureTests(unittest.TestCase):
         again = ai_evals.run_evals(self.store, {"name": "magic"})
         self.assertEqual(again["iteration"], 2)
 
+    def test_eval_runner_repeats_trials_as_iterations_with_statistics(self):
+        self._configure()
+        self._eval_skill()
+        estimate = ai_evals.run_evals(self.store, {"name": "magic", "trials": 3, "estimate": True})
+        self.assertEqual((estimate["trials"], estimate["calls_planned"]), (3, estimate["cases"] * 6))
+        self.assertIn("6 times", estimate["egress"][0])
+        result = ai_evals.run_evals(self.store, {"name": "magic", "trials": 3})
+        self.assertEqual(result["iterations"], [1, 2, 3])
+        stats = result["statistics"]
+        self.assertEqual((stats["trials"], stats["lift"]), (3, 1.0))
+        self.assertEqual(stats["pass_rate"], {"with_skill": 1.0, "without_skill": 0.0})
+        workspace = Path(self.store.data_dir) / "evals/magic-workspace"
+        self.assertTrue(all((workspace / f"iteration-{n}" / "benchmark.json").is_file() for n in (1, 2, 3)))
+        for bad in (0, 6, "2", True):
+            with self.subTest(bad=bad), self.assertRaises(ai.AiError):
+                ai_evals.run_evals(self.store, {"name": "magic", "trials": bad, "estimate": True})
+
     def test_eval_runner_flags_a_skill_the_model_no_longer_needs(self):
         self._configure()
         self._eval_skill(both_pass=True)

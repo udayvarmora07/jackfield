@@ -510,12 +510,20 @@
             <template v-else>
               <h3>Review changes</h3>
               <pre v-for="file in dialog.aiEdit.result.review.comparison?.changed_files" :key="file.path" class="ai-run-text">{{ file.diff?.join('\n') }}</pre>
+              <fieldset v-if="dialog.aiEdit.result.status === 'pending' && dialog.aiEdit.result.hunks?.length > 1" class="instance-metadata">
+                <legend>Changes to keep</legend>
+                <label v-for="h in dialog.aiEdit.result.hunks" :key="h.id" class="tp-check"><input type="checkbox" :value="h.id" v-model="dialog.aiEdit.keep" :disabled="busy || dialog.aiEdit.pending"> Change at line {{ h.line }}<pre class="ai-run-text">{{ hunkText(h) }}</pre></label>
+                <template v-if="aiEditPartial(dialog.aiEdit)">
+                  <p class="tp-fine" role="status">Keeping {{ dialog.aiEdit.keep.length }} of {{ dialog.aiEdit.result.hunks.length }} changes. Update the proposal to check and test exactly what will be saved.</p>
+                  <button type="button" class="btn btn-line btn-sm" :disabled="busy || dialog.aiEdit.pending || !dialog.aiEdit.keep.length" @click="selectAiHunks()">Keep only the selected changes</button>
+                </template>
+              </fieldset>
               <details class="tp-more"><summary>Full proposed instructions</summary><pre>{{ dialog.aiEdit.result.proposed }}</pre></details>
               <p v-if="dialog.aiEdit.result.status === 'no-change'">The draft matches the current skill.</p>
               <p v-for="(issue, i) in dialog.aiEdit.result.review.validation?.errors" :key="i" class="state-note err">{{ issue.message || issue }}</p>
               <p v-for="(finding, i) in dialog.aiEdit.result.review.risk?.findings" :key="'risk'+i" class="tp-issue warn">{{ finding.message || finding }}</p>
               <ai-compare v-if="dialog.aiEdit.result.status === 'pending'" :key="dialog.aiEdit.result.review.review_id" :review-id="dialog.aiEdit.result.review.review_id" :example="dialog.aiEdit.example"></ai-compare>
-              <button type="button" class="btn btn-ink" v-if="dialog.aiEdit.result.status === 'pending' && dialog.aiEdit.result.review.validation?.valid" :disabled="busy || dialog.aiEdit.pending" @click="applyAiEdit()">Save reviewed edit</button>
+              <button type="button" class="btn btn-ink" v-if="dialog.aiEdit.result.status === 'pending' && dialog.aiEdit.result.review.validation?.valid" :disabled="busy || dialog.aiEdit.pending || aiEditPartial(dialog.aiEdit)" @click="applyAiEdit()">Save reviewed edit</button>
             </template>
           </div>
         </template>

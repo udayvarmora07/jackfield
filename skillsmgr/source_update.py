@@ -208,6 +208,7 @@ def _copy_public_preview(record: dict, *, status: str | None = None) -> dict:
         result["committed_at"] = record["committed_at"]
     if record.get("snapshot_id"):
         result["snapshot_id"] = record["snapshot_id"]
+    result.update(_provenance_field(record.get("provenance")))
     return result
 
 
@@ -441,6 +442,7 @@ def _prepare_from_source(
     rollback_from_snapshot: str | None = None,
     external_scan: dict | None = None,
     local_edit: bool = False,
+    provenance: dict | None = None,
 ) -> dict:
     target = _resolve_target(data_dir, name, scope, target_path)
     try:
@@ -504,6 +506,7 @@ def _prepare_from_source(
             "resulting_disabled": target["disabled"],
             "rollback_from_snapshot": rollback_from_snapshot,
         }
+        record.update(_provenance_field(provenance))
         _write_record(directory, _with_local_edit(record, local_edit))
         return _copy_public_preview(record)
     except SourceUpdateError:
@@ -526,8 +529,15 @@ def prepare_local_update(
     source_value: str | None = None,
     external_scan: dict | None = None,
     local_edit: bool = False,
+    provenance: dict | None = None,
 ) -> dict:
-    """Stage and preview one local candidate without changing the target."""
+    """Stage and preview one local candidate without changing the target.
+
+    ``provenance`` describes an AI-generated candidate (feature, model, request
+    summary). It is kept on the review record and shown beside the snapshot
+    taken when the review is applied, so Recovery can say which AI change a
+    snapshot undoes.
+    """
     data = _data_path(data_dir)
     source = Path(source_dir).expanduser()
     try:
@@ -536,7 +546,42 @@ def prepare_local_update(
     except (SourceLockError, OSError) as exc:
         raise SourceUpdateError("candidate-unsafe", "source identity is not safe to retain") from exc
     return _prepare_from_source(data, name, scope, source, target_path, source_record=source_record,
-                                external_scan=external_scan, local_edit=local_edit)
+                                external_scan=external_scan, local_edit=local_edit, provenance=provenance)
+
+
+_PROVENANCE_TEXT = {"feature": 40, "model": 160, "provider": 80, "request": 200, "section": 40}
+_PROVENANCE_COUNTS = ("accepted_hunks", "total_hunks")
+
+
+def _clean_provenance(value: dict) -> dict:
+    """Keep only known, bounded provenance fields."""
+    clean: dict = {}
+    for key, limit in _PROVENANCE_TEXT.items():
+        if isinstance(value.get(key), str):
+            clean[key] = value[key][:limit]
+    if isinstance(value.get("local"), bool):
+        clean["local"] = value["local"]
+    for key in _PROVENANCE_COUNTS:
+        if type(value.get(key)) is int and 0 <= value[key] <= 100_000:
+            clean[key] = value[key]
+    return clean
+
+
+def _provenance_field(value) -> dict:
+    """``{"provenance": ...}`` for a non-empty provenance dict, else nothing."""
+    return {"provenance": _clean_provenance(value)} if isinstance(value, dict) and value else {}
+
+
+def _snapshot_provenance(data_dir: Path, target: dict, snapshot_id: str) -> dict | None:
+    """Provenance of the applied review that took this snapshot, when it was AI-generated."""
+    try:
+        _, record = _load_record(data_dir, snapshot_id)
+    except SourceUpdateError:
+        return None
+    if record.get("status") != "committed" or not _same_target(record.get("target", {}), target):
+        return None
+    provenance = record.get("provenance")
+    return _clean_provenance(provenance) if isinstance(provenance, dict) else None
 
 
 def _path_digest(target: dict) -> str:
@@ -614,6 +659,7 @@ def _snapshot_entries(data_dir: Path, target: dict) -> list[dict]:
             item["activation_state"] = "disabled" if (snapshot / "SKILL.md.disabled").is_file() else "active"
             item["readable"] = True
             item["available"] = True
+            item.update(_provenance_field(_snapshot_provenance(data_dir, target, folder.name)))
         except (OSError, SourceLockError, SourceUpdateError, ValueError):
             item["error"] = "snapshot is unreadable or malformed"
         entries.append(item)

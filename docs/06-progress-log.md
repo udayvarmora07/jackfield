@@ -7,6 +7,30 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-22 — Honest AI test statistics and per-hunk accept (slice 1)
+
+- Added `trial_stats.py`: paired lift over cases with a 95% bootstrap interval
+  that resamples cases and trials, and a verdict of helps, hurts, inconclusive
+  or ungraded. Fewer than three graded requests or four graded paired
+  observations are always inconclusive, because repeats of one request say
+  nothing about others. Simulation on known effects gave 95–98.5% interval coverage and
+  a 0.7% false "helps/hurts" rate with no effect, which is conservative.
+- AI evals and current-vs-proposed comparisons accept `trials` (1–5; v2 defaults
+  to 3), shuffle call order, and report statistics, output-token regressions and
+  assertions that never discriminate. Each eval repeat is its own iteration.
+- AI edits list line hunks. Keeping a subset restages a fresh review with no
+  model call and cancels the full proposal. Reviews and the snapshots they
+  create carry AI provenance, shown in the snapshot list as "Before AI edit by
+  MODEL: request · kept N of M changes".
+- A hostile review found three defects, now fixed with regression tests: an
+  uncapped diff (86 s on a repetitive 2,000-line body, now bounded), a hunk
+  selection that could orphan or wrongly cancel a review, and a "helps" verdict
+  from one request repeated five times.
+- Verified in the browser against a local fake model: hunk selection, a
+  12-call comparison with statistics, reviewed save, the Recovery label and
+  repeated evals. Marked slice 1 shipped in
+  @docs/59-ai-everywhere-research-2026-11-22.md.
+
 ## 2026-11-22 — Research AI across every feature
 
 - Ran four sourced research passes (user demand, competitors, literature, AI UX
