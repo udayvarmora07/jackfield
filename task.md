@@ -8,6 +8,14 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## Skill Markdown reader (2026-11-23)
+
+- [x] Use one offline Markdown renderer for both skill readers and editor
+  previews. Display structured tables and nested content, and give wide tables
+  a keyboard accessible scroll region.
+- [x] Preserve each reader's link policy, keep HTML and images inert, and cover
+  formatting, comparison highlights, and the vendored files with regressions.
+
 ## AI authoring and skill lifecycle research (2026-11-22)
 
 - [x] Review public user reports, comparable products, evaluation research, and

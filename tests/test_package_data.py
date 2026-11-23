@@ -51,6 +51,8 @@ class PackageDataArchiveTests(unittest.TestCase):
     def _members(self) -> dict[str, bytes]:
         expected = check_package_data.expected_webui_members()
         members = {name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset") for name in expected}
+        for name in (check_package_data.MARKDOWN_MEMBER, check_package_data.MARKDOWN_NOTICES):
+            members[name] = (_REPO_ROOT / name).read_bytes()
         for name in ("skills-mgr.bash", "_skills-mgr"):
             path = _REPO_ROOT / "skillsmgr" / "completions" / name
             members[f"skillsmgr/completions/{name}"] = path.read_bytes()
@@ -105,6 +107,14 @@ class PackageDataArchiveTests(unittest.TestCase):
         self.assertIn(check_package_data.VUE_MEMBER, members)
         self.assertGreaterEqual(len(members), 1)
         self.assertIn("skillsmgr/webui/index.html", members)
+
+    def test_wheel_rejects_altered_markdown_vendor_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            for member in (check_package_data.MARKDOWN_MEMBER, check_package_data.MARKDOWN_NOTICES):
+                members = self._wheel_members()
+                members[member] = b"altered"
+                with self.subTest(member=member), self.assertRaisesRegex(AssertionError, "altered markdown-it"):
+                    check_package_data.inspect_archive(self._write_wheel(Path(temp), members))
 
     # -- packaged example skills (audit A8) ---------------------------------
     #

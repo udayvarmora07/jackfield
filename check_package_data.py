@@ -9,10 +9,9 @@ reported as ``UNAVAILABLE`` rather than being mistaken for a passing packaging
 check.  ``--require-build`` turns that report into a non-zero exit status for
 release jobs that require packaging coverage.
 
-Independently of the build tool, the check always verifies that the checked-in
-vendored Vue bundle is the recorded upstream artifact (SEC-9): that file runs
-same-origin with access to every local REST endpoint, so its integrity must not
-depend on optional tooling being installed.
+Independently of the build tool, the check verifies that the checked-in Vue and
+markdown-it bundles match the recorded upstream artifacts. These scripts run
+same-origin with access to every local REST endpoint.
 """
 
 from __future__ import annotations
@@ -34,6 +33,9 @@ from typing import Mapping
 ROOT = Path(__file__).resolve().parent
 WEBUI_ROOT = Path("skillsmgr") / "webui"
 VUE_MEMBER = "skillsmgr/webui/static/vendor/vue.global.prod.js"
+MARKDOWN_MEMBER = "skillsmgr/webui/static/vendor/markdown-it.umd.min.js"
+MARKDOWN_NOTICES = "skillsmgr/webui/static/vendor/markdown-it-LICENSES.txt"
+MARKDOWN_SHA256 = "391f2aa638e75e6c7859d0a5c5650ef0956722a45998f17e05b83bc655778e1e"
 #: The agent-facing management example.  It used to live only in the repository
 #: (``examples/``), so it reached nobody who installed the distribution — which
 #: is backwards, because it is the one artifact that lets an AI agent drive this
@@ -173,6 +175,12 @@ def verify_vendored_bundle(project_root: Path = ROOT) -> int:
     if not path.is_file():
         raise AssertionError(f"missing vendored Vue source file: {VUE_MEMBER}")
     return verify_vendored_vue(path.read_bytes(), source=VUE_MEMBER)
+
+
+def verify_vendored_markdown(payload: bytes, *, source: str) -> None:
+    """Verify the markdown-it 15.0.3 browser bundle against its npm archive."""
+    if hashlib.sha256(payload).hexdigest() != MARKDOWN_SHA256:
+        raise AssertionError(f"{source}: missing or altered markdown-it 15.0.3 browser bundle")
 
 
 def expected_webui_members(project_root: Path = ROOT) -> tuple[str, ...]:
@@ -475,6 +483,10 @@ def inspect_archive(path: Path, project_root: Path = ROOT) -> ArchiveReport:
     if not vue:
         raise AssertionError(f"{path.name} contains no vendored Vue payload: {VUE_MEMBER}")
     vue_size = verify_vendored_vue(vue, source=path.name)
+    verify_vendored_markdown(files.get(MARKDOWN_MEMBER, b""), source=path.name)
+    notices = project_root / MARKDOWN_NOTICES
+    if not notices.is_file() or files.get(MARKDOWN_NOTICES) != notices.read_bytes():
+        raise AssertionError(f"{path.name}: missing or altered markdown-it license notices")
     license_expression, license_files = verify_license_metadata(files, kind, project_root, path.name)
     example_members = verify_example_documents(files, project_root, path.name)
     return ArchiveReport(path, kind, actual, vue_size, license_expression, license_files, example_members)
@@ -587,6 +599,11 @@ def run_check(project_root: Path = ROOT, *, install: bool = False, require_build
 
     try:
         size = verify_vendored_bundle(project_root)
+        markdown = project_root / MARKDOWN_MEMBER
+        verify_vendored_markdown(markdown.read_bytes() if markdown.is_file() else b"", source=MARKDOWN_MEMBER)
+        notices = project_root / MARKDOWN_NOTICES
+        if not notices.is_file() or not notices.stat().st_size:
+            raise AssertionError(f"missing or empty license notices: {MARKDOWN_NOTICES}")
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

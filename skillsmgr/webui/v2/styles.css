@@ -265,14 +265,31 @@ select.field { padding-right: 34px; appearance: none; background-image: url("dat
 .meta { font-size: var(--fs-small); font-weight: 700; color: var(--muted); }
 .doc-title { font-family: var(--serif); font-size: var(--fs-display); font-weight: 500; letter-spacing: -.02em; line-height: 1.05; margin-top: 10px; word-break: break-word; }
 .doc-lead { font-family: var(--serif); font-size: var(--fs-h3); font-style: italic; color: var(--doc-2); margin-top: 12px; line-height: 1.45; }
-.doc { font-family: var(--serif); font-size: var(--fs-title); line-height: 1.7; color: var(--doc); margin-top: 28px; }
+.doc { font-family: var(--serif); font-size: var(--fs-title); line-height: 1.7; color: var(--doc); margin-top: 28px; min-width: 0; overflow-wrap: anywhere; }
 .doc p { margin: 0 0 14px; }
-.doc h2 { font-family: var(--ui); font-size: var(--fs-small); letter-spacing: .04em; text-transform: uppercase; font-weight: 800; color: var(--muted); margin: 30px 0 8px; }
+.doc :is(h1, h2, h3, h4, h5, h6) { margin: 24px 0 8px; line-height: 1.25; font-weight: 650; }
+.doc h1 { font-size: var(--fs-h2); }
+.doc h2 { font-size: var(--fs-h3); }
+.doc h3 { font-size: var(--fs-title); }
+.doc :is(h4, h5, h6) { font-family: var(--ui); font-size: var(--fs-ui); }
+.doc > :first-child { margin-top: 0; }
 .doc ol, .doc ul { padding-left: 24px; margin: 0 0 14px; }
+.doc li > :is(ol, ul) { margin-bottom: 0; }
 .doc li { margin: 4px 0; }
-.doc blockquote { margin: 22px 0 0; padding-left: 18px; border-left: 2px solid var(--ink); font-style: italic; color: var(--doc-2); }
+.doc blockquote { margin: 0 0 14px; padding-left: 18px; border-left: 2px solid var(--ink); font-style: italic; color: var(--doc-2); }
+.doc hr { border: 0; border-top: 1px solid var(--line-2); margin: 24px 0; }
 .doc mark { background: linear-gradient(transparent 55%, var(--mark) 55%); color: inherit; }
 .doc code { font-family: var(--mono); font-size: .8em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; }
+.doc pre code { background: none; padding: 0; font-size: inherit; }
+.doc .md-note { color: var(--muted); }
+.doc .tablewrap { max-width: 100%; overflow-x: auto; margin: 0 0 18px; }
+.doc table { border-collapse: collapse; width: 100%; font-family: var(--ui); font-size: var(--fs-ui); line-height: 1.5; }
+.doc :is(th, td) { min-width: 6ch; padding: 8px 12px; border: 1px solid var(--line-2); text-align: start; vertical-align: top; }
+.doc th { background: var(--sunken); font-weight: 700; }
+.doc .md-marked > * { background: var(--mark); }
+.doc .md-align-left { text-align: left; }
+.doc .md-align-center { text-align: center; }
+.doc .md-align-right { text-align: right; }
 .margin { display: flex; flex-direction: column; gap: 24px; padding-top: 112px; font-size: var(--fs-ui); }
 .note { border-left: 2px solid var(--line); padding-left: 16px; }
 .note > b { display: block; font-size: var(--fs-caption); letter-spacing: .03em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 6px; }
@@ -534,8 +551,9 @@ button.map-state:hover { border-color: currentColor; }
 .note input[type="checkbox"] { accent-color: var(--ink); width: 16px; height: 16px; margin: 0; }
 .nb-bar b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 600px) {
-  .nb-bar { gap: 6px; }
+  .nb-bar { height: auto; min-height: 54px; flex-wrap: wrap; gap: 6px; padding-block: 6px; }
   .nb-bar > span:not(.acts) { display: none; }
+  .nb-bar .acts { max-width: 100%; flex-wrap: wrap; }
   .nb-bar .acts .btn-line { padding: 0 10px; }
 }
 .inline-note { display: none; }

@@ -258,7 +258,7 @@ store.py ──> filesystem (source of truth) + SQLite index
 ```
 
 - **Backend**: `skillsmgr/webapp.py`. Stdlib only. Serves the static frontend from `skillsmgr/webui/` and a REST API under `/api/`. Request security, JSON serialization/body parsing, and multipart folder-upload staging live in private `web_security.py`, `web_serialization.py`, and `web_upload.py` modules; `webapp.py` keeps the route and compatibility interfaces. Safe local source updates delegate to the filesystem-owned `source_update.py` review/snapshot service; scope-aware endpoints delegate to the `scopes` layer (`skillsmgr/scopes.py`), which reads/writes agent skill dirs directly (no DB).
-- **Frontend**: `skillsmgr/webui/` — `index.html`, `styles.css`, `domain.js`, `app.js`, `static/vendor/vue.global.prod.js` (Vue 3.5.13, vendored so the app works offline). `domain.js` owns transport/formatting/frontmatter/escaped Markdown rendering behind a small browser-global seam; `app.js` owns Vue state and workflows. The split is plain script loading and keeps the no-build contract.
+- **Frontend**: `skillsmgr/webui/` contains the pages, styles and scripts. Both interfaces load the vendored Vue and Markdown parser from local static files. `domain.js` owns transport, formatting, frontmatter and Markdown rendering. `app.js` owns Vue state and workflows. Plain script loading keeps the UI offline and requires no build step.
 - **No build step**: Vue global production build, plain CSS, plain JS. No npm, no bundler, no CDN at runtime.
 
 ### Architecture choice after the 2026-09-20 desktop comparison
@@ -462,9 +462,8 @@ frame-ancestors 'none'; form-action 'none'`.
   below forbids. Its cost is real but bounded: `'unsafe-inline'` is absent from
   `script-src`, so an injected `<script>` or `onerror=` is still blocked, and no
   HTML-injection sink exists today. What it does remove is CSP as the safety net
-  for the *next* injection bug — most plausibly the hand-rolled Markdown
-  renderer, which processes attacker-authored `SKILL.md` bodies, so keep that
-  renderer escaping everything (locked rule 4). The decision is pinned by
+  for the *next* injection bug. The Markdown renderer processes untrusted
+  `SKILL.md` bodies and must keep raw HTML inert (locked rule 4). The decision is pinned by
   `tests/test_audit_batch5_contracts.py`, which fails if the directive is dropped
   without also documenting the replacement.
 
@@ -1026,7 +1025,7 @@ claimed.
   preference without implying a translated interface. The document keeps
   `lang="en"` until translated resources exist, so a regional format choice
   never falsely claims translated interface copy.
-- **Domain seam (`domain.js`)**: `api()` fetch wrapper, formatting/token helpers, raw frontmatter enrichment, and hand-rolled escaped Markdown rendering; all load before `app.js` without a bundler.
+- **Domain seam (`domain.js`)** provides the `api()` fetch wrapper, formatting and token helpers, frontmatter enrichment and shared Markdown rendering.
 - **[SPEC] The seam owns the observed state, not five copies of it.** The
   frontend carried five hand-written copies of the same predicate (four in
   `app.js`, one in `domain.js`) and `invalid` was missing from
@@ -1053,7 +1052,21 @@ claimed.
 - **Actions**: `saveSkill` (create/update, scope-aware), `toggleSelected` (disable/enable), `removeSkill` (trash with **Undo toast**, or purge), `restoreTrash`, snapshot rollback from History, `purgeTrash`, `runValidate`, `openDoctor/Stats/History/Templates`, slim/full `doImport`/`exportArchive` (browser download), `rebuildIndex`/`resyncIndex`, `openSync`/`doSync` (copy skill between scopes with resolution preview), exact visible-set selection and tag changes, `prepareBatch`/`executeBatch` (preview-locked enable/disable/remove/sync), `saveProfile`/`previewProfile`/`openProfileBatch`/`deleteProfile`, `openInstallCenter`/`openRecoveryCenter`, `loadWorkspaces` (read-only adapter/project evidence), `inspectQualityInLibrary` (reuse exact Library selection/detail), `openInstall`/`runInstall` (build/run `skills add` or browse/search/curate/fetch skills.sh), `runRegistry` (cache-aware reads and explicit provenance fetch), `commitRegistryReview` (separate no-network trust commit), and escaped editor preview. Install reports existing `registry_provenance` as registry-backed skills (not deduplicated sources) and makes no update claim without registry evidence; persistent search filters names and provenance identifiers. Registry fetch sends `{fetch:true, source}` and shows review id/expiry/validation/risk/hash evidence; the separate `{fetch:true, review_id, trust_confirmed:true}` action commits only the exact returned review, with a new request retiring the old review. Recovery is the single exposed recovery navigation entry and composes global trash plus v2 agent-scope trash restore, history/snapshot rollback, full archive import, and full backup export; its history modal forces global scope. Profile detail shows observed/disabled/divergent/missing counts, configured targets, and each instance scope/path; `Review enable plan` is offered only when at least one observed instance exists. The plan explains Disabled → Active and Active → No state change outcomes, unresolved members, and recovery/partial-failure behavior. Quality actions route to existing Validate, Doctor, and Stats modals without inventing new evidence. Runner-mode Preview posts the offline bridge plan (`preview: true`) and renders its command, `may_install` wording, every `blockers` entry, and https-only `audit_links` as plain text from the install state's `preview` field; the locally built command toast remains only the request-failure fallback. In Workspaces, Enter in the project field runs the same `loadWorkspaces` action as **Check project**, guarded by `loadingWorkspaces`.
 - **Source update actions**: The selected exact physical instance exposes `Update from folder` only when addressable and writable. The dialog freezes `{name, scope, physical_path}`, uploads a `webkitdirectory` candidate for private review, separates changes/validity/advisory risk/recovery evidence, renders diffs as escaped text, and requires the unchecked confirmation `I reviewed the target, file changes, validation, and recovery snapshot policy.` before `Apply reviewed update`. Recovery lists retained source snapshots and opens rollback through the same review UI; it never offers a blind restore.
 - **Hygiene actions**: Quality calls `loadQualityHygiene()` on entry and active-scope changes, keeps loading/error/report state separate from Library records, and offers retry, severity filters, search across finding evidence, expandable accessible findings, exact-instance navigation, and separate largest/unavailable sections. Similarity is computed only by the server report; Vue renders escaped evidence and does not infer a score or cleanup action.
-- **Markdown**: block-level only, everything HTML-escaped (XSS-safe, no raw HTML), supports headings, paragraphs, lists, quotes, fenced code, inline code/bold/italic/links, tables.
+- **[SPEC] Markdown** is shared by v2 and classic skill readers and editor
+  previews. It supports headings, lists and checkboxes, quotes, code, links and
+  pipe tables. Table headers are semantic, alignment follows the separator
+  row, and wide tables scroll horizontally in a keyboard focusable region.
+  V2 comparison highlights a changed paragraph, list item or table row.
+- **[SPEC] Markdown trust boundary.** Raw HTML appears as text and document
+  images render their alt text without loading the image. V2 displays link
+  destinations as text. Classic opens explicit HTTP(S) links in a new tab
+  and displays other accepted destinations as text. Over 512 Ki UTF-16 code
+  units, the preview displays escaped source.
+- **[NOTE] Markdown provenance.** The unchanged browser bundle is from
+  [markdown-it 15.0.3](https://github.com/markdown-it/markdown-it/blob/15.0.3/CHANGELOG.md)
+  via the matching npm package. Its SHA-256 is pinned by
+  `check_package_data.py`. The bundle and its license notices ship under
+  `skillsmgr/webui/static/vendor/`.
 - **Keyboard**: `/` focuses search; `Ctrl/Cmd+K` toggles Commands only when no other dialog is open; its combobox keeps focus while Arrow Up/Down, Home/End, and Enter navigate or execute available results. `?` opens shortcut help; `Esc` closes menus/modals; `Tab` is trapped within the active dialog and focus returns to its opener. Destructive dialogs focus the safer cancel action first. Settings uses native radio groups and a labelled regional-format select with visible labels and 44px option rows. Dialog backgrounds expose `inert`/`aria-hidden` while open, with labelled dialogs and live status/error announcements.
 - **Semantic audit**: Overview and Quality metric cards use valid `dt`/`dd` definition-list pairs. The brand and Commands controls derive accessible names from visible labels plus screen-reader-only action context, so compact breakpoints do not hide their purpose. The document declares a concise local-first description; a 2026-09-22 Lighthouse snapshot reports zero failed accessibility, best-practice, SEO, and agentic-browsing audits.
 - **Preview and safety**: skill editors show an escaped live Markdown preview; sync dialogs show source/target resolution, skip-versus-overwrite behavior, and rollback expectations before commit.

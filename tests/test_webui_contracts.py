@@ -434,10 +434,6 @@ console.log(JSON.stringify({summary, invalidLabel: methods.qualityStateLabel(rec
         self.assertIn(array_branch, source)
         self.assertLess(source.index(array_branch), source.index(object_branch))
 
-    def test_domain_markdown_normalizes_crlf(self):
-        source = _read(DOMAIN_JS)
-        self.assertIn('String(md).replace(/\\r\\n?/g, "\\n").split("\\n")', source)
-
     def test_detail_path_metadata_uses_definition_list(self):
         html = _read(INDEX_HTML)
         self.assertRegex(
@@ -1331,10 +1327,11 @@ class MarkdownRendererEscapingTests(unittest.TestCase):
         script = r"""
 const fs = require('fs'), vm = require('vm');
 const sandbox = { window: {} };
+vm.runInNewContext(fs.readFileSync('skillsmgr/webui/static/vendor/markdown-it.umd.min.js', 'utf8'), sandbox);
 vm.runInNewContext(fs.readFileSync('skillsmgr/webui/domain.js', 'utf8'), sandbox);
 const render = sandbox.window.SkillManagerDomain.renderMarkdown;
 const payloads = JSON.parse(process.argv[1]);
-console.log(JSON.stringify(payloads.map(render)));
+console.log(JSON.stringify(payloads.map(payload => render(payload))));
 """
         result = subprocess.run(
             ["node", "-e", script, json.dumps(self.PAYLOADS)],
@@ -1379,6 +1376,7 @@ console.log(JSON.stringify(payloads.map(render)));
         script = r"""
 const fs = require('fs'), vm = require('vm');
 const sandbox = { window: {} };
+vm.runInNewContext(fs.readFileSync('skillsmgr/webui/static/vendor/markdown-it.umd.min.js', 'utf8'), sandbox);
 vm.runInNewContext(fs.readFileSync('skillsmgr/webui/domain.js', 'utf8'), sandbox);
 console.log(JSON.stringify(sandbox.window.SkillManagerDomain.renderMarkdown(
   '<script>alert(1)</script>')));
@@ -1404,7 +1402,7 @@ console.log(JSON.stringify(sandbox.window.SkillManagerDomain.renderMarkdown(
         # v-html, if present, must route through the escaping renderer.
         html = _read(INDEX_HTML)
         for binding in re.findall(r'v-html="([^"]+)"', html):
-            self.assertIn("inlineMd", binding + " " + source)
+            self.assertIn("renderMarkdown", binding)
         self.assertIn("renderMarkdown", source)
         self.assertIn("renderMarkdown,", source)   # exported on the frozen seam
 

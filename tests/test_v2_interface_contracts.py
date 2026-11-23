@@ -32,6 +32,7 @@ def _node(body: str):
     script = (
         "const vm=require('vm'),fs=require('fs');"
         "const ctx={window:{},console,Blob,FormData};ctx.window.window=ctx.window;vm.createContext(ctx);"
+        "vm.runInContext(fs.readFileSync('skillsmgr/webui/static/vendor/markdown-it.umd.min.js','utf8'),ctx);"
         f"vm.runInContext(fs.readFileSync({json.dumps(str(DOMAIN_JS))},'utf8'),ctx);"
         f"vm.runInContext(fs.readFileSync({json.dumps(str(V2 / 'model.js'))},'utf8'),ctx);"
         "const M=ctx.window.SkillsV2Model;"
@@ -265,7 +266,7 @@ class RenderSafetyTests(unittest.TestCase):
         out = _node(HELPERS + f"const P={json.dumps(self.PAYLOADS)};return P.map(p=>M.renderDoc(p, new Set()));")
         for html in out:
             tags = set(re.findall(r"<\s*/?\s*([a-zA-Z0-9]+)", html))
-            self.assertLessEqual(tags, {"p", "h2", "ul", "ol", "li", "blockquote", "strong", "em", "code", "pre", "mark"},
+            self.assertLessEqual(tags, {"p", "h1", "ul", "ol", "li", "blockquote", "strong", "em", "code", "pre", "mark"},
                                  f"unexpected tag in {html!r}")
             self.assertNotRegex(html, r"<[^>]+\son\w+\s*=")  # no live event-handler attribute
 
@@ -284,6 +285,42 @@ class RenderSafetyTests(unittest.TestCase):
         out = _node(HELPERS + "return M.renderDoc('one\\n\\ntwo', new Set(['two']));")
         self.assertIn("<mark>", out)
         self.assertEqual(out.count("<mark>"), 1)
+
+    def test_markdown_structure_and_changed_table_row(self):
+        doc = (
+            "## Steps\r\n\r\n- [x] Ready\r\n\r\n  3. Nested\r\n\r\n"
+            "Name | Result\r\n:--- | ---:\r\n"
+            "`a\\|b` | **passed**\r\n"
+            "other | ~~skipped~~\r\n\r\n"
+            "> one line\r\n> continued\r\n\r\n"
+            "---\r\n\r\n"
+            "~~~sh\r\nprintf '<point>'\r\n~~~"
+        )
+        row = "`a\\|b` | **passed**"
+        html = _node(HELPERS + f"return M.renderDoc({json.dumps(doc)}, new Set([{json.dumps(row)}]));")
+        self.assertIn("<h2>Steps</h2>", html)
+        self.assertIn('type="checkbox" disabled checked', html)
+        self.assertIn('<ol start="3">', html)
+        self.assertIn('<th scope="col" class="md-align-right">Result</th>', html)
+        self.assertIn('<tr class="md-marked">', html)
+        self.assertEqual(html.count("md-marked"), 1)
+        self.assertIn("<code>a|b</code>", html)
+        self.assertIn("<strong>passed</strong>", html)
+        self.assertIn("<s>skipped</s>", html)
+        self.assertIn("<p>one line\ncontinued</p>", html)
+        self.assertIn("<hr>", html)
+        self.assertIn('class="language-sh">printf \'&lt;point&gt;\'', html)
+
+    def test_images_and_large_documents_stay_inert(self):
+        html = _node(HELPERS + """return {
+          image: M.renderDoc('![<look>](https://example.test/pixel.png)'),
+          large: M.renderDoc('x'.repeat(512 * 1024) + '<img src=x>'),
+        };""")
+        self.assertIn("&lt;look&gt;", html["image"])
+        self.assertNotIn("<img", html["image"])
+        self.assertNotIn("pixel.png", html["image"])
+        self.assertIn("too large for formatted preview", html["large"])
+        self.assertIn("&lt;img src=x&gt;", html["large"])
 
     def test_diff_reports_only_changes_and_survives_large_inputs(self):
         out = _node(HELPERS + """

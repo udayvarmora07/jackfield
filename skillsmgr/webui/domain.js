@@ -372,77 +372,78 @@ function groupLogicalSkills(records, scopes) {
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/* Minimal, safe markdown renderer: blocks only, everything escaped. */
-function inlineMd(s) {
-  let out = esc(s);
-  out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
-  out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  out = out.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
-  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener">$1</a>');
-  return out;
+/* Skill documents are untrusted. Render Markdown tokens only, keep HTML as
+ * text, and never load resources referenced by document images. */
+const markdown = globalThis.markdownit?.({ html: false, linkify: false, typographer: false });
+const MAX_MARKDOWN_CHARS = 512 * 1024;
+
+function configureMarkdown(md) {
+  const rules = md.renderer.rules;
+  rules.link_open = (tokens, i, _options, env) => {
+    const href = tokens[i].attrGet("href");
+    // CommonMark links cannot nest. A closing token has no destination itself.
+    env.link = { href, live: env.liveLinks && /^https?:\/\//i.test(href) };
+    return env.link.live ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">` : "";
+  };
+  rules.link_close = (_tokens, _i, _options, env) => {
+    const { href, live } = env.link;
+    return live ? "</a>" : ` <code>${esc(md.normalizeLinkText(href))}</code>`;
+  };
+  rules.image = (tokens, i, options, env, renderer) => {
+    const alt = renderer.renderInlineAsText(tokens[i].children, options, env);
+    return esc(alt || "Image");
+  };
+  rules.table_open = () => '<div class="tablewrap" role="region" aria-label="Markdown table" tabindex="0"><table>\n';
+  rules.table_close = () => "</table></div>\n";
+  for (const cell of ["th", "td"]) {
+    rules[cell + "_open"] = (tokens, i) => {
+      const alignment = tokens[i].attrGet("style")?.match(/^text-align:(left|center|right)$/)?.[1];
+      const attrs = (cell === "th" ? ' scope="col"' : "") + (alignment ? ` class="md-align-${alignment}"` : "");
+      return `<${cell}${attrs}>`;
+    };
+  }
+  rules.skill_checkbox = (tokens, i) => tokens[i].meta ?
+    '<input type="checkbox" disabled checked aria-label="Completed"> ' :
+    '<input type="checkbox" disabled aria-label="Incomplete"> ';
 }
 
-function renderMarkdown(md) {
-  if (!md || !md.trim()) return '<p style="color:var(--text-muted);">No documentation body.</p>';
-  const lines = String(md).replace(/\r\n?/g, "\n").split("\n");
-  const out = [];
-  let i = 0, inList = null, inCode = false, codeBuf = [], inTable = false;
+if (markdown) configureMarkdown(markdown);
 
-  const closeList = () => { if (inList) { out.push("</" + inList + ">"); inList = null; } };
-  const closeTable = () => { if (inTable) { out.push("</table>"); inTable = false; } };
-
-  while (i < lines.length) {
-    const line = lines[i];
-    if (inCode) {
-      if (/^```/.test(line.trim())) {
-        out.push('<pre><code>' + esc(codeBuf.join("\n")) + "</code></pre>");
-        inCode = false; codeBuf = [];
-      } else codeBuf.push(line);
-      i++; continue;
-    }
-    if (/^```/.test(line.trim())) { inCode = true; i++; continue; }
-
-    const blank = !line.trim();
-    const h = /^(#{1,6})\s+(.*)$/.exec(line);
-    const hr = /^\s*(-{3,}|\*{3,})\s*$/.test(line);
-    const ul = /^\s*[-*+]\s+(.*)$/.exec(line);
-    const ol = /^\s*\d+\.\s+(.*)$/.exec(line);
-    const quote = /^\s*>\s?(.*)$/.exec(line);
-
-    if (blank) { closeList(); closeTable(); i++; continue; }
-    const tableRow = /^\s*\|.*\|\s*$/.test(line) && !h;
-    if (tableRow) {
-      closeList();
-      const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-      const isSep = cells.every((c) => /^:?-{2,}:?$/.test(c));
-      if (!isSep) {
-        if (!inTable) { out.push("<table>"); inTable = true; }
-        out.push("<tr>" + cells.map((c) => "<td>" + inlineMd(c) + "</td>").join("") + "</tr>");
+function decorateMarkdown(tokens, lines, marks) {
+  for (const [i, token] of tokens.entries()) {
+    if (token.type === "inline" && tokens[i - 1]?.type === "paragraph_open" &&
+        tokens[i - 2]?.type === "list_item_open") {
+      const marker = token.content.match(/^\[([ xX])\](?:[ \t]+|$)/);
+      const first = token.children[0];
+      if (marker && first?.type === "text" && first.content.startsWith(marker[0])) {
+        const checkbox = new token.constructor("skill_checkbox", "", 0);
+        checkbox.meta = marker[1] !== " ";
+        first.content = first.content.slice(marker[0].length);
+        token.children.unshift(checkbox);
       }
-      i++; continue;
     }
-    if (h) { closeList(); closeTable(); out.push(`<h${h[1].length}>` + inlineMd(h[2]) + `</h${h[1].length}>`); i++; continue; }
-    if (hr) { closeList(); closeTable(); out.push("<hr>"); i++; continue; }
-    if (quote) { closeList(); closeTable(); out.push("<blockquote>" + inlineMd(quote[1]) + "</blockquote>"); i++; continue; }
-    if (ul || ol) {
-      const tag = ul ? "ul" : "ol";
-      const text = (ul || ol)[1];
-      closeTable();
-      if (inList !== tag) { closeList(); out.push("<" + tag + ">"); inList = tag; }
-      out.push("<li>" + inlineMd(text) + "</li>");
-      i++; continue;
+    if (!marks?.size || !token.map || !["inline", "tr_open"].includes(token.type)) continue;
+    const [start, end] = token.map;
+    if (!lines.slice(start, end).some((line) => marks.has(line.trim()))) continue;
+    if (token.type === "tr_open") token.attrJoin("class", "md-marked");
+    else {
+      token.children.unshift(new token.constructor("mark_open", "mark", 1));
+      token.children.push(new token.constructor("mark_close", "mark", -1));
     }
-    closeList(); closeTable(); out.push("<p>" + inlineMd(line) + "</p>");
-    i++;
   }
+}
 
-  closeList(); closeTable();
-  if (inCode) out.push('<pre><code>' + esc(codeBuf.join("\n")) + "</code></pre>");
-  let html = out.join("\n");
-  html = html.replace(/<table>/g, '<div class="tablewrap"><table>');
-  html = html.replace(/<\/table>/g, "</table></div>");
-  return html;
+function renderMarkdown(md, { liveLinks = true, marks } = {}) {
+  const source = String(md ?? "");
+  if (!source.trim()) return '<p class="md-note">No documentation body.</p>';
+  if (!markdown || source.length > MAX_MARKDOWN_CHARS) {
+    const reason = markdown ? "This document is too large for formatted preview." : "Formatted preview is unavailable.";
+    return `<p class="md-note">${reason}</p><pre><code>${esc(source)}</code></pre>`;
+  }
+  const env = { liveLinks };
+  const tokens = markdown.parse(source, env);
+  decorateMarkdown(tokens, marks?.size ? source.replace(/\r\n?/g, "\n").split("\n") : [], marks);
+  return markdown.renderer.render(tokens, markdown.options, env);
 }
 
 /* Extract compatibility / allowed-tools from raw SKILL.md frontmatter. */

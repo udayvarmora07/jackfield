@@ -436,6 +436,8 @@ class SdistMemberVisibilityTests(unittest.TestCase):
             name: (_VENDORED_VUE if name == check_package_data.VUE_MEMBER else b"asset")
             for name in check_package_data.expected_webui_members()
         }
+        for name in (check_package_data.MARKDOWN_MEMBER, check_package_data.MARKDOWN_NOTICES):
+            members[name] = (ROOT / name).read_bytes()
         members.update({
             f"skillsmgr/completions/{name}": (ROOT / "skillsmgr" / "completions" / name).read_bytes()
             for name in ("skills-mgr.bash", "_skills-mgr")

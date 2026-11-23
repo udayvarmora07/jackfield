@@ -83,6 +83,10 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ### Fixed
 
+- Skill readers and editor previews now render Markdown tables, nested lists,
+  task checkboxes, headings, quotes and code consistently. Wide tables scroll
+  within the reader and can be scrolled with the keyboard.
+
 - Usage reports keep only observed events in their UTC window. Opted-in
   OpenCode 2.3.2 reports read persisted tool activations from a checkpointed
   database. Codex counts distinct skills read in one call, and capped text

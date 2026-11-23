@@ -12,7 +12,6 @@
   const D = window.SkillManagerDomain;
 
   /* ---------- Small helpers ---------- */
-  const esc = D.esc;
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
   const join = (a) => (a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
   const words = (tokens) => Math.round((tokens * 0.75) / 10) * 10;
@@ -369,32 +368,7 @@
     return m ? String(text).slice(m[0].length) : String(text);
   }
   function renderDoc(src, marks) {
-    const set = marks || new Set();
-    /* Links are shown as text plus their address, never as live anchors: a
-     * skill body is untrusted, and a reader should see where a link points. */
-    const inline = (t) => esc(t)
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>")
-      /* One level of balanced parentheses, so `…/Foo_(bar)` is not cut short. */
-      .replace(/\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)/g, "$1 <code>$2</code>");
-    const wrap = (raw, html) => (set.has(raw.trim()) ? `<mark>${html}</mark>` : html);
-    const out = []; let list = null; let fence = false;
-    const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
-    for (const line of String(src).split("\n")) {
-      let m;
-      if (/^```/.test(line)) { close(); out.push(fence ? "</pre>" : "<pre>"); fence = !fence; }
-      else if (fence) out.push(esc(line) + "\n");
-      else if ((m = line.match(/^#{1,3}\s+(.*)/))) { close(); out.push(`<h2>${inline(m[1])}</h2>`); }
-      else if ((m = line.match(/^\d+\.\s+(.*)/))) { if (list !== "ol") { close(); out.push("<ol>"); list = "ol"; } out.push(`<li>${wrap(line, inline(m[1]))}</li>`); }
-      else if ((m = line.match(/^[-*]\s+(.*)/))) { if (list !== "ul") { close(); out.push("<ul>"); list = "ul"; } out.push(`<li>${wrap(line, inline(m[1]))}</li>`); }
-      else if ((m = line.match(/^>\s?(.*)/))) { close(); out.push(`<blockquote>${wrap(line, inline(m[1]))}</blockquote>`); }
-      else if (line.trim()) { close(); out.push(`<p>${wrap(line, inline(line))}</p>`); }
-      else close();
-    }
-    close();
-    if (fence) out.push("</pre>");
-    return out.join("");
+    return D.renderMarkdown(src, { liveLinks: false, marks });
   }
 
   const ACRONYMS = { sql: "SQL", api: "API", pr: "PR", k8s: "K8s", a11y: "Accessibility", ui: "UI", ux: "UX", css: "CSS", ci: "CI", cd: "CD", aws: "AWS" };

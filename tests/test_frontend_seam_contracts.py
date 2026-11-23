@@ -784,9 +784,10 @@ class MarkdownEscapingStillHoldsTests(unittest.TestCase):
         script = r"""
 const fs = require('fs'), vm = require('vm');
 const sandbox = { window: {} };
+vm.runInNewContext(fs.readFileSync('skillsmgr/webui/static/vendor/markdown-it.umd.min.js', 'utf8'), sandbox);
 vm.runInNewContext(fs.readFileSync('skillsmgr/webui/domain.js', 'utf8'), sandbox);
 const render = sandbox.window.SkillManagerDomain.renderMarkdown;
-console.log(JSON.stringify(JSON.parse(process.argv[1]).map(render)));
+console.log(JSON.stringify(JSON.parse(process.argv[1]).map(payload => render(payload))));
 """
         rendered = json.loads(subprocess.run(
             ["node", "-e", script, json.dumps(payloads)],

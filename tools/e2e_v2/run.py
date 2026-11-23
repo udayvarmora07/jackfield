@@ -77,6 +77,16 @@ def main():
         d = roots[disabled_scope]/name
         (d/'SKILL.md').rename(d/'SKILL.md.disabled')
     put('claude', 'sole-copy', 'A single fixture copy.')
+    put('claude', 'markdown-reader', (
+        '## Results\n\n'
+        'Input | Result | Notes | Owner | Date | Status\n'
+        ':--- | ---: | :---: | --- | --- | ---\n'
+        '`a\\|b` | **Passed** | [Docs](https://example.test/Foo_(bar)) | A | Today | Ready\n\n'
+        '- [x] Checked\n  - Nested detail\n\n'
+        '~~~sh\nprintf "<tag>"\n~~~\n\n'
+        '<img src=x onerror="window.fixtureAttack=1">\n\n'
+        '![External image](https://example.test/should-not-load.png)'
+    ))
     for scope in ('claude', 'codex', 'agents'):
         put(scope, 'share-three', 'A fixture awaiting its fourth agent copy.')
     for scope in ('claude', 'codex'):

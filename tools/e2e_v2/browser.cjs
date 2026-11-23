@@ -269,8 +269,9 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const f=file('.claude','created-browser'), original=fs.readFileSync(f);
     await page.locator('.acts button').filter({hasText:'Edit'}).click();
     assert(await page.locator('#ed-desc').evaluate(e=>e===document.activeElement));
-    await page.locator('#ed-body').fill('Read *italic* and [docs](https://example.test/a).\n\n<img src=x onerror="window.fixtureAttack=1">');
+    await page.locator('#ed-body').fill('Name | Result\n--- | ---\n*italic* | [docs](https://example.test/a)\n\n<img src=x onerror="window.fixtureAttack=1">');
     await page.getByRole('tab',{name:'Preview',exact:true}).click();
+    assert.equal(await page.locator('.doc th').count(),2);
     assert.equal(await page.locator('.doc em').innerText(),'italic');
     assert.equal(await page.locator('.doc a,.doc img,.doc script').count(),0);
     assert.equal(await page.evaluate(()=>window.fixtureAttack),undefined);
@@ -280,6 +281,42 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.getByRole('button',{name:'Undo',exact:true}).last().click();
     await page.waitForTimeout(400);
     assert.deepEqual(fs.readFileSync(f),original);
+  });
+  await test('Markdown readers render tables, nested lists and safe content',async()=>{
+    try {
+      for (const width of [320, 768, 1024, 1440]) {
+        await page.setViewportSize({width,height:900});
+        await go('skill/markdown-reader');
+        const table = page.locator('.doc').getByRole('table');
+        await table.waitFor();
+        assert.equal(await table.getByRole('columnheader').count(),6);
+        assert.equal(await table.locator('tbody td code').first().innerText(),'a|b');
+        assert.equal(await table.locator('tbody td').nth(1).evaluate(e=>getComputedStyle(e).textAlign),'right');
+        assert.equal(await page.locator('.doc ul li ul li').innerText(),'Nested detail');
+        assert(await page.locator('.doc').getByRole('checkbox',{name:'Completed'}).isChecked());
+        assert.match(await page.locator('.doc pre').innerText(),/<tag>/);
+        assert.equal(await page.locator('.doc :is(a,img,script)').count(),0);
+        const overflow = await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+        assert(overflow <= 1, `Page overflow of ${overflow}px at ${width}px`);
+        if (width===320) {
+          const wrapper = page.locator('.doc').getByRole('region',{name:'Markdown table'});
+          assert(await wrapper.evaluate(e=>e.scrollWidth>e.clientWidth));
+          await wrapper.focus();
+          await page.keyboard.press('ArrowRight');
+          await page.waitForFunction(()=>document.activeElement.scrollLeft>0);
+        }
+      }
+      await page.goto(base+'/classic/');
+      await page.getByRole('button',{name:'Library',exact:true}).first().click();
+      await page.locator('[data-skill-key$="/markdown-reader"]').click();
+      const table = page.locator('.body').getByRole('table');
+      await table.waitFor();
+      assert.equal(await table.getByRole('columnheader').count(),6);
+      assert.equal(await table.getByRole('link',{name:'Docs'}).getAttribute('href'),'https://example.test/Foo_(bar)');
+      assert.equal(await page.locator('.body :is(img,script)').count(),0);
+    } finally {
+      await page.setViewportSize({width:1280,height:900});
+    }
   });
   await test('One-place dialogs preselect and cancellation keeps files',async()=>{
     await go('skill/sole-copy');

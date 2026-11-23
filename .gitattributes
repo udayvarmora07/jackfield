@@ -1,7 +1,9 @@
-# The vendored Vue bundle is verified by sha256 (SEC-9, check_package_data.py).
+# The vendored JavaScript bundles are verified by sha256 (check_package_data.py).
 # End-of-line translation must never rewrite those bytes, or the recorded hash
 # would only hold on the platform that last vendored it.
 skillsmgr/webui/static/vendor/vue.global.prod.js -text
+skillsmgr/webui/static/vendor/markdown-it.umd.min.js -text
+skillsmgr/webui/static/vendor/markdown-it-LICENSES.txt text eol=lf
 
 # Hosted verification compares these members against a Linux-built artifact.
 /LICENSE text eol=lf

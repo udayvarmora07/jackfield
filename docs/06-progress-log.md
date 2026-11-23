@@ -7,6 +7,16 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-23 — Render skill Markdown in both readers
+
+- Both readers and the editor previews share the locally bundled markdown-it
+  15.0.3 parser. Pipe tables have column headers and scoped scrolling. Nested
+  lists, task checkboxes, quotes, headings and code render from Markdown tokens.
+- V2 comparison marks rendered blocks and table rows. HTML remains text,
+  images render as alt text, and v2 retains visible link destinations.
+- Added the upstream bundle integrity check and packaged license notices.
+  Regression cases cover formatting, content safety and narrow screens.
+
 ## 2026-11-22 — Resume AI feature QA
 
 - Resumed the interrupted Claude QA on the staged batch 3 tree and recovered

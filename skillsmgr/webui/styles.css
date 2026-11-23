@@ -1456,6 +1456,8 @@ html[data-text-size="large"] { font-size: 1.125rem; }
   padding-top: 24px;
   border-top: 1px solid var(--border);
   max-width: 68ch;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .body h2 { margin-top: 0; border: 0; font-size: 1.3125rem; }
 
@@ -1495,10 +1497,14 @@ html[data-text-size="large"] { font-size: 1.125rem; }
 }
 .body pre code { background: none; padding: 0; font-size: 0.8125rem; }
 
-.tablewrap { overflow-x: auto; margin: 0.9em 0; }
+.tablewrap { max-width: 100%; overflow-x: auto; margin: 0.9em 0; }
 .body table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
-.body th, .body td { border: 1px solid var(--border); padding: 6px 12px; text-align: start; }
+.body th, .body td { min-width: 6ch; border: 1px solid var(--border); padding: 6px 12px; text-align: start; vertical-align: top; }
 .body th { background: var(--surface-2); font-weight: 600; }
+.body .md-align-left { text-align: left; }
+.body .md-align-center { text-align: center; }
+.body .md-align-right { text-align: right; }
+.body .md-note { color: var(--text-muted); }
 
 /* ----------------------------------------------------------- empty/loading */
 
