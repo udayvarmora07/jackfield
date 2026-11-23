@@ -122,11 +122,11 @@ def main():
                 if server.poll() is not None: raise RuntimeError('Server exited; inspect server.log')
                 try:
                     url = (root/'server-url.txt').read_text()
-                    with local_http.open(url+'/v2/', timeout=.25): break
+                    with local_http.open(url+'/', timeout=.25): break
                 except OSError: time.sleep(.1)
             else: raise RuntimeError('Server did not start; inspect server.log')
             if args.pilot:
-                print(f'Open {url}/v2/ in a fresh browser profile. Press Ctrl-C here when finished.', flush=True)
+                print(f'Open {url}/ in a fresh browser profile. Press Ctrl-C here when finished.', flush=True)
                 return server.wait()
             browser_env['BROWSER_TEST_BASE'] = url
             result = subprocess.run([_node(), str(Path(__file__).with_name('browser.cjs'))],

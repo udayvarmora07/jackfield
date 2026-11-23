@@ -180,7 +180,6 @@ class CiWorkflowContractTests(unittest.TestCase):
         text = _workflow_text("ci.yml")
         e2e = text.split("\n  e2e:", 1)[1]
         self.assertIn("tools/e2e_v2/run.py", e2e)
-        self.assertIn("tools/e2e_classic/run.py", e2e)
         # Playwright comes from a hash-verified lockfile with no install
         # scripts and no browser download; the runner's own Chrome is used.
         self.assertIn("npm ci --ignore-scripts", e2e)
@@ -195,8 +194,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         text = _workflow_text("ci.yml")
         browser = text.split("\n  browser:", 1)[1].split("\n  e2e:", 1)[0]
         self.assertIn("python3 browser_harness.py", browser)
-        self.assertIn("node --check skillsmgr/webui/app.js", browser)
-        self.assertIn("node --check skillsmgr/webui/domain.js", browser)
+        self.assertIn('for f in skillsmgr/webui/*.js; do node --check "$f"; done', browser)
 
     def test_ci_checks_the_hurl_asset_before_running_contracts_and_retains_failures(self):
         text = _workflow_text("ci.yml")

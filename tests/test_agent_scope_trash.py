@@ -448,7 +448,7 @@ class AgentScopeTrashTests(unittest.TestCase):
     # -- source contract --------------------------------------------------
 
     def test_old_agent_trash_copy_is_gone_from_v2(self):
-        root = Path(__file__).resolve().parent.parent / "skillsmgr" / "webui" / "v2"
+        root = Path(__file__).resolve().parent.parent / "skillsmgr" / "webui"
         offenders = [
             path.name
             for path in sorted(root.iterdir())

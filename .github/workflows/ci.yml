@@ -225,8 +225,7 @@ jobs:
         run: python3 -c "import browser_harness as b; print(b._node()); print(b._chrome())"
       - name: Frontend syntax and browser harness
         run: |
-          node --check skillsmgr/webui/app.js
-          node --check skillsmgr/webui/domain.js
+          for f in skillsmgr/webui/*.js; do node --check "$f"; done
           python3 browser_harness.py
 
   http-contracts:
@@ -274,8 +273,8 @@ jobs:
           retention-days: 7
 
   e2e:
-    name: browser e2e (v2 + classic UI, headless Chrome)
-    # tools/e2e_v2 and tools/e2e_classic drive the real web UI in a real browser
+    name: browser e2e (headless Chrome)
+    # tools/e2e_v2 drives the real web UI in a real browser
     # against a throwaway fixture HOME and data directory (loopback-only server,
     # Chrome sandbox ON). They are not unittest modules, so `unittest discover`
     # never reaches them and, until this job existed, nothing ran them.
@@ -332,12 +331,8 @@ jobs:
           echo "$chrome"
           echo "CHROME_BIN=$chrome" >> "$GITHUB_ENV"
           node -e "console.log('playwright', require('playwright/package.json').version)"
-      - name: V2 UI end-to-end suite
+      - name: UI end-to-end suite
         run: python3 tools/e2e_v2/run.py --output-dir "$RUNNER_TEMP/e2e-v2"
-      - name: Classic UI end-to-end suite
-        # Run even when the v2 suite failed, so one run reports both.
-        if: ${{ !cancelled() }}
-        run: python3 tools/e2e_classic/run.py --output-dir "$RUNNER_TEMP/e2e-classic"
       - name: Upload e2e evidence (screenshots, results.json, server.log)
         # Synthetic fixtures only; no user data is ever in these folders.
         if: ${{ failure() }}
@@ -346,6 +341,5 @@ jobs:
           name: e2e-evidence
           path: |
             ${{ runner.temp }}/e2e-v2
-            ${{ runner.temp }}/e2e-classic
           if-no-files-found: ignore
           retention-days: 7

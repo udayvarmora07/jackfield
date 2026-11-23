@@ -218,29 +218,31 @@ class PerformanceHTTPTests(unittest.TestCase):
         _, full = self.rows("/api/skills?scope=all")
         self.assertIn("ONLY_IN_THE_BODY", next(row for row in full if row["scope"] == "codex")["body"])
 
-    def test_v2_redirect_keeps_query_parameters_and_is_always_local(self):
-        for path in ("/v2", "/v2?window=claude&next=https%3A%2F%2Fexample.invalid"):
+    def test_retired_v2_address_redirects_to_root_keeping_query_and_stays_local(self):
+        for path in ("/v2", "/v2?window=claude&next=https%3A%2F%2Fexample.invalid", "/v2/"):
             with self.subTest(path=path):
                 status, headers, data = self.request(path)
-                self.assertEqual(status, 308)
+                self.assertEqual(status, 307)
                 self.assertEqual(data, b"")
-                self.assertEqual(headers["Location"], path.replace("/v2", "/v2/", 1))
+                query = path.partition("?")[2]
+                self.assertEqual(headers["Location"], "/" + ("?" + query if query else ""))
                 self.assertEqual(headers["Content-Length"], "0")
                 self.assertIn("Content-Security-Policy", headers)
                 self.assertEqual(self.request(headers["Location"])[0], 200)
 
-    def test_head_redirects_without_a_body_and_v2_assets_stay_distinct(self):
+    def test_head_redirects_without_a_body_and_assets_are_served_from_the_root(self):
         status, headers, data = self.request("/v2?window=claude", "HEAD")
-        self.assertEqual(status, 308)
-        self.assertEqual(headers["Location"], "/v2/?window=claude")
+        self.assertEqual(status, 307)
+        self.assertEqual(headers["Location"], "/?window=claude")
         self.assertEqual(data, b"")
-        status, _, page = self.request("/v2/")
+        status, _, page = self.request("/")
         self.assertEqual(status, 200)
         self.assertIn(b"model.js", page)
         assets = Path(__file__).resolve().parents[1] / "skillsmgr" / "webui"
-        self.assertEqual(self.request("/v2/model.js")[2], (assets / "v2/model.js").read_bytes())
+        self.assertEqual(self.request("/model.js")[2], (assets / "model.js").read_bytes())
         self.assertEqual(self.request("/domain.js")[2], (assets / "domain.js").read_bytes())
         self.assertEqual(self.request("/v2/%2e%2e/%2e%2e/AGENTS.md")[0], 404)
+        self.assertEqual(self.request("/%2e%2e/%2e%2e/AGENTS.md")[0], 404)
 
 
 if __name__ == "__main__":

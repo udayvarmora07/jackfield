@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-V2 = ROOT / "skillsmgr" / "webui" / "v2"
+V2 = ROOT / "skillsmgr" / "webui"
 
 SCRIPT = r"""
 const fs=require('fs'),vm=require('vm');

@@ -8,7 +8,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parent.parent
-V2 = ROOT / "skillsmgr" / "webui" / "v2"
+V2 = ROOT / "skillsmgr" / "webui"
 HARNESS = r"""
 const fs=require('fs'),vm=require('vm');
 let calls=[],events=[],handler=async()=>({});

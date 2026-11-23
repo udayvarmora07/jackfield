@@ -40,13 +40,12 @@ free AI contracts and saved-study/no-send checks. `--artifact WHEEL` creates an
 isolated installed-package probe. Existing CI jobs share the runner and keep
 paid native measurements manual. Contract: @docs/43-ai-verification-automation-2026-11-10.md.
 
-**Current UI anchor — 2026-11-06.** V2 is the default: `/` and `/index.html`
-redirect to `/v2/`; classic remains at `/classic/`. The maintainer explicitly
-selected the existing warm-paper v2 design. Its visual authority is
-`skillsmgr/webui/v2/styles.css`, not classic's root `DESIGN.md`. Remaining
-classic workflows are integrated in `v2/tool-center.js` and
-`v2/library-tools.js`; the shell retains Home/Skills/Sync map/Inbox/Recovery and
-adds Tools. See @docs/08-web-ui.md and the newest progress/task entries for
+**Current UI anchor — 2026-11-23.** There is one interface, served at `/`
+from `skillsmgr/webui/` (`/v2/` and `/classic/` redirect there; the classic
+interface was removed). Its visual authority is the root `DESIGN.md` (cool bone
+ground, IBM Plex Sans + Plex Mono, ink actions, one teal signal ink), enforced by
+`check_design_tokens.py`. Desktop first: laptops and monitors, keyboard driven.
+The shell is Home/Skills/Sync map/Inbox/Recovery/Tools. See @docs/08-web-ui.md and the newest progress/task entries for
 current implementation and acceptance evidence. The version blocks below are
 dated historical checkpoints, not current UI defaults.
 
@@ -253,8 +252,7 @@ advisory eval harness, both shipped by extending existing surfaces only — see
 | Track Command Code's skills (UI) | v2 Skills → agent filter → **Agents** |
 | Copy a skill between scopes | `python3 -m skillsmgr sync NAME --from global --to agents` (or UI Sync modal) |
 | Change an API endpoint | `skillsmgr/webapp.py` route methods + `smoke_web.py` + re-run both smokes |
-| Change a v2 screen or behavior | `skillsmgr/webui/v2/` (`app.js`, `index.html`, `styles.css` and the tool modules listed in @docs/08-web-ui.md) |
-| Change a classic screen or behavior | `skillsmgr/webui/` (`app.js`, `index.html` and `styles.css`) |
+| Change a screen or behavior | `skillsmgr/webui/` (`index.html`, `app.js`, `model.js`, `styles.css`, `tools.css` and the tool modules listed in @docs/08-web-ui.md) |
 | Add a field to a skill form | Trace the create or edit handler in the selected front end to the field policy in `skillsmgr/webapp.py` |
 | Anything touching store.py | @docs/04-store-api.md + `python3 smoke_store.py` |
 | Open the UI as a desktop window | `python3 desktop_launcher.py` (`--plain` for the browser, `--print-only` to preview) |
@@ -437,11 +435,18 @@ skillsmgr/
   diagnostics.py       # stderr-only recovery diagnostics (no schema change)
   launcher_security.py  # trusted PATH executable discovery for dev launchers
   webui/
-    index.html         # Vue templates for every screen/modal
+    index.html         # Vue templates for the shell and every screen/dialog
     preferences.js     # CSP-safe first-paint local preference bootstrap
     styles.css         # design tokens + components + responsive
-    domain.js          # no-build transport/formatting/frontmatter/Markdown seam
-    app.js             # Vue app: state, actions, dialogs, keyboard/focus
+    tools.css          # Tools pages, on the same tokens
+    domain.js          # no-build transport/formatting/Markdown seam
+    model.js           # derived state, tool catalog, safe document rendering
+    app.js             # Vue app: shell, routing, skill flows, palette, search
+    library-tools.js   # exact-copy selection and reviewed batch work
+    tool-center.js     # Tools pages (install, profiles, quality, settings...)
+    ai-center.js       # AI assist pages
+    ai-diagnostic.js   # AI diagnostic panel
+    logo.svg           # brand mark and favicon
     static/vendor/vue.global.prod.js   # Vue 3.5.13 (vendored)
   cli.py               # stable adapter: main/build_parser + compatibility names
   cli_parser.py        # argparse construction

@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Skills Manager">
   <!-- The switchboard: rows are skills, columns are agents. One row has
        slipped out of step, and its last copy is the one Skills Manager
-       flags (terracotta). The offset carries the meaning without colour, so
+       flags (the signal teal). The offset carries the meaning without colour, so
        the mark survives 1-bit. Every edge sits on an even coordinate, one
        whole pixel at 16 px. Chosen from five concepts on 2026-11-19. -->
   <style>
-    .cell { fill: #1b1d22 } .flag { fill: #b8492a }
-    @media (prefers-color-scheme: dark) { .cell { fill: #f4efe5 } .flag { fill: #e48b66 } }
+    .cell { fill: #1a1c1f } .flag { fill: #0d6a63 }
+    @media (prefers-color-scheme: dark) { .cell { fill: #e9ebed } .flag { fill: #4fc7bd } }
   </style>
   <g id="icon">
     <rect class="cell" x="0" y="2" width="8" height="8" rx="1"/>

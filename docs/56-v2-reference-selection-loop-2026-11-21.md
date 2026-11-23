@@ -16,7 +16,7 @@ hierarchy. Playwright Trace Viewer supplies the evidence interaction for Quality
 and Sync map. GitButler Operations History supplies the Recovery composition.
 Each reference solves a specific task. Skills Manager's existing warm-paper
 theme, typography and contrast decisions remain the product baseline.
-[Current v2 interface](08-web-ui.md#default-v2-interface-v2).
+[Current v2 interface](08-web-ui.md#the-interface-).
 [Prior styling decisions](53-apm-and-interface-decisions-2026-11-20.md).
 
 | Reference | What earned its place | Work it informs |

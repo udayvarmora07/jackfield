@@ -8,6 +8,30 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## One interface, desktop-first UI pass (2026-11-23)
+
+- [x] Remove the classic interface (`webui/index.html`, `app.js`, `styles.css`,
+  `tools/e2e_classic`, 131 classic-only tests); move the interface out of
+  `webui/v2/` so it is served at `/`; `/v2/` and `/classic/` redirect (307).
+- [x] Replace the cream, serif and terracotta look with the documented
+  `DESIGN.md` system (cool bone ground, IBM Plex Sans + Plex Mono identifiers,
+  one teal signal ink, cool dark palette); rewrite `DESIGN.md` and port
+  `check_design_tokens.py` to the current tokens.
+- [x] Desktop-first layout fixes from two audits and seven five-pass screenshot
+  reports (182 captures at 1366/1440/1920, dark, 390): Home agent cards, Skills header above
+  the 768px fold, reader title and description fold, Sync map at 1280px,
+  Recovery grid, Tools frame and sidebar, Quality paging, filterable copy
+  pickers, command palette, header search results, disabled buttons, focus and
+  current-tab states, AI-off pages, copy fixes.
+- [x] Port the browser harness and E2E contracts to the root interface. Recover
+  the interrupted dark and laptop reviews and verify the missing Help, diagnosis
+  and add-to-agent states.
+- [x] Fix dark-mode selections, multiline creation fields, concealed copy
+  paths, narrow-window Tools navigation and Quality disclosures. Restore install
+  preview evidence and guard against duplicate workspace inspection requests.
+- [x] Run Porting notes and Explain risk findings without a connected model.
+  Bind explicit model sends to the previewed prompt and destination.
+
 ## Skill Markdown reader (2026-11-23)
 
 - [x] Use one offline Markdown renderer for both skill readers and editor

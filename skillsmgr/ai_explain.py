@@ -124,11 +124,16 @@ def explain_findings(data_dir: Path, payload: dict) -> dict:
     result = {"kind": "explain-findings", "scope": scope_id, "name": name,
               "findings": findings, "findings_total": total, "findings_shown": len(findings),
               "policy": "Opinions are advice beside each finding; no severity is changed and no finding is hidden."}
+    if payload.get("local_only") is True:
+        return {**result, "clean": not bool(findings), "local_only": True}
     if not findings:
         return {**result, "clean": True, "opinions": []}
     texts = _texts(record, files)
     run = AiRun(data_dir, "explain-findings", estimate_only=bool(payload.get("estimate")))
-    answer = run.ask_json(_SYSTEM, _prompt(record, findings, texts), max_output=2_000)
+    request = _prompt(record, findings, texts)
+    plan = run.review_plan(payload, [scope_id, name, _SYSTEM, request]) if payload.get("reviewed") is True else {}
+    answer = run.ask_json(_SYSTEM, request, max_output=2_000)
+    result.update(plan)
     result.update({"clean": False, "files_sent": sorted(texts), "run": run.label(),
                    "egress": [f"{name}'s document and {len(texts) - 1} script file(s) (bounded) and "
                               f"{len(findings)} finding(s) go to the configured model."]})

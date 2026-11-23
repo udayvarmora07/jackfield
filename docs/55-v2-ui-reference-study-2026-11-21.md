@@ -59,7 +59,7 @@ finding. Chrome rendered the local v2 working tree using the repository's
 synthetic pilot inventory. Earlier measured typography and contrast decisions
 remain the basis for v2 styling. A gallery capture or an official document
 describes a reference, while the upgrade ideas below are hypotheses about this
-product. [Current v2 interface](08-web-ui.md#default-v2-interface-v2),
+product. [Current v2 interface](08-web-ui.md#the-interface-),
 [Prior interface decisions](53-apm-and-interface-decisions-2026-11-20.md).
 
 | Local task at 390 × 844 CSS px | Observed starting position | What it implies |

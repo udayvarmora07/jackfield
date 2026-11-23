@@ -23,8 +23,8 @@ changed.
 
 ## 1. Classic-only screens
 
-**[SPEC]** New developer-only tool: [classic launcher](../tools/e2e_classic/run.py)
-and [assertion runner](../tools/e2e_classic/classic.cjs), modelled on
+**[SPEC]** New developer-only tool: classic launcher `tools/e2e_classic/run.py` (removed 2026-11-23 with the classic interface)
+and assertion runner `tools/e2e_classic/classic.cjs`, modelled on
 `tools/e2e_v2`. Playwright is an optional external developer tool, not a
 dependency.
 

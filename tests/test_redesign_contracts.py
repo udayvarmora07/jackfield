@@ -176,47 +176,6 @@ console.log(JSON.stringify({{
             raise AssertionError(f"node harness failed:\n{result.stderr}")
         return json.loads(result.stdout)
 
-    def test_a_root_over_one_window_is_reported_as_over(self):
-        out = self._app([1_210_856, 1_189_659, 1_110_822, 406_580], 1_000_000)
-        self.assertEqual([r["over"] for r in out["rows"]][:3], [True, True, True])
-        self.assertFalse(out["rows"][3]["over"])
-        self.assertEqual(out["over"], 3)
-
-    def test_rows_are_ordered_largest_first(self):
-        out = self._app([10, 900_000, 400_000], 1_000_000)
-        self.assertEqual([r["pct"] for r in out["rows"]], sorted(
-            (r["pct"] for r in out["rows"]), reverse=True))
-
-    def test_the_axis_runs_past_one_hundred_percent(self):
-        # On a 0-100% axis, 111% and 121% both clamp to a full bar and the
-        # chart hides the one thing it exists to show.
-        out = self._app([1_210_856, 1_189_659], 1_000_000)
-        self.assertGreaterEqual(out["axis"], 125)
-        self.assertGreater(out["axis"], 121.0)
-        # The 100% mark therefore sits inside the track, not at its end.
-        self.assertLess(float(out["threshold"].rstrip("%")), 100.0)
-
-    def test_an_empty_window_does_not_divide_by_zero(self):
-        out = self._app([500_000], 0)
-        self.assertEqual(out["rows"][0]["pct"], 0)
-        self.assertFalse(out["rows"][0]["over"])
-
-    def test_the_hero_is_the_first_block_of_the_overview(self):
-        html = _read(INDEX_HTML)
-        shell = _slice(html, 'v-if="view === \'overview\'"', "</section>\n\n          <section class=\"attention-queue\"")
-        self.assertIn('class="budget-hero"', shell)
-        self.assertIn("scopeBudgetRows", shell)
-        # It must not claim to know anything the API did not report.
-        self.assertNotIn("winner", shell.lower())
-
-    def test_meter_colour_is_scoped_to_the_fill_not_the_label(self):
-        # Regression: the percentage label and the bar share a class name, and
-        # an unscoped background rule painted the figure on a block of colour.
-        css = _read(CSS)
-        self.assertRegex(css, r"\.scope-meter-fill\.pct-bad\s*\{\s*background:\s*var\(--err\)")
-        # An unscoped background rule is the regression: it paints the figure.
-        self.assertNotRegex(css, r"^\.pct-bad\s*\{[^}]*background", re.M)
-
 
 class DesignContractTests(unittest.TestCase):
     """DESIGN.md is the contract; the stylesheet and the package are its proof."""
@@ -259,37 +218,22 @@ class DesignContractTests(unittest.TestCase):
         down: the bytes are present, the declaration is present, and the page
         still renders in the wrong typeface. Assert the glyph coverage.
         """
-        css = (FONTS / "plex.css").read_text(encoding="utf-8")
-        self.assertIn("U+0000-00FF", css,
-                      "no vendored face covers basic latin — the page will "
-                      "silently render in the fallback")
+        css = _read(CSS)
+        faces = re.findall(r"@font-face\s*\{([^}]*)\}", css)
+        sans = [face for face in faces if "IBM Plex Sans" in face]
+        self.assertTrue(sans, "the interface face is not declared")
+        self.assertTrue(any("U+0000-00FF" in face for face in sans),
+                        "no vendored interface face covers basic latin — the page "
+                        "will silently render in the fallback")
         # Every src must resolve to a file that exists. A relative URL in a
         # stylesheet is resolved against the *stylesheet's* own URL, so a
         # wrong prefix 404s quietly rather than failing loudly.
-        for src in re.findall(r"url\(([^)]+)\)", css):
-            self.assertNotIn("http", src, f"{src} is a remote reference")
-            self.assertTrue((FONTS / src).is_file(), f"{src} does not exist beside plex.css")
-        self.assertGreaterEqual(len(re.findall(r"@font-face", css)), 4)
+        for face in faces:
+            for src in re.findall(r'url\("?([^")]+)"?\)', face):
+                self.assertNotIn("http", src, f"{src} is a remote reference")
+                self.assertTrue((WEBUI / src).is_file(), f"{src} does not exist beside styles.css")
+        self.assertGreaterEqual(len(faces), 4)
 
-    def test_the_stylesheet_imports_the_vendored_faces(self):
-        self.assertIn('static/fonts/plex.css', _read(CSS))
-
-    def test_the_palette_is_not_a_named_default(self):
-        # Two clusters this tool's own reference list names explicitly: cream
-        # ground with terracotta (the prototype's palette) and near-black with
-        # one vermilion accent. Neither may come back.
-        for selector in ('[data-theme="light"], [data-theme="system"] {',
-                         '[data-theme="dark"] {'):
-            block = _slice(_read(CSS), selector, "\n}\n")
-            for banned, why in (
-                ("#faf7f1", "the prototype's parchment ground"),
-                ("#9e4415", "the prototype's copper accent"),
-                ("#d97757", "the catalog's terracotta"),
-                ("#16130e", "the prototype's near-black ground"),
-                ("#e08a4e", "the prototype's vermilion"),
-            ):
-                self.assertNotIn(banned, block.lower(),
-                                 f"{why} is back in {selector}")
 
     def test_no_easing_curve_overshoots(self):
         # A y control point above 1.0 is the bounce/elastic tell; it makes a

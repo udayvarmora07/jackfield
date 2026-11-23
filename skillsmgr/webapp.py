@@ -898,52 +898,31 @@ class WebAppHandler(BaseHTTPRequestHandler):
     # -- static -----------------------------------------------------------
 
     @staticmethod
-    def _classic_parts(parts: list[str]) -> list[str]:
-        """Keep classic's relative assets together under its explicit URL."""
-        return parts[1:] if parts[:1] == ["classic"] else parts
-
-    @staticmethod
     def _static_rel(parts: list[str]) -> str:
         """Map URL segments to a path under the web UI directory.
 
-        Both interfaces retain their existing asset directories. The classic
-        URL prefix is an alias for the original files, not a second copy.
+        There is one interface and it is served at ``/``. ``/v2/<asset>``
+        remains an alias for asset links saved before the interface moved
+        there; the entry pages themselves redirect (see ``_ENTRY_REDIRECTS``).
         """
-        parts = WebAppHandler._classic_parts(parts)
-        rel = parts[0] if parts else "index.html"
-        if rel in ("static", "v2") and len(parts) >= 2:
-            return rel + "/" + "/".join(parts[1:])
-        if rel == "v2":
-            return "v2/index.html"
-        return rel or "index.html"
+        if parts[:1] == ["v2"]:
+            parts = parts[1:]
+        return "/".join(parts) if parts else "index.html"
 
-    def _redirect_v2(self, parts: list[str]) -> bool:
-        if parts == ["v2"] and not urlparse(self.path).path.endswith("/"):
-            # The v2 page loads ``styles.css``, ``model.js`` and ``app.js`` by
-            # relative path. Served at ``/v2`` the browser resolves those
-            # against ``/`` and mounts the *classic* app into v2's markup -- a
-            # blank page. Redirect to a fixed local directory, preserving
-            # the query. The v2 UI routes by ``#fragment``,
-            # which browsers carry across a redirect.
-            query = urlparse(self.path).query
-            location = "/v2/" + ("?" + query if query else "")
-            self._send(308, b"", "text/plain; charset=utf-8",
-                       extra_headers={"Location": location})
-            return True
-        return False
-
-    # Which interface ``/`` opens is a product choice that may change, so it is
-    # a temporary 307: a browser must not cache it forever, and Python 3.10's
-    # urllib follows 307 but not 308 (it raised on every ``/`` request there).
-    # Adding a slash to ``/classic`` never changes, so that stays a 308.
-    _ENTRY_REDIRECTS = {"/": ("/v2/", 307), "/index.html": ("/v2/", 307), "/classic": ("/classic/", 308)}
+    # Retired entry points: ``/v2/`` (the interface's address before it became
+    # the only one) and ``/classic/`` (the removed older interface) open ``/``.
+    # A 307 because Python 3.10's urllib follows 307 but not 308; browsers carry
+    # the ``#fragment`` route across it. Locations are fixed strings, never built
+    # from the request path, so no redirect can point off this host.
+    _ENTRY_REDIRECTS = {path: ("/", 307) for path in (
+        "/index.html", "/v2", "/v2/", "/v2/index.html", "/classic", "/classic/", "/classic/index.html")}
 
     def _redirect_document(self, parts: list[str]) -> bool:
-        """Promote v2 while preserving explicit classic and v2 entry points."""
+        """Send retired entry points to ``/``, keeping the query string."""
         parsed = urlparse(self.path)
         entry = self._ENTRY_REDIRECTS.get(parsed.path)
         if entry is None:
-            return self._redirect_v2(parts)
+            return False
         destination, status = entry
         location = destination + ("?" + parsed.query if parsed.query else "")
         self._send(status, b"", "text/plain; charset=utf-8", extra_headers={"Location": location})

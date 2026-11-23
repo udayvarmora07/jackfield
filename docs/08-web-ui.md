@@ -63,7 +63,7 @@ listed behavior. Home and CLI identify the subtotal and unknown inclusion.
 
 ## 2026-11-17 document change baseline
 
-**[SPEC]** V2 Quality compares currently observed primary skill documents with
+**[SPEC]** Quality compares currently observed primary skill documents with
 an explicitly saved browser baseline. It does not automatically save a scan.
 The existing hygiene response adds `document_fingerprints`: format `version: 1`,
 `status` (`observed` or `partial`), a coverage statement, `omitted`, and bounded
@@ -107,7 +107,7 @@ malformed versions, hashes, duplicate IDs and dates are refused cleanly.
 
 ## 2026-11-17 project context
 
-**[SPEC]** V2 Quality and Workspaces share an optional Project path picker.
+**[SPEC]** Quality and Workspaces share an optional Project path picker.
 `GET /api/workspaces` returns `managed_roots`, the deduplicated folders already
 configured on this server; it does not enumerate projects. The default is the
 Store data directory. Embedders can use the existing
@@ -136,7 +136,7 @@ screen-reader sign-offs remain separate.
 **[SPEC]** Agent trash uses the existing `GET /api/trash?scope=<agent>` and
 `POST /api/trash/<name>?scope=<agent>` endpoints. Restore can select
 `trash_path` for an exact removed copy, refuses an occupied destination, and
-v2 Recovery lists agent trash separately from global trash. Agent removals
+Recovery lists agent trash separately from global trash. Agent removals
 can offer the same scope-aware Undo. Purge remains global-only.
 
 **[SPEC]** Batch approval includes affected-tree digests covering companion
@@ -149,7 +149,7 @@ advisory locking protocol.
 
 **[SPEC]** A skill directory linked into another known managed agent root is
 readable through list/detail/raw views with `link_followed`, `read_only`,
-`linked_to` and `link_target_root` metadata. The v2 reader shows its document
+`linked_to` and `link_target_root` metadata. The reader shows its document
 and the linked folder, disables editing/file toggles through that alias, and
 keeps both alias scope views and the writable owner. Physical documents
 are deduplicated for reference voting; alias views retain their per-agent
@@ -165,9 +165,11 @@ changes inspection only; the filesystem remains authoritative.
 
 ## Architecture
 
-**[NOTE] 2026-11-06 combined continuation.** `/v2/` retains the selected
-cream/serif/terracotta interface. The default `/` now redirects to `/v2/`;
-classic is available at `/classic/`. Skill detail exposes
+**[SPEC] 2026-11-23 one interface.** `/` serves the interface directly from
+`skillsmgr/webui/`. The classic interface was removed; `/v2`, `/v2/`,
+`/v2/index.html`, `/classic`, `/classic/` and `/index.html` answer a `307` to
+`/` (query kept, fixed local `Location`), and `/v2/<asset>` still serves the
+asset for old links. Its look is specified in `DESIGN.md`. Skill detail exposes
 partial native-settings declarations from existing `native_state` records.
 These are read-only evidence, not effective loading or filesystem toggle state.
 File switches rename documents and do not edit native settings. Unreadable-byte
@@ -177,22 +179,20 @@ manual snapshot recovery is documented in
 @docs/30-backend-continuation-2026-11-06.md. Current combined verification and
 remaining coverage limits are in @docs/31-combined-e2e-verification-2026-11-06.md.
 The optional developer runner is `tools/e2e_v2/run.py` (external Playwright,
-no runtime dependency). It isolates fixtures and server lifetime, checks both
-UI transports and supports measured browser zoom on isolated X11.
-**[SPEC]** CI runs both `tools/e2e_v2/run.py` and `tools/e2e_classic/run.py`
-headless on every push and pull request (the `e2e` job in
+no runtime dependency). It isolates fixtures and server lifetime and supports
+measured browser zoom on isolated X11.
+**[SPEC]** CI runs `tools/e2e_v2/run.py` headless on every push and pull
+request (the `e2e` job in
 `.github/workflows/ci.yml`). Playwright is installed from the hash-verified
 lockfile in `tools/e2e_deps` with `npm ci --ignore-scripts` and drives the
 runner's own Chrome; locally use
 `NODE_PATH=tools/e2e_deps/node_modules python3 tools/e2e_v2/run.py --output-dir <private dir>`.
-Both runners also accept `--browser firefox` for local checks with the
+The runner also accepts `--browser firefox` for local checks with the
 Playwright-managed Firefox build. Setup is in
-@docs/32-continuation-verification-2026-11-06.md. Each runner reports the
+@docs/32-continuation-verification-2026-11-06.md. The runner reports the
 engine and version with its results.
 
-**[SPEC] Startup and list projection (2026-11-06).** The classic UI starts
-scopes, skills, trash, history, catalog and stats loaders together. Each paints
-its own result without waiting for the other sources. Overlapping scopes,
+**[SPEC] Startup and list projection (2026-11-06).** Overlapping scopes,
 all-skills and stats reads can share an in-flight merged scan for agent rows.
 Scope summaries separately scan the global filesystem root, so unindexed
 documents are still counted and a missing or corrupt index is not repaired
@@ -201,16 +201,15 @@ result. When there are waiters, a private snapshot is published outside the
 shared lock and every waiter receives an independent copy. Hygiene path
 resolution is memoized only within one report, including cleanup on failure.
 
-The classic list requests `GET /api/skills?scope=all&body=0` (or its selected
-scope). `body=0` omits document bodies from response rows, after body-aware
+`body=0` omits document bodies from response rows, after body-aware
 search and pagination; `body=1` or an absent flag preserves the existing
 response fields. This does not add bodies to metadata-only global rows.
 Blank, invalid or repeated flags are a clean 400 before scanning. Detail and
 raw-document routes still return full content. Opening an editor fetches the
 detail when necessary and refuses a missing or superseded selection.
 
-**[SPEC] v2 also requests `body=0` and reads documents lazily (2026-11-07).**
-`v2/app.js` starts with `GET /api/skills?scope=all&body=0`; identity, size and
+**[SPEC] The interface requests `body=0` and reads documents lazily (2026-11-07).**
+`app.js` starts with `GET /api/skills?scope=all&body=0`; identity, size and
 state fields (`content_hash`, `tokens`, `description`, `physical_path`, scope
 and observed state) keep the list usable, and `model.js` marks each copy with
 `bodyLoaded` so an empty document is distinguishable from one that has not
@@ -241,11 +240,12 @@ tokens of that agent's budget" / "uses about N tokens"), summing the copies for
 the same estimate sits beside each copy switch on the skill page.
 
 Bounded locale formatter caches and Vue-derived row metadata avoid repeated
-work during unrelated renders. Checkbox membership uses a Set; off-screen
-classic rows use `content-visibility: auto` while retaining keyboard access.
+work during unrelated renders. Checkbox membership uses a Set. Quality findings render 50 at a time and
+the copy pickers (Validate a copy, Update from folder) filter by name and render
+at most 200 options, so a 2,000-copy library stays usable.
 Regression coverage: `tests/test_performance_backend.py`,
 `tests/test_performance_http.py`, `tests/test_performance_frontend.py` and the
-optional classic/v2 browser runners.
+browser runner.
 
 ```text
 Browser (Vue 3, no build step)
@@ -522,7 +522,7 @@ on a private copy of the staged candidate. It is advisory only: it never changes
 validation, readiness, `commit_allowed` or the commit/apply path, and commit and
 apply never re-run it. The LLM mode uses the server process's environment
 (`SKILLSPECTOR_PROVIDER` and that provider's key); no key is accepted over HTTP,
-stored, or returned. The v2 Settings page stores the choice in
+stored, or returned. The Settings page stores the choice in
 `skillsmgr-external-scan` (browser-local), and both review panels render the
 evidence as escaped text with bidi-isolated matched snippets. Data egress is
 stated beside the setting and in every result.
@@ -534,7 +534,7 @@ stated beside the setting and in every result.
 | GET | `/api/search?q=term[&scope=SCOPE]` | search over name/description/body (scope-aware); bounded wildcard failures return the standard JSON `StoreError` 400 |
 | GET | `/api/stats` | Store.stats plus scope/token enrichment: `scopes`, `all_total`, `all_tokens`, `all_avg_tokens`, `window`, `window_tokens`, `all_pct_window`, `largest`, `has_tiktoken`. When an enrichment step fails, the documented keys are still filled with safe fallbacks and the step is named in a `degraded` array (e.g. `"largest"`, `"scopes"`) |
 | GET | `/api/doctor[?scope=all]` | Store.doctor (global), including filesystem/index drift and transaction-artifact diagnostics; `?scope=all` adds `scopes` + `duplicates` (`scopes.find_duplicates()`), and on an enrichment failure both are returned as `[]` with an entry appended to `degraded` (`[{"section", "reason"}]`), so a client can tell "no duplicates" from "the scan crashed" |
-| GET | `/api/doctor?scope=SCOPE&hygiene=1` | Adds the bounded, deterministic, read-only Skill Hygiene Report under `hygiene`; uses only configured observed scope records, preserves ordinary Doctor output, rejects unknown scopes and `explain`, and returns degraded/unavailable evidence without a new endpoint or mutation. The report includes an advisory `ignored-frontmatter` finding for a documented behavioural key (`disable-model-invocation`, `allowed-tools`, …) that the reading consumer does not document; scopes without a documented key list (`global`, `commandcode`, `cursor`, project scopes) add a `frontmatter-key-support` unavailable signal instead. The report's `lockfiles` section reads the `skills` CLI's global `.skill-lock.json` and (when a project root is supplied) `skills-lock.json`, comparing declared copies read-only; without the optional contained `project` query, that lock is reported unavailable. The report's `claude_listing` section estimates the Claude Code skill listing from the `claude-code` scope: entries honour `skillOverrides` (`off` excluded, `name-only` counted as its name), the per-entry cap is `skillListingMaxDescChars` (default 1,536) over `description` plus `when_to_use`, and the character budget is `SLASH_COMMAND_TOOL_CHAR_BUDGET` or `skillListingBudgetFraction` times the token window with the character figure marked as an estimate. `status` is `within_budget`, `over_budget_estimate`, or `unknown` when a settings file exists but could not be parsed, and `name_only_candidates` are ordered by description size only because Claude Code's invocation-count order is not observable. Without the optional contained `project` query, project `.claude/skills` instances are reported unavailable. An `agent-parse-risk` warning names instances whose frontmatter a stricter agent parser drops (empty block, unquoted `: `, byte-order mark before `---`). With `scope=codex` or `scope=all`, the read-only `codex_config` section and a `codex-config-dead-entry` warning list Codex `[[skills.config]]` path entries that name a folder, a missing file or a non-`SKILL.md` file and so never apply; v2 Quality lists each with the `SKILL.md` path to use. The read-only `codex_listing` section estimates Codex's `~/.agents/skills` listing in tokens against 2% of the context window, or a positive user `skills.max_context_tokens` capped at 10,000 from the bounded `$CODEX_HOME/config.toml` (default `~/.codex/config.toml`). Invalid/unreadable settings give `status: unknown` with null `budget.budget_tokens` and `tokens_to_free`; CLI/profile/managed/project overrides and bundled contents remain unobserved. A `codex-listing-budget` info finding appears only when a known budget is exceeded; skills marked explicit-only in `agents/openai.yaml` are excluded, listed under `explicit_only`, and named by a `codex-explicit-only-skill` info finding (openai/codex#23454), while a `file:` or absolute home-path link target is a `machine-local` broken reference; an `opencode-output-truncation` warning names enabled skills in OpenCode-read scopes whose `SKILL.md` exceeds 2,000 lines or 50 KiB. A `plugin-member-skill` info finding names a skill inside a Claude Code skills-dir plugin folder (`.claude-plugin/plugin.json`), which `sync` would copy without its plugin; with `scope=claude-code` or `scope=all` the read-only `skills_dir_plugins` section lists those `~/.claude/skills` plugin folders. An `opencode-autoinvoke-conflict` warning names a skill whose `disable-model-invocation` and `metadata.opencode/autoinvoke` disagree (OpenCode follows the latter). v2 Quality shows both findings through its generic finding layout. With `scope=all`, the read-only `agents_bridge` section and an `agents-bridge-gap` info finding name enabled `~/.agents/skills` skills that Claude Code cannot see, with the existing `sync` copy as the remedy (other scopes report it unavailable). |
+| GET | `/api/doctor?scope=SCOPE&hygiene=1` | Adds the bounded, deterministic, read-only Skill Hygiene Report under `hygiene`; uses only configured observed scope records, preserves ordinary Doctor output, rejects unknown scopes and `explain`, and returns degraded/unavailable evidence without a new endpoint or mutation. The report includes an advisory `ignored-frontmatter` finding for a documented behavioural key (`disable-model-invocation`, `allowed-tools`, …) that the reading consumer does not document; scopes without a documented key list (`global`, `commandcode`, `cursor`, project scopes) add a `frontmatter-key-support` unavailable signal instead. The report's `lockfiles` section reads the `skills` CLI's global `.skill-lock.json` and (when a project root is supplied) `skills-lock.json`, comparing declared copies read-only; without the optional contained `project` query, that lock is reported unavailable. The report's `claude_listing` section estimates the Claude Code skill listing from the `claude-code` scope: entries honour `skillOverrides` (`off` excluded, `name-only` counted as its name), the per-entry cap is `skillListingMaxDescChars` (default 1,536) over `description` plus `when_to_use`, and the character budget is `SLASH_COMMAND_TOOL_CHAR_BUDGET` or `skillListingBudgetFraction` times the token window with the character figure marked as an estimate. `status` is `within_budget`, `over_budget_estimate`, or `unknown` when a settings file exists but could not be parsed, and `name_only_candidates` are ordered by description size only because Claude Code's invocation-count order is not observable. Without the optional contained `project` query, project `.claude/skills` instances are reported unavailable. An `agent-parse-risk` warning names instances whose frontmatter a stricter agent parser drops (empty block, unquoted `: `, byte-order mark before `---`). With `scope=codex` or `scope=all`, the read-only `codex_config` section and a `codex-config-dead-entry` warning list Codex `[[skills.config]]` path entries that name a folder, a missing file or a non-`SKILL.md` file and so never apply; Quality lists each with the `SKILL.md` path to use. The read-only `codex_listing` section estimates Codex's `~/.agents/skills` listing in tokens against 2% of the context window, or a positive user `skills.max_context_tokens` capped at 10,000 from the bounded `$CODEX_HOME/config.toml` (default `~/.codex/config.toml`). Invalid/unreadable settings give `status: unknown` with null `budget.budget_tokens` and `tokens_to_free`; CLI/profile/managed/project overrides and bundled contents remain unobserved. A `codex-listing-budget` info finding appears only when a known budget is exceeded; skills marked explicit-only in `agents/openai.yaml` are excluded, listed under `explicit_only`, and named by a `codex-explicit-only-skill` info finding (openai/codex#23454), while a `file:` or absolute home-path link target is a `machine-local` broken reference; an `opencode-output-truncation` warning names enabled skills in OpenCode-read scopes whose `SKILL.md` exceeds 2,000 lines or 50 KiB. A `plugin-member-skill` info finding names a skill inside a Claude Code skills-dir plugin folder (`.claude-plugin/plugin.json`), which `sync` would copy without its plugin; with `scope=claude-code` or `scope=all` the read-only `skills_dir_plugins` section lists those `~/.claude/skills` plugin folders. An `opencode-autoinvoke-conflict` warning names a skill whose `disable-model-invocation` and `metadata.opencode/autoinvoke` disagree (OpenCode follows the latter). Quality shows both findings through its generic finding layout. With `scope=all`, the read-only `agents_bridge` section and an `agents-bridge-gap` info finding name enabled `~/.agents/skills` skills that Claude Code cannot see, with the existing `sync` copy as the remedy (other scopes report it unavailable). |
 | GET | `/api/doctor?explain=CONSUMER[&project=DIR][&skill=NAME]` | adds the read-only effective-resolution report (issue #12, `effective.explain`) under `explain`; derived at read time, writes nothing, and reports `unknown-consumer`/`missing-project` as explicit results. **The report is confined to the manager's data directory** plus any extra root the operator passed at server construction; a request cannot widen that boundary (SEC-2/SEC-3): every path outside it is replaced by `<redacted>` with `paths_redacted: true`, and a `project` outside it returns resolution `project-outside-managed-roots` **without being walked** (no nested-root search, no instance read). Consumers include `commandcode`, `codex`, `claude-code`, `gemini`, the corrected `opencode`, `cline`, `kiro`, `amp`, `roo`, `zed`, plus `cursor`, `copilot` and `devin` with `undocumented-precedence`; a documented `home`-relative root is redacted exactly like an absolute `path` root. The CLI passes no boundary and stays fully transparent |
 | GET | `/api/tokens?window=&name=&scope=&text=` | token/context estimate: with `text=` it estimates that text, with `name=` it estimates one skill's document (scope-qualified when `scope=` is a scope id, otherwise the first match across scopes), and with neither it aggregates over `scope` (default `all`). Aggregate responses add `window`, `window_tokens` and `pct_window`; `window` selects the context window (claude, claude-haiku, gpt-5.6, gpt-5, gpt-4o, gemini, gemini-2m) |
 | GET | `/api/history?name=&limit=` | Store.history (name optional) |
@@ -560,11 +560,11 @@ folder enters that scope's Recovery and the result includes its path in
 folder. Resync preserves both retained backups and Recovery payloads.
 New agent-scope Recovery entries record their original relative location.
 Restore refuses unsafe or missing destination parents so nested skills
-return to the folder they came from. v2 Inbox shows the affected
+return to the folder they came from. Inbox shows the affected
 scopes and paths before Sync. Its Undo restores the skill document and its
 on/off state. For the full earlier folder, move the current copy to trash
 first and restore the exact earlier entry from Recovery.
-The v2 skill reader, Sync map and Inbox describe the difference between text
+The skill reader, Sync map and Inbox describe the difference between text
 Undo and folder Recovery before Sync. The Agent trash card identifies copies
 saved by Sync alongside explicitly removed folders. Same-name copies in a
 scope are numbered in newest-first order. Each Restore button names the
@@ -600,26 +600,26 @@ keeps the restored tree and asks the user to check the library and trash.
 | POST | `/api/ai/fit-budget` | `{scope, budget_chars?, max_skills?, estimate?}`. Claude Code's budget is measured from its settings when `budget_chars` is omitted; other agents need it. Within budget returns `within-budget` with no model call. Proposals carry `recall_before`/`recall_after` and `safe` (still wins as often); nothing is written |
 | POST | `/api/ai/review-briefing` | `{kind: "update" \| "registry", review_id, estimate?}`. Briefs a pending source-update or registry review: summary (unchecked, labelled), claims, capabilities and description mismatches that each quote the file they name (unquoted ones are dropped and counted), and a demote-only opinion per risk finding that never changes its severity. The review, candidate and target are not modified |
 | GET | `/api/ai/prompt-sets/<scope>` | the scope's saved regression prompts (`<data>/ai/prompt-sets/<scope>.json`) |
-| POST | `/api/ai/prompt-sets` | `{scope, prompts: [{text, expected}], replace?, expected_prompts?}`; merges without duplicates, at most 20 per skill and 500 per scope. Replacement accepts all 500; `expected_prompts` compares the previous list under the mutation lock and returns 409 on conflict. The v2 trigger page displays saved prompts and removes individual entries with this precondition. `POST /api/ai/trigger-test` with `saved: true` re-runs them and adds `compared_with` plus per-skill `changes` (`regressed`) against the previous complete saved-prompt run for that scope |
-| POST | `/api/ai/evals` | `{name, max_cases?, trials?, estimate?}` for a library (global) skill with `evals/evals.json`: each case runs with the skill as system prompt and without it, outputs are graded only by the case's own assertions through `evals.record_runs`, and a new `iteration-N` is written in `<data>/evals/<name>-workspace/`. `verdict` is `helps`, `no-gain`, `hurts`, `not-needed` (passes without the skill) or `ungraded` and describes the first repeat only. `trials` (1–5, default 1; v2 defaults to 3) repeats every case in a random call order and records each repeat as its own iteration (`iterations`). `statistics` reports the paired lift over all repeats with a 95% bootstrap interval over the supplied requests and a `verdict` of `helps`, `hurts`, `inconclusive` (interval includes zero, fewer than three graded requests, or fewer than four graded paired observations) or `ungraded`, plus token regressions and non-discriminating assertions. The interval resamples cases only, and `min_detectable` is the smallest lift the run could detect with 80% power (per-case spread with a 0.5 floor) |
-| POST | `/api/ai/ask` | `{question, scope?, estimate?, reviewed?, plan?}` (`scope` defaults to `all`). V2 uses `reviewed: true` and displays the names on the shortlist before confirmation. Sends the question with names, holding scopes and the first 300 description characters of at most 300 skills (word-overlap prefiltered). `matches` contains only known skills; invented names are dropped and counted in `dropped_unknown`. V2 opens a specific reported copy |
-| POST | `/api/ai/explain-findings` | `{scope, name, estimate?}`; runs `risk_scan` over one installed skill and its bounded file listing without AI, then asks the model for a demote-only second opinion per finding (`likely-real`, `likely-false-positive`, `unclear`). Findings are returned unchanged; a false-positive opinion without a quote found in the named file becomes `unclear` (`uncited_demoted`), and opinions about unknown or repeated indexes are dropped (`dropped_opinions`). No findings returns `clean: true` without a model call; estimate sends nothing; nothing is written |
-| POST | `/api/ai/porting-notes` | `{scope, name, target, estimate?}`; `target` is one of the consumers with a recorded key list (also listed as `consumers` in `GET /api/ai/settings`). Facts are deterministic: keys the target does not document (`key_support`) and agent-specific references in the body. With no facts it returns `portable: true` without a model call; model notes that cite no listed fact are dropped |
+| POST | `/api/ai/prompt-sets` | `{scope, prompts: [{text, expected}], replace?, expected_prompts?}`; merges without duplicates, at most 20 per skill and 500 per scope. Replacement accepts all 500; `expected_prompts` compares the previous list under the mutation lock and returns 409 on conflict. The trigger page displays saved prompts and removes individual entries with this precondition. `POST /api/ai/trigger-test` with `saved: true` re-runs them and adds `compared_with` plus per-skill `changes` (`regressed`) against the previous complete saved-prompt run for that scope |
+| POST | `/api/ai/evals` | `{name, max_cases?, trials?, estimate?}` for a library (global) skill with `evals/evals.json`: each case runs with the skill as system prompt and without it, outputs are graded only by the case's own assertions through `evals.record_runs`, and a new `iteration-N` is written in `<data>/evals/<name>-workspace/`. `verdict` is `helps`, `no-gain`, `hurts`, `not-needed` (passes without the skill) or `ungraded` and describes the first repeat only. `trials` (1–5, default 1; defaults to 3) repeats every case in a random call order and records each repeat as its own iteration (`iterations`). `statistics` reports the paired lift over all repeats with a 95% bootstrap interval over the supplied requests and a `verdict` of `helps`, `hurts`, `inconclusive` (interval includes zero, fewer than three graded requests, or fewer than four graded paired observations) or `ungraded`, plus token regressions and non-discriminating assertions. The interval resamples cases only, and `min_detectable` is the smallest lift the run could detect with 80% power (per-case spread with a 0.5 floor) |
+| POST | `/api/ai/ask` | `{question, scope?, estimate?, reviewed?, plan?}` (`scope` defaults to `all`). The interface uses `reviewed: true` and displays the names on the shortlist before confirmation. Sends the question with names, holding scopes and the first 300 description characters of at most 300 skills (word-overlap prefiltered). `matches` contains only known skills; invented names are dropped and counted in `dropped_unknown`. The interface opens a specific reported copy |
+| POST | `/api/ai/explain-findings` | `{scope, name, local_only?, estimate?, reviewed?, plan?}`. Runs `risk_scan` over one installed skill and its bounded file listing. `local_only: true` returns findings without a model or saved run. An optional second opinion leaves findings unchanged. A false-positive opinion requires a matching file quote or becomes `unclear` (`uncited_demoted`). Opinions about unknown or repeated indexes are dropped (`dropped_opinions`). An empty scan returns `clean: true` |
+| POST | `/api/ai/porting-notes` | `{scope, name, target, local_only?, estimate?, reviewed?, plan?}`. The target is one of the `consumers` in `GET /api/ai/settings`. The route reports keys the target does not document (`key_support`) and agent-specific references in the body. `local_only: true` returns these facts without a model. An empty report returns `portable: true`. Model notes must cite a listed fact |
 | POST | `/api/ai/draft-skill` | `{scope, brief, name?, estimate?, verify?, context?, plan?}`. The default keeps the existing routing verification and returns coverage and baseline-confirmed stolen prompts. With `verify: false`, New skill uses one call for an editable draft, optional source excerpts, unresolved assumptions and positive and negative trigger cases. The user chooses whether to save proposed trigger cases. Empty scopes are supported. Estimate mode sends nothing and drafting writes no skill |
 | POST | `/api/ai/edit-skill` | `{name, scope, target_path, document_hash, body, selection?, instruction, example?, estimate?, tree_hash?, plan?}`. Selection offsets count Unicode code points after newline normalization and are bound to the preview plan. The target is one exact writable copy. Preflight returns its tree hash and the plan. Generation prepares an ordinary source-update review for a body-only change, preserving installed provenance on reviewed commit. The edit uses the same POSIX descriptor checks as Shorten a skill. The response lists line `hunks` (`id`, `line`, `removed`, `added`) and the review carries AI `provenance` |
 | POST | `/api/ai/edit-select` | `{review_id, body, accepted: [hunk id]}`. Keeps only the accepted hunks of a pending AI edit review: `body` is the editor text the proposal came from, ids must match the current proposal, and at least one hunk must be kept and one left out. Stages a new review from the selection with no model call, records `accepted_hunks`/`total_hunks` in its provenance, and cancels the old review only after the new one is pending; if that cancel fails (for example a concurrent selection already replaced it) the new review is cancelled and the call answers 409. A changed skill tree or an unreviewable selection answers 409 and leaves the old review pending. A changed region above 90,000 line comparisons is reported as one hunk |
-| POST | `/api/ai/ablate` | `{name, section?, trials?, max_cases?, placebo?, estimate?, plan?}` (docs/60 G1) for a turned-on library skill with `evals/evals.json`. Every response lists `sections` (index, heading, level, line, chars, tokens); `section` omitted tests the whole skill. Runs each case with the whole skill (`full`) and without it or the section (`ablated`), `trials` (1–5, default 1; v2 defaults to 3) times in a random order. The plan binds the name, tree hash, section offsets, case prompts and trials. `statistics` is `trial_stats` of full against ablated; `decision` is `untested` (every answer passes, or every answer fails, in both variants), `keep` (whole interval above zero), `remove` (interval upper end at most `margin` 0.10, ties go to removal), `uncertain` or `not-enough-evidence`; a `partial` run (missing, cut-off or ungraded answers) is never `remove`, and `coverage_warning` appears when no check's pass rate differed between the variants. Leaving the page cancels a staged review that was not opened. A section `remove` stages a pending local-edit review (`proposal.kind` `remove-section`, with `review`, `current`, `proposed`, `hunks`, provenance feature `ablate`) shown in the AI edit dialog; if the skill changed meanwhile, `proposal_error` explains and nothing is staged. A whole-skill `remove` returns `proposal.kind` `retire` with the demotion `ladder` and writes nothing. `placebo: true` (bound to the plan) adds a `placebo` variant with the removed text replaced by same-length neutral filler and `placebo_statistics` (full against placebo); `variants` lists the variants run. `previous` points to the newest saved ablation of the same target (`run_id`, `decision`, `model`, `same_model`, `same_revision`). For a section, the prior run must match the section and the skill revision. The browser gets each case's first outputs; saved evidence keeps pass counts only |
+| POST | `/api/ai/ablate` | `{name, section?, trials?, max_cases?, placebo?, estimate?, plan?}` (docs/60 G1) for a turned-on library skill with `evals/evals.json`. Every response lists `sections` (index, heading, level, line, chars, tokens); `section` omitted tests the whole skill. Runs each case with the whole skill (`full`) and without it or the section (`ablated`), `trials` (1–5, default 1; defaults to 3) times in a random order. The plan binds the name, tree hash, section offsets, case prompts and trials. `statistics` is `trial_stats` of full against ablated; `decision` is `untested` (every answer passes, or every answer fails, in both variants), `keep` (whole interval above zero), `remove` (interval upper end at most `margin` 0.10, ties go to removal), `uncertain` or `not-enough-evidence`; a `partial` run (missing, cut-off or ungraded answers) is never `remove`, and `coverage_warning` appears when no check's pass rate differed between the variants. Leaving the page cancels a staged review that was not opened. A section `remove` stages a pending local-edit review (`proposal.kind` `remove-section`, with `review`, `current`, `proposed`, `hunks`, provenance feature `ablate`) shown in the AI edit dialog; if the skill changed meanwhile, `proposal_error` explains and nothing is staged. A whole-skill `remove` returns `proposal.kind` `retire` with the demotion `ladder` and writes nothing. `placebo: true` (bound to the plan) adds a `placebo` variant with the removed text replaced by same-length neutral filler and `placebo_statistics` (full against placebo); `variants` lists the variants run. `previous` points to the newest saved ablation of the same target (`run_id`, `decision`, `model`, `same_model`, `same_revision`). For a section, the prior run must match the section and the skill revision. The browser gets each case's first outputs; saved evidence keeps pass counts only |
 | POST | `/api/ai/conflicts` | `{scope?, project?, judge?, max_pairs?, votes?, estimate?, plan?}` (docs/60 G2). Without `judge` no model is used: heuristic `candidates` (`choice` or `polarity`, each with `a`/`b` sides holding source, layer, line and the verbatim `quote`, `detail`, `precedence: "unknown"`), the `sources` read, `unreadable` files, `inputs_limited` (inputs dropped by size bounds), `density` (directive lines per instruction file, `with_reason` lines that state a reason, `conditional` and `prohibitive` wording counts, `dense` above `dense_threshold` 150) and, with `project`, deterministic `stale_references` (paths, package scripts, make targets and Python files named in the project's instruction files that do not exist; only spans resolving inside the project are checked). Lines over 400 characters are skipped, linked skill documents are not read, and line numbers match the file. Instruction files: user `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`, and the project's `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, `AGENTS.md`, `GEMINI.md`; `project` must be inside the server's allowed folders and links leaving it are not read. Every pair involves an instruction file. With `judge`, the top `max_pairs` (1–40, default 20) pairs' two quoted lines go to the model in both orders (`votes` 2, default) or in both orders plus a repeat (`votes` 3), bound to the plan; a verdict that is not unanimous becomes `unclear`; `judge` verdicts (`conflict`, `compatible`, `unclear`) are attached by candidate id, `conflicts` lists the judged conflicts, and quotes never come from the model. These files' lines are returned to any local process that can reach the port; the loopback binding is the only boundary |
-| POST | `/api/ai/compare-edit` | `{review_id, cases: [{prompt, contains?, not_contains?}], without_skill?, comparison_model?, trials?, estimate?, plan?}`. `trials` (1–5, default 1; v2 defaults to 3) repeats every call in a random order and is bound to the plan. Each variant shows the first output plus per-trial results, and `statistics` (`alternate_statistics` for the second model) compares proposed with current, and with no skill when included, as in `/api/ai/evals`. Compare actual current and staged instructions in paired model outputs, with up to six user-confirmed cases and an optional second model on the same endpoint. If the second model fails, the first model's results are kept, `alternate_error` explains the failure and `status` is `partial`; `models` lists every model used. Exact tree hashes and valid pending review are checked. The browser receives outputs, and saved and downloadable evidence retains grades and revision hashes without prompts or output text |
-| POST | `/api/ai/copy-diff` | `{before, after, estimate?, plan?}`. Uses bounded excerpts from the v2 Sync map or Inbox comparison. Returns advisory statements with quotes checked against the supplied side. The endpoint reads no skill path and writes no review |
+| POST | `/api/ai/compare-edit` | `{review_id, cases: [{prompt, contains?, not_contains?}], without_skill?, comparison_model?, trials?, estimate?, plan?}`. `trials` (1–5, default 1; defaults to 3) repeats every call in a random order and is bound to the plan. Each variant shows the first output plus per-trial results, and `statistics` (`alternate_statistics` for the second model) compares proposed with current, and with no skill when included, as in `/api/ai/evals`. Compare actual current and staged instructions in paired model outputs, with up to six user-confirmed cases and an optional second model on the same endpoint. If the second model fails, the first model's results are kept, `alternate_error` explains the failure and `status` is `partial`; `models` lists every model used. Exact tree hashes and valid pending review are checked. The browser receives outputs, and saved and downloadable evidence retains grades and revision hashes without prompts or output text |
+| POST | `/api/ai/copy-diff` | `{before, after, estimate?, plan?}`. Uses bounded excerpts from the Sync map or Inbox comparison. Returns advisory statements with quotes checked against the supplied side. The endpoint reads no skill path and writes no review |
 | POST | `/api/ai/concise` | `{scope, name, target_path?, estimate?}`; computes section counts and proposes a shorter SKILL.md plus new reference files. Exact target selection resolves duplicate names. Returns computed token counts/method, text-only proposal and an ordinary source-update review. Estimate sends nothing and creates no review; source changes during generation invalidate the proposal. Applying uses the existing reviewed source-update commit and snapshot, never PATCH or direct writes |
-| POST | `/api/ai/suggest-profile` | `{project, scope, estimate?}`; uses server-owned diagnostics roots and `adapters.project_observation`, refusing outside projects with a redacted error before project enumeration/provider calls. Sends bounded extension counts, known manifest names, top-level directory names and path-redacted skill metadata; no project file contents or project path. Returns signals/truncation, a named profile of real skills (including disabled copies) and dropped-name count. Estimate sends nothing; generation saves no catalog metadata. V2 requires confirmation before the existing profile POST, including an explicit same-name overwrite warning |
-| GET | `/api/ai/runs` | newest 20 saved runs (files under `<data>/ai/runs/`); `status: disconnected` identifies partial runs. Shown on every v2 AI page in Past runs |
+| POST | `/api/ai/suggest-profile` | `{project, scope, estimate?}`; uses server-owned diagnostics roots and `adapters.project_observation`, refusing outside projects with a redacted error before project enumeration/provider calls. Sends bounded extension counts, known manifest names, top-level directory names and path-redacted skill metadata; no project file contents or project path. Returns signals/truncation, a named profile of real skills (including disabled copies) and dropped-name count. Estimate sends nothing; generation saves no catalog metadata. The interface requires confirmation before the existing profile POST, including an explicit same-name overwrite warning |
+| GET | `/api/ai/runs` | newest 20 saved runs (files under `<data>/ai/runs/`); `status: disconnected` identifies partial runs. Shown on AI pages in Past runs |
 | GET | `/api/ai/runs/<run_id>` | one saved run, rendered as text in Past runs; no model output is interpreted as HTML |
 
 AI errors use the standard error shape with codes `ai-not-configured` (409), `ai-budget` (409), `ai-conflict` (409), `ai-input` (400, or 403 for project confinement), `ai-settings` (400), `ai-provider` / `ai-bad-output` / `ai-refused` (502) and `ai-not-found` (404).
 
-V2 authoring, comparison and the reviewed library question use a no-send
+Authoring, comparison and the reviewed library question use a no-send
 preview that identifies the destination and binds the model and request inputs
 to the next call (for Ask your library, only when the client sends `reviewed: true`). After a relevant change, preview the request again. The
 localhost binding is the only security boundary for these unauthenticated routes.
@@ -734,22 +734,37 @@ pins the contract). What a client must know:
   security headers — do not use them as a reachability probe; use `HEAD` (which
   mirrors `GET`, headers only) or `/api/stats`.
 
-## Default v2 interface (`/v2/`)
+## The interface (`/`)
 
-**[SPEC]** `/` and `/index.html` redirect locally to `/v2/` with a temporary
-`307`, preserving query parameters and browser fragments. Bare `/v2` and
-`/classic` canonicalize to trailing-slash paths with a permanent `308`. The
-default is temporary on purpose: which interface opens is a product choice a
-browser must not cache forever, and Python 3.10's `urllib` follows `307` but not
-`308` (the `308` broke CI `unit (py3.10)` on `61355a2`). The classic interface and its original assets remain
-available under `/classic/`. The server still binds to loopback by default;
-the localhost binding is the only security boundary for this unauthenticated
-service. Never forward, tunnel or publish its port.
+**[SPEC]** `/` serves the interface with a `200`. Retired entry points
+(`/index.html`, `/v2`, `/v2/`, `/v2/index.html`, `/classic`, `/classic/`,
+`/classic/index.html`) answer a `307` to `/`, keeping the query string;
+browsers carry the `#fragment` route across it. `307`, because Python 3.10's
+`urllib` follows `307` but not `308` (a `308` broke CI `unit (py3.10)` on
+`61355a2`). Locations are fixed strings, never built from the request path.
+The server binds to loopback by default; the localhost binding is the only
+security boundary for this unauthenticated service. Never forward, tunnel or
+publish its port.
 
-The maintainer-selected v2 uses warm paper, Jakarta UI text, Newsreader headings
-and the existing measured dark palette. Its primary navigation is **Home**,
-**Skills**, **Sync map**, **Inbox**, **Recovery**, **Tools**. Tools provides
-secondary navigation and contextual links from exact instances.
+The look is specified in `DESIGN.md` (cool bone ground, IBM Plex Sans with
+Plex Mono identifiers, ink primary actions, one teal signal ink, a full cool
+dark palette) and is built desktop first: laptops (1280–1536px, often 768px
+tall) and monitors (1920–2560px), keyboard driven. Primary navigation is
+**Home**, **Skills**, **Sync map**, **Inbox**, **Recovery**, **Tools**; the
+current tab carries a 2px signal rule. Tools provides secondary navigation and
+contextual links from exact instances.
+
+**[SPEC] Header search and command palette (2026-11-23).** Typing in the
+header search never changes the page: it lists up to six skills whose names
+match (names that start with the text first), with ArrowUp/ArrowDown to
+highlight and Enter to open the highlighted skill. Enter with nothing
+highlighted opens Skills filtered by the text (names and descriptions); Escape
+closes the list. `/` focuses it. Ctrl/Cmd K opens the command palette: one
+field over a grouped list (Go to: the six pages; Actions: New skill, Refresh
+files; Tools; AI assist). Rows match their label, synonyms for pages (for
+example "trash" and "backup" find Recovery) and a tool's name and
+description. Arrow keys move the highlighted row while focus stays in the
+field; Enter opens it.
 
 **[SPEC] Shelf density and Sync map.** The Skills shelf remembers Comfortable
 or Compact in the browser. The Sync map lists skills by agent scope, shows
@@ -808,15 +823,14 @@ command palette stays on Ctrl/Cmd K). The index groups destinations and filters
 by words in tool names, descriptions, groups and command labels. Tool pages
 show a grouped sidebar above 860px and an All tools link at narrower widths.
 The search remains in place when returning from a tool in the same visit.
-Only the page title is serif; section
-titles use the Home side-card voice. Settings-like forms are label-left /
+Page and section titles use IBM Plex Sans. Settings-like forms are label-left /
 control-right rows; Profiles and Templates are list + detail panes; Quality is a
 severity filter that doubles as the count summary over one findings list, with
 Doctor, validation and context use as three diagnostic cards; Update from folder
 is a numbered three-step flow. Status is always a worded pill, API slugs pass
 through a humanizer (`outside-managed-roots` -> "Outside managed roots"), dates
 use the regional-format preference, and raw JSON lives only behind a disclosure.
-Styles are in `webui/v2/tools.css` and use only declared v2 tokens.
+Styles are in `webui/tools.css` and use only declared tokens.
 
 **[SPEC] Section shortcuts.** Quality offers jumps to available findings,
 document comparison, Claude Code listing evidence and diagnostics. Recovery
@@ -824,6 +838,14 @@ offers jumps to both trash lists, backup download, backup loading and history.
 Activating a shortcut scrolls to and focuses its heading while keeping the
 current route. Recovery presents library and full-archive downloads as distinct
 actions and states which data each includes.
+
+**[SPEC] Local checks and model review.** Porting notes and Explain risk
+findings run the local check with AI off. Optional model requests use
+`reviewed: true`. The `estimate: true` response shows the destination and
+returns a plan bound to the exact prompt and configured destination. A send
+requires that plan. Changes to the prompt or destination require a fresh preview.
+Package-command preview shows the exact runner command and the separate offline
+registry bridge evidence. Registry eligibility remains unverified offline.
 
 | Area | Integrated workflows |
 |---|---|
@@ -851,16 +873,16 @@ changes or route departure. Registry fetch/commit installs into the global
 store only. Agent-scope trash still has no in-app restore. Full archives cover
 manager data, not every external agent directory.
 
-**[NOTE] Frontend modules.** `v2/app.js` owns shell/routing and ordinary skill
-flows; `v2/model.js` owns derived state and safe document rendering;
-`v2/library-tools.js` owns exact-copy selection and reviewed batch work;
-`v2/tool-center.js` owns secondary tools; `v2/tools.css` extends existing v2
+**[NOTE] Frontend modules.** `app.js` owns shell/routing and ordinary skill
+flows; `model.js` owns derived state and safe document rendering;
+`library-tools.js` owns exact-copy selection and reviewed batch work;
+`tool-center.js` owns secondary tools; `tools.css` extends the same
 tokens. Scripts use vendored Vue without a build step or new runtime dependency.
-The API is shared with classic; the contained `GET /api/templates/<name>` read
+The contained `GET /api/templates/<name>` read
 supports stored-template previews. The searchable action launcher is available
 with Ctrl/Cmd K and from the desktop header.
 
-- **Honesty rules** (`v2/model.js`): there is no version order, so a skill whose
+- **Honesty rules** (`model.js`): there is no version order, so a skill whose
   copies differ is "Copies differ" and the reference copy is the content most
   copies hold; a tie is reported as ambiguous and the Inbox asks which copy to
   use. A refused symlink is "Linked elsewhere", never "Can't be read" (the agent
@@ -891,268 +913,21 @@ section. Quality displays them under its unavailable-evidence disclosure.
 The check reads file metadata only. When either signal appears, Quality
 links to Microsoft's APM audit reference.
 
-## Classic frontend map (`/classic/`, app.js)
-
-### Overview-first shell
-
-**[SPEC]** The default view is `overview`. It is a read-only derived operator
-surface: logical skills and instance counts are computed from the current
-filesystem-backed `/api/skills` response, recovery count from `/api/trash`, and
-recent activity from the existing `GET /api/history?limit=8` route. Observed
-malformed/unaddressable entries, divergent groups, disabled instances, and
-global-trash items form an honest attention queue. No validation, provenance,
-or effective-state result is inferred from those observations.
-
-Overview actions call existing workflows: Create, Add folder, Import, Install,
-Doctor, Library selection/filtering, and Recovery. Settings provides local
-theme, text-size, and regional-format controls without changing OS settings.
-The Library list
-pane is hidden while Overview occupies the desktop workspace; mobile Overview
-is a single scroll surface below the top navigation. Profiles, Workspaces, and
-Recovery remains reachable, and the Library view retains its three-pane layout.
-The heading is programmatically focused after view navigation, and a visible
-skip link targets the main workspace. The first-run state is explicit when no
-instances are observed. This behavior is shipped. Implementation-agent visual
-inspection and stateful CDP automation are complete in
-`.specs/evidence/ui-overview-2026-09-21-final/`, with six viewport captures and
-`scenarios/` captures for empty, search, form validation, error/success
-feedback, divergent detail, destructive confirmation, disabled filtering,
-recovery, and dark theme; those probes reported zero console/runtime errors,
-failed requests, or page overflow. Human participant/usability and external
-communication approval remain pending.
-
-**[SPEC] The Overview and Library were then restructured (audit §G8, shipped
-inside `v1.0.2`).** The `overview-hero` is gone from both `index.html` and
-`styles.css` and `attention-queue` is the page's first block; the duplicate
-"Observed state" panel it displaced survives once, as the `Observed copies` /
-`Malformed` / `Unaddressable` `<dt>` rows of the metrics list. The Library uses
-one 40px filter bar (`.library-bar`), suppresses a uniform scope or state to
-`sr-only` text rather than repeating it per row, holds an 11px type floor
-(`0.6875rem`) and 56px rows, and makes each row's primary line the scope and
-observed state — paths are demoted into `<details class="instance-path">` and
-`<details class="quality-path">` carrying a Copy button, and the `Largest:` chip
-row is deleted at every viewport. Pinned by 27 tests in
-`tests/test_g8_ui_structure_contracts.py`. Current rendered evidence is
-`.specs/evidence/ui-g8-release-1.0.2-2026-10-06/` (six viewports plus a
-`REVIEW.md` with a sha256 per capture); the `ui-overview-2026-09-21-final/`
-directory above is the earlier pass and still describes the pre-G8 shell.
-
-**[?]** That `REVIEW.md` records what the harness did **not** cover: no
-non-Chromium engine, no forced-colors mode, no 200%/400% zoom, no screen
-reader, and **no human perceptual review**. The structural choices above are
-documented as rendered and machine-checked. The later delegated release review
-is in @docs/32-continuation-verification-2026-11-06.md. Participant research
-continues to use the separate protocol in @docs/25-design-partner-pilot-kit.md.
-
-The acceptance pass also records the shipped corrections: union counting for
-malformed/unaddressable observations, enabled/parsed/addressable active-count
-semantics, focus-preserving global search routing, settled readiness and honest
-load-error presentation, form error associations and first-invalid focus,
-exclusive detail rendering, race-safe attention deep links, single-owner modal
-focus restoration, and stale-detail clearing for the disabled filter.
-
-The harness fixture and readiness changes are developer-only: both HOME and
-`SKILLS_MANAGER_DATA` are isolated, fixtures are seeded through existing Store
-and scope filesystem behavior, and each viewport waits for a stable mounted
-Vue Overview before capture. Quality is now a shipped frontend-only task
-center; its evidence remains bounded by current API fields and does not infer
-a score, safety/trust verdict, usefulness, or effective load. The hybrid
-Library presentation described below is shipped.
-
-The state also derives `logicalSkills`/`visibleSkills` through
-`groupLogicalSkills()` and persists `libraryMode` (`library` or `instances`) in
-local storage; the default is the logical Library. The Library has an explicit
-presentation preference, `browseMode` (`list` or `grid`), persisted as
-`skillsmgr-browse-mode`; the first-run default is `list`. Grid cards are compact
-document/index cards: name and description remain primary, while the card also
-surfaces observed copy/scope and active/disabled or divergent status already
-present in the records. The list and grid use the same filter state, logical or
-instance grouping, exact physical `selectedKeys`, keyboard activation, and
-detail handlers. On narrow screens grid collapses to one card column and keeps
-the existing list → detail flow with the explicit Back to Library action.
-Initial scopes, skills, and trash reads run once in parallel; stats and
-token-budget data follows as a secondary request, so the list can paint without
-waiting for aggregate work.
-When the all-scopes library is empty, the detail pane shows a local-only
-getting-started checklist based on the detected scope roots and completed scan.
-Its create, archive-import, folder-add, and health-check actions call existing
-workflows; Skip hides it only in memory, and the empty state can restart it.
-
-The 2026-09-23 candidate extends the default Overview with a skippable,
-restartable first-scan guide for both empty and populated inventories. It
-shows the inventory scan result, names/counts/availability for roots returned
-by `/api/scopes`, one exact observed instance and scope, divergent groups from
-the filesystem-backed skill response, and actions to open that instance,
-Quality, or its existing local-update detail. The guide does not show root or
-physical paths. `/api/scopes` omits missing roots, so the copy says these are
-detected roots and explicitly avoids treating undiscovered roots as empty.
-Inventory failure, root-detail failure, unavailable roots, malformed or
-disabled instances, and divergent copies keep their observed/unavailable
-labels. A missing instance disables the Library action; a non-addressable or
-non-writable instance disables the update-preview destination.
-
-The consumer selector calls the existing read-only
-`GET /api/doctor?explain=CONSUMER` route without a project path. Its displayed
-result is limited to resolution and winner-tier evidence, and it never prints
-paths; project-specific roots are not evaluated in this UI flow. Unknown and
-undocumented precedence stay explicit, and ordinary `effective_state` remains
-`unresolved`. The update-preview action selects the exact writable physical
-instance in Library, where the existing local folder review can be opened;
-the guide itself makes no write, sync, install, cleanup, or update. Skip and
-restart are local in-memory UI state, and restart returns focus to the guide
-heading. The automated six-viewport evidence and its synthetic time-to-result
-are in @docs/16-product-baseline-2026-09-18.md; no human usability target is
-claimed.
-
-- **State**: `view` (`overview|skills|profiles|install|recovery|workspaces|quality|settings|trash`), `filter` (all|active|disabled), `tagFilter` (tag or `__untagged`), `query` (live search, 220ms debounce), `skills`, `allSkills`, `trashSkills`, `catalog`, exact `selectedKeys`, `selected`/`selectedName`, `workspaces`, `profileForm`/`profilePreview`, `install` (registry operation, review id/evidence, runner form, and the offline `preview` response), `qualityRecords`/`filteredQualitySkills`/`qualitySummary` (observed evidence only), `qualityHygiene`/`qualityHygieneLoading`/`qualityHygieneError`/`qualitySeverityFilter` (server-derived hygiene evidence), `theme` (`system|light|dark`, localStorage), `resolvedTheme`, `textSize` (`standard|large`, localStorage), `locale` (`system|en-US|en-GB|en-IN`, localStorage), `resolvedLocale`, and reduced-motion evidence, `modals.*` (one object per dialog, including batch/help), `toasts`/`liveAnnouncement`, focus lifecycle state, `scopes` (from `/api/scopes`), `activeScope` (persisted). A batch modal stores a frozen `targets` snapshot at open; preview and execute reuse that same set rather than re-reading live Library selection. Profile quick apply derives exact `{name, scope, path}` targets from observed preview instances, dedupes exact keys, and opens the existing enable batch preview with profile context. It enables only those observed physical instances; it never installs missing members, reconciles divergent content, infers effective state, or disables outside-profile skills. Successful profile execution refreshes the profile preview. Quality keeps validity/state, physical divergence, provenance, and size evidence independent; the Quality Hygiene Report loads `/api/doctor?scope=SCOPE&hygiene=1`, exposes independent facts, grouped findings, severity filtering, search, retry, exact-instance navigation, degraded evidence, and unavailable signals; it never recomputes similarity or exposes a combined score.
-- **Commands palette**: The topbar Commands trigger and Ctrl/Cmd+K open the existing modal layer only when no other dialog is active. Its derived frontend-only index searches command label/title, keywords, and category; selected-record Edit, Validate, Enable/Disable, Sync, and Remove entries appear only for an available current Library selection. Results use a labelled combobox/listbox pattern with a live result count, no-results guidance, active descendant, and 44px pointer targets. Existing methods execute in place; Remove retains its existing confirmation. Navigation focuses the destination heading and modal actions focus the new dialog, while Escape returns focus to the Commands opener.
-- Theme preference is explicit and local-only. Missing or unknown `skillsmgr-theme`
-  values default to `system`, while existing `light`/`dark` values remain
-  explicit. System resolves to a light/dark `documentElement` theme from
-  `(prefers-color-scheme: dark)` and listens only to that query, with cleanup on
-  unmount (including legacy listener APIs). The topbar cycles the three modes;
-  Settings is authoritative. `skillsmgr-text-size` persists Standard/Large
-  through `data-text-size`; native controls expose 44px option rows. The
-  external same-origin `preferences.js` bootstrap runs before `styles.css` and
-  safely resolves saved theme/text-size values without an inline script or CSP
-  change. Reduced motion is reported as OS evidence, not changed by the app.
-- Regional format preference is explicit and local-only. Missing or unknown
-  `skillsmgr-locale` values default to `system`; the explicit choices are
-  `en-US`, `en-GB`, and `en-IN`. `Intl.NumberFormat` and `Intl.DateTimeFormat`
-  wrappers drive counts, file sizes, document metadata, trash/history times,
-  budget percentages, token shares, profile/Doctor/Stats summaries, and modal
-  summaries. The Settings context note and status bar expose this local-only
-  preference without implying a translated interface. The document keeps
-  `lang="en"` until translated resources exist, so a regional format choice
-  never falsely claims translated interface copy.
-- **Domain seam (`domain.js`)** provides the `api()` fetch wrapper, formatting and token helpers, frontmatter enrichment and shared Markdown rendering.
-- **[SPEC] The seam owns the observed state, not five copies of it.** The
-  frontend carried five hand-written copies of the same predicate (four in
-  `app.js`, one in `domain.js`) and `invalid` was missing from
-  `OBSERVED_STATE_LABELS`, so a state added to the seam silently never appeared
-  in Quality. All five now call `domain.observeRecord()` /
-  `observedStateFor()` / `observedStateKeys()`, and `invalid` is in the label
-  map. Pinned by `tests/test_frontend_seam_contracts.py` (29 tests, 17 of them
-  failing against the pre-fix sources).
-- **[SPEC] Escape closes `activeModal`.** The old 16-way Escape ladder
-  hand-copied the `data()` key order that `activeModal` derives, and the two
-  disagreed: the ladder closed `commands` first while `data()` lists it last,
-  so with Commands plus another dialog open, focus and Escape named different
-  dialogs. One rule now, derived from the same source.
-- **[SPEC] Transport goes through `api()`, `apiText()` and `apiBlob()`.** Five
-  raw `fetch()` calls bypassed the seam. **Identical in-flight GETs share one
-  request**; completed reads are *never* cached (the filesystem stays
-  authoritative) and mutations are never shared. Request amplification across
-  10 navigations fell from **17 to 9**, with `/api/skills/<name>` and
-  `/api/skills/<name>/raw` dropping from four each to zero.
-- A list refresh reuses the open detail when the skill's observed identity has
-  not changed, which is why the detail count above is zero.
-- **Flow helpers**: `loadSkills`/`loadTrash`/`loadDetail`/`applySearch`; `toast(text, type, undoFn)` with auto-dismiss (8s when undoable, else 4s). Source updates use a frozen exact target, multipart review, explicit confirmation, and snapshot-backed rollback. The scope query string is built inline per call (`"?scope=" + encodeURIComponent(scope)`); the former `_scopeParam`/`_scopeQs` helpers were dead code and were removed (`BUG-15`).
-- **Source update state**: `update` stores the pending review, exact `{name, scope, physical_path}` target, candidate source identity, bounded change evidence, validation/risk results, review expiry, and recovery snapshot evidence. `recoverySnapshots` is loaded for the selected physical instance; apply and rollback both require a fresh review and explicit confirmation.
-- **Actions**: `saveSkill` (create/update, scope-aware), `toggleSelected` (disable/enable), `removeSkill` (trash with **Undo toast**, or purge), `restoreTrash`, snapshot rollback from History, `purgeTrash`, `runValidate`, `openDoctor/Stats/History/Templates`, slim/full `doImport`/`exportArchive` (browser download), `rebuildIndex`/`resyncIndex`, `openSync`/`doSync` (copy skill between scopes with resolution preview), exact visible-set selection and tag changes, `prepareBatch`/`executeBatch` (preview-locked enable/disable/remove/sync), `saveProfile`/`previewProfile`/`openProfileBatch`/`deleteProfile`, `openInstallCenter`/`openRecoveryCenter`, `loadWorkspaces` (read-only adapter/project evidence), `inspectQualityInLibrary` (reuse exact Library selection/detail), `openInstall`/`runInstall` (build/run `skills add` or browse/search/curate/fetch skills.sh), `runRegistry` (cache-aware reads and explicit provenance fetch), `commitRegistryReview` (separate no-network trust commit), and escaped editor preview. Install reports existing `registry_provenance` as registry-backed skills (not deduplicated sources) and makes no update claim without registry evidence; persistent search filters names and provenance identifiers. Registry fetch sends `{fetch:true, source}` and shows review id/expiry/validation/risk/hash evidence; the separate `{fetch:true, review_id, trust_confirmed:true}` action commits only the exact returned review, with a new request retiring the old review. Recovery is the single exposed recovery navigation entry and composes global trash plus v2 agent-scope trash restore, history/snapshot rollback, full archive import, and full backup export; its history modal forces global scope. Profile detail shows observed/disabled/divergent/missing counts, configured targets, and each instance scope/path; `Review enable plan` is offered only when at least one observed instance exists. The plan explains Disabled → Active and Active → No state change outcomes, unresolved members, and recovery/partial-failure behavior. Quality actions route to existing Validate, Doctor, and Stats modals without inventing new evidence. Runner-mode Preview posts the offline bridge plan (`preview: true`) and renders its command, `may_install` wording, every `blockers` entry, and https-only `audit_links` as plain text from the install state's `preview` field; the locally built command toast remains only the request-failure fallback. In Workspaces, Enter in the project field runs the same `loadWorkspaces` action as **Check project**, guarded by `loadingWorkspaces`.
-- **Source update actions**: The selected exact physical instance exposes `Update from folder` only when addressable and writable. The dialog freezes `{name, scope, physical_path}`, uploads a `webkitdirectory` candidate for private review, separates changes/validity/advisory risk/recovery evidence, renders diffs as escaped text, and requires the unchecked confirmation `I reviewed the target, file changes, validation, and recovery snapshot policy.` before `Apply reviewed update`. Recovery lists retained source snapshots and opens rollback through the same review UI; it never offers a blind restore.
-- **Hygiene actions**: Quality calls `loadQualityHygiene()` on entry and active-scope changes, keeps loading/error/report state separate from Library records, and offers retry, severity filters, search across finding evidence, expandable accessible findings, exact-instance navigation, and separate largest/unavailable sections. Similarity is computed only by the server report; Vue renders escaped evidence and does not infer a score or cleanup action.
-- **[SPEC] Markdown** is shared by v2 and classic skill readers and editor
-  previews. It supports headings, lists and checkboxes, quotes, code, links and
-  pipe tables. Table headers are semantic, alignment follows the separator
-  row, and wide tables scroll horizontally in a keyboard focusable region.
-  V2 comparison highlights a changed paragraph, list item or table row.
-- **[SPEC] Markdown trust boundary.** Raw HTML appears as text and document
-  images render their alt text without loading the image. V2 displays link
-  destinations as text. Classic opens explicit HTTP(S) links in a new tab
-  and displays other accepted destinations as text. Over 512 Ki UTF-16 code
-  units, the preview displays escaped source.
-- **[NOTE] Markdown provenance.** The unchanged browser bundle is from
-  [markdown-it 15.0.3](https://github.com/markdown-it/markdown-it/blob/15.0.3/CHANGELOG.md)
-  via the matching npm package. Its SHA-256 is pinned by
-  `check_package_data.py`. The bundle and its license notices ship under
-  `skillsmgr/webui/static/vendor/`.
-- **Keyboard**: `/` focuses search; `Ctrl/Cmd+K` toggles Commands only when no other dialog is open; its combobox keeps focus while Arrow Up/Down, Home/End, and Enter navigate or execute available results. `?` opens shortcut help; `Esc` closes menus/modals; `Tab` is trapped within the active dialog and focus returns to its opener. Destructive dialogs focus the safer cancel action first. Settings uses native radio groups and a labelled regional-format select with visible labels and 44px option rows. Dialog backgrounds expose `inert`/`aria-hidden` while open, with labelled dialogs and live status/error announcements.
-- **Semantic audit**: Overview and Quality metric cards use valid `dt`/`dd` definition-list pairs. The brand and Commands controls derive accessible names from visible labels plus screen-reader-only action context, so compact breakpoints do not hide their purpose. The document declares a concise local-first description; a 2026-09-22 Lighthouse snapshot reports zero failed accessibility, best-practice, SEO, and agentic-browsing audits.
-- **Preview and safety**: skill editors show an escaped live Markdown preview; sync dialogs show source/target resolution, skip-versus-overwrite behavior, and rollback expectations before commit.
-- **Responsive**: At desktop the frontend renders sibling navigation rail,
-  list pane, and document pane. From 761–1199px it remains horizontal with a
-  compact rail and readable list; it does not cap the list at a short viewport
-  fraction. At <=760px it presents Library and detail as separate full-height
-  states, with an explicit Back action that returns focus to the selected row.
-  Profiles, Workspaces, and Trash switch to their full workspace on phones;
-  scope/context controls are behind a keyboard-accessible disclosure. The
-  topbar moves search to its own row on narrow screens and keeps the New skill
-  affordance available. The dev-only
-  `browser_harness.py` uses system Chrome DevTools Protocol with the browser
-  sandbox enabled, an explicit loopback address, and trusted executable
-  discovery to capture console/runtime/network failures across
-  320/400/640/900/desktop viewports.
-
-## Design system (styles.css)
+## Design system (styles.css, tools.css)
 
 **[SPEC] The contract is `DESIGN.md` at the repository root, not this section.**
-Every token, its measured contrast ratio, and the reasoning behind it live
-there, along with the refused defaults a later pass must not slide back into.
-`.ui-craft/brief.md` and `.ui-craft/tokens.md` are the *previous* system and
-are superseded. `check_design_tokens.py` re-derives every ratio from the
-shipped `styles.css` on each run and fails on a regression; a palette is a
-claim, and a claim nobody re-checks decays.
+Every token, its measured contrast ratio, the type scale, the desktop-first
+layout rules and the refused defaults (cream ground, serif display face,
+terracotta accent, uppercase tracked labels, middle-dot metadata) live there.
+`check_design_tokens.py` re-derives every contrast pair from the shipped
+`styles.css` (light `:root` and the `:root[data-theme="dark"]` overrides) on
+each run, checks `DESIGN.md`'s colours match, and fails on a regression; a
+palette is a claim, and a claim nobody re-checks decays.
+`tests/test_v2_interface_contracts.py` additionally fails if any rule uses an
+undeclared custom property, because an undeclared token renders transparent
+and passes every other gate.
 
-- **Palette.** A cool bone ground (`#f2f3f1` light / `#101316` dark) rather
-  than the previous warm canvas, one reserved ink for selection, focus and
-  the single primary action (`#0d6a63` / `#4fc7bd`), and four status colours
-  that mean what they say. Every text pair clears 4.5:1 and every control
-  boundary clears the 3:1 that WCAG 1.4.11 asks of a non-text element — both
-  verified by the gate, not asserted.
-- **The prototype's palette was replaced on purpose.** The approved prototype
-  used parchment `#faf7f1` with copper `#9e4415`, and a near-black +
-  vermilion dark theme. Those are the first two entries in every published
-  AI-tell catalogue, and the mechanical scanner flagged the second one.
-  Composition, density, type and the honesty spine were kept as approved; the
-  ground and accent were re-derived from the subject. Every value was measured
-  before it was written.
-- **Type.** IBM Plex Sans for the interface and prose, IBM Plex Mono for every
-  identifier, path, content hash and figure, with `tabular-nums` so columns of
-  numbers align. Plex rather than `system-ui` for a functional reason as much
-  as an aesthetic one: this tool compares a file on one machine with the same
-  file on another, so identical glyphs are a correctness property.
-  **Vendored as static woff2** under `webui/static/fonts/` — never fetched
-  from a CDN at runtime, because the app must work offline and a font request
-  to a third party is a third party in the page. The contract test asserts the
-  faces cover basic Latin *and* that every `src` resolves to a file that
-  exists: a face that is declared and shipped but covers none of the glyphs
-  the page uses renders the fallback silently, which is what happened once.
-- **Spacing rhythm:** 4 / 8 / 12 / 16 / 20 / 24 / 32 / 48px. **Radius:** 4px
-  controls, 6px panels, 10px dialogs — a large radius applied to everything
-  reads as a template before a word of copy is read.
-- **Motion:** 120ms on paint properties only, `cubic-bezier(0.2, 0, 0.2, 1)`.
-  No transforms on press, no overshooting curve, no entrance animation on
-  content that was already there. `prefers-reduced-motion` disables all of it,
-  and a gate fails on any curve whose y control point exceeds 1.
-- **The context-budget meter is the signature component.** Track, fill, and a
-  labelled 100% threshold rule, on an axis that runs to 125% so a root at 111%
-  and one at 121% render as visibly different bars instead of both clamping
-  full. It leads the Overview because it is the most operationally consequential
-  thing the tool observes, and below 620px each row switches to a full-width
-  track so the meter stays a meter.
-- **Observed state is named, never collapsed.** `linked` ("Linked outside
-  root") is a distinct state from `malformed`: a refused symlink is not a
-  corrupt document and has a different remedy. See
-  @docs/06-progress-log.md for why that distinction was added.
-- **Rows group their observed identities by state, problems first**, so the
-  scopes that agree are one line and the ones that do not are their own line
-  above them. A value shared by every visible row is stated once in the pane
-  header rather than badged 300 times; the per-row chip stays in the
-  accessibility tree as `sr-only`.
-- **Labels are sentence case.** A tracked-out ALL-CAPS eyebrow above a heading
-  is chrome that appears whatever the subject and reads as generated. Data-table
-  headers keep theirs: a caps header is a table convention, not that tell.
-- Full state coverage: loading (skeleton shimmer), empty (teaching empty
-  states), error (banners + toasts), disabled, focus-visible rings,
-  hover/active transitions, `prefers-reduced-motion` respected.
-- Rows use a grid with a full-width name/description region and a dedicated
-  wrapping badge region. Technical metadata is a native `Skill details`
-  disclosure; documentation remains left-aligned and readable at roughly 78ch.
-- Dialogs use a 16px radius, 24px body padding (16px on mobile), visible
-  surfaces/focus, sticky header/footer, bounded viewport height, and a 40px
-  import icon in a roughly 160px dropzone.
-- Toasts support an **Undo** action (used for trash → restore).
+- Toasts support an **Undo** action (used for sync, edit and on/off).
 
 ## Tests
 

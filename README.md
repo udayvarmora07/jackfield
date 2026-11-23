@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/skillsmgr/webui/v2/logo.svg" width="72" height="72" alt="">
+<img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/skillsmgr/webui/logo.svg" width="72" height="72" alt="">
 
 # skills-manager
 
@@ -237,7 +237,7 @@ skills-mgr webui --port 9000     # another port
 | **Recovery** | Trash, snapshots, history, backups and imports. |
 | **Tools** | Install from the registry, profiles, templates, quality report, workspaces, AI assist and settings. |
 
-Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> for the command palette and <kbd>?</kbd> for shortcuts. The classic interface is still at `/classic/`.
+Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> for the command palette and <kbd>?</kbd> for shortcuts.
 
 > ⚠️ **The web UI has no login.** It binds to `127.0.0.1`, and that binding is its only security boundary. Any program on your machine can reach it. Never forward, tunnel or publish the port. See the [threat model](https://github.com/udayvarmora07/skills-manager/blob/main/skills-manager-threat-model.md).
 

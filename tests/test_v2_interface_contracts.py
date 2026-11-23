@@ -1,4 +1,4 @@
-"""Contracts for the v2 interface (``skillsmgr/webui/v2``).
+"""Contracts for the web interface (``skillsmgr/webui``).
 
 The v2 interface is the prototype-final design wired to the real API. It adds
 presentation and workflow framing only: the same endpoints, the same observed
@@ -23,7 +23,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-V2 = ROOT / "skillsmgr" / "webui" / "v2"
+V2 = ROOT / "skillsmgr" / "webui"
 DOMAIN_JS = ROOT / "skillsmgr" / "webui" / "domain.js"
 
 
@@ -971,41 +971,47 @@ class ServedTests(unittest.TestCase):
             shutil.rmtree(folder.parent, ignore_errors=True)
 
     def test_the_interface_and_its_assets_are_served(self):
-        for path, kind in (("/v2/", "text/html"), ("/v2/index.html", "text/html"), ("/v2/app.js", "javascript"),
-                           ("/v2/model.js", "javascript"), ("/v2/styles.css", "text/css"),
-                           ("/v2/library-tools.js", "javascript"), ("/v2/tool-center.js", "javascript"), ("/v2/tools.css", "text/css"),
-                           ("/classic/", "text/html"), ("/classic/app.js", "javascript"), ("/classic/domain.js", "javascript"), ("/classic/styles.css", "text/css"),
-                           ("/v2/fonts/Newsreader-var.woff2", "font/woff2")):
+        for path, kind in (("/", "text/html"), ("/app.js", "javascript"), ("/model.js", "javascript"),
+                           ("/styles.css", "text/css"), ("/library-tools.js", "javascript"),
+                           ("/tool-center.js", "javascript"), ("/ai-center.js", "javascript"),
+                           ("/ai-diagnostic.js", "javascript"), ("/tools.css", "text/css"),
+                           ("/domain.js", "javascript"), ("/preferences.js", "javascript"),
+                           ("/logo.svg", "image/svg+xml"),
+                           ("/static/fonts/IBMPlexSans-400-latin.woff2", "font/woff2"),
+                           # Asset links saved while the interface lived at /v2/.
+                           ("/v2/app.js", "javascript")):
             status, ctype, body = self._get(path)
             self.assertEqual(status, 200, path)
             self.assertIn(kind, ctype, path)
             self.assertTrue(body, path)
 
     def test_traversal_out_of_the_interface_directory_is_refused(self):
-        for path in ("/v2/../../pyproject.toml", "/v2/%2e%2e/%2e%2e/pyproject.toml", "/v2/..%2f..%2fpyproject.toml"):
+        for path in ("/../../pyproject.toml", "/%2e%2e/%2e%2e/pyproject.toml", "/..%2f..%2fpyproject.toml",
+                     "/v2/../../pyproject.toml", "/v2/%2e%2e/%2e%2e/pyproject.toml", "/v2/..%2f..%2fpyproject.toml"):
             status, _, body = self._get(path)
             self.assertEqual(status, 404, path)
             self.assertNotIn(b"[project]", body)
 
-    def test_v2_is_default_and_classic_remains_available_explicitly(self):
+    def test_the_interface_is_served_at_the_root_and_the_classic_one_is_gone(self):
         status, _, body = self._get("/")
         self.assertEqual(status, 200)
         self.assertIn(b'src="model.js"', body)
-        status, _, body = self._get("/classic/")
-        self.assertEqual(status, 200)
-        self.assertIn(b"overview", body.lower())
+        self.assertNotIn(b"/classic/", body)
+        for retired in ("index.html.orig", "classic/app.js", "classic/styles.css"):
+            with self.subTest(path=retired):
+                self.assertEqual(self._get("/" + retired)[0], 404)
 
-    def test_default_entry_redirect_is_followed_by_every_supported_urllib(self):
+    def test_retired_entry_points_redirect_with_a_status_every_supported_urllib_follows(self):
         """Python 3.10's ``HTTPRedirectHandler`` follows 301/302/303/307 only.
 
-        A 308 at ``/`` made every urllib client on 3.10 -- including this
-        repository's own server fixture -- raise ``HTTPError`` instead of
-        reaching the UI (CI ``unit (py3.10)`` on ``61355a2``).
+        A 308 at an entry point made every urllib client on 3.10 raise
+        ``HTTPError`` instead of reaching the UI (CI ``unit (py3.10)`` on
+        ``61355a2``). ``/`` itself is served directly, with no redirect.
         """
         import http.client
 
         followed_by_py310 = {301, 302, 303, 307}
-        for path in ("/", "/index.html"):
+        for path in ("/index.html", "/v2", "/v2/", "/classic", "/classic/"):
             with self.subTest(path=path):
                 connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
                 try:
@@ -1017,22 +1023,16 @@ class ServedTests(unittest.TestCase):
                 finally:
                     connection.close()
 
-    def test_classic_namespace_cannot_read_files_outside_webui(self):
-        for path in ("/classic/../../pyproject.toml", "/classic/%2e%2e/%2e%2e/pyproject.toml", "/classic/static/../../../pyproject.toml"):
-            status, _, body = self._get(path)
-            self.assertEqual(status, 404, path)
-            self.assertNotIn(b"[project]", body)
-
     def test_entry_redirects_keep_queries_and_use_only_fixed_local_paths(self):
         import http.client
 
-        # The default-interface choice is temporary (307): a later default must
-        # reach browsers that already visited, and Python 3.10's urllib does not
-        # follow 308. Trailing-slash canonicalization never changes (308).
+        # Retired addresses (the interface's old /v2/ home and the removed
+        # classic interface) open the interface at /, keeping the query string;
+        # browsers carry the #fragment route across the redirect.
         for path, expected, status in (
-                ("/", "/v2/", 307), ("/?window=claude&x=1", "/v2/?window=claude&x=1", 307),
-                ("/index.html?x=1", "/v2/?x=1", 307), ("/classic?x=1", "/classic/?x=1", 308),
-                ("/v2?x=1", "/v2/?x=1", 308)):
+                ("/index.html?x=1", "/?x=1", 307), ("/v2?x=1", "/?x=1", 307),
+                ("/v2/?window=claude&x=1", "/?window=claude&x=1", 307), ("/v2/index.html", "/", 307),
+                ("/classic?x=1", "/?x=1", 307), ("/classic/", "/", 307), ("/classic/index.html", "/", 307)):
             with self.subTest(path=path):
                 connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
                 try:
@@ -1059,7 +1059,7 @@ class LazyBodyReactivityContracts(unittest.TestCase):
     """
 
     def test_body_accessors_use_a_tracked_membership_test(self):
-        source = (ROOT / "skillsmgr" / "webui" / "v2" / "app.js").read_text(encoding="utf-8")
+        source = (ROOT / "skillsmgr" / "webui" / "app.js").read_text(encoding="utf-8")
         start = source.index("bodyReady(c)")
         end = source.index("bodyErrorOf(c)")
         accessors = source[start:end]

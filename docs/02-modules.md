@@ -48,18 +48,19 @@ Stdlib web backend for the web UI: `WebAppHandler` (routes under `/api/`, static
 
 ## `webui/` (frontend)
 
-**[NOTE] 2026-11-06 v2 default.** `/` redirects to `/v2/`; the classic frontend
-below remains at `/classic/`. V2's `app.js` owns the shell and ordinary skill
+**[NOTE] 2026-11-23 one interface.** `/` serves the interface from
+`skillsmgr/webui/`; `/v2/` and `/classic/` redirect to `/`, and the classic
+frontend was removed. `app.js` owns the shell and ordinary skill
 flows, `model.js` derived state/document rendering, `library-tools.js` exact-copy
 selection and reviewed batches, and `tool-center.js` the remaining secondary
 workflows. The tool-page groups and IDs are defined in `model.js`; the tool
 index, hash router and command palette derive their lists from it.
-`tools.css` extends the selected v2 tokens. Stored-template reads and
+`tools.css` extends the same tokens (see `DESIGN.md`). Stored-template reads and
 PATCH explicit optional/body clears live in `webapp.py`; omitted fields are
 preserved. See @docs/08-web-ui.md for the current route and workflow map.
 
 
-`index.html` (Vue templates for all screens/modals), `styles.css` (design tokens + components), `domain.js` (transport, formatting, frontmatter, escaped Markdown renderer), `app.js` (Vue state, actions, dialogs, focus/keyboard lifecycle, and toasts), `static/vendor/vue.global.prod.js` (Vue 3.5.13 vendored, no build step). Scope switcher in the topbar (`activeScope` persisted to localStorage), scope-aware create/edit/remove/disable/sync. Full map: @docs/08-web-ui.md.
+`index.html` (Vue templates for every screen and dialog), `styles.css` + `tools.css` (design tokens + components; see `DESIGN.md`), `domain.js` (transport, formatting, escaped Markdown renderer), `model.js` (derived state, tool catalog), `app.js` (shell, routing, skill flows, command palette, header search), `library-tools.js`, `tool-center.js`, `ai-center.js`, `ai-diagnostic.js`, `static/vendor/` (Vue 3.5.13 and markdown-it, vendored, no build step). Full map: @docs/08-web-ui.md.
 
 ## `errors.py`
 

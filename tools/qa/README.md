@@ -21,7 +21,7 @@ hash-verified Hurl 8.1.0 release binary on Ubuntu 24.04 for its
 when a run produces a failing JUnit report. The report covers Library,
 project discovery, enable/disable, and Recovery. The standard unit suite
 remains available through `python3 -m unittest discover -s tests`.
-The browser suites under `tools/e2e_v2` and `tools/e2e_classic` cover UI flows.
+The browser suite under `tools/e2e_v2` covers UI flows.
 
 ## Keploy results
 

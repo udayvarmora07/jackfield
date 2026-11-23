@@ -39,7 +39,7 @@ vendored Vue, no build step or new runtime dependencies. This design does not
 approve new CLI commands, public Store methods or additional mutation contracts.
 
 **[NOTE]** The selected v2 style is defined by the shipped
-[v2 stylesheet](../../../skillsmgr/webui/v2/styles.css) and the
+[v2 stylesheet](../../../skillsmgr/webui/styles.css) and the
 [original final prototype](https://github.com/udayvarmora07/skills-manager/blob/515f5be/prototype-final/README.md) (removed 2026-11-19; last present in `515f5be`). The repository
 root `DESIGN.md` describes classic's earlier cool-paper/Plex system; its
 palette must not silently replace the selected v2 palette.
@@ -74,8 +74,8 @@ represented here as an explicit user selection.
 **[SPEC]** This inventory describes inspected source, not a claim of completed
 migration. Read the classic [template](../../../skillsmgr/webui/index.html)
 with its [handlers](../../../skillsmgr/webui/app.js), and the
-[v2 template](../../../skillsmgr/webui/v2/index.html) with its
-[handlers](../../../skillsmgr/webui/v2/app.js). Symbols below are durable
+[v2 template](../../../skillsmgr/webui/index.html) with its
+[handlers](../../../skillsmgr/webui/app.js). Symbols below are durable
 navigation hints rather than copied line numbers.
 
 | Capability | Production v2 today | Proposed v2 home | Classic source evidence |

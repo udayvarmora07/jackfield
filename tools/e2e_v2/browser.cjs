@@ -30,12 +30,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   async function go(route) { await page.goto(base+'/?fixture-step='+(++navigation)+'#/'+route); await page.locator('main').waitFor(); await page.waitForLoadState('networkidle'); if (route.startsWith('skill/')) await page.locator('.use').first().waitFor(); await page.waitForTimeout(200); }
   async function theme(t) { for (let i=0;i<3 && await page.locator('html').getAttribute('data-theme')!==t;i++) await page.locator('.themebtn').first().click(); assert.equal(await page.locator('html').getAttribute('data-theme'),t); }
   const file=(scope,name='same-everywhere')=>path.join(home,scope,'skills',name,'SKILL.md');
-  await test('Default entry preserves query and hash and opens v2',async()=>{await page.goto(base+'/?window=claude#/skills');await page.waitForLoadState('networkidle');assert.equal(page.url(),base+'/v2/?window=claude#/skills');assert(await page.locator('.sk').count()>0);});
+  await test('Default entry serves the interface at / with query and hash intact',async()=>{await page.goto(base+'/?window=claude#/skills');await page.waitForLoadState('networkidle');assert.equal(page.url(),base+'/?window=claude#/skills');assert(await page.locator('.sk').count()>0);});
   await test('Home listing budgets use real evidence and recover from a failed read', async () => {
     await go('home');
     let card = page.getByRole('region', {name:'Skill listing budgets', exact:true});
     assert.equal(await card.locator('.listing-budget').count(), 2);
-    assert.match(await card.innerText(), /Claude Code[\s\S]*chars[\s\S]*Codex[\s\S]*tokens/);
+    assert.match(await card.innerText(), /Claude Code[\s\S]*characters[\s\S]*Codex[\s\S]*tokens/);
     assert.match(await card.innerText(), /partial evidence/);
     const report = await (await context.request.get(base+'/api/doctor?scope=all&hygiene=1')).json();
     assert((await card.innerText()).includes('~'+new Intl.NumberFormat().format(report.hygiene.claude_listing.listing_chars)));
@@ -64,10 +64,13 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert(page.url().endsWith('#/tools/quality'));
     } finally { await page.unroute(matches, handler); }
   });
-  await test('Slashless v2 entry keeps query and hash and loads its own app', async () => {
+  await test('Retired /v2 and /classic addresses open the interface at / keeping query and hash', async () => {
+    await page.goto(base + '/classic/?window=claude#/skills');
+    await page.locator('.shelf').first().waitFor();
+    assert.equal(page.url(), base + '/?window=claude#/skills');
     await page.goto(base + '/v2?window=claude#/skills');
     await page.locator('.shelf').first().waitFor();
-    assert.equal(page.url(), base + '/v2/?window=claude#/skills');
+    assert.equal(page.url(), base + '/?window=claude#/skills');
     assert.equal(await page.locator('#h1').innerText(), 'Skills');
     assert(await page.locator('.shelf').first().isVisible());
   });
@@ -105,6 +108,39 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert(!(await page.locator('.toasts').evaluate(element => element.inert)));
     assert.equal(await skipLink.count(), 1);
     assert(await shortcuts.evaluate(element => document.activeElement === element));
+  });
+  await test('Header search reopens with Arrow Up and clears on reader navigation', async () => {
+    try {
+      await page.setViewportSize({width:320,height:780});
+      await go('skill/sole-copy');
+      const search = page.getByRole('combobox', {name:'Find a skill'});
+      await search.fill('same');
+      await search.press('Escape');
+      assert.equal(await search.getAttribute('aria-expanded'), 'false');
+      await search.press('ArrowUp');
+      assert.equal(await search.getAttribute('aria-expanded'), 'true');
+      assert.equal(await page.getByRole('option', {name:/same-everywhere/}).getAttribute('aria-selected'), 'true');
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      await page.evaluate(() => { location.hash = '#/skill/markdown-reader'; });
+      await page.locator('#h1').getByText('markdown-reader', {exact:true}).waitFor();
+      assert.equal(await search.inputValue(), '');
+      await search.fill('same');
+      await search.press('ArrowDown');
+      await page.getByRole('button', {name:/Show all .* matches in Skills/}).click();
+      await page.waitForURL(url => url.hash === '#/skills');
+      assert.equal(await page.getByRole('searchbox', {name:'Search skills'}).inputValue(), 'same');
+    } finally {
+      await page.setViewportSize({width:1280,height:900});
+    }
+  });
+  await test('New skill shows multiple lines of instructions and cancels cleanly', async () => {
+    await go('skills');
+    await page.getByRole('button', {name:'New skill', exact:true}).click();
+    const dialog = page.getByRole('dialog', {name:'New skill'});
+    const instructions = dialog.getByLabel('Instructions', {exact:true});
+    assert(await instructions.evaluate(element => element.clientHeight > 100));
+    await dialog.getByRole('button', {name:'Cancel', exact:true}).click();
+    await dialog.waitFor({state:'hidden'});
   });
   await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
@@ -234,7 +270,6 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       for (const dir of [installed, ...trashed]) fs.rmSync(dir, {recursive:true, force:true});
     }
   });
-  await test('Classic disable and enable send bodyless POST requests',async()=>{await page.goto(base+'/classic/');await page.waitForTimeout(700);await page.getByRole('button',{name:'Library',exact:true}).first().click();await page.waitForTimeout(400);await page.locator('[data-skill-key$="/library-fixture"]').click();await page.waitForTimeout(400);let requests=[];page.on('request', req=>{if(req.method()==='POST'&&/\/api\/skills\/library-fixture\/(disable|enable)/.test(req.url())) requests.push({url:req.url(),body:req.postData()});});await page.getByRole('button',{name:'Disable',exact:true}).click();await page.waitForTimeout(600);await page.getByRole('button',{name:'Enable',exact:true}).click();await page.waitForTimeout(600);assert.equal(requests.length,2);assert(requests.every(r=>!r.body));let f=path.join(root,'data/skills-manager/skills/library-fixture/SKILL.md');assert(fs.existsSync(f));});
   for (const [name,sourceDisabled,targetDisabled] of [['target-disabled',false,true],['source-disabled',true,false]]) {
     await test(`Sync Undo restores ${name} bytes and disabled state`,async()=>{
       await go('inbox');let focus=await page.locator('#focus-t').innerText();if(!focus.includes(name))await page.locator('.qi').filter({hasText:name}).click();
@@ -306,14 +341,6 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
           await page.waitForFunction(()=>document.activeElement.scrollLeft>0);
         }
       }
-      await page.goto(base+'/classic/');
-      await page.getByRole('button',{name:'Library',exact:true}).first().click();
-      await page.locator('[data-skill-key$="/markdown-reader"]').click();
-      const table = page.locator('.body').getByRole('table');
-      await table.waitFor();
-      assert.equal(await table.getByRole('columnheader').count(),6);
-      assert.equal(await table.getByRole('link',{name:'Docs'}).getAttribute('href'),'https://example.test/Foo_(bar)');
-      assert.equal(await page.locator('.body :is(img,script)').count(),0);
     } finally {
       await page.setViewportSize({width:1280,height:900});
     }
@@ -325,6 +352,35 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.equal(await page.locator('.pick input:checked').count(),1);
     await page.getByRole('button',{name:'Cancel',exact:true}).click();
     assert.deepEqual(fs.readFileSync(f),before);
+  });
+  await test('Reader diagnosis and copy locations state what will be inspected', async () => {
+    await go('skill/majority-minor');
+    await page.getByText('Folder locations and source updates', {exact:true}).click();
+    const codex = page.locator('.folder-paths > div').filter({hasText:'Codex'});
+    assert.equal(await codex.locator('code').innerText(), path.dirname(file('.codex', 'majority-minor')));
+    const trigger = page.getByRole('button', {name:/^Why didn.t it run\?$/});
+    await trigger.click();
+    const dialog = page.getByRole('dialog', {name:/^Why didn.t this skill run\?$/});
+    await dialog.getByRole('heading', {name:'Discovery on disk'}).waitFor();
+    await dialog.getByText('Skill folder', {exact:true}).press('Enter');
+    assert.match(await dialog.locator('.ai-diagnosis .paths code').innerText(), /majority-minor$/);
+    await dialog.getByRole('button', {name:'Cancel'}).click();
+    assert(await trigger.evaluate(element => element === document.activeElement));
+  });
+  await test('Porting notes and risk findings run with AI off', async () => {
+    await go('skill/sole-copy');
+    await page.getByText('AI maintenance', {exact:true}).click();
+    await page.getByRole('button', {name:'Check agent compatibility'}).click();
+    const skill = page.getByLabel('Skill', {exact:true});
+    await page.waitForURL(url => url.hash === '#/tools/ai-port');
+    await skill.waitFor();
+    assert.equal(await skill.inputValue(), 'sole-copy');
+    await page.getByRole('button', {name:'Find the facts'}).click();
+    await page.getByText('Nothing agent-specific found').waitFor();
+    await go('tools/ai-explain');
+    await skill.selectOption('sole-copy');
+    await page.getByRole('button', {name:'Scan', exact:true}).click();
+    await page.getByText('No findings', {exact:true}).waitFor();
   });
   await test('Add-to-agent single target is selected and creates a copy',async()=>{
     await go('skill/share-three');await page.getByRole('button',{name:'Add to agent',exact:true}).click();
@@ -395,7 +451,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   });
   await test('Sync map totals, singular grammar and top-link target size',async()=>{
     await go('skills');const total=Number((await page.locator('.seg button').first().innerText()).match(/\d+/)?.[0]);
-    await go('map');assert.equal(Number((await page.locator('.map-total').innerText()).match(/^([\d,]+)/)[1].replace(/,/g,'')),total);
+    await go('map');
+    assert.equal(await page.locator('.map-total').innerText(), `Open all ${total.toLocaleString()} in Skills`);
     assert.doesNotMatch(await page.locator('main').innerText(),/1 copy differ(?!s)/);
     await page.setViewportSize({width:1280,height:900});
     const box=await page.locator('.top .tabs a[href="#/tools"]').boundingBox();assert(box.height>=24);assert(box.width>=24);
@@ -744,7 +801,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');assert.match(await page.locator('main').innerText(),/12,34,567.89/);
     await go('tools/settings');assert.equal(await page.getByLabel('Regional format',{exact:true}).inputValue(),'en-IN');
     await page.getByLabel('Text size',{exact:true}).selectOption('standard');await page.getByLabel('Theme',{exact:true}).selectOption('light');
-    await page.keyboard.press('Control+k');await page.locator('#command-q').fill('templates');await page.locator('.command-list').getByRole('button',{name:'Templates',exact:true}).click();await page.getByRole('heading',{name:'Templates',exact:true}).waitFor();
+    await page.keyboard.press('Control+k');await page.locator('#command-q').fill('templates');await page.locator('.command-list').getByRole('option',{name:'Templates',exact:true}).click();await page.getByRole('heading',{name:'Templates',exact:true}).waitFor();
   });
   await test('Peer scope link reads through and the owner copy remains editable',async()=>{
     const name='browser-peer-owner';
@@ -885,6 +942,16 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await evidence.locator('summary').waitFor();
     assert.equal(await manifest.count(),0);
     assert.equal(await apmAudit.count(),0);
+  });
+  await test('Quality finding evidence uses a separate disclosure', async () => {
+    await go('tools/quality');
+    const finding = page.locator('.tp-findings > li > details').first();
+    await finding.locator(':scope > summary').click();
+    const evidence = finding.getByText('Finding evidence', {exact:true});
+    assert(await evidence.evaluate(element =>
+      getComputedStyle(element).display !== 'grid' && getComputedStyle(element, '::before').content !== 'none'));
+    await evidence.press('Enter');
+    await finding.getByRole('region', {name:/^Evidence for /}).waitFor();
   });
   await test('Tool directory filters by task and stays searchable after opening a tool',async()=>{
     await page.setViewportSize({width:390,height:844});

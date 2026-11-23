@@ -1,25 +1,9 @@
-"""Classic-UI contracts: Workspace Enter key and the install preview panel.
-
-Two small defects are pinned here, both in the classic interface only:
-
-* Enter in the Workspaces project field did nothing while the same commit ran
-  from the "Check project" button.
-* ``runInstall(false)`` rendered a locally built command in a toast and never
-  asked the backend, so the offline bridge plan's trust blockers could not be
-  seen.  The preview now posts ``preview: true`` and the template renders that
-  response with mustache interpolation only.
-
-The behaviour checks run the *checked-in* sources under Node against the real
-``domain.js`` transport, and the last test posts the exact payload the UI sends
-to a loopback server, so the keys the template reads are proven to exist.
-"""
-
+"""Install preview and workspace contracts for the active interface."""
 from __future__ import annotations
 
 import json
 import os
-import re
-import subprocess
+import shutil
 import tempfile
 import threading
 import unittest
@@ -27,186 +11,103 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-APP_JS = ROOT / "skillsmgr" / "webui" / "app.js"
-INDEX_HTML = ROOT / "skillsmgr" / "webui" / "index.html"
-
 from skillsmgr.store import Store
 from skillsmgr.webapp import WebAppServer
+from test_v2_tool_behaviors import run_node
+
+ROOT = Path(__file__).resolve().parent.parent
+TOOL_CENTER = ROOT / "skillsmgr" / "webui" / "tool-center.js"
 
 
-def _read(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
+@unittest.skipUnless(shutil.which("node"), "Node is required for frontend behavior checks")
+class ActiveInstallPreviewTests(unittest.TestCase):
+    def test_runner_requires_matching_preview_before_run(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{source:'owner/repo'});
+          handler=async()=>({command:'npx skills add owner/repo -g'});
+          await h.runRunner(true);const before=calls.length;
+          await h.runRunner(false);const preview=h.runnerPreview;
+          h.source='other/repo';await h.runRunner(true);const changed=calls.length;
+          h.source='owner/repo';await h.runRunner(true);
+          return {before,changed,calls:calls.map(c=>({url:c.url,body:JSON.parse(c.opts.body)})),preview,after:h.runnerPreview,busy:h.busy};
+        """)
+        self.assertEqual(out["before"], 0)
+        self.assertEqual(out["changed"], 2)
+        self.assertTrue(out["preview"])
+        self.assertEqual([c["url"] for c in out["calls"]], ["/api/install", "/api/install", "/api/install"])
+        self.assertFalse(out["calls"][0]["body"]["run"])
+        self.assertTrue(out["calls"][1]["body"]["preview"])
+        self.assertTrue(out["calls"][2]["body"]["run"])
+        self.assertEqual(out["calls"][0]["body"]["source"], "owner/repo")
+        self.assertEqual(out["after"], "")
+        self.assertFalse(out["busy"])
 
+    def test_failed_preview_never_authorizes_run(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{source:'owner/repo'});
+          handler=async()=>{throw Error('network down')};
+          await h.runRunner(false);await h.runRunner(true);
+          return {count:calls.length,preview:h.runnerPreview,error:h.error,busy:h.busy};
+        """)
+        self.assertEqual(out, {"count": 1, "preview": "", "error": "network down", "busy": False})
 
-def _node(script: str) -> dict:
-    result = subprocess.run(
-        ["node", "-e", script],
-        capture_output=True, encoding="utf-8", check=True, cwd=str(ROOT),
-    )
-    return json.loads(result.stdout)
+    def test_bridge_evidence_is_separate_from_actual_command_and_optional(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{source:'owner/repo/skill',tab:'runner'});
+          handler=async(_url,opts)=>JSON.parse(opts.body).preview
+            ? {command:'different bridge command',registry:{may_install:false,eligibility_status:'unverified-offline',blockers:['unverified'],audit_links:[]}}
+            : {command:'actual runner command'};
+          await h.runRunner(false);const before={command:h.result.command,plan:h.runnerPlan};
+          handler=async(_url,opts)=>{if(JSON.parse(opts.body).preview)throw Error('unsupported');return {command:'general command'}};
+          await h.runRunner(false);
+          return {before,command:h.result.command,preview:!!h.runnerPreview,plan:h.runnerPlan,error:h.runnerPlanError};
+        """)
+        self.assertEqual(out['before']['command'], 'actual runner command')
+        self.assertEqual(out['before']['plan']['blockers'], ['unverified'])
+        self.assertFalse(out['before']['plan']['may_install'])
+        self.assertEqual((out['command'],out['preview'],out['plan'],out['error']), ('general command',True,None,'unsupported'))
 
+    def test_repreview_failure_clears_previous_authorization(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{source:'owner/repo',tab:'runner'});
+          handler=async()=>({command:'command',registry:{blockers:['unverified'],may_install:false}});
+          await h.runRunner(false);
+          handler=async()=>{throw Error('failed again')};
+          await h.runRunner(false);await h.runRunner(true);
+          return {count:calls.length,preview:h.runnerPreview,error:h.error,result:h.result};
+        """)
+        self.assertEqual(out, {'count':3,'preview':'','error':'failed again','result':None})
 
-# Loads the real domain.js, then the real app.js on top of it.  Only `fetch` and
-# the DOM are stubbed, so the app exercises its own shipped transport and the
-# request body under assertion is the one the browser would send.
-_APP_HARNESS = r"""
-const fs = require('fs'), vm = require('vm');
-const requests = [];
-function replyFor(body) {
-  if (!body) return {};
-  if (body.preview) {
-    return {command:'npx skills add owner/repo -g', runner:'npx',
-            source:'owner/repo', executed:false,
-            registry:{blockers:['registry metadata needs an authenticated read'],
-                      may_install:false, trust_verified:false, audit_links:[]}};
-  }
-  if (body.run) return {command:'npx skills add owner/repo -g', runner:'npx',
-                        source:'owner/repo', executed:true, exit_code:1,
-                        stdout:'', stderr:'boom'};
-  return {};
-}
-let fail = false;
-const fakeFetch = async (url, opts) => {
-  const body = opts && opts.body ? JSON.parse(String(opts.body)) : null;
-  requests.push({url:String(url), body, headers:(opts && opts.headers) || {}});
-  if (fail) throw new Error('network down');
-  return {ok:true, status:200,
-    headers:{get:(h)=> h === 'content-type' ? 'application/json' : null},
-    json: async()=>replyFor(body), text: async()=>JSON.stringify(replyFor(body))};
-};
-const anchor = () => ({get style(){return {};}, setAttribute(){}, appendChild(){}, click(){}, remove(){}});
-const sandbox = {
-  window: {},
-  Vue: {createApp(def){ sandbox.app = def; return {mount(){}}; }, nextTick(fn){ if(fn) fn(); return Promise.resolve(); }},
-  localStorage: {getItem(){return null;}, setItem(){}},
-  document: {
-    addEventListener(){}, removeEventListener(){}, documentElement:{dataset:{}},
-    querySelectorAll(){return [];}, querySelector(){return null;}, getElementById(){return null;},
-    createElement(){ return anchor(); },
-    contains(){return false;}, activeElement: null, body:{appendChild(){}},
-  },
-  fetch: fakeFetch, setTimeout, clearTimeout, console,
-  URL: {createObjectURL(){return 'blob:x';}, revokeObjectURL(){}},
-};
-vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync('skillsmgr/webui/domain.js', 'utf8'), sandbox);
-vm.runInContext(fs.readFileSync('skillsmgr/webui/app.js', 'utf8'), sandbox);
-const def = sandbox.app;
-function makeContext() {
-  const ctx = Object.assign({}, def.data(), def.methods);
-  ctx.install = Object.assign({}, def.data().install, {source:'owner/repo'});
-  return ctx;
-}
-(async () => {
-  const results = {};
-  const dry = makeContext();
-  await dry.runInstall(false);
-  results.dry = {requests:requests.slice(), preview:dry.install.preview, busy:dry.busy, toasts:dry.toasts.length};
-  requests.length = 0;
-  const run = makeContext();
-  run.install.preview = {stale:true};
-  await run.runInstall(true);
-  results.run = {requests:requests.slice(), preview:run.install.preview, busy:run.busy};
-  requests.length = 0;
-  fail = true;
-  const failed = makeContext();
-  await failed.runInstall(false);
-  results.failed = {requests:requests.length, preview:failed.install.preview,
-                    busy:failed.busy, toasts:failed.toasts.map((t)=>t.text)};
-  process.stdout.write(JSON.stringify(results));
-})().catch((e) => { console.error(e); process.exit(1); });
-"""
+    def test_tab_change_discards_pending_preview_and_audit_links_are_restricted(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{source:'owner/repo',tab:'runner'});
+          let finish;handler=()=>new Promise(r=>finish=r);
+          const pending=h.runRunner(false);h.switchInstallTab('registry');finish({command:'old'});
+          await tick();finish({registry:{blockers:[]}});await pending;
+          return {preview:h.runnerPreview,result:h.result,plan:h.runnerPlan,
+            good:h.safeAuditLink({url:'https://skills.sh/a/b/c/security/socket'}),
+            bad:['http://skills.sh/a/b/c/security/socket','https://evil.test/a/b/c/security/socket','https://skills.sh.evil.test/a/b/c/security/socket'].map(url=>h.safeAuditLink({url}))};
+        """)
+        self.assertEqual(out, {'preview':'','result':None,'plan':None,'good':True,'bad':[False,False,False]})
 
+    def test_workspace_enter_does_not_duplicate_inflight_request(self):
+        out = run_node(r"""
+          const h=mount(ctx.window.SkillsV2ToolCenter,{page:'workspaces'});
+          let finish;handler=()=>new Promise(r=>finish=r);
+          const first=h.loadWorkspace();await h.loadWorkspace();finish({managed_roots:[]});await first;
+          return {count:calls.length,workspace:h.workspace,loading:h.loading.workspace};
+        """)
+        self.assertEqual(out, {'count':1,'workspace':{'managed_roots':[]},'loading':False})
 
-class InstallPreviewSourceContracts(unittest.TestCase):
-    """The template and handler shapes the two fixes shipped."""
-
-    def test_workspace_enter_runs_the_check_guarded_by_loading(self):
-        html = _read(INDEX_HTML)
-        match = re.search(r"<input id=\"workspace-project\"[^>]*>", html)
-        self.assertIsNotNone(match, "workspace project input is missing")
-        tag = match.group(0)
-        self.assertIn('@keydown.enter.prevent="!loadingWorkspaces && loadWorkspaces()"', tag)
-        # The button stays the same action and the same disabled condition.
-        self.assertIn('@click="loadWorkspaces"', html)
-        self.assertIn(':disabled="loadingWorkspaces"', html)
-
-    def test_preview_panel_renders_the_response_without_v_html(self):
-        html = _read(INDEX_HTML)
-        start = html.index("install.mode !== 'registry' && install.preview")
-        end = html.index('<div class="modal-foot">', start)
-        block = html[start:end]
-        self.assertIn('class="preview-panel" role="status" aria-live="polite"', block)
-        self.assertIn("<code>{{ install.preview.command }}</code>", block)
-        self.assertIn("'Ready to install'", block)
-        self.assertIn("'Not ready to install'", block)
-        self.assertIn("may_install", block)
-        # Plain mustache text per blocker: the payload is untrusted.
-        self.assertIn('v-for="blocker in install.preview.registry.blockers"', block)
-        self.assertIn("{{ blocker }}", block)
-        self.assertNotIn("v-html", block)
-
-    def test_audit_links_render_only_https_targets(self):
-        html = _read(INDEX_HTML)
-        start = html.index("install.mode !== 'registry' && install.preview")
-        end = html.index('<div class="modal-foot">', start)
-        block = html[start:end]
-        self.assertIn("item.url.startsWith('https://')", block)
-        self.assertIn(':href="link.url"', block)
-        self.assertIn("{{ link.provider }}", block)
-        self.assertIn('rel="noopener noreferrer"', block)
-        self.assertIn('target="_blank"', block)
-
-
-class InstallPreviewBehaviourTests(unittest.TestCase):
-    """runInstall(false) posts the backend preview; the local toast is the fallback."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.result = _node(_APP_HARNESS)
-
-    def test_dry_run_posts_preview_true_to_the_install_route(self):
-        dry = self.result["dry"]
-        self.assertEqual(len(dry["requests"]), 1)
-        request = dry["requests"][0]
-        self.assertEqual(request["url"], "/api/install")
-        self.assertEqual(request["body"]["source"], "owner/repo")
-        self.assertEqual(request["body"]["runner"], "npx")
-        self.assertEqual(request["body"]["scope"], "global")
-        self.assertIs(request["body"]["preview"], True)
-        self.assertFalse(request["body"]["copy"])
-        self.assertFalse(request["body"]["list_only"])
-        self.assertNotIn("run", request["body"])
-
-    def test_dry_run_stores_the_response_and_clears_busy(self):
-        dry = self.result["dry"]
-        self.assertIsNotNone(dry["preview"])
-        self.assertEqual(dry["preview"]["registry"]["blockers"], ["registry metadata needs an authenticated read"])
-        self.assertIs(dry["preview"]["registry"]["may_install"], False)
-        self.assertFalse(dry["busy"])
-        # Success does not fall back to the local toast.
-        self.assertEqual(dry["toasts"], 0)
-
-    def test_confirmed_run_clears_the_previous_preview(self):
-        run = self.result["run"]
-        self.assertEqual(len(run["requests"]), 1)
-        self.assertIs(run["requests"][0]["body"]["run"], True)
-        self.assertNotIn("preview", run["requests"][0]["body"])
-        self.assertIsNone(run["preview"])
-        self.assertFalse(run["busy"])
-
-    def test_request_failure_falls_back_to_the_local_toast(self):
-        failed = self.result["failed"]
-        self.assertEqual(failed["requests"], 1)
-        self.assertIsNone(failed["preview"])
-        self.assertFalse(failed["busy"])
-        self.assertEqual(len(failed["toasts"]), 1)
-        self.assertIn("npx skills add owner/repo -g", failed["toasts"][0])
+    def test_workspace_picker_submits_on_enter_and_guards_loading(self):
+        source = TOOL_CENTER.read_text(encoding="utf-8")
+        self.assertIn('<form class="tp-project card tp-panel" @submit.prevent="${action}">', source)
+        self.assertIn("${projectPicker('loadWorkspace')}", source)
+        self.assertIn(':disabled="loading.qualityEnvelope||loading.workspace"', source)
 
 
 class InstallPreviewRouteTests(unittest.TestCase):
-    """The exact UI payload returns the keys the template reads."""
+    """The backend preview contract remains available to API clients."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()

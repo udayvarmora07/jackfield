@@ -47,8 +47,6 @@ class BrowserLauncherStartupTests(unittest.TestCase):
             self.assertEqual(started_urls, ["http://127.0.0.1:12345"])
             self.assertEqual(incomplete, [], "a reader observed an incomplete startup URL")
 
-    def test_classic_publishes_complete_url(self):
-        self.assert_complete_publication("tools/e2e_classic/run.py")
 
     def test_v2_publishes_complete_url(self):
         self.assert_complete_publication("tools/e2e_v2/run.py")

@@ -67,7 +67,7 @@ assert all((completion / name).is_file() and (completion / name).stat().st_size
 fonts = root / 'webui/static/fonts'
 faces = sorted(fonts.glob('*.woff2'))
 assert len(faces) >= 4 and all(face.stat().st_size > 1000 for face in faces), faces
-assert (fonts / 'plex.css').is_file(), fonts
+assert (root / 'webui/styles.css').read_text(encoding='utf-8').count('static/fonts/IBMPlexSans') >= 1, 'styles.css must load the vendored interface face'
 assert 'IBMPlexSans' in {face.name.split('-')[0] for face in faces}, faces
 
 with tempfile.TemporaryDirectory(dir=Path.cwd()) as data:

@@ -66,7 +66,7 @@ skills-manager/
     ai_port.py       # AI porting notes over deterministic portability facts
     lockfiles.py     # read-only skills-CLI lockfile evidence (project/global)
     key_support.py   # documented per-consumer frontmatter keys (pure table)
-    webui/           # index.html, styles.css, domain.js, app.js, static/vendor/vue
+    webui/           # the interface: index.html, app.js, model.js, tool modules, styles.css, tools.css, domain.js, static/ (vendored Vue, markdown-it, Plex fonts)
     examples/       # the agent-facing management skill, shipped as package data
   install.sh         # one-command installer, Linux/macOS (uv > pipx > venv; not packaged)
   install.ps1        # one-command installer, Windows PowerShell

@@ -5,7 +5,7 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
-MODEL = ROOT / 'skillsmgr/webui/v2/model.js'
+MODEL = ROOT / 'skillsmgr/webui/model.js'
 HARNESS = r'''
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const ctx={window:{SkillManagerDomain:{esc:String}}};vm.createContext(ctx);

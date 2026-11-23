@@ -204,194 +204,110 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
     await send('Page.addScriptToEvaluateOnNewDocument', {source:preload});
   }
   await send('Page.navigate',{url});
+  const evalValue = async (expression) => { const r = await send('Runtime.evaluate', {expression, returnByValue:true}); return r.result && r.result.result && r.result.result.value; };
+  const pause = (ms) => new Promise(r=>setTimeout(r,ms));
+  // Ready = the app has mounted, the page heading is no longer the loading
+  // heading, and one representative block (agent cards, an empty-state note or
+  // an error alert) is on screen. Then the visible text must hold still for two
+  // consecutive checks (stableChecks), so a half-rendered frame never passes.
   const readyExpression = `(() => {
     const app = document.querySelector('#app');
-    const overview = document.querySelector('[data-overview-ready="true"]');
-    const heading = document.querySelector('#overview-title');
-    const representative = overview && (overview.querySelector('.overview-health') || overview.querySelector('[data-overview-empty="true"]') || overview.querySelector('.first-scan-guide'));
-    const guide = overview && overview.querySelector('.first-scan-guide');
-    const status = guide && guide.querySelector('.first-scan-status');
-    return {ready: !!app && !app.hasAttribute('v-cloak') && !!heading && !!representative && !!status, scanComplete: !!(status && status.innerText.startsWith('Scan complete:')), marker: overview ? overview.innerText.slice(0, 400) : ''};
+    const heading = document.querySelector('#h1');
+    const text = heading ? heading.innerText.trim() : '';
+    const rooms = document.querySelectorAll('.room').length;
+    const note = document.querySelector('.state-note');
+    const alert = document.querySelector('[role="alert"]');
+    const representative = rooms > 0 || !!note || !!alert;
+    return {ready: !!app && !app.hasAttribute('v-cloak') && !!text && !/^Looking at/.test(text) && representative,
+      rooms, note: note ? note.innerText.slice(0, 200) : '', alert: alert ? alert.innerText.slice(0, 200) : '',
+      looks: document.querySelectorAll('.look').length, marker: (document.querySelector('#main') || document.body).innerText.slice(0, 400)};
   })()`;
   let previousMarker = null, stableChecks = 0, ready = false, lastState = null;
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const probe = await send('Runtime.evaluate', {expression: readyExpression, returnByValue:true});
-    const state = probe.result && probe.result.result && probe.result.result.value;
+    const state = await evalValue(readyExpression);
     lastState = state;
     if (state && state.ready && state.marker === previousMarker) stableChecks += 1;
     else stableChecks = 0;
     previousMarker = state ? state.marker : null;
     if (state && state.ready && stableChecks >= 2) { ready = true; break; }
-    await new Promise(r=>setTimeout(r,100));
+    await pause(100);
   }
-  if (!ready) throw new Error('Vue overview did not reach a stable rendered state: ' + JSON.stringify({lastState, errors, failed}));
+  if (!ready) throw new Error('The interface did not reach a stable rendered state: ' + JSON.stringify({lastState, errors, failed}));
   const firstUsefulMs = Date.now() - navigationStarted;
-  await send('Runtime.evaluate', {expression:`(() => { const trigger=document.querySelector('[aria-label="Open actions menu"]'); if (trigger) { trigger.focus(); trigger.click(); } return !!trigger; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,80));
-  const menuOpen = await send('Runtime.evaluate', {expression:`(() => { const menu=document.querySelector('#actions-menu'); const items=[...document.querySelectorAll('#actions-menu [role="menuitem"]:not([disabled])')]; return {open:!!menu, focusedFirst:!!(items[0] && document.activeElement === items[0]), count:items.length}; })()`, returnByValue:true});
-  const menuOpenState = menuOpen.result && menuOpen.result.result && menuOpen.result.result.value;
-  if (!menuOpenState || !menuOpenState.open || !menuOpenState.focusedFirst || !menuOpenState.count) errors.push('Actions menu did not open with focus on its first available item');
-  await send('Runtime.evaluate', {expression:`(() => { const item=document.activeElement; if (item) item.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})); return true; })()`, returnByValue:true});
-  const menuArrow = await send('Runtime.evaluate', {expression:`(() => { const items=[...document.querySelectorAll('#actions-menu [role="menuitem"]:not([disabled])')]; return {focusedSecond:!!(items[1] && document.activeElement === items[1])}; })()`, returnByValue:true});
-  const menuArrowState = menuArrow.result && menuArrow.result.result && menuArrow.result.result.value;
-  if (!menuArrowState || !menuArrowState.focusedSecond) errors.push('Actions menu ArrowDown did not move focus to the next available item');
-  await send('Runtime.evaluate', {expression:`(() => { const menu=document.querySelector('#actions-menu'); if (menu) menu.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,80));
-  const menuClosed = await send('Runtime.evaluate', {expression:`(() => ({open:!!document.querySelector('#actions-menu'),trigger:document.activeElement === document.querySelector('[aria-label="Open actions menu"]')}))()`, returnByValue:true});
-  const menuClosedState = menuClosed.result && menuClosed.result.result && menuClosed.result.result.value;
-  if (!menuClosedState || menuClosedState.open || !menuClosedState.trigger) errors.push('Actions menu did not close safely or return focus to its trigger');
-  await send('Runtime.evaluate', {expression:`(() => { const trigger=document.querySelector('.command-trigger'); if (trigger) trigger.focus(); document.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true})); return true; })()`, returnByValue:true});
+  const home = lastState;
+  // Scenario expectations: populated shows agent cards and a Needs-a-look
+  // queue (the malformed-observed fixture); empty says so in words; a failed
+  // first scan shows an alert instead of a blank or crashed page.
+  if (scenario === 'populated' && !(home.rooms > 0 && home.looks > 0)) errors.push('Populated home did not show agent cards and the Needs-a-look queue: ' + JSON.stringify(home));
+  if (scenario === 'empty' && !(home.rooms === 0 && /No agent skill folders/.test(home.note))) errors.push('Empty home did not explain that no agent folders were found: ' + JSON.stringify(home));
+  if ((scenario === 'scope-failure' || scenario === 'inventory-failure') && !home.alert) errors.push('A failed first scan did not surface an alert: ' + JSON.stringify(home));
+  if (scenario === 'unavailable-root' && home.alert) errors.push('An unavailable agent root broke the first render: ' + JSON.stringify(home));
+
+  // Command palette (Ctrl/Cmd K): opens focused and populated, arrow keys move
+  // the highlighted option while focus stays in the field, typing filters by
+  // synonyms, Enter opens the page and Escape-free navigation closes it.
+  await evalValue(`(() => { document.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true})); return true; })()`);
   let commandReady = false, commandState = null;
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    const command = await send('Runtime.evaluate', {expression:`(() => { const dialog=document.querySelector('[data-modal="commands"]'); const input=document.querySelector('#command-palette-input'); const status=document.querySelector('#command-palette-status'); return {dialog:!!dialog, focused:document.activeElement === input, results:document.querySelectorAll('#command-palette-results [role="option"]').length, status:status ? status.textContent.trim() : ''}; })()`, returnByValue:true});
-    commandState = command.result && command.result.result && command.result.result.value;
-    if (commandState && commandState.dialog && commandState.focused && commandState.results > 0 && /command/.test(commandState.status)) { commandReady = true; break; }
-    await new Promise(r=>setTimeout(r,50));
+    commandState = await evalValue(`(() => { const input=document.querySelector('#command-q'); return {dialog:!!document.querySelector('.dlg .palette'), focused:document.activeElement === input, results:document.querySelectorAll('#command-list [role="option"]').length, active:input ? input.getAttribute('aria-activedescendant') : ''}; })()`);
+    if (commandState && commandState.dialog && commandState.focused && commandState.results > 0) { commandReady = true; break; }
+    await pause(50);
   }
-  if (!commandReady) errors.push('Commands shortcut did not open a focused, populated command palette: ' + JSON.stringify(commandState));
-  const commandKeyboard = await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); if (!input) return {active:'',end:'',home:'',endVisible:false,homeVisible:false}; input.dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true})); return true; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,220));
-  const commandEnd = await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); const options=[...document.querySelectorAll('#command-palette-results [role="option"]')]; const activeId=input && input.getAttribute('aria-activedescendant') || ''; const active=activeId ? document.getElementById(activeId) : null; const list=document.querySelector('#command-palette-results'); const epsilon=0.5; const optionVisible=!!(active && list && active.getBoundingClientRect().top >= list.getBoundingClientRect().top - epsilon && active.getBoundingClientRect().bottom <= list.getBoundingClientRect().bottom + epsilon); return {active:document.activeElement && document.activeElement.id,end:activeId,last:options.length ? options[options.length - 1].id : '',endVisible:optionVisible}; })()`, returnByValue:true});
-  const commandHome = await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); if (input) input.dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true})); return true; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,220));
-  const commandHomeState = await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); const options=[...document.querySelectorAll('#command-palette-results [role="option"]')]; const activeId=input && input.getAttribute('aria-activedescendant') || ''; const active=activeId ? document.getElementById(activeId) : null; const list=document.querySelector('#command-palette-results'); const epsilon=0.5; const optionVisible=!!(active && list && active.getBoundingClientRect().top >= list.getBoundingClientRect().top - epsilon && active.getBoundingClientRect().bottom <= list.getBoundingClientRect().bottom + epsilon); return {active:document.activeElement && document.activeElement.id,home:activeId,first:options.length ? options[0].id : '',homeVisible:optionVisible}; })()`, returnByValue:true});
-  const commandKeyboardState = {end: commandEnd.result && commandEnd.result.result && commandEnd.result.result.value, home: commandHomeState.result && commandHomeState.result.result && commandHomeState.result.result.value};
-  if (!commandKeyboardState.end || commandKeyboardState.end.active !== 'command-palette-input' || commandKeyboardState.end.end !== commandKeyboardState.end.last || !commandKeyboardState.end.endVisible || !commandKeyboardState.home || commandKeyboardState.home.active !== 'command-palette-input' || commandKeyboardState.home.home !== commandKeyboardState.home.first || !commandKeyboardState.home.homeVisible) errors.push('Commands palette did not retain input focus and keep Home/End options visible');
-  const commandTab = await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); if (input) { input.focus(); input.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',bubbles:true})); } return {focus:document.activeElement && document.activeElement.id,option:!!(document.activeElement && document.activeElement.closest('[role="option"]')),interactive:document.querySelectorAll('[role="option"] button, [role="option"] input, [role="option"] a, [role="option"][tabindex]:not([tabindex="-1"])').length}; })()`, returnByValue:true});
-  const commandTabState = commandTab.result && commandTab.result.result && commandTab.result.result.value;
-  if (!commandTabState || commandTabState.option || commandTabState.interactive) errors.push('Tab entered a command option row');
-  await send('Runtime.evaluate', {expression:`(() => { document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,100));
-  const commandClosed = await send('Runtime.evaluate', {expression:`(() => ({open:!!document.querySelector('[data-modal="commands"]'),focus:document.activeElement && document.activeElement.className || '',trigger:document.querySelector('.command-trigger') === document.activeElement}))()`, returnByValue:true});
-  const commandClosedState = commandClosed.result && commandClosed.result.result && commandClosed.result.result.value;
-  if (!commandClosedState || commandClosedState.open || !commandClosedState.trigger) errors.push('Commands palette did not close safely or return focus to its trigger');
-  await send('Runtime.evaluate', {expression:`(() => { const trigger=document.querySelector('.command-trigger'); if (trigger) trigger.click(); return true; })()`, returnByValue:true});
-  let settingsReady = false, settingsState = null;
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const state = await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); if (!input) return {open:false}; const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(input,'settings'); input.dispatchEvent(new Event('input',{bubbles:true})); return {open:true,focus:document.activeElement === input}; })()`, returnByValue:true});
-    settingsState = state.result && state.result.result && state.result.result.value;
-    if (settingsState && settingsState.open && settingsState.focus) { settingsReady = true; break; }
-    await new Promise(r=>setTimeout(r,50));
-  }
-  if (settingsReady) {
-    await new Promise(r=>setTimeout(r,50));
-    await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); if (input) input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`, returnByValue:true});
-    await new Promise(r=>setTimeout(r,100));
-    const settingsFocus = await send('Runtime.evaluate', {expression:`(() => ({view:document.querySelector('#view-title') && document.querySelector('#view-title').textContent.trim(), focused:document.activeElement && document.activeElement.id}))()`, returnByValue:true});
-    const settingsFocusState = settingsFocus.result && settingsFocus.result.result && settingsFocus.result.result.value;
-    if (!settingsFocusState || settingsFocusState.view !== 'Settings' || settingsFocusState.focused !== 'view-title') errors.push('Settings command did not focus its destination heading');
-  } else errors.push('Settings command palette did not open');
-  const settingsTrigger = await send('Runtime.evaluate', {expression:`(() => { const trigger=document.querySelector('.command-trigger'); if (trigger) trigger.click(); return true; })()`, returnByValue:true});
-  if (settingsTrigger.result && settingsTrigger.result.result && settingsTrigger.result.result.value) {
-    await new Promise(r=>setTimeout(r,50));
-    await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; if (input) { set.call(input,'create'); input.dispatchEvent(new Event('input',{bubbles:true})); } return true; })()`, returnByValue:true});
-    await new Promise(r=>setTimeout(r,50));
-    await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); if (input) input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`, returnByValue:true});
-    let createReady = false, createState = null;
+  if (!commandReady) errors.push('Ctrl+K did not open a focused, populated command palette: ' + JSON.stringify(commandState));
+  else {
+    await evalValue(`(() => { document.querySelector('#command-q').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})); return true; })()`);
+    await pause(60);
+    const moved = await evalValue(`(() => { const input=document.querySelector('#command-q'); return {active:input.getAttribute('aria-activedescendant'), focused:document.activeElement === input, tabbable:document.querySelectorAll('#command-list [role="option"]:not([tabindex="-1"])').length}; })()`);
+    if (!moved || moved.active !== 'cmd-1' || !moved.focused) errors.push('ArrowDown in the palette did not move the highlighted option while keeping focus in the field: ' + JSON.stringify(moved));
+    if (moved && moved.tabbable) errors.push('Palette options are in the tab order');
+    await evalValue(`(() => { const input=document.querySelector('#command-q'); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(input,'trash'); input.dispatchEvent(new Event('input',{bubbles:true})); return true; })()`);
+    await pause(80);
+    const filtered = await evalValue(`(() => [...document.querySelectorAll('#command-list [role="option"]')].map(o => o.innerText.trim()))()`);
+    if (!filtered || !filtered.some(label => /Recovery/.test(label))) errors.push('Palette synonyms did not find Recovery for "trash": ' + JSON.stringify(filtered));
+    await evalValue(`(() => { document.querySelector('#command-q').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`);
+    let landed = null;
+    // After a failed first scan every page states the failure instead of its own content.
+    const expectedHeading = (scenario === 'scope-failure' || scenario === 'inventory-failure') ? /^(Recovery|Couldn.t read your skills)$/ : /^Recovery$/;
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      const state = await send('Runtime.evaluate', {expression:`(() => ({dialog:!!document.querySelector('[data-modal="skill"]'),commands:!!document.querySelector('[data-modal="commands"]')}))()`, returnByValue:true});
-      createState = state.result && state.result.result && state.result.result.value;
-      if (createState && createState.dialog && !createState.commands) { createReady = true; break; }
-      await new Promise(r=>setTimeout(r,50));
+      landed = await evalValue(`(() => ({hash:location.hash, heading:document.querySelector('#h1') ? document.querySelector('#h1').innerText.trim() : '', dialog:!!document.querySelector('.dlg .palette')}))()`);
+      if (landed && landed.hash === '#/recovery' && expectedHeading.test(landed.heading) && !landed.dialog) break;
+      await pause(50);
     }
-    if (!createReady) errors.push('Create command did not open its destination dialog');
-    await send('Runtime.evaluate', {expression:`(() => { document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true; })()`, returnByValue:true});
-    await new Promise(r=>setTimeout(r,100));
-    const createClosed = await send('Runtime.evaluate', {expression:`(() => ({dialog:!!document.querySelector('[data-modal="skill"]'),trigger:document.querySelector('.command-trigger') === document.activeElement}))()`, returnByValue:true});
-    const createClosedState = createClosed.result && createClosed.result.result && createClosed.result.result.value;
-    if (!createClosedState || createClosedState.dialog || !createClosedState.trigger) errors.push('Closing Create did not return focus to Commands trigger: ' + JSON.stringify(createClosedState));
+    if (!landed || landed.hash !== '#/recovery' || !expectedHeading.test(landed.heading) || landed.dialog) errors.push('Enter in the palette did not open Recovery and close the palette: ' + JSON.stringify(landed));
   }
-  const libraryTrigger = await send('Runtime.evaluate', {expression:`(() => { const trigger=document.querySelector('.command-trigger'); if (trigger) trigger.click(); return !!trigger; })()`, returnByValue:true});
-  if (libraryTrigger.result && libraryTrigger.result.result && libraryTrigger.result.result.value) {
-    await new Promise(r=>setTimeout(r,80));
-    await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; if (input) { set.call(input,'library'); input.dispatchEvent(new Event('input',{bubbles:true})); } return true; })()`, returnByValue:true});
-    await new Promise(r=>setTimeout(r,80));
-    await send('Runtime.evaluate', {expression:`(() => { const input=document.querySelector('#command-palette-input'); if (input) input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`, returnByValue:true});
-    await new Promise(r=>setTimeout(r,140));
-    const libraryFocus = await send('Runtime.evaluate', {expression:`(() => ({view:document.querySelector('#library-view-title') ? 'skills' : '', focused:document.activeElement && document.activeElement.id, visible:!!(document.querySelector('#library-view-title') && document.querySelector('#library-view-title').getClientRects().length)}))()`, returnByValue:true});
-    const libraryFocusState = libraryFocus.result && libraryFocus.result.result && libraryFocus.result.result.value;
-    if (!libraryFocusState || libraryFocusState.view !== 'skills' || libraryFocusState.focused !== 'library-view-title' || !libraryFocusState.visible) errors.push('Library command did not focus the visible Library destination');
+
+  // Header search never navigates while typing; it lists matches and Escape
+  // closes the list. (The empty fixture has no skills, so it lists none.)
+  const searchState = await evalValue(`(() => { const input=document.querySelector('#gq'); if (!input || input.offsetParent === null) return {visible:false}; const before=location.hash; input.focus(); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(input,'probe'); input.dispatchEvent(new Event('input',{bubbles:true})); return {visible:true, before}; })()`);
+  if (searchState && searchState.visible) {
+    await pause(80);
+    const listed = await evalValue(`(() => ({hash:location.hash, open:!!document.querySelector('.gq-pop'), matches:document.querySelectorAll('.gq-pop [role="option"]').length}))()`);
+    if (!listed || listed.hash !== searchState.before || !listed.open) errors.push('Typing in the header search navigated or showed no result list: ' + JSON.stringify(listed));
+    if (scenario === 'populated' && listed && !listed.matches) errors.push('Header search listed no match for a fixture skill');
+    await evalValue(`(() => { document.querySelector('#gq').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true; })()`);
+    await pause(60);
+    const closed = await evalValue(`(() => !document.querySelector('.gq-pop'))()`);
+    if (!closed) errors.push('Escape did not close the header search results');
   }
-  const qualityTab = await send('Runtime.evaluate', {expression:`(() => { const tab = [...document.querySelectorAll('.viewtabs button')].find(el => (el.innerText || '').trim() === 'Quality'); if (tab) tab.click(); return !!tab; })()`, returnByValue:true});
-  const qualityTabFound = !!(qualityTab.result && qualityTab.result.result && qualityTab.result.result.value);
-  if (!qualityTabFound) errors.push('Quality navigation tab was not found');
-  let qualityReady = false;
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const quality = await send('Runtime.evaluate', {expression:`(() => ({view: document.querySelector('#view-title') ? document.querySelector('#view-title').textContent.trim() : '', evidence: !!document.querySelector('.quality-overview, .quality-section'), overflow: document.documentElement.scrollWidth > window.innerWidth}))()`, returnByValue:true});
-    const state = quality.result && quality.result.result && quality.result.result.value;
-    if (state && state.view === 'Quality' && state.evidence && !state.overflow) { qualityReady = true; break; }
-    await new Promise(r=>setTimeout(r,50));
+
+  // Quality renders bounded evidence (findings are paged) without overflow.
+  await evalValue(`(() => { location.hash = '#/tools/quality'; return true; })()`);
+  let qualityState = null, qualityReady = false;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    qualityState = await evalValue(`(() => ({heading:document.querySelector('#h1') ? document.querySelector('#h1').innerText.trim() : '', findings:document.querySelectorAll('.tp-findings > li').length, settled:!!document.querySelector('#tp-findings, .tp-empty, [role="alert"]'), overflow:document.documentElement.scrollWidth>window.innerWidth}))()`);
+    if (qualityState && qualityState.heading === 'Quality' && qualityState.settled && !qualityState.overflow) { qualityReady = true; break; }
+    await pause(100);
   }
-  if (!qualityReady) errors.push('Quality view did not render bounded evidence without overflow');
-  await send('Runtime.evaluate', {expression:`(() => { const tab = [...document.querySelectorAll('.viewtabs button')].find(el => (el.innerText || '').trim() === 'Overview'); if (tab) tab.click(); return !!tab; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,100));
-  const guideInitial = await send('Runtime.evaluate', {expression:`(() => { const guide=document.querySelector('.first-scan-guide'); const attention=[...document.querySelectorAll('.attention-item h3')].map(node=>node.innerText); return {visible:!!guide,status:(document.querySelector('.first-scan-status') || {}).innerText || '',empty:!!document.querySelector('[data-overview-empty="true"]'),loadError:!!document.querySelector('.overview-load-error'),unavailable:!!(guide && guide.innerText.includes('detected root is missing or unsupported')),// Match the queue item by its stable key, not by its title copy. The old
-        // check compared against the exact string 'malformed or unaddressable' and so
-        // failed the moment the wording was corrected to name a refused symlink
-        // for what it is.
-        unreadableAttention:!!document.querySelector('[data-attention="observed-invalid"]'),divergentAttention:!!document.querySelector('[data-attention="divergent"]'),instanceActionDisabled:!!(document.querySelector('[data-first-scan-library]') && document.querySelector('[data-first-scan-library]').disabled),overflow:document.documentElement.scrollWidth>window.innerWidth}; })()`, returnByValue:true});
-  const guideInitialState = guideInitial.result && guideInitial.result.result && guideInitial.result.result.value;
-  const scanExpected = scenario === 'scope-failure'
-    ? guideInitialState && /root details are unavailable/i.test(guideInitialState.status) && !guideInitialState.empty
-    : scenario === 'inventory-failure'
-      ? guideInitialState && /inventory scan failed/i.test(guideInitialState.status) && guideInitialState.loadError && !guideInitialState.empty
-      : scenario === 'unavailable-root'
-        ? guideInitialState && guideInitialState.status.startsWith('Scan complete:') && guideInitialState.unavailable
-      : guideInitialState && guideInitialState.status.startsWith('Scan complete:')
-        && (scenario !== 'empty' || guideInitialState.empty)
-        && (scenario !== 'populated' || (guideInitialState.unreadableAttention && guideInitialState.divergentAttention));
-  if (!guideInitialState || !guideInitialState.visible || !scanExpected || guideInitialState.overflow) errors.push('First-scan guide did not represent the expected scan state without overflow: ' + JSON.stringify(guideInitialState));
-  if (scenario === 'empty') {
-    await send('Runtime.evaluate', {expression:`(() => { const action=[...document.querySelectorAll('.overview-empty-actions button')].find(button => button.innerText.includes('Create your first skill')); if(action) action.click(); return !!action; })()`, returnByValue:true});
-    await new Promise(r=>setTimeout(r,80));
-    const emptyCreate = await send('Runtime.evaluate', {expression:`(() => ({open:!!document.querySelector('[data-modal="skill"]')}))()`, returnByValue:true});
-    if (!(emptyCreate.result && emptyCreate.result.result && emptyCreate.result.result.value && emptyCreate.result.result.value.open)) errors.push('Empty first-run Create action did not open its existing dialog');
-    await send('Runtime.evaluate', {expression:`(() => { document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true; })()`, returnByValue:true});
-    await new Promise(r=>setTimeout(r,80));
-  }
-  await send('Runtime.evaluate', {expression:`(() => { const skip=document.querySelector('[data-first-scan-skip]'); if (skip) skip.click(); return !!skip; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,80));
-  const guideSkipped = await send('Runtime.evaluate', {expression:`(() => ({hidden:!document.querySelector('.first-scan-guide'),restart:!!document.querySelector('[data-first-scan-restart]')}))()`, returnByValue:true});
-  const guideSkippedState = guideSkipped.result && guideSkipped.result.result && guideSkipped.result.result.value;
-  if (!guideSkippedState || !guideSkippedState.hidden || !guideSkippedState.restart) errors.push('First-scan guide skip did not hide the guide or offer restart');
-  await send('Runtime.evaluate', {expression:`(() => { const restart=document.querySelector('[data-first-scan-restart]'); if (restart) restart.click(); return !!restart; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,80));
-  const guideRestarted = await send('Runtime.evaluate', {expression:`(() => ({visible:!!document.querySelector('.first-scan-guide'),focused:document.activeElement && document.activeElement.id==='first-scan-title'}))()`, returnByValue:true});
-  const guideRestartedState = guideRestarted.result && guideRestarted.result.result && guideRestarted.result.result.value;
-  if (!guideRestartedState || !guideRestartedState.visible || !guideRestartedState.focused) errors.push('First-scan guide restart did not restore the guide and focus its heading');
-  await send('Runtime.evaluate', {expression:`(() => { const explain=document.querySelector('[data-first-scan-explain]'); if (explain) explain.click(); return !!explain; })()`, returnByValue:true});
-  let explainReady = false, explainState = null;
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const state = await send('Runtime.evaluate', {expression:`(() => ({result:!!document.querySelector('.first-scan-result'),error:!!document.querySelector('.first-scan-caution[role="status"]'),text:(document.querySelector('.first-scan-result') || document.querySelector('.first-scan-caution[role="status"]') || {}).innerText || ''}))()`, returnByValue:true});
-    explainState = state.result && state.result.result && state.result.result.value;
-    if (explainState && (explainState.result || explainState.error)) { explainReady = true; break; }
-    await new Promise(r=>setTimeout(r,50));
-  }
-  if (!explainReady || !/unresolved/.test(explainState.text)) errors.push('Read-only effective explanation did not return a clearly unresolved result');
-  const previewClicked = await send('Runtime.evaluate', {expression:`(() => { const preview=document.querySelector('[data-first-scan-preview-target]'); if (preview && !preview.disabled) preview.click(); return !!(preview && !preview.disabled); })()`, returnByValue:true});
-  const previewWasClicked = !!(previewClicked.result && previewClicked.result.result && previewClicked.result.result.value);
-  let previewReady = false, previewState = null;
-  for (let attempt = 0; previewWasClicked && attempt < 40; attempt += 1) {
-    const state = await send('Runtime.evaluate', {expression:`(() => ({heading:document.querySelector('#view-title') && document.querySelector('#view-title').textContent.trim(),action:!!document.querySelector('button[aria-label="Update from folder for this exact skill instance"]'),guide:!!document.querySelector('.first-scan-guide')}))()`, returnByValue:true});
-    previewState = state.result && state.result.result && state.result.result.value;
-    if (previewState && previewState.heading && previewState.action && !previewState.guide) { previewReady = true; break; }
-    await new Promise(r=>setTimeout(r,50));
-  }
-  const previewDisabledForEmpty = scenario === 'empty' && !previewWasClicked
-    && !!(guideInitialState && guideInitialState.instanceActionDisabled);
-  if (scenario === 'populated' && !previewReady) errors.push('First-scan preview link did not land on the exact writable instance surface: ' + JSON.stringify(previewState));
-  if (scenario === 'empty' && !previewDisabledForEmpty) errors.push('Empty inventory did not disable exact-instance actions');
-  await send('Runtime.evaluate', {expression:`(() => { const tab = [...document.querySelectorAll('.viewtabs button')].find(el => (el.innerText || '').trim() === 'Overview'); if (tab) tab.click(); return !!tab; })()`, returnByValue:true});
-  await new Promise(r=>setTimeout(r,100));
-  const guideFinal = await send('Runtime.evaluate', {expression:`(() => ({visible:!!document.querySelector('.first-scan-guide'),overflow:document.documentElement.scrollWidth>window.innerWidth,focusable:!!document.querySelector('[data-first-scan-skip]:not([disabled])'),result:!!document.querySelector('.first-scan-result')}))()`, returnByValue:true});
-  const guideFinalState = guideFinal.result && guideFinal.result.result && guideFinal.result.result.value;
-  if (!guideFinalState || !guideFinalState.visible || guideFinalState.overflow || !guideFinalState.focusable || !guideFinalState.result) errors.push('First-scan guide lost its accessible state after returning from the exact Library detail');
+  if (!qualityReady) errors.push('Quality did not render bounded evidence without overflow: ' + JSON.stringify(qualityState));
+  if (qualityState && qualityState.findings > 50) errors.push('Quality rendered more than one page (50) of findings at once');
+  await evalValue(`(() => { location.hash = '#/home'; return true; })()`);
+  await pause(150);
   if (screenshot) {
     const capture = await send('Page.captureScreenshot', {format:'png', captureBeyondViewport:true});
     require('fs').writeFileSync(screenshot, Buffer.from(capture.result.data, 'base64'));
   }
   const value = await send('Runtime.evaluate',{expression:'JSON.stringify({title:document.title,modalCount:document.querySelectorAll("[role=dialog]").length,overflow:document.documentElement.scrollWidth>window.innerWidth})',returnByValue:true});
-  ws.close(); console.log(JSON.stringify({width,height,scenario,document:JSON.parse(value.result.result.value),firstScan:{first_useful_ms:firstUsefulMs,scan_state:guideInitialState && guideInitialState.status,unreadable_attention:!!(guideInitialState && guideInitialState.unreadableAttention),divergent_attention:!!(guideInitialState && guideInitialState.divergentAttention),unavailable_root:!!(guideInitialState && guideInitialState.unavailable),scan_complete:!!(guideFinalState && guideFinalState.visible),skip_restart:!!(guideSkippedState && guideSkippedState.hidden && guideRestartedState && guideRestartedState.visible),effective_explain:!!explainReady,exact_preview_target:!!previewReady,preview_disabled_for_empty:previewDisabledForEmpty},errors,warnings,failed}));
+  ws.close(); console.log(JSON.stringify({width,height,scenario,document:JSON.parse(value.result.result.value),firstScan:{first_useful_ms:firstUsefulMs,rooms:home.rooms,needs_a_look:home.looks,alert:home.alert},errors,warnings,failed}));
 })().catch(e=>{ console.error(e.stack||String(e)); process.exit(1); });
 """
     screenshot_arg = str(screenshot) if screenshot is not None else ""
@@ -546,7 +462,7 @@ def run() -> int:
         try:
             results = [
                 _run_probe(
-                    server.url + "classic/",
+                    server.url,
                     width,
                     height,
                     port,
@@ -555,7 +471,7 @@ def run() -> int:
                 for width, height in VIEWPORTS
             ]
             scenario_results = {
-                scenario: _run_probe(server.url + "classic/", 1280, 900, port, scenario=scenario)
+                scenario: _run_probe(server.url, 1280, 900, port, scenario=scenario)
                 for scenario in ("scope-failure", "inventory-failure", "unavailable-root")
             }
 
@@ -574,7 +490,7 @@ def run() -> int:
             empty_thread.start()
             try:
                 scenario_results["empty"] = _run_probe(
-                    empty_server.url + "classic/", 1280, 900, port, scenario="empty"
+                    empty_server.url, 1280, 900, port, scenario="empty"
                 )
             finally:
                 empty_server.shutdown()

@@ -81,62 +81,57 @@ def read_block(css: str, opener: str) -> dict[str, str]:
 # --------------------------------------------------------------------------
 
 REQUIRED = (
-    "bg", "surface", "surface-2", "surface-3",
-    "ink", "ink-2", "ink-3", "ink-4",
-    "line", "line-2", "line-3", "line-strong",
-    "accent", "accent-2", "accent-ink", "accent-bg", "accent-line",
-    "ok", "ok-bg", "warn", "warn-bg", "err", "err-bg", "mute", "mute-bg",
+    "bg", "surface", "sunken", "hover", "paper", "tree-bg", "canvas", "sel",
+    "ink", "ink-2", "muted", "doc", "doc-2", "on-ink", "brand",
+    "line", "line-2", "line-strong",
+    "ok", "ok-bg", "warn", "warn-bg", "bad", "bad-bg", "off", "off-bg",
+    "warn-text", "bad-text", "ribbon-bg", "add-ink", "add-bg", "del-ink", "del-bg",
 )
 
 # (foreground, background, minimum, why)
 TEXT_CONTRACTS = (
-    ("ink", "surface", 4.5, "body text"),
-    ("ink-2", "surface", 4.5, "secondary text"),
-    ("ink-3", "surface", 4.5, "tertiary text"),
-    ("ok", "surface", 4.5, "active state label"),
-    ("warn", "surface", 4.5, "divergent state label"),
-    ("err", "surface", 4.5, "invalid state label"),
-    ("mute", "surface", 4.5, "muted state label"),
-    ("accent", "surface", 4.5, "accent text / link"),
-    ("ok", "ok-bg", 4.5, "active badge"),
-    ("warn", "warn-bg", 4.5, "divergent badge"),
-    ("err", "err-bg", 4.5, "invalid badge"),
-    ("mute", "mute-bg", 4.5, "muted badge"),
-    ("accent", "accent-bg", 4.5, "accent badge"),
-    ("accent-ink", "accent", 4.5, "primary button label"),
+    ("ok", "ok-bg", 4.5, "working-copy pill"),
+    ("warn", "warn-bg", 4.5, "copies-differ pill"),
+    ("bad", "bad-bg", 4.5, "can't-be-read pill"),
+    ("off", "off-bg", 4.5, "turned-off pill"),
+    ("warn", "surface", 4.5, "over-limit word on a card"),
+    ("brand", "surface", 4.5, "signal text (links, counts) on a card"),
+    ("brand", "bg", 4.5, "signal text on the page ground"),
+    ("on-ink", "ink", 4.5, "primary button label"),
+    ("on-ink", "brand", 4.5, "count badge"),
+    ("warn-text", "ribbon-bg", 4.5, "care ribbon"),
+    ("bad-text", "bad-bg", 4.5, "inline problem note"),
+    ("add-ink", "add-bg", 4.5, "added line in a comparison"),
+    ("del-ink", "del-bg", 4.5, "removed line in a comparison"),
+    ("doc", "paper", 4.5, "skill document text"),
+    ("doc-2", "paper", 4.5, "skill description"),
 )
 
 # Text does not only land on the base surface. The first version of this gate
-# checked `--surface` alone and reported PASS, while the rail's group labels
-# measured **4.19:1 on --surface-2** in the real render — a gate reporting PASS
-# about a path it could not see, which is this repository's most repeated
-# lesson. Every ink step is therefore measured against every surface it can be
-# painted on.
+# checked `--surface` alone and reported PASS, while a rail's group labels
+# measured **4.19:1** on the sunken surface in the real render — a gate
+# reporting PASS about a path it could not see, which is this repository's most
+# repeated lesson. Every ink step is therefore measured against every surface it
+# can be painted on.
 EVERY_SURFACE_CONTRACTS = tuple(
     (ink, surface, 4.5, f"{ink} on {surface}")
-    for ink in ("ink", "ink-2", "ink-3")
-    for surface in ("surface", "surface-2", "surface-3")
+    for ink in ("ink", "ink-2", "muted")
+    for surface in ("bg", "surface", "sunken", "hover", "paper", "tree-bg", "canvas", "sel")
 )
 
 # Non-text contrast is WCAG 1.4.11: 3:1. A boundary only needs it when it is
 # the thing that identifies the control.
 NONTEXT_CONTRACTS = (
-    ("line-3", "surface", 3.0, "control border"),
-    ("line-3", "bg", 3.0, "control border on the page ground"),
-    ("line-strong", "surface", 3.0, "focus ring"),
-    ("accent", "surface", 3.0, "selection mark"),
-    # Non-text only. There is no room for a fourth *text* step in this ramp: it
-    # bottoms out at 4.60:1 on --surface-3, so nothing de-emphasised enough to
-    # be useful also clears 4.5:1 there. De-emphasised text uses --ink-3.
-    ("ink-4", "surface", 3.0, "non-text mark (not used for text)"),
-    ("ok", "ok-bg", 3.0, "state dot"),
-    ("warn", "warn-bg", 3.0, "state dot"),
-    ("err", "err-bg", 3.0, "state dot"),
+    ("line-strong", "surface", 3.0, "control boundary"),
+    ("line-strong", "bg", 3.0, "control boundary on the page ground"),
+    ("line-strong", "sunken", 3.0, "control boundary on a sunken panel"),
+    ("brand", "surface", 3.0, "focus ring and selection mark"),
+    ("brand", "bg", 3.0, "focus ring on the page ground"),
 )
 
-# Two adjacent dark surfaces cannot both be dark enough to separate by tone
-# alone; the divider carries it. This is a floor, not a target.
-SEPARATION_FLOOR = 1.05
+# Two adjacent surfaces cannot always separate by tone alone; the hairline
+# carries it. This is a floor, not a target.
+SEPARATION_FLOOR = 1.02
 
 
 def check_theme(name: str, t: dict[str, str], failures: list[str]) -> None:
@@ -187,22 +182,13 @@ def check_doc_matches(tokens: dict[str, str]) -> list[str]:
         return ["DESIGN.md is missing — the design contract must be checked in"]
     doc = DESIGN_MD.read_text(encoding="utf-8")
     failures = []
-    # The document uses different names for a few tokens on purpose
-    # (signal/primary, err/error); map them so the check is about colour.
+    # The document names colours by role; map each to its stylesheet token.
     alias = {
-        "primary": "accent",
-        "primary-deep": "accent-2",
-        "primary-ink": "accent-ink",
-        "primary-bg": "accent-bg",
-        "error": "err",
-        "error-bg": "err-bg",
-        "surface-2": "surface-2",
-        "surface": "surface",
-        "ground": "bg",
-        "muted": "ink-3",
-        "ink-2": "ink-2",
-        "ink": "ink",
-        "line-strong": "line-strong",
+        "ground": "bg", "surface": "surface", "sunken": "sunken",
+        "ink": "ink", "ink-2": "ink-2", "muted": "muted",
+        "signal": "brand", "line": "line", "line-strong": "line-strong",
+        "ok": "ok", "ok-bg": "ok-bg", "warn": "warn", "warn-bg": "warn-bg",
+        "error": "bad", "error-bg": "bad-bg",
     }
     for doc_name, css_name in alias.items():
         m = re.search(rf"^\s*{re.escape(doc_name)}:\s*\"?(#[0-9a-fA-F]{{6}})\"?\s*$",
@@ -210,7 +196,7 @@ def check_doc_matches(tokens: dict[str, str]) -> list[str]:
         if not m:
             continue
         doc_hex = m.group(1).lower()
-        css_hex = tokens.get(css_name)
+        css_hex = tokens.get(f"--{css_name}")
         if css_hex and doc_hex != css_hex:
             failures.append(
                 f"DESIGN.md {doc_name} ({doc_hex}) != styles.css --{css_name} ({css_hex})"
@@ -246,8 +232,10 @@ def main() -> int:
               "see DESIGN.md -> Don't change.")
         return 1
 
-    light = read_block(css, '[data-theme="light"], [data-theme="system"] {')
-    dark = read_block(css, '[data-theme="dark"] {')
+    # Light tokens live in the first ``:root {`` block; the dark theme overrides
+    # a subset under ``:root[data-theme="dark"]`` and inherits the rest.
+    light = read_block(css, ":root {")
+    dark = {**light, **read_block(css, ':root[data-theme="dark"] {')}
 
     failures: list[str] = []
     check_theme("LIGHT", light, failures)

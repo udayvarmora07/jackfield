@@ -43,7 +43,8 @@ class HomeListingBudgetTests(unittest.TestCase):
         self.assertEqual([s["label"] for s in result["sections"]], ["Claude Code", "Codex"])
         self.assertEqual(result["sections"][0]["used"], 42)
         self.assertEqual(result["sections"][0]["budget"], 40000)
-        self.assertEqual(result["sections"][0]["status"], "Within estimate · partial evidence")
+        self.assertEqual(result["sections"][0]["status"], "Within the estimated budget")
+        self.assertTrue(result["sections"][0]["partial"])
 
     def test_failed_read_can_retry_and_late_reads_never_replace_newer_evidence(self):
         result = self.run_component("""

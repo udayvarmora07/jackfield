@@ -27,7 +27,7 @@ from skillsmgr import scopes
 from skillsmgr.store import StoreError, write_snapshot
 
 ROOT = Path(__file__).resolve().parent.parent
-V2 = ROOT / "skillsmgr" / "webui" / "v2"
+V2 = ROOT / "skillsmgr" / "webui"
 DOMAIN_JS = ROOT / "skillsmgr" / "webui" / "domain.js"
 NODE = shutil.which("node") is not None
 
@@ -282,7 +282,8 @@ class PeerLinkInterfaceTests(PeerLinkCase):
         const M=ctx.window.SkillsV2Model;
         const copy=M.build([followed],scopes).skills[0].copies[0];
         const context={skill:{name:'a',copies:[copy]},refCopy:copy,editable:true,docWhy:null,
-          bodyFetchable:()=>true,readOnlyWhy:ctx.options.methods.readOnlyWhy};
+          bodyFetchable:()=>true,readOnlyWhy:ctx.options.methods.readOnlyWhy,
+          shortPath:ctx.options.methods.shortPath};
         return {state:copy.state,readOnly:copy.readOnly,canEdit:ctx.options.computed.canEdit.call(context),
           why:ctx.options.computed.editWhy.call(context)};""")
 

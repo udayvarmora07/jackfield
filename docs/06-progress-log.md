@@ -7,6 +7,55 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-23 — One interface at `/`, desktop-first redesign pass
+
+- The classic interface is removed. The interface moved from `webui/v2/` to
+  `webui/` and is served at `/`; `/index.html`, `/v2`, `/v2/`, `/classic` and
+  `/classic/` answer a 307 to `/` with fixed local locations. `/v2/<asset>` still
+  serves old asset links. Classic-only tests (131), `tools/e2e_classic` and
+  `static/fonts/plex.css` are deleted; shared domain, preference and renderer
+  tests are kept, and the exact state-label map test now loads `domain.js`
+  directly.
+- The look follows `DESIGN.md` again, rewritten for the one interface: cool
+  bone ground instead of cream, IBM Plex Sans (vendored) instead of Jakarta and
+  Newsreader, Plex Mono for every identifier, ink primary buttons, a teal signal
+  ink for focus, the current tab and counts, and a cool graphite dark theme.
+  `check_design_tokens.py` reads the current tokens (light and dark) and passes.
+- Desktop first (the server is loopback-only, so users are on laptops and
+  monitors): Home agent cards use an auto-fill grid with meters on the card
+  floor; the Skills header fits a 768px screen; the reader shows the skill's real
+  name in mono and folds long descriptions; code blocks scroll sideways; the Sync
+  map fits six agents at 1280px and is capped on wide screens; Recovery stacks
+  its short cards; Tools pages share one frame with a pinned "All tools" link.
+- Quality renders findings 50 at a time (a 2,000-finding library was a
+  110,000px page). Validate a copy and Update from folder filter their copy
+  pickers instead of listing 2,077 options.
+- The command palette is a grouped, arrow-key list that finds pages by
+  synonyms; the header search lists matches instead of switching pages while
+  typing. Disabled buttons look unavailable; focus rings are one teal ring.
+- AI pages with AI off say what the tool does and show the three-step flow; the
+  AI settings page leads with the no-login warning. Copy fixes: "Can't be read"
+  everywhere, "Review" instead of "Fix it", sizes in KB/MB, no middle-dot
+  metadata, no stale "both interfaces" or CLI-only wording.
+- Evidence: two audits and seven five-pass reports covering 182 captures.
+  The dark-core and laptop drafts were recovered from the interrupted session.
+  The earlier Help capture showed search. Help, diagnosis and add-to-agent
+  dialogs were checked separately with local fixtures.
+- The resumed review made selected controls easier to see in both themes,
+  restored the height of new-skill textareas, showed full reader paths by
+  agent, and fixed the Quality evidence disclosure and narrow-window Tools
+  navigation. Header search clears between reader entries, and Show all opens
+  the filtered shelf even when a suggestion is highlighted. The diagnosis
+  dialog groups its controls and makes the full skill path available on demand.
+- Package commands again show offline registry evidence beside the exact
+  command. Workspace inspection ignores duplicate submissions while loading.
+- Porting notes and Explain risk findings work with AI off. When a model is
+  configured, the app shows the optional request and destination before sending,
+  and a change to the prompt or destination invalidates the preview.
+- The browser harness checks the root interface on six viewports and five
+  scenarios. The remaining migration tests and complexity baseline were
+  brought into line with the root interface and simplified routing.
+
 ## 2026-11-23 — Render skill Markdown in both readers
 
 - Both readers and the editor previews share the locally bundled markdown-it

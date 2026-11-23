@@ -40,14 +40,14 @@
     emits:['changed','inspect','preference','use-draft','open-source-review','source-review-consumed','open-record'],
     data() { return {
       busy:false,error:'',result:null,sequence:0,readTokens:{},loading:{},qualityEnvelope:null, tab:'registry', source:'',op:'browse',view:'all-time',stale:false, pageNo:0,review:null,trust:false,
-      runnerPreview:'',runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
+      runnerPreview:'',runnerPlan:null,runnerPlanError:'',runnerGeneration:0,runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
       catalog:null,profile:{name:'',description:'',skills:'',targets:'',nativeOff:''},profileBase:null,profilePreview:null,plan:null,planTargets:[],
       toolQuery:'',
       templates:null,templateName:'',templateBody:'',templatePreview:null,creating:false,skill:{name:'',description:'',category:'',version:'',license:'',compatibility:'',allowed_tools:'',body:'',scope:'global'},
       quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',projectRoots:[],projectCatalog:null,workspace:null,consumer:'',
       documentBaseline:null,baselineRaw:null,baselineError:'',baselineMessage:'',baselineSaving:false,discoveryName:'',
       systemDark:matchMedia('(prefers-color-scheme: dark)').matches,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches, theme:stored('skillsmgr-theme','system'),size:stored('skillsmgr-text-size','standard'),locale:stored('skillsmgr-locale','system'),
-      profileFilter:'',profileExtra:'',chosen:'',sourceReview:null,sourceTarget:null,sourceSuccess:null,snapshots:null,historyName:stored('skillsmgr-history-name',''),externalScan:SCAN_MODES.includes(stored('skillsmgr-external-scan','off'))?stored('skillsmgr-external-scan','off'):'off',historyScope:stored('skillsmgr-history-scope','global'),history:null,textSnapshots:null,textSnapshotTarget:null,
+      profileFilter:'',profileExtra:'',chosen:'',findingsShown:50,copyFilter:'',sourceReview:null,sourceTarget:null,sourceSuccess:null,snapshots:null,historyName:stored('skillsmgr-history-name',''),externalScan:SCAN_MODES.includes(stored('skillsmgr-external-scan','off'))?stored('skillsmgr-external-scan','off'):'off',historyScope:stored('skillsmgr-history-scope','global'),history:null,textSnapshots:null,textSnapshotTarget:null,
     };
        },
     computed:{
@@ -96,6 +96,13 @@
       },
       registryInventory(){const query=this.search.toLowerCase();return this.records.filter(r=>r.registry_provenance&&JSON.stringify([r.name,r.registry_provenance]).toLowerCase().includes(query));},
       folderConflicts(){const names=this.files.filter(f=>/(?:^|\/)SKILL\.md(?:\.disabled)?$/.test(f.webkitRelativePath||f.name)).map(f=>(f.webkitRelativePath||f.name).split('/').slice(-2,-1)[0]);return this.records.filter(r=>r.scope==='global'&&names.includes(r.name));},
+      /* A real library produces thousands of findings; render them 50 at a time
+       * (the Sync map pages the same way) so the page stays a page. */
+      shownFindings(){return this.findings.slice(0,this.findingsShown);},
+      /* Copy pickers: a library of 2,000+ copies is unusable as one <select>.
+       * A name filter narrows it; at most 200 options render, and the copy
+       * already chosen always stays listed so the selection never vanishes. */
+      copyChoices(){const q=this.copyFilter.trim().toLowerCase();const out=[];this.records.forEach((r,i)=>{const keep=String(i)===this.validateTarget||String(i)===this.chosen;if(keep||!q||String(r.name).toLowerCase().includes(q)||this.scopeLabel(r.scope).toLowerCase().includes(q))out.push({i,r});});return out.slice(0,200);},
       findings(){return ((this.quality && this.quality.findings)||[]).filter(f => (this.severity==='all'||f.severity===this.severity) && JSON.stringify(f).toLowerCase().includes(this.search.toLowerCase()));
       },
       unavailableSignals(){
@@ -120,7 +127,7 @@
       },
       localePreview(){try{return new Intl.NumberFormat(this.locale==='system'?undefined:this.locale).format(1234567.89)}catch(e){return 'Unavailable'}},
     },
-    watch:{page:{immediate:true,handler(p,previous){this.sequence++;this.loading={};if(previous==='source-update'&&p!=='source-update')this.retireSource();this.error='';
+    watch:{runnerSignature(){this.runnerGeneration++;this.runnerPreview='';this.runnerPlan=null;this.runnerPlanError='';if(this.page==='install'&&this.tab==='runner')this.result=null;},severity(){this.findingsShown=50;},search(){this.findingsShown=50;},page:{immediate:true,handler(p,previous){this.sequence++;this.runnerGeneration++;this.runnerPreview='';this.runnerPlan=null;this.runnerPlanError='';this.loading={};if(previous==='source-update'&&p!=='source-update')this.retireSource();this.error='';
       this.result=null;
       this.report=null;
        this.$nextTick(this.revealActiveTool);
@@ -137,13 +144,15 @@
       }, historyName(v){remember('skillsmgr-history-name',v)}, historyScope(v){remember('skillsmgr-history-scope',v)}},
     methods:{
       revealActiveTool() {
-        const nav = this.$refs.toolNav;
+        /* Only the groups scroll; the "All tools" link above them stays put. */
+        const nav = this.$refs.toolNav?.querySelector('.v2-tool-nav-scroll');
         const active = nav?.querySelector('[aria-current="page"]');
         if (!active || !active.getClientRects().length || nav.scrollHeight <= nav.clientHeight) return;
         const viewport = nav.getBoundingClientRect(), link = active.getBoundingClientRect();
         if (link.top < viewport.top + 6) nav.scrollTop += link.top - viewport.top - 6;
         else if (link.bottom > viewport.bottom - 6) nav.scrollTop += link.bottom - viewport.bottom + 6;
       },
+      safeAuditLink(link){return !!(link && typeof link.url==='string' && /^https:\/\/(?:www\.)?skills\.sh\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/security\/(?:agent-trust-hub|socket|snyk)$/.test(link.url));},
       human(v){const t=String(v==null?'':v).replace(/[-_]+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'Unknown';},
       when(iso){if(!iso)return 'Not returned';const d=new Date(iso);if(isNaN(d))return String(iso);try{return new Intl.DateTimeFormat(this.locale==='system'?undefined:this.locale,{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(e){return String(iso)}},
       pl(n,one,many){return window.SkillsV2Model.plural(n,one,many)},
@@ -201,10 +210,18 @@
       this.review=null;
       this.trust=false;
       this.$emit('changed')})},
+      switchInstallTab(tab){this.runnerGeneration++;this.runnerPreview='';this.runnerPlan=null;this.runnerPlanError='';this.tab=tab;this.result=null;this.review=null;},
       async runRunner(run){if(this.busy||(run&&this.runnerPreview!==this.runnerSignature))return;
-        const signature=this.runnerSignature;
-        await this.task(async()=>{this.result=await api('/api/install',json({source:this.source.trim(),runner:this.runner,scope:this.runnerScope,agents:this.agents.split(',').map(x=>x.trim()).filter(Boolean),skills:this.filter.trim()?[this.filter.trim()]:undefined,copy:this.copy,list_only:this.listOnly,run}));if(!run)this.runnerPreview=signature;});
-        if(run){this.runnerPreview='';this.$emit('changed');if(this.error)this.error+=' The command may have changed files before stopping. An inventory refresh was requested; inspect resulting files before retrying.';}
+        const signature=this.runnerSignature, generation=++this.runnerGeneration, page=this.page, tab=this.tab;
+        const current=()=>generation===this.runnerGeneration&&page===this.page&&tab===this.tab&&signature===this.runnerSignature;
+        const payload={source:this.source.trim(),runner:this.runner,scope:this.runnerScope,agents:this.agents.split(',').map(x=>x.trim()).filter(Boolean),skills:this.filter.trim()?[this.filter.trim()]:undefined,copy:this.copy,list_only:this.listOnly,run};
+        this.runnerPreview='';this.runnerPlan=null;this.runnerPlanError='';this.result=null;
+        await this.task(async()=>{let result;try{result=await api('/api/install',json(payload));}catch(e){if(current())throw e;return;}
+          if(run){if(current())this.result=result;return;}
+          let plan=null, planError='';try{plan=await api('/api/install',json({...payload,preview:true}));}catch(e){planError=e.message||String(e);}
+          if(current()){this.result=result;this.runnerPlan=plan&&plan.registry;this.runnerPlanError=planError;this.runnerPreview=signature;}
+        });
+        if(run){this.$emit('changed');if(this.error)this.error+=' The command may have changed files before stopping. An inventory refresh was requested; inspect resulting files before retrying.';}
       },
       async copyCommand(){if(this.runnerPreview===this.runnerSignature&&this.result&&this.result.command)await navigator.clipboard.writeText(this.result.command)},
       folderSelectionMatches(files){return files.length===this.files.length&&files.every((file,index)=>file===this.files[index]);},
@@ -318,7 +335,7 @@
       await this.task(async()=>{this.reportKind='validate';this.report=null;
       await this.read('/api/validate','report',json({name:r.name,scope:r.scope}))})},
       async validateNamed(){if(!this.validationName.trim())return;await this.task(async()=>{this.reportKind='validate';this.report=null;await this.read('/api/validate','report',json({name:this.validationName.trim(),scope:this.validationScope}));});},
-      async loadWorkspace(){this.workspace=null;this.report=null;const workspace=await this.read('/api/workspaces'+(this.project.trim()?'?project='+enc(this.project.trim()):''),'workspace');if(workspace)this.projectRoots=workspace.managed_roots||[];},
+      async loadWorkspace(){if(this.loading.workspace)return;this.workspace=null;this.report=null;const workspace=await this.read('/api/workspaces'+(this.project.trim()?'?project='+enc(this.project.trim()):''),'workspace');if(workspace)this.projectRoots=workspace.managed_roots||[];},
       async explain(){this.reportKind='consumer';
       this.report=null;
       await this.read('/api/doctor?explain='+enc(this.consumer)+(this.project.trim()?'&project='+enc(this.project.trim()):''),'report')},
@@ -408,16 +425,18 @@
       <div :class="['v2-tool-layout', {'v2-tool-layout-solo': page==='recovery-extra'||page==='tools'}]">
         <nav v-if="page!=='recovery-extra'&&page!=='tools'" ref="toolNav" class="v2-tool-nav" aria-label="Tools navigation">
           <a class="v2-tool-nav-home" href="#/tools"><span aria-hidden="true">←</span> All tools</a>
+          <div class="v2-tool-nav-scroll">
           <template v-for="g in toolGroups" :key="g.label">
-            <div class="v2-tool-nav-group">
-              <span class="v2-tool-nav-label">{{g.label}}</span>
+            <details class="v2-tool-nav-group" :open="g.key!=='ai' || page.startsWith('ai-')">
+              <summary class="v2-tool-nav-label">{{g.label}}</summary>
               <a v-for="item in g.items" :key="item.id" :href="'#/tools/'+item.id" :aria-current="page===item.id?'page':null">{{item.name}}</a>
-            </div>
+            </details>
           </template>
+          </div>
         </nav>
         <div class="v2-tool-content" :data-tool-page="page">
       <p v-if="error" class="v2-tool-error" role="alert">{{ error }}</p>
-      <p v-if="busy" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Working…</p><p v-else-if="Object.values(loading).some(Boolean)" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Reading current evidence…</p>
+      <p v-if="busy" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Working…</p><p v-else-if="page!=='quality' && Object.values(loading).some(Boolean)" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Reading current evidence…</p>
 
       <template v-if="page==='tools'">
         <h1 class="h1" id="h1" tabindex="-1">Tools</h1>
@@ -450,15 +469,15 @@
 
       <template v-else-if="page==='install'">
         <h1 class="h1" id="h1" tabindex="-1">Install</h1>
-        <p class="lede">Bring a skill in from the skills.sh registry, a package command, or a folder on this computer. Nothing is written until you approve a review.</p>
+        <p class="lede">Bring a skill in from the skills.sh registry, a package command, or a folder on this computer. Review each source before installing.</p>
         <div class="seg tp-tabs" role="group" aria-label="Install source">
-          <button v-for="t in [['registry','Registry'],['runner','Package command'],['folder','Local folder']]" :key="t[0]" type="button" :aria-pressed="tab===t[0]" @click="tab=t[0];result=null;review=null">{{t[1]}}</button>
+          <button v-for="t in [['registry','Registry'],['runner','Package command'],['folder','Local folder']]" :key="t[0]" type="button" :aria-pressed="tab===t[0]" @click="switchInstallTab(t[0])">{{t[1]}}</button>
         </div>
 
         <template v-if="tab==='registry'">
           <form class="tp-search" role="search" @submit.prevent="op='search';pageNo=0;registry()">
             <label class="sr-only" for="tp-reg-q">Search query</label>
-            <input id="tp-reg-q" class="field" type="search" v-model="source" placeholder="Search skills.sh — e.g. pdf, commit, testing" required>
+            <input id="tp-reg-q" class="field" type="search" v-model="source" placeholder="Search skills.sh" required>
             <button class="btn btn-ink" :disabled="busy||!source.trim()">Search</button>
           </form>
           <div class="tp-quick">
@@ -529,6 +548,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
         </template>
 
         <form v-if="tab==='runner'" class="card tp-panel" @submit.prevent="runRunner(false)">
+          <p class="tp-fine">Running this package command can execute third-party code and change files. Review the source and command before running it.</p>
           <div class="tp-set">
             <label class="tp-set-row"><span><b>Source</b><small>A GitHub repository holding skills.</small></span><input class="field" v-model="source" required placeholder="owner/repository" aria-label="Source"></label>
             <label class="tp-set-row"><span><b>Runner</b><small>Package tool used to run the skills CLI.</small></span><select class="field" aria-label="Runner" v-model="runner"><option>npx</option><option>pnpm</option><option>yarn</option><option>bunx</option></select></label>
@@ -539,6 +559,14 @@ ${scanPanel('(review.inspection||{}).external_scan')}
           </div>
           <div class="tp-cmd" v-if="result && result.command && runnerPreview===runnerSignature"><code>{{result.command}}</code><button type="button" class="btn btn-soft btn-sm" @click="copyCommand">Copy command</button></div>
           <p v-else class="tp-fine">Preview the command first. Run stays disabled until the preview matches these settings.</p>
+          <div v-if="runnerPreview===runnerSignature && runnerPlan" class="tp-panel" aria-live="polite">
+            <strong>Offline registry bridge: {{runnerPlan.may_install ? 'eligible' : 'not eligible'}}</strong>
+            <p class="tp-fine">This offline evidence does not verify the source or authorize a registry artifact. Running the package command can execute third-party code and change files; review the source and command first.</p>
+            <p>Eligibility: {{runnerPlan.eligibility_status}}</p>
+            <ul><li v-for="(blocker,i) in (runnerPlan.blockers||[])" :key="i">{{blocker}}</li></ul>
+            <a v-for="link in (runnerPlan.audit_links||[]).filter(safeAuditLink)" :key="link.url" :href="link.url" target="_blank" rel="noopener noreferrer">{{link.provider}}</a>
+          </div>
+          <p v-if="runnerPreview===runnerSignature && runnerPlanError" class="tp-fine">Offline registry evidence unavailable: {{runnerPlanError}}. Running the command can execute third-party code and change files.</p>
           <div class="tp-acts">
             <button class="btn btn-line" :disabled="busy">Preview command</button>
             <button type="button" class="btn btn-ink" :disabled="busy||!source.trim()||runnerPreview!==runnerSignature" @click="runRunner(true)">Run command</button>
@@ -610,7 +638,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <label class="tp-field">Native off list
               <input class="field" v-model="profile.nativeOff" aria-describedby="tp-native-off">
             </label>
-            <p id="tp-native-off" class="tp-fine">Optional comma-separated names for the CLI's <code>native-profile preview --profile</code> command.</p>
+            <p id="tp-native-off" class="tp-fine">Optional. Skills to list as turned off in each agent's own settings, separated by commas (for example <code>agent-a, agent-b</code>). Used when the profile is previewed from the command line.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy||!profile.name.trim()">Save profile</button></div>
           </form>
         </div>
@@ -636,7 +664,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
         <p class="lede">Starting documents for new skills. Saving a template does not create a skill.</p>
         <div class="tp-split">
           <section class="tp-list" aria-labelledby="tp-tl-h">
-            <div class="tp-sec-h"><h2 id="tp-tl-h">Stored templates</h2><span class="tp-count" v-if="templates">{{(templates.templates||[]).length}}</span></div>
+            <div class="tp-sec-h"><h2 id="tp-tl-h">Available templates</h2><span class="tp-count" v-if="templates">{{(templates.templates||[]).length ? (templates.templates||[]).length + ' saved, plus the built-in default' : 'Built-in default only'}}</span></div>
             <template v-if="templates">
               <ul class="tp-rows tp-pick-rows">
                 <li v-for="n in templates.templates" :key="n"><button type="button" :class="{on: templatePreview && templatePreview.name===n}" @click="readTemplate(n)">{{n}}</button></li>
@@ -734,7 +762,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <details class="tp-more claude-excluded">
               <summary>What this estimate leaves out</summary>
               <ul class="tp-rows"><li v-for="(count,key) in (claudeListing.excluded||{})" :key="key" class="v2-tool-row"><span>{{ listingExcludedLabel(key) }}</span><span class="tp-count num">{{ fmtN(count) }}</span></li></ul>
-              <p class="tp-fine">{{ fmtN(claudeListing.instances_observed) }} instances observed · {{ fmtN(claudeListing.listed_skills) }} entries listed.</p>
+              <p class="tp-fine">{{ fmtN(claudeListing.instances_observed) }} instances observed, {{ fmtN(claudeListing.listed_skills) }} entries listed.</p>
             </details>
           </section>
           <p v-else class="tp-empty">No Claude Code skills were observed in this report, so the listing budget is not estimated.</p>
@@ -747,10 +775,10 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <input id="tp-q" class="field tp-filter" v-model="search" type="search" placeholder="Search findings">
             <button type="button" class="btn btn-soft btn-sm" @click="loadQuality">Refresh</button>
           </div>
-          <div v-if="(quality.degraded||[]).length" class="v2-tool-error"><b>Incomplete evidence.</b> <span v-for="(item,i) in quality.degraded" :key="i">{{human(item.section||item)}}: {{item.reason||'unavailable'}}. </span></div>
-          <p class="tp-count" role="status">{{findings.length}} matching findings</p>
+          <div v-if="(quality.degraded||[]).length" class="tp-partial" role="note"><ic name="info"></ic><b>Partial evidence.</b> <span v-for="(item,i) in quality.degraded" :key="i">{{human(item.section||item)}}: {{item.reason||'unavailable'}}. </span></div>
+          <p class="tp-count" role="status">{{ fmtN(findings.length) }} matching {{ findings.length === 1 ? "finding" : "findings" }}<template v-if="findings.length > shownFindings.length">, showing the first {{ fmtN(shownFindings.length) }}</template></p>
           <ul class="tp-findings">
-            <li v-for="(f,idx) in findings" :key="idx">
+            <li v-for="(f,idx) in shownFindings" :key="idx">
               <details>
                 <summary><span :class="['tp-sev', sevTone(f.severity)]" :title="human(f.severity)"><ic :name="sevIcon(f.severity)"></ic><span class="sr-only">{{human(f.severity)}}:</span></span><span class="tp-f-t">{{f.title}}</span><span class="tp-count" v-if="(f.instances||[]).length">{{f.instances.length}} {{f.instances.length===1?'copy':'copies'}}</span></summary>
                 <div class="tp-f-b">
@@ -764,6 +792,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
               </details>
             </li>
           </ul>
+          <div class="more-row" v-if="findings.length > findingsShown"><button type="button" class="btn btn-line" @click="findingsShown += 50">Show {{ Math.min(50, findings.length - findingsShown) }} more of {{ fmtN(findings.length - findingsShown) }} remaining</button></div>
           <p v-if="!findings.length" class="tp-empty">{{severityCounts.all ? 'No findings match these filters.' : 'No findings in this report.'}}</p>
           <details v-if="unavailableSignals.length" class="tp-more evidence-limits">
             <summary>{{unavailableSignals.length}} kinds of evidence are unavailable</summary>
@@ -771,14 +800,15 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <p v-if="hasApmSignals"><a class="link" href="https://microsoft.github.io/apm/reference/cli/audit/" target="_blank" rel="noopener noreferrer">Audit the project with Microsoft APM</a></p>
           </details>
         </template>
-        <p v-else-if="loading.qualityEnvelope" class="tp-empty">Reading hygiene evidence…</p>
+        <p v-else-if="loading.qualityEnvelope" class="tp-empty" role="status">Reading hygiene evidence…</p>
         <p v-else class="tp-empty">Hygiene evidence is unavailable. <button type="button" class="btn btn-soft btn-sm" @click="loadQuality">Retry</button></p>
 
         <h2 id="tp-diagnostics" class="tp-diagnostics-title tp-gap" tabindex="-1">Diagnostics</h2>
         <div class="tp-cards">
           <section class="card tp-mini" aria-labelledby="tp-d1">
             <h3 id="tp-d1">Validate a copy</h3><p>Check one document against the skill format.</p>
-            <select class="field" aria-label="Instance to validate" v-model="validateTarget"><option value="">Choose a copy</option><option v-for="(r,i) in records" :key="i" :value="String(i)">{{r.name}} · {{scopeLabel(r.scope)}}</option></select>
+            <label class="sr-only" for="tp-validate-filter">Filter copies</label><input id="tp-validate-filter" class="field" type="search" v-model="copyFilter" placeholder="Filter by skill or agent" autocomplete="off">
+            <select class="field" aria-label="Instance to validate" v-model="validateTarget"><option value="">{{ copyFilter ? 'Choose one of ' + fmtN(copyChoices.length) + (copyChoices.length === 200 ? '+' : '') + ' matches' : 'Choose a copy' }}</option><option v-for="c in copyChoices" :key="c.i" :value="String(c.i)">{{c.r.name}} ({{scopeLabel(c.r.scope)}})</option></select>
             <button class="btn btn-line btn-sm" :disabled="validateTarget===''||busy" @click="validate">Validate</button>
             <details class="tp-more"><summary>By name and scope</summary><form class="tp-stack" @submit.prevent="validateNamed"><label class="tp-field">Skill name<input class="field" v-model="validationName" required></label><label class="tp-field">Validation scope<select class="field" aria-label="Validation scope" v-model="validationScope"><option v-for="s in scopes" :key="s.id" :value="s.id">{{scopeLabel(s.id)}}</option></select></label><button class="btn btn-soft btn-sm" :disabled="busy">Validate named skill</button></form></details>
           </section>
@@ -844,8 +874,8 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <ul class="tp-rows">
               <li v-for="adapter in workspace.adapters||[]" :key="adapter.id" class="tp-adapter">
                 <div class="v2-tool-row">
-                  <span class="tp-row-main"><strong>{{adapter.label}}</strong><small>Reload: {{adapter.reload||'not documented'}}</small></span>
-                  <span class="tp-acts"><span v-if="adapter.status==='verified'" class="pill ok">Verified</span><span :class="['pill', precedenceTone(adapter)]" :title="(adapter.precedence||{}).notes">{{precedenceLabel(adapter)}}</span><button class="btn btn-line btn-sm" @click="consumer=adapter.id;explain()">Explain</button></span>
+                  <span class="tp-row-main"><strong>{{adapter.label}}</strong><small v-if="adapter.reload">Picks up changes: {{adapter.reload}}</small></span>
+                  <span class="tp-acts"><span v-if="adapter.status==='verified'" class="pill ok"><ic name="ok"></ic>Verified</span><span :class="['pill', precedenceTone(adapter)]" :title="(adapter.precedence||{}).notes"><ic :name="precedenceTone(adapter)==='ok'?'ok':'info'"></ic>{{precedenceLabel(adapter)}}</span><button class="btn btn-line btn-sm" @click="consumer=adapter.id;explain()">Explain</button></span>
                 </div>
                 <details class="tp-more"><summary>Folders and notes</summary><p v-if="(adapter.precedence||{}).notes" class="tp-fine">{{(adapter.precedence||{}).notes}}</p><p v-for="(root,i) in adapter.candidate_roots" :key="i" class="tp-mono tp-fine">{{root.absolute_path||root.relative_path||root.scope||'unknown'}}</p></details>
               </li>
@@ -872,7 +902,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
           <h2 id="tp-ap-h">Appearance</h2>
           <div class="tp-set">
             <div class="tp-set-row"><label for="tp-theme"><b>Theme</b><small>System follows your OS (currently {{systemDark?'dark':'light'}}).</small></label><select id="tp-theme" class="field" aria-label="Theme" v-model="theme" @change="preference('skillsmgr-theme',theme)"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
-            <div class="tp-set-row"><label for="tp-size"><b>Text size</b><small>Large raises body text across both interfaces.</small></label><select id="tp-size" class="field" aria-label="Text size" v-model="size" @change="preference('skillsmgr-text-size',size)"><option value="standard">Standard</option><option value="large">Large</option></select></div>
+            <div class="tp-set-row"><label for="tp-size"><b>Text size</b><small>Large raises every text size in the app by about 13%.</small></label><select id="tp-size" class="field" aria-label="Text size" v-model="size" @change="preference('skillsmgr-text-size',size)"><option value="standard">Standard</option><option value="large">Large</option></select></div>
             <div class="tp-set-row"><label for="tp-loc"><b>Regional format</b><small>Numbers and dates: <span class="num">{{localePreview}}</span>. Does not translate the interface.</small></label><select id="tp-loc" class="field" aria-label="Regional format" v-model="locale" @change="preference('skillsmgr-locale',locale)"><option value="system">System</option><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="en-IN">English (India)</option></select></div>
           </div>
           <p class="tp-fine">Reduced motion is {{reducedMotion?'on':'off'}} in your OS; animations follow it automatically.</p>
@@ -893,7 +923,6 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <div class="tp-set-row"><span><b>Rebuild index</b><small>Delete the index and read every folder again.</small></span><button class="btn btn-line" :disabled="busy" @click="maintain('rebuild')">Rebuild index</button></div>
           </div>
         </section>
-        <p class="tp-fine tp-gap">Prefer the previous interface? <a href="/classic/">Open the classic view</a>.</p>
       </template>
 
       <template v-else-if="page==='source-update'">
@@ -902,7 +931,8 @@ ${scanPanel('(review.inspection||{}).external_scan')}
         <ol class="tp-steps">
           <li :class="{done: !!selected}">
             <h2>Choose the copy to update</h2>
-            <select v-if="!target" class="field" aria-label="Exact instance" v-model="chosen" :disabled="busy||!!sourceReview"><option value="">Choose a copy</option><option v-for="(r,i) in records" :value="String(i)" :key="i">{{r.name}} · {{scopeLabel(r.scope)}}</option></select>
+            <template v-if="!target"><label class="sr-only" for="tp-source-filter">Filter copies</label><input id="tp-source-filter" class="field" type="search" v-model="copyFilter" placeholder="Filter by skill or agent" autocomplete="off" :disabled="busy||!!sourceReview">
+            <select class="field" aria-label="Exact instance" v-model="chosen" :disabled="busy||!!sourceReview"><option value="">{{ copyFilter ? 'Choose one of ' + fmtN(copyChoices.length) + (copyChoices.length === 200 ? '+' : '') + ' matches' : 'Choose a copy' }}</option><option v-for="c in copyChoices" :value="String(c.i)" :key="c.i">{{c.r.name}} ({{scopeLabel(c.r.scope)}})</option></select></template>
             <p v-if="selected" class="tp-target"><strong class="tp-mono">{{selected.name}}</strong> in {{scopeLabel(selected.scope)}}<small class="tp-mono">{{selected.physical_path||selected.path}}</small></p>
             <p v-if="selected && !selectedWritable" class="v2-tool-error">This copy can't be written by the app. Choose a copy in a writable folder.</p>
           </li>

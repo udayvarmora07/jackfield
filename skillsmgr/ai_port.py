@@ -76,8 +76,19 @@ _SYSTEM = (
 )
 
 
+def _prompt(record: dict, facts: list[dict], target_label: str) -> str:
+    fact_text = "\n".join(
+        f"- {fact['id']}: {fact['detail']}" + (f" (line: {fact['line']})" if fact.get("line") else "")
+        for fact in facts
+    )
+    return (f"Target agent: {target_label}\n\nFacts:\n" + untrusted_block("facts", fact_text)
+            + "\n\nSkill:\n" + untrusted_block("skill", (record.get("body") or "")[:MAX_BODY_CHARS])
+            + '\n\nAnswer as JSON: {"summary":"<two sentences>",'
+              '"notes":[{"fact":"<fact id>","explanation":"...","suggestion":"..."}]}')
+
+
 def porting_notes(data_dir: Path, payload: dict) -> dict:
-    """Facts first, then model-written explanations tied to those facts."""
+    """Find local facts and optionally send them for model-written explanations."""
     payload = payload if isinstance(payload, dict) else {}
     scope_id, name, target = payload.get("scope"), payload.get("name"), payload.get("target")
     validate_skill_name(name if isinstance(name, str) else "")
@@ -88,17 +99,15 @@ def porting_notes(data_dir: Path, payload: dict) -> dict:
     result = {"kind": "porting-notes", "scope": scope_id, "name": name, "target": target,
               "target_label": key_support.label(target), "source": key_support.source(target),
               "facts": facts}
+    if payload.get("local_only") is True:
+        return {**result, "portable": not bool(facts), "local_only": True}
     if not facts:
         return {**result, "portable": True, "notes": []}
     run = AiRun(data_dir, "porting-notes", estimate_only=bool(payload.get("estimate")))
-    fact_text = "\n".join(f"- {f['id']}: {f['detail']}" + (f" (line: {f['line']})" if f.get("line") else "")
-                          for f in facts)
-    answer = run.ask_json(_SYSTEM, f"Target agent: {key_support.label(target)}\n\nFacts:\n"
-                          + untrusted_block("facts", fact_text)
-                          + "\n\nSkill:\n" + untrusted_block("skill", (record.get("body") or "")[:MAX_BODY_CHARS])
-                          + '\n\nAnswer as JSON: {"summary":"<two sentences>",'
-                            '"notes":[{"fact":"<fact id>","explanation":"...","suggestion":"..."}]}',
-                          max_output=1_200)
+    request = _prompt(record, facts, result["target_label"])
+    plan = run.review_plan(payload, [scope_id, name, target, _SYSTEM, request]) if payload.get("reviewed") is True else {}
+    answer = run.ask_json(_SYSTEM, request, max_output=1_200)
+    result.update(plan)
     result.update({"portable": False, "run": run.label(),
                    "egress": [f"{name}'s body (first {MAX_BODY_CHARS:,} characters) and {len(facts)} "
                               "portability facts go to the configured model."]})

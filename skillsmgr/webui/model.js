@@ -1,4 +1,4 @@
-/* Skills Manager v2 — pure data model (no DOM, no network).
+/* Skills Manager — pure data model (no DOM, no network).
  *
  * Turns the API's observations into the vocabulary the new interface speaks:
  * agents, skills, copies, status, problems. Nothing here asserts more than the
@@ -73,15 +73,15 @@
   const BROKEN_WHY = {
     linked: ["Linked outside its folder", "This is a shortcut to a folder outside the agent's skills folder. The app does not follow it, so a write could never land somewhere unexpected.", "Copy the real folder into the skills folder instead of linking it."],
     unaddressable: ["Unusual folder name", "The app cannot address this entry using its supported skill names. Agent loading is not checked.", "Rename the folder to lowercase words joined by hyphens."],
-    invalid: ["Damaged file", "The app cannot parse this skill's document. Agent loading is not checked.", "Replace it with a working copy, or repair the first lines by hand."],
+    invalid: ["Can't be read", "The app cannot parse this skill's document. Agent loading is not checked.", "Replace it with a working copy, or repair the first lines by hand."],
     undecodable: ["Not readable text", "The file is not saved as UTF-8 text. This screen offers manual repair because text Undo cannot restore its original bytes.", "Keep a copy of the original file, then open it in a text editor and save it as UTF-8."],
-    malformed: ["Damaged file", "The app cannot parse this skill's document. Agent loading is not checked.", "Replace it with a working copy, or repair the first lines by hand."],
+    malformed: ["Can't be read", "The app cannot parse this skill's document. Agent loading is not checked.", "Replace it with a working copy, or repair the first lines by hand."],
   };
 
   function copyOf(record) {
-    /* observedStateFor() ranks `invalid` above `linked`, but the classic Library
-     * badges a refused symlink first (observedStateKeys); follow that reading so
-     * the two interfaces never disagree about the same record. */
+    /* observedStateFor() ranks `invalid` above `linked`, but a refused symlink
+     * is badged first (observedStateKeys): the agent reads it, this app will not
+     * follow it, so "Linked elsewhere" is the truer description. */
     const obs = D.observeRecord(record);
     const undecodable = /utf-?8|codec|decode/i.test(String(record.decode_error || ""));
     const state = obs.linkEscape ? "linked" : obs.notAddressable ? "unaddressable" : undecodable ? "undecodable" : D.observedStateFor(record);
@@ -443,6 +443,7 @@
       { id: "settings", name: "Settings", text: "Theme, text size, number format and index maintenance.", commandLabel: "Settings and index maintenance" },
     ] },
     { key: "ai", label: "AI assist (your own key)", items: [
+      { id: "ai-settings", name: "AI settings", text: "Connect Anthropic, an OpenAI-compatible service or a local model, and set spending caps.", commandLabel: "AI settings" },
       { id: "ai-ask", name: "Ask your library", text: "Ask which of your skills fits a task, in plain words. Only names and descriptions are sent.", commandLabel: "AI ask your library" },
       { id: "ai-draft", name: "Draft a skill", text: "Turn a brief into a skill, then validate and test it against the skills already in a scope.", commandLabel: "Draft a skill" },
       { id: "ai-concise", name: "Shorten a skill", text: "Propose a concise primary document and new references, then review the exact folder update.", commandLabel: "Shorten a skill" },
@@ -456,7 +457,6 @@
       { id: "ai-overlap", name: "Overlap check", text: "Find skills that compete for the same requests or give conflicting instructions.", commandLabel: "AI overlap check" },
       { id: "ai-explain", name: "Explain risk findings", text: "Scan an installed skill for risky patterns, then get a second opinion that can only demote a finding.", commandLabel: "AI explain risk findings" },
       { id: "ai-port", name: "Porting notes", text: "See what changes when another agent reads a skill, from documented facts.", commandLabel: "AI porting notes" },
-      { id: "ai-settings", name: "AI settings", text: "Connect Anthropic, an OpenAI-compatible service or a local model, and set spending caps.", commandLabel: "AI settings" },
     ] },
   ].map((group) => Object.freeze({ ...group, items: Object.freeze(group.items.map((item) => Object.freeze(item))) }));
   const toolItems = Object.freeze(toolGroups.flatMap((group) => group.items));

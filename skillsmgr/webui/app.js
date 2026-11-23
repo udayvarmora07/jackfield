@@ -1,2820 +1,1557 @@
-/* Skills Manager web UI — Vue 3 application (no build step). */
+/* Skills Manager — Vue 3 application (no build step).
+ * Every read and write goes through the documented REST API; the observed-state
+ * vocabulary comes from domain.js, shared with the model layer. */
 "use strict";
 
-/* ------------------------------------------------------------- utilities */
-
-/* domain.js carries the transport, formatting, and state policy. If it failed
- * to load, say so on the page instead of throwing into an empty document —
- * a blank screen with a console trace tells the user nothing. */
-const SkillManagerDomain = window.SkillManagerDomain;
-if (!SkillManagerDomain) {
+const Domain = window.SkillManagerDomain;
+const Model = window.SkillsV2Model;
+if (!Domain || !Model) {
   const failure = document.createElement("div");
   failure.setAttribute("role", "alert");
-  failure.style.cssText = "margin:2rem;padding:1rem;border:1px solid #a94b20;border-radius:8px;"
-    + "font:14px/1.5 system-ui,sans-serif;color:#a94b20;background:#fff;";
-  failure.textContent = "Skills Manager could not start: domain.js did not load. "
-    + "Reload the page; if it persists, the served frontend files are incomplete.";
+  failure.style.cssText = "margin:2rem;padding:1rem;border:1px solid #b42318;border-radius:8px;font:15px/1.5 system-ui,sans-serif;color:#b42318;background:#fff;";
+  failure.textContent = "Skills Manager could not start: a script did not load. Reload the page; if it persists, the installed files are incomplete.";
   document.body.appendChild(failure);
-  throw new Error("SkillManagerDomain missing");
+  throw new Error("v2 scripts missing");
 }
 
-const {
-  api, apiText, apiBlob,
-  formatBytes, formatTokens, tokenPctClass, tokenBarWidth, numberFormatter, dateFormatter,
-  renderMarkdown, parseFrontmatter, formatCompat, formatTools,
-  groupLogicalSkills, deriveLogicalSkillIdentity, observedIdentity,
-  observeRecord, observedStateFor, observedStateKeys,
-} = SkillManagerDomain;
+const { api } = Domain;
+const { createApp, markRaw } = Vue;
+const { plural, join, words, titleCase, shortPath, BROKEN_WHY, documentPreview, renderDoc, stripFrontmatter, validName, toolIds, toolItems } = Model;
 
-/* ------------------------------------------------------------------ app */
+/* ---------- Icons (constant, trusted markup) ---------- */
+const PATHS = {
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  ok: '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  warn: '<path d="M12 3.5 2.8 19.5h18.4L12 3.5Z"/><path d="M12 10v4M12 17v.01"/>',
+  bad: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
+  off: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+  dash: '<path d="M7 12h10"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.01"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>',
+  share: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  home: '<path d="m4 11 8-7 8 7"/><path d="M6 10v10h12V10"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+  map: '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/>',
+  inbox: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M5 5h14l1 8v6H4v-6Z"/>',
+  tools: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  upload: '<path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/>',
+  auto: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
+};
 
-const { createApp, nextTick } = Vue;
-// Row caches key on the raw record so a reactive proxy and its target hit the
-// same entry. Fallback keeps non-browser test harnesses working.
-const toRaw = typeof Vue.toRaw === "function" ? Vue.toRaw : (value) => value;
+const CAP = 48;
+const FALLBACK_AGENT = { id: "", name: "Unknown", color: "#55585f", initials: "?", path: "" };
+const MAP_STATES = {
+  on: { icon: "ok", label: "Enabled on disk" },
+  warn: { icon: "warn", label: "Copies differ" },
+  bad: { icon: "bad", label: "Can't be read" },
+  off: { icon: "off", label: "Turned off on disk" },
+  link: { icon: "share", label: "Linked copy" },
+  missing: { icon: "dash", label: "No copy listed" },
+};
 
-createApp({
+function parseRoute() {
+  const h = location.hash.replace(/^#\/?/, "");
+  const [p, ...rest] = h.split("/");
+  if (p === "skill" && rest.length) { try { return { page: "skill", name: decodeURIComponent(rest.join("/")) }; } catch (e) { return { page: "skills" }; } }
+  if (p === "tools") return { page: "tools", tool: toolIds.includes(rest[0]) ? rest[0] : "tools" };
+  return ["skills", "map", "inbox", "recovery"].includes(p) ? { page: p } : { page: "home" };
+}
+const TITLES = { home: "Home", skills: "Skills", map: "Sync map", inbox: "Inbox", recovery: "Recovery", tools: "Tools" };
+const THEMES = ["system", "light", "dark"];
+function savedPreference(key, choices, fallback) {try{const value=localStorage.getItem(key);return choices.includes(value)?value:fallback;}catch(e){return fallback;}}
+
+const app = createApp({
   data() {
-    const savedTheme = localStorage.getItem("skillsmgr-theme");
-    const savedLocale = localStorage.getItem("skillsmgr-locale");
-    const localeOptions = [
-      { value: "en-US", label: "English (United States)" },
-      { value: "en-GB", label: "English (United Kingdom)" },
-      { value: "en-IN", label: "English (India)" },
-    ];
-    const localeValues = ["system", ...localeOptions.map((option) => option.value)];
-    return {
-      view: "overview",
-      filter: "",
-      query: "",
-      skills: [],
-      allSkills: [],
-      trashSkills: [],
-      catalog: { version: 1, tags: {}, profiles: {} },
-      tagFilter: "",
-      selectedKeys: [],
-      batchTagInput: "",
-      selectedName: null,
-      selected: null,
-      selectedTrash: null,
-      dataDir: "",
-      scopes: [],
-      activeScope: localStorage.getItem("skillsmgr-scope") || "all",
-      libraryMode: localStorage.getItem("skillsmgr-library-mode") || "library",
-      browseMode: localStorage.getItem("skillsmgr-browse-mode") === "grid" ? "grid" : "list",
-      onboardingDismissed: false,
-      firstScanGuideDismissed: false,
-      guideExplainConsumer: "codex",
-      guideExplainResult: null,
-      guideExplainError: null,
-      guideExplainLoading: false,
-      guideExplainRequest: 0,
-      scopeScanFailed: false,
-      budget: null,
-      budgetWindow: localStorage.getItem("skillsmgr-budget-window") || "claude",
-      install: { mode: "runner", registryOp: "browse", runner: "npx", source: "", scope: "global", agents: [], skillsFilter: "", copy: false, listOnly: false, page: 0, perPage: 25, view: "all-time", allowStale: false, lastResult: null, review_id: null, review: null, preview: null },
-      theme: ["light", "dark", "system"].includes(savedTheme) ? savedTheme : "system",
-      resolvedTheme: "light",
-      systemTheme: "light",
-      textSize: localStorage.getItem("skillsmgr-text-size") === "large" ? "large" : "standard",
-      localeOptions,
-      locale: localeValues.includes(savedLocale) ? savedLocale : "system",
-      resolvedLocale: "en-US",
-      prefersReducedMotion: false,
-      themeMediaQuery: null,
-      themeMediaHandler: null,
-      menuOpen: false,
-      busy: false,
-      exportPending: false,
-      exportError: "",
-      banner: null,
-      // Keep the Overview readiness marker absent until the first list
-      // request has settled, including the initial render before mounted().
-      loadingList: true,
-      loadingDetail: false,
-      loadingTrash: false,
-      loadingRecoverySnapshots: false,
-      recoverySnapshots: [],
-      loadingHistory: true,
-      overviewHistory: [],
-      loadingWorkspaces: false,
-      workspaces: null,
-      workspaceProject: "",
-      qualityHygiene: null,
-      qualityHygieneLoading: false,
-      qualityHygieneError: null,
-      qualitySeverityFilter: "all",
-      qualityExpandedFindings: [],
-      profileForm: { name: "", description: "", skills: "", targets: "" },
-      profilePreview: null,
-      mobileDetailOpen: false,
-      compactControlsOpen: false,
-      mobileReturnKey: "",
-      toasts: [],
-      liveAnnouncement: "",
-      toastSeq: 0,
-      searchTimer: null,
-      searchRestore: [],
-      listSeq: 0,
-      detailSeq: 0,
-      modalRestoreFocus: null,
-      modalFocusTimer: null,
-      commandPaletteTransfer: false,
-      commandPaletteQuery: "",
-      commandPaletteActiveIndex: 0,
-      modals: {
-        skill: null,
-        remove: null,
-        purge: null,
-        validate: null,
-        doctor: null,
-        stats: null,
-        history: null,
-        templates: null,
-        newtemplate: null,
-        import: null,
-        sync: null,
-        install: null,
-        batch: null,
-        update: null,
-        help: null,
-        commands: null,
-      },
+    return { refreshGen: 0, historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
+      route: parseRoute(), m: null, loading: true, loadError: "", history: [], busy: false,
+      records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
+      historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0, gq: "", gqOpen: false, gqActive: -1,
+      exportPending: false, exportError: "",
+      query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name",
+      front: null, skipped: [], dismissed: [], done: 0, srcChoice: "", inboxComparisonScope: "",
+      bodies: {}, bodyInflight: {}, bodyErrors: {},
+      treeQuery: "", edit: null, highlight: true, compareWith: "", leadOpen: false,
+      mapSelId: "", mapPicked: [], peek: null,
+      mapQuery: "", mapReviewOnly: false, mapPage: 0, mapSkillName: "", mapOrigin: null,
+      trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", importError: "", dropDepth: 0, importForce: false,
+      theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
+      dialog: null, toasts: [], live: "", toastSeq: 0, skillHistory: [], opener: null,
     };
   },
-
   computed: {
-    filteredSkills() {
-      const source = !this.query.trim() && this.skills.length === 0 && this.allSkills.length
-        ? this.allSkills
-        : this.skills;
-      return source.filter((s) => {
-        if (this.filter === "active" && s.disabled) return false;
-        if (this.filter === "disabled" && !s.disabled) return false;
-        if (this.tagFilter === "__untagged" && s.tags && s.tags.length) return false;
-        if (this.tagFilter && this.tagFilter !== "__untagged" && !(s.tags || []).includes(this.tagFilter)) return false;
-        return true;
-      });
+    inboxCount() { return this.m ? this.queue.length : 0; },
+    inboxLabel() { return this.inboxCount ? "Inbox, " + plural(this.inboxCount, "item") : "Inbox"; },
+    agentInfos() { return this.m ? this.m.infos.filter((i) => !i.agent.library) : []; },
+    gqMatches() {
+      const q = this.gq.trim().toLowerCase();
+      if (!q || !this.m) return [];
+      const starts = [], has = [];
+      for (const s of this.m.skills) { const n = s.name.toLowerCase(); if (n.startsWith(q)) starts.push(s); else if (n.includes(q)) has.push(s); if (starts.length >= 6) break; }
+      return [...starts, ...has].slice(0, 6);
     },
-    logicalSkills() { return groupLogicalSkills(this.filteredSkills, this.scopes); },
-    visibleSkills() { return this.libraryMode === "instances" ? this.filteredSkills : this.logicalSkills; },
-
-    /* Per-row presentation derived once per list change, not once per render.
-     *
-     * The whole app is one component, so any reactive change -- a toast, a
-     * keystroke in a dialog -- re-renders the Library template. Each row used
-     * to re-group its identities (a Map, a sort, localeCompare) and rebuild
-     * its badge list on every such render: ~60-115 ms per unrelated update on
-     * a 716-row library. This computed is invalidated only by what the rows
-     * actually depend on (the visible rows, the mode, the scope labels), and
-     * the row methods below read through it with an uncached fallback, so
-     * their output is unchanged. */
-    libraryRowMeta() {
-      const meta = new Map();
-      for (const row of this.visibleSkills) {
-        meta.set(toRaw(row), {
-          groups: this.computeGroupedIdentities(row),
-          badges: this.computeRowBadgeItems(row),
-        });
-      }
-      return meta;
-    },
-
-    /* O(1) membership for row checkboxes; `Array.includes` per instance made
-     * "Select visible" on a 2,000-instance library quadratic per render. */
-    selectedKeySet() { return new Set(this.selectedKeys); },
-
-    /* Every observation the Library rows render, read through the same seam the
-     * badges use. The uniform checks below only decide whether a value is
-     * *repeated on every row* -- they never re-derive the value itself, and the
-     * underlying `malformed` / `decode_error` / `addressable` signals are
-     * untouched. When a value is uniform the row keeps it in an `sr-only`
-     * span, so suppressing the visual never strips the accessible name.
-     *
-     * Suppression needs more than one visible row: with a single row every
-     * value is trivially "uniform", and hiding that row's only state badge
-     * would remove evidence rather than repetition. This is a cached computed,
-     * so it costs one pass per list change, not one pass per rendered row. */
-    visibleIdentityItems() {
-      return this.visibleSkills.length > 1
-        ? this.visibleSkills.flatMap((row) => this.identityItems(row))
-        : [];
-    },
-
-    uniformStateLabel() {
-      const items = this.visibleIdentityItems;
-      if (!items.length) return null;
-      const states = [...new Set(items.map((item) => item.stateLabel))];
-      return states.length === 1 && !items.some((item) => item.problem) ? states[0] : null;
-    },
-
-    /* A state that is true of every visible row is not per-row information.
-     *
-     * `uniformStateLabel` already suppressed a uniformly-"Active" list. It
-     * deliberately did not suppress a uniformly *problem* state, because
-     * hiding a warning is worse than repeating it — but repeating it on 329
-     * rows is not the alternative. A badge on 100% of rows is a wall of colour
-     * that makes the one row which differs impossible to see, and it trains
-     * the reader to stop looking at the badge entirely.
-     *
-     * So a uniform problem state is suppressed per row and *promoted* to the
-     * pane header, where it is stated once with the count. Nothing is lost: the
-     * per-row chip stays in the accessibility tree as `sr-only`, exactly as the
-     * uniform-active case does.
-     *
-     * This is a presentation decision and it is deliberately independent of
-     * whether the underlying observation is correct. A scope where every skill
-     * really is malformed deserves one loud banner; a scope where the
-     * observation is wrong also deserves one loud banner — because a reader who
-     * sees one banner can act on it, and a reader looking at 329 identical
-     * badges cannot.
-     */
-    uniformProblemLabel() {
-      const items = this.visibleIdentityItems;
-      if (!items.length) return null;
-      if (!items.every((item) => item.problem)) return null;
-      const states = [...new Set(items.map((item) => item.stateLabel))];
-      return states.length === 1 ? states[0] : null;
-    },
-    uniformProblemCount() {
-      return this.visibleIdentityItems.length;
-    },
-
-    selectedLogical() {
-      return groupLogicalSkills(this.skills, this.scopes).find((skill) => skill.name === this.selectedName) || null;
-    },
-    tagNames() {
-      return [...new Set(Object.values(this.catalog.tags || {}).flat())].sort((a, b) => a.localeCompare(b));
-    },
-    visibleTargetKeys() {
-      const records = this.libraryMode === "library"
-        ? this.visibleSkills.flatMap((group) => group.instances || [])
-        : this.visibleSkills;
-      return records.map((record) => this.targetKey(record));
-    },
-    selectedTargets() {
-      const wanted = new Set(this.selectedKeys);
-      return this.skills.filter((record) => wanted.has(this.targetKey(record)));
-    },
-    selectedCount() { return this.selectedTargets.length; },
-    profileObservedCount() {
-      return (this.profilePreview && this.profilePreview.members || [])
-        .reduce((count, member) => count + (member.instances || []).length, 0);
-    },
-    profileUnresolvedMembers() {
-      return (this.profilePreview && this.profilePreview.members || [])
-        .filter((member) => member.state === "missing" || member.state === "divergent");
-    },
-    allVisibleSelected() {
-      return this.visibleTargetKeys.length > 0 && this.visibleTargetKeys.every((key) => this.selectedKeys.includes(key));
-    },
-    onboardingVisible() {
-      return this.view === "skills"
-        && this.activeScope === "all"
-        && !this.loadingList
-        && this.skills.length === 0
-        && !this.query.trim()
-        && !this.filter
-        && !this.onboardingDismissed;
-    },
-    onboardingRoots() {
-      return (this.scopes || []).filter((scope) => scope.exists);
-    },
-    firstScanGuideVisible() {
-      return this.view === "overview" && !this.firstScanGuideDismissed;
-    },
-    guideRoots() {
-      return (this.scopes || []).filter((scope) => scope.exists);
-    },
-    guideUnavailableRoots() {
-      return (this.scopes || []).filter((scope) => ["missing", "unsupported"].includes(scope.availability));
-    },
-    guideSampleRecord() {
-      return this.overviewRecords.find((record) =>
-        !record.malformed && !record.decode_error && record.addressable !== false) || this.overviewRecords[0] || null;
-    },
-    guideSampleIsProject() {
-      return !!(this.guideSampleRecord && (this.scopes || []).some((scope) =>
-        scope.id === this.guideSampleRecord.scope && scope.kind === "project"));
-    },
-    guidePreviewRecord() {
-      return this.overviewRecords.find((record) =>
-        !record.malformed && !record.decode_error && record.addressable !== false
-        && record.root_availability === "writable"
-        && record.scope && record.scope !== "all"
-        && (record.physical_path || record.path) && record.physical_root) || null;
-    },
-    guideExplainSkill() {
-      const name = this.guideSampleRecord && this.guideSampleRecord.name;
-      return name && this.guideExplainResult && this.guideExplainResult.skills
-        ? this.guideExplainResult.skills[name] || null
-        : null;
-    },
-    filteredTrash() {
-      const q = this.query.trim().toLowerCase();
-      if (!q) return this.trashSkills;
-      return this.trashSkills.filter((t) => t.name.toLowerCase().includes(q));
-    },
-    totalCount() { return this.skills.length; },
-    activeCount() { return this.skills.filter((s) => !s.disabled).length; },
-    disabledCount() { return this.skills.filter((s) => s.disabled).length; },
-    trashCount() { return this.trashSkills.length; },
-    allScopesCount() { return (this.scopes || []).reduce((n, s) => n + (s.count || 0), 0); },
-
-    /* Per-scope share of one context window, largest first.
-     *
-     * This is the most operationally consequential thing the tool observes: an
-     * agent that loads every skill under a root cannot fit them all. Every
-     * number here is arithmetic over what `/api/scopes` and `/api/stats`
-     * already report — nothing is inferred about which copy an agent would
-     * actually load, because the tool deliberately has no resolver.
-     *
-     * The axis runs to BUDGET_AXIS_MAX rather than 100 so that 111% and 121%
-     * render as visibly different bars. On a 0-100% axis both would clamp to a
-     * full bar and the chart would hide its own point.
-     */
-    scopeBudgetRows() {
-      const windowTokens = (this.budget && this.budget.window_tokens) || 0;
-      const rows = (this.scopes || [])
-        .filter(Boolean)
-        .map((s) => {
-          const tokens = s.tokens || 0;
-          const pct = windowTokens > 0 ? (tokens / windowTokens) * 100 : 0;
-          return {
-            id: s.id,
-            label: s.label,
-            tokens,
-            count: s.count || 0,
-            pct,
-            // Displayed figures are whole percent. A root at 121.061% and one
-            // at 118.996% are the same size bar; three decimals imply a
-            // precision the chars/4 estimator does not have.
-            pctRounded: Math.round(pct),
-            over: pct > 100,
-          };
-        })
-        .sort((a, b) => b.pct - a.pct);
-      return rows;
-    },
-    overBudgetScopeCount() {
-      return this.scopeBudgetRows.filter((r) => r.over).length;
-    },
-    budgetAxisMax() {
-      const peak = this.scopeBudgetRows.reduce((m, r) => Math.max(m, r.pct), 0);
-      return Math.max(125, Math.ceil(peak / 25) * 25);
-    },
-    scopeThresholdPos() {
-      const max = this.budgetAxisMax || 125;
-      return Math.max(0, Math.min(100, (100 / max) * 100)).toFixed(2) + "%";
-    },
-    selectedDisabled() {
-      return this.selected ? !!this.selected.disabled : false;
-    },
-    updateTargetAvailable() {
-      const target = this.selected;
-      return !!(target
-        && target.name
-        && target.scope
-        && target.scope !== "all"
-        && target.addressable !== false
-        && target.root_availability === "writable"
-        && (target.physical_path || target.path)
-        && target.physical_root);
-    },
-    activeModal() {
-      return Object.keys(this.modals).find((key) => this.modals[key]) || null;
-    },
-    commandPaletteCommands() {
-      const commands = [
-        { id: "nav-overview", label: "Overview", title: "Open Overview", category: "Navigation", keywords: "dashboard home", action: "switchView", args: ["overview"], focusDestination: true },
-        { id: "nav-library", label: "Library", title: "Open Library", category: "Navigation", keywords: "skills browse", action: "switchView", args: ["skills"], focusDestination: true },
-        { id: "nav-profiles", label: "Profiles", title: "Open Profiles", category: "Navigation", keywords: "catalog groups", action: "switchView", args: ["profiles"], focusDestination: true },
-        { id: "nav-install", label: "Install", title: "Open Install", category: "Navigation", keywords: "workflow registry", action: "switchView", args: ["install"], focusDestination: true },
-        { id: "nav-recovery", label: "Recovery", title: "Open Recovery", category: "Navigation", keywords: "trash restore backups", action: "switchView", args: ["recovery"], focusDestination: true },
-        { id: "nav-workspaces", label: "Workspaces", title: "Open Workspaces", category: "Navigation", keywords: "projects adapters", action: "switchView", args: ["workspaces"], focusDestination: true },
-        { id: "nav-quality", label: "Quality", title: "Open Quality", category: "Navigation", keywords: "evidence health", action: "switchView", args: ["quality"], focusDestination: true },
-        { id: "nav-settings", label: "Settings", title: "Open Settings", category: "Navigation", keywords: "preferences accessibility theme", action: "switchView", args: ["settings"], focusDestination: true },
-        { id: "create-skill", label: "Create skill", title: "Create a new skill", category: "Skill actions", keywords: "new add author", action: "openCreate", focusDestination: true },
-        { id: "add-folder", label: "Add folder", title: "Add skills from a folder", category: "Skill actions", keywords: "import directory upload", action: "openAdd" },
-        { id: "install-workflow", label: "Install workflow", title: "Install via a runner or registry", category: "Transfer", keywords: "install npx pnpm bunx registry", action: "openInstall", focusDestination: true },
-        { id: "import-archive", label: "Import archive", title: "Import a skills archive", category: "Transfer", keywords: "archive tar zip migration", action: "openImport", focusDestination: true },
-        { id: "export-archive", label: "Export archive", title: "Export the current skill library", category: "Transfer", keywords: "download backup archive", action: "exportArchive" },
-        { id: "full-export", label: "Full migration export", title: "Export skills, trash, and templates", category: "Transfer", keywords: "full backup migration archive", action: "exportArchive", args: [true] },
-        { id: "templates", label: "Templates", title: "View templates", category: "Tools", keywords: "starter files", action: "openTemplates", focusDestination: true },
-        { id: "new-template", label: "New template", title: "Create a template", category: "Tools", keywords: "starter create", action: "openNewTemplate", focusDestination: true },
-        { id: "doctor", label: "Doctor", title: "Inspect filesystem and index health", category: "Tools", keywords: "diagnostic integrity", action: "openDoctor", focusDestination: true },
-        { id: "stats", label: "Stats", title: "View skill statistics", category: "Tools", keywords: "metrics tokens", action: "openStats", focusDestination: true },
-        { id: "history", label: "History", title: "View skill history", category: "Tools", keywords: "snapshots rollback", action: "openHistory", focusDestination: true },
-        { id: "refresh", label: "Refresh", title: "Refresh skills and scope data", category: "Tools", keywords: "reload update", action: "refreshCommand" },
-        { id: "rebuild", label: "Rebuild", title: "Rebuild the local index", category: "Tools", keywords: "database index", action: "rebuildIndex" },
-        { id: "resync", label: "Resync", title: "Resync the local index", category: "Tools", keywords: "database index", action: "resyncIndex" },
+    gqTotal() { const q = this.gq.trim().toLowerCase(); return q && this.m ? this.m.skills.filter((s) => s.name.toLowerCase().includes(q) || String(s.description || "").toLowerCase().includes(q)).length : 0; },
+    sharedSkills() { return this.m ? [...this.m.skills].sort((a, b) => b.tools.length - a.tools.length || a.name.localeCompare(b.name)).slice(0, 3) : []; },
+    /* Categories only help when the skills actually carry them; otherwise the
+     * shelf falls back to an alphabet, which is what people can scan. */
+    grouping() { return this.m && new Set(this.m.skills.map((s) => s.category).filter(Boolean)).size > 1 ? "category" : "letter"; },
+    filterChoices() {
+      const sk = this.m ? this.m.skills : [];
+      return [
+        { id: "all", label: "All", n: sk.filter((s) => s.status.key !== "note").length },
+        { id: "care", label: "Needs care", n: this.careCount },
+        { id: "off", label: "Turned off", n: sk.filter((s) => s.status.key === "off").length },
       ];
-      const selectedAvailable = this.view === "skills" && !!this.selectedName && !!this.selected;
-      if (selectedAvailable) {
-        commands.push(
-          { id: "selected-edit", label: "Edit", title: `Edit ${this.selectedName}`, category: "Selected skill", keywords: "modify change", action: "openEdit", focusDestination: true },
-          { id: "selected-validate", label: "Validate", title: `Validate ${this.selectedName}`, category: "Selected skill", keywords: "check lint", action: "openValidate", focusDestination: true },
-          { id: "selected-toggle", label: this.selectedDisabled ? "Enable" : "Disable", title: `${this.selectedDisabled ? "Enable" : "Disable"} ${this.selectedName}`, category: "Selected skill", keywords: "active disabled toggle", action: "toggleSelected" },
-          { id: "selected-sync", label: "Sync", title: `Sync ${this.selectedName} to agents`, category: "Selected skill", keywords: "copy agents scopes", action: "openSync", focusDestination: true },
-          ...(this.updateTargetAvailable ? [{ id: "selected-update", label: "Update from folder", title: `Review a local update for ${this.selectedName}`, category: "Selected skill", keywords: "source diff replace review rollback", action: "openUpdate", focusDestination: true }] : []),
-          { id: "selected-remove", label: "Remove", title: `Remove ${this.selectedName}`, category: "Selected skill", keywords: "trash delete", action: "removeSelected", focusDestination: true },
-        );
-      }
-      return commands;
     },
-    filteredCommandPaletteCommands() {
-      const needle = this.commandPaletteQuery.trim().toLowerCase();
-      if (!needle) return this.commandPaletteCommands;
-      return this.commandPaletteCommands.filter((command) => [command.label, command.title, command.category, command.keywords]
-        .join(" ").toLowerCase().includes(needle));
+    shelfTotal() { return this.m ? this.m.skills.filter((s) => s.status.key !== "note").length : 0; },
+    careCount() { return this.m ? this.m.skills.filter((s) => s.status.key === "warn" || s.status.key === "bad").length : 0; },
+    catalogTags() { return [...new Set(Object.values(this.catalog.tags || {}).flat())].sort(); },
+    visibleNames() { return this.visible.map(s => s.name); },
+    /* The palette finds every destination: the six pages first, then actions,
+     * then tools. Each row matches its label, plus synonyms for pages and the
+     * tool's own name and description, so "sync", "trash" or "backup" work. */
+    commandChoices() {
+      const nav=[{label:"Home",path:"#/home",keys:"agents overview start"},{label:"Skills",path:"#/skills",keys:"library shelf list instances"},{label:"Sync map",path:"#/map",keys:"sync compare copies map differ"},{label:"Inbox",path:"#/inbox",keys:"problems fix review queue"},{label:"Recovery and history",path:"#/recovery",keys:"trash restore backup export import history undo"},{label:"All tools",path:"#/tools",keys:"tools settings"}];
+      const items=[...nav,{label:"New skill",action:"create",keys:"create add write"},{label:"Refresh files",action:"refresh",keys:"reload rescan reread"},...toolItems.filter((item)=>item.commandLabel).map((item)=>({label:item.commandLabel,path:"#/tools/"+item.id}))];
+      const q=this.commandQuery.toLowerCase().trim();
+      if(!q)return items;
+      const toolText=(item)=>{const tool=item.path&&toolItems.find(t=>"#/tools/"+t.id===item.path);return tool?tool.name+" "+tool.text:"";};
+      const hits=items.filter(item=>(item.label+" "+(item.keys||"")+" "+toolText(item)).toLowerCase().split(/\s+/).some(w=>w.startsWith(q))||item.label.toLowerCase().includes(q));
+      /* Labels that start with the text first, then labels containing a word
+       * that starts with it, then synonym and description matches; groups keep
+       * their order inside each tier. */
+      const tier=(item)=>{const l=item.label.toLowerCase();return l.startsWith(q)?0:l.split(/\s+/).some(w=>w.startsWith(q))?1:2;};
+      return hits.map((item,i)=>({item,i})).sort((a,b)=>tier(a.item)-tier(b.item)||a.i-b.i).map(x=>x.item);
     },
-    commandPaletteActiveCommand() {
-      return this.filteredCommandPaletteCommands[this.commandPaletteActiveIndex] || null;
-    },
-    commandPaletteStatus() {
-      const count = this.filteredCommandPaletteCommands.length;
-      return count ? `${count} command${count === 1 ? "" : "s"} available` : "No commands found. Try a different search term.";
-    },
-    overviewRecords() {
-      return this.allSkills.length ? this.allSkills : this.skills;
-    },
-    overviewLogicalSkills() {
-      return groupLogicalSkills(this.overviewRecords, this.scopes);
-    },
-    overviewLogicalCount() {
-      return this.overviewLogicalSkills.length;
-    },
-    overviewInstanceCount() {
-      return this.overviewRecords.length;
-    },
-    overviewActiveCount() {
-      return this.overviewRecords.filter((record) => observedStateFor(record) === "active").length;
-    },
-    overviewDisabledCount() {
-      return this.overviewRecords.filter((record) => observeRecord(record).isDisabled).length;
-    },
-    overviewDivergentGroups() {
-      return this.overviewLogicalSkills.filter((group) => !!group.divergent);
-    },
-    overviewMalformedCount() {
-      return this.overviewRecords.filter((record) => {
-        const observed = observeRecord(record);
-        /* A refused symlink is reported on its own line; counting it here as
-         * "malformed" would both misname it and let the two totals disagree. */
-        return observed.malformedDocument && !observed.linkEscape;
-      }).length;
-    },
-    overviewLinkedCount() {
-      return this.overviewRecords.filter((record) => observeRecord(record).linkEscape).length;
-    },
-    overviewUnaddressableCount() {
-      return this.overviewRecords.filter((record) => observeRecord(record).notAddressable).length;
-    },
-    overviewInvalidRecords() {
-      return this.overviewRecords.filter((record) => {
-        const observed = observeRecord(record);
-        return observed.malformedDocument || observed.notAddressable;
-      });
-    },
-    overviewAttention() {
-      const items = [];
-      if (this.overviewInvalidRecords.length) {
-        const records = this.overviewInvalidRecords;
-        const linked = records.filter((record) => observeRecord(record).linkEscape).length;
-        const other = records.length - linked;
-        const parts = [];
-        if (linked) {
-          parts.push(`${this.formatNumber(linked)} instance${linked === 1 ? " is" : "s are"} a symlink the tool refuses to follow because its target sits outside that scope's root`);
-        }
-        if (other) {
-          parts.push(`${this.formatNumber(other)} instance${other === 1 ? " is" : "s are"} unaddressable or unreadable`);
-        }
-        items.push({
-          key: "observed-invalid",
-          /* The title names both observations because they have different
-           * remedies, and "malformed" was wrong for a symlink: the document is
-           * not corrupt, it is unreachable on purpose. */
-          title: linked && !other
-            ? "Skills linked outside their scope root"
-            : "Review unreadable or unaddressable entries",
-          detail: `${parts.join("; ")}.`,
-          action: "Review in Library",
-        });
-      }
-      if (this.overviewDivergentGroups.length) {
-        items.push({
-          key: "divergent",
-          title: "Resolve divergent copies",
-          detail: `${this.overviewDivergentGroups.length} logical skill${this.overviewDivergentGroups.length === 1 ? " has" : "s have"} unequal observed instances.`,
-          action: "Inspect copies",
-        });
-      }
-      if (this.overviewDisabledCount) {
-        items.push({
-          key: "disabled",
-          title: "Review disabled instances",
-          detail: `${this.overviewDisabledCount} observed instance${this.overviewDisabledCount === 1 ? " is" : "s are"} disabled and will be skipped by its consumer.`,
-          action: "Show disabled",
-        });
-      }
-      if (this.trashCount) {
-        items.push({
-          key: "recovery",
-          title: "Recover removed skills",
-          detail: `${this.trashCount} skill${this.trashCount === 1 ? " is" : "s are"} available in global trash.`,
-          action: "Open recovery",
-        });
-      }
-      return items;
-    },
-    overviewAttentionCount() {
-      return this.overviewAttention.length;
-    },
-    themeModeLabel() {
-      return this.theme === "system" ? "System" : (this.theme === "dark" ? "Dark" : "Light");
-    },
-    themeToggleTitle() {
-      const next = this.theme === "system" ? "light" : (this.theme === "light" ? "dark" : "system");
-      const nextLabel = next === "system" ? "system" : next;
-      return `Theme: ${this.themeModeLabel} (currently ${this.resolvedTheme}). Activate to use ${nextLabel} theme.`;
-    },
-    systemThemeLabel() {
-      return this.systemTheme === "dark" ? "dark" : "light";
-    },
-    registryInventory() {
-      const source = this.allSkills.length ? this.allSkills : this.skills;
-      return source.filter((record) => record && record.registry_provenance && typeof record.registry_provenance === "object");
-    },
-    filteredRegistryInventory() {
+    visible() {
+      if (!this.m) return [];
       const q = this.query.trim().toLowerCase();
-      if (!q) return this.registryInventory;
-      return this.registryInventory.filter((record) => {
-        const provenance = record.registry_provenance || {};
-        return [record.name, provenance.id, provenance.source, provenance.slug]
-          .some((value) => String(value || "").toLowerCase().includes(q));
+      return this.m.skills.filter((s) => {
+        const k = s.status.key;
+        if (k === "note") return false; /* not a skill: listed in the Inbox only */
+        if (this.filter === "care" && k !== "warn" && k !== "bad") return false;
+        if (this.filter === "off" && k !== "off") return false;
+        if (this.agentFilter !== "all" && !s.copies.some((c) => c.scope === this.agentFilter)) return false;
+        const tags = (this.catalog.tags || {})[s.name] || [];
+        if (this.tagFilter === "__untagged" && tags.length) return false;
+        if (this.tagFilter && this.tagFilter !== "__untagged" && !tags.includes(this.tagFilter)) return false;
+        return !q || `${s.name} ${s.description} ${s.category}`.toLowerCase().includes(q);
       });
     },
-    registryInventoryCount() {
-      return this.filteredRegistryInventory.length;
-    },
-    qualityRecords() {
-      return this.allSkills.length ? this.allSkills : this.skills;
-    },
-    filteredQualitySkills() {
-      const q = this.query.trim().toLowerCase();
-      if (!q) return this.qualityRecords;
-      return this.qualityRecords.filter((record) => {
-        const provenance = record.registry_provenance || {};
-        return [record.name, record.description, record.category, ...(record.tags || []), provenance.id, provenance.source, provenance.slug]
-          .some((value) => String(value || "").toLowerCase().includes(q));
-      });
-    },
-    qualitySummary() {
-      const records = this.qualityRecords;
-      const logical = groupLogicalSkills(records, this.scopes);
-      const stateOf = (record) => {
-        // The domain seam owns this classification; "observed" is its "active"
-        // bucket under the wording Quality uses, so nothing here restates it.
-        const state = observedStateFor(record);
-        return state === "active" ? "observed" : state;
-      };
-      const validityFlagged = records.filter((record) => {
-        const observed = observeRecord(record);
-        return observed.malformedDocument || observed.notAddressable;
-      });
-      return {
-        observed: records.length,
-        active: records.filter((record) => stateOf(record) === "observed").length,
-        disabled: records.filter((record) => stateOf(record) === "disabled").length,
-        malformed: records.filter((record) => stateOf(record) === "malformed").length,
-        /* A refused symlink is its own bucket. Without it these records would
-         * fall out of the summary entirely — the seam now classifies them
-         * separately, and a summary that silently loses rows is worse than one
-         * that names them. */
-        linked: records.filter((record) => stateOf(record) === "linked").length,
-        unaddressable: records.filter((record) => stateOf(record) === "unaddressable").length,
-        validityFlagged: validityFlagged.length,
-        divergent: logical.filter((group) => !!group.divergent).length,
-        provenance: records.filter((record) => record.registry_provenance && typeof record.registry_provenance === "object").length,
-      };
-    },
-    qualityHygieneFindings() {
-      const report = this.qualityHygiene;
-      return report && Array.isArray(report.findings) ? report.findings : [];
-    },
-    filteredQualityHygieneFindings() {
-      const query = this.query.trim().toLowerCase();
-      return this.qualityHygieneFindings.filter((finding) => {
-        if (this.qualitySeverityFilter !== "all" && finding.severity !== this.qualitySeverityFilter) return false;
-        if (!query) return true;
-        const instances = (finding.instances || []).flatMap((instance) => [instance.name, instance.scope, instance.scope_label, instance.consumer]);
-        return [finding.title, finding.explanation, finding.recommendation, finding.category, ...instances]
-          .some((value) => String(value || "").toLowerCase().includes(query));
-      });
-    },
-    qualityHygieneGroups() {
-      const groups = new Map();
-      for (const finding of this.filteredQualityHygieneFindings) {
-        if (!groups.has(finding.category)) groups.set(finding.category, []);
-        groups.get(finding.category).push(finding);
+    groups() {
+      if (this.sortBy !== "name") {
+        const key = this.sortBy === "size" ? (s) => -s.tokens : (s) => -s.tools.length;
+        const items = [...this.visible].sort((a, b) => key(a) - key(b) || a.name.localeCompare(b.name));
+        const id = this.sortBy === "size" ? "Largest first" : "In the most tools";
+        return items.length ? [{ id, key: "sorted", items, shown: items.slice(0, CAP + (this.extra[id] || 0)) }] : [];
       }
-      return [...groups.entries()].map(([category, findings]) => ({ category, findings }));
+      const by = new Map();
+      for (const s of this.visible) {
+        const id = this.grouping === "category" ? (s.category || "Other") : (/[a-z]/i.test(s.name[0]) ? s.name[0].toUpperCase() : "#");
+        if (!by.has(id)) by.set(id, []);
+        by.get(id).push(s);
+      }
+      return [...by.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([id, items]) => ({
+        id, key: id.replace(/\W/g, "") || "other", items, shown: items.slice(0, CAP + (this.extra[id] || 0)),
+      }));
     },
-    qualityHygieneSummary() {
-      return (this.qualityHygiene && this.qualityHygiene.summary) || {};
+    /* A description longer than about four reader lines is folded so the
+     * document itself starts above the fold on a 768px-tall laptop. */
+    leadLong() { return !!(this.skill && this.skill.description && this.skill.description.length > 360); },
+    skill() { return this.m && this.route.page === "skill" ? this.m.byName.get(this.route.name) || null : null; },
+    treeAll() {
+      if (!this.m) return [];
+      const q = this.treeQuery.trim().toLowerCase();
+      return q ? this.m.skills.filter((s) => s.name.toLowerCase().includes(q)) : this.m.skills;
     },
+    treeList() {
+      const list = this.treeAll.slice(0, 200);
+      if (this.skill && !list.includes(this.skill) && !this.treeQuery) list.unshift(this.skill);
+      return list;
+    },
+    treeHidden() { return Math.max(0, this.treeAll.length - 200); },
+    readerCompareCopies() {
+      const hash = this.refCopy?.hash;
+      return hash ? this.skill.copies.filter((copy) => copy.hash && copy.hash !== hash) : [];
+    },
+    cmp() {
+      return this.readerCompareCopies.find((c) => this.bodyKey(c) === this.compareWith) || this.readerCompareCopies[0] || null;
+    },
+    refCopy() {
+      const s = this.skill;
+      if (!s) return null;
+      if (this.readCopyName === s.name && this.readCopyScope) {
+        return s.copies.find(c => c.scope === this.readCopyScope && c.path === this.readCopyPath) || null;
+      }
+      return s.ref.holders[0] || s.primary;
+    },
+    docHtml() {
+      const s = this.skill;
+      if (!s) return "";
+      const text = stripFrontmatter(this.bodyOf(this.refCopy));
+      let marks = new Set();
+      if (this.cmp && this.highlight && this.bodyReady(this.cmp)) {
+        const theirs = new Set(stripFrontmatter(this.bodyOf(this.cmp)).split("\n").map((l) => l.trim()));
+        marks = new Set(text.split("\n").map((l) => l.trim()).filter((l) => l && !theirs.has(l)));
+      }
+      return renderDoc(text, marks);
+    },
+    /* A copy this tool never reads (a link it refuses to follow, or a folder
+     * name it cannot address) is not "still loading": it is unreadable here,
+     * and the reader says why instead of waiting forever. */
+    docPending() {
+      const copy = this.refCopy;
+      return !!this.skill && this.bodyFetchable(copy) && !this.bodyReady(copy) && !this.bodyErrorOf(copy);
+    },
+    docWhy() {
+      const c = this.refCopy;
+      if (!c && this.readCopyName === this.skill?.name && this.readCopyScope) {
+        return { title: "Selected copy is no longer listed", text: "Refresh files or choose another copy from Exact instances.", missing: true };
+      }
+      if (!c || this.bodyFetchable(c)) return null;
+      const why = BROKEN_WHY[c.kind];
+      return why ? { title: why[0], text: why[1] } : { title: "Not readable here", text: "" };
+    },
+    docError() { return this.bodyErrorOf(this.refCopy); },
+    editable() { return !!this.skill && this.skill.copies.some((c) => c.state !== "broken" && !c.readOnly); },
+    canEdit() { return !!this.skill && this.editable && this.bodyFetchable(this.refCopy) && !(this.refCopy && this.refCopy.readOnly); },
+    editWhy() { const c = this.refCopy; if (c && c.readOnly) return this.readOnlyWhy(c); return this.docWhy ? `${this.docWhy.title}. ${this.docWhy.text}` : ""; },
+    editTargets() { return this.skill ? this.skill.copies.filter((c) => c.state !== "broken" && !c.readOnly) : []; },
+    editError() {
+      if (!this.edit) return "";
+      if (!this.edit.desc.trim()) return "Add a short description so agents know when to use this skill.";
+      if (this.edit.desc.length > 1024) return "Keep the description under 1024 characters.";
+      return "";
+    },
+    editDirty() { return !!this.edit && (this.edit.desc !== this.edit.baseDesc || this.edit.body !== this.edit.baseBody || JSON.stringify(this.edit.metadata)!==JSON.stringify(this.edit.baseMetadata)); },
+    shareTargets() {
+      if (!this.skill || !this.m) return [];
+      const have = new Set(this.skill.copies.map((c) => c.scope));
+      return this.m.agents.filter((a) => !a.library && a.writable && !have.has(a.id));
+    },
+    lengthPct() {
+      const c = this.skill && this.skill.primary;
+      const a = c && this.agentOf(c.scope);
+      return a && a.limit ? Math.round((this.skill.tokens / a.limit) * 1000) / 10 : 0;
+    },
+    brokenText() { const b = this.skill && this.skill.broken[0]; return b ? (BROKEN_WHY[b.kind] || BROKEN_WHY.invalid)[1] : ""; },
+    brokenAction() { const p = this.m && this.skill ? this.m.problems.find((x) => x.id === "bad:" + this.skill.name) : null; return p ? p.action : "Show me how"; },
+    matchLabel() {
+      const n = this.skill ? this.skill.differing.length : 0;
+      return n === 1 ? `Make ${this.agentOf(this.skill.differing[0].scope).name}'s copy match` : `Make ${n} copies match`;
+    },
+    mapStates() { return MAP_STATES; },
+    mapSkills() {
+      if (!this.m) return [];
+      const query = this.mapQuery.trim().toLowerCase();
+      const scopes = new Set(this.agentInfos.map((inf) => inf.id));
+      return this.m.skills.filter((s) => s.status.key !== "note" && s.name.toLowerCase().includes(query) &&
+        (!this.mapReviewOnly || this.needsMapReview(s, scopes)));
+    },
+    mapPageIndex() { return Math.min(this.mapPage, Math.max(0, Math.ceil(this.mapSkills.length / CAP) - 1)); },
+    mapStart() { return this.mapPageIndex * CAP; },
+    mapEnd() { return Math.min(this.mapStart + CAP, this.mapSkills.length); },
+    mapRows() {
+      return this.mapSkills.slice(this.mapStart, this.mapEnd).map((skill) => ({
+        skill, cells: this.agentInfos.map((inf) => this.mapCell(skill, inf.id)),
+      }));
+    },
+    mapSel() {
+      const infos = this.agentInfos;
+      if (!infos.length) return null;
+      return infos.find((i) => i.id === this.mapSelId) || infos.find((i) => i.key === "bad") || infos.find((i) => i.key === "warn") || infos[0];
+    },
+    mapSelected() {
+      const inf = this.mapSel;
+      return inf ? inf.differing.slice(0, 12).filter((s) =>
+        this.mapPicked.includes(s.name) && this.mapSyncable(s, inf.id)) : [];
+    },
+    mapDetail() {
+      const skill = this.mapSkillName && this.m && this.m.byName.get(this.mapSkillName);
+      if (!skill || skill.status.key === "note" || !this.mapSel || this.mapSel.id !== this.mapSelId) return null;
+      const cell = this.mapCell(skill, this.mapSel.id);
+      return cell.state === "missing" ? null : { skill, ...cell };
+    },
+    mapComparePair() {
+      const skill = this.mapSel?.differing.slice(0, 12).find((s) => s.name === this.peek);
+      if (!skill || skill.ref.ambiguous) return null;
+      const { copy } = this.mapCell(skill, this.mapSel.id);
+      return copy && skill.ref.holders[0] ? [copy, skill.ref.holders[0]] : null;
+    },
+    mapComparisonEvidence() { return this.comparisonEvidence(this.mapComparePair); },
+    queue() {
+      if (!this.m) return [];
+      const all = this.m.problems.filter((p) => !this.dismissed.includes(p.id));
+      const rest = all.filter((p) => !this.skipped.includes(p.id));
+      const sk = this.skipped.map((id) => all.find((p) => p.id === id)).filter(Boolean);
+      const list = [...rest, ...sk];
+      const i = list.findIndex((p) => p.id === this.front);
+      if (i > 0) list.unshift(...list.splice(i, 1));
+      return list;
+    },
+    cur() { return this.queue[0] || null; },
+    curSkill() { return this.cur && this.cur.skill && this.m ? this.m.byName.get(this.cur.skill) : null; },
+    curSyncCopies() { return this.cur?.key === "warn" ? (this.curSkill?.copies || []) : []; },
+    curSyncSource() {
+      const sources = this.curSyncCopies.filter((c) => c.scope === this.srcChoice);
+      return sources.length === 1 && sources[0].hash ? sources[0] : null;
+    },
+    curSyncTargets() {
+      if (!this.curSyncSource) return [];
+      const counts = new Map();
+      for (const copy of this.curSyncCopies) counts.set(copy.scope, (counts.get(copy.scope) || 0) + 1);
+      return this.curSyncCopies.filter((c) => counts.get(c.scope) === 1 && !c.readOnly && this.agentOf(c.scope).writable &&
+        c.state !== "broken" && c.hash && c.hash !== this.curSyncSource.hash);
+    },
+    curSyncLabel() {
+      if (!this.curSyncSource) return "Choose a source copy";
+      if (!this.curSyncTargets.length) return "No writable targets";
+      const target = this.curSyncTargets.length === 1 ? this.agentOf(this.curSyncTargets[0].scope).name : `${this.curSyncTargets.length} copies`;
+      return `Sync ${target} from ${this.agentOf(this.curSyncSource.scope).name}`;
+    },
+    inboxComparePair() {
+      const target = this.curSyncTargets.find((c) => c.scope === this.inboxComparisonScope) || this.curSyncTargets[0];
+      return target && this.curSyncSource ? [target, this.curSyncSource] : null;
+    },
+    inboxComparisonEvidence() { return this.comparisonEvidence(this.inboxComparePair); },
+    curBig() {
+      if (!this.cur || this.cur.key !== "info" || !this.m) return [];
+      const inf = this.m.info(this.cur.agent);
+      return inf ? [...inf.on].sort((a, b) => b.tokens - a.tokens).slice(0, 4) : [];
+    },
+    themeLabel() { return { system: "follows your computer", light: "light", dark: "dark" }[this.theme]; },
+    themeIcon() { return PATHS[{ system: "auto", light: "sun", dark: "moon" }[this.theme]]; },
+    createTargets() { return this.m ? this.m.agents.filter((x) => x.writable) : []; },
+    formErrors() {
+      const f = this.dialog && this.dialog.form;
+      if (!f) return {};
+      const e = {};
+      const n = f.name.trim();
+      if (n && !validName(n)) e.name = "Use lowercase letters, numbers and single hyphens, up to 64 characters.";
+      else if (n && this.m && (this.m.byName.get(n) || { copies: [] }).copies.some((c) => c.scope === f.scope)) e.name = "A skill with this name already exists there.";
+      if (f.desc.length > 1024) e.desc = "Keep the description under 1024 characters.";
+      return e;
+    },
+    formInvalid() {
+      const f = this.dialog && this.dialog.form;
+      return !f || !f.name.trim() || !f.desc.trim() || !!this.formErrors.name || !!this.formErrors.desc;
+    },
+    progressBars() { return Math.min(this.done + this.queue.length, 12); },
   },
-
   watch: {
-    theme(v) {
-      this.applyThemePreference(v);
-      this.setupThemeListener();
-      localStorage.setItem("skillsmgr-theme", this.theme);
-    },
-    textSize(v) {
-      this.applyTextSize(v);
-      localStorage.setItem("skillsmgr-text-size", this.textSize);
-    },
-    locale(v) {
-      this.applyLocale(v);
-      localStorage.setItem("skillsmgr-locale", this.locale);
-    },
-    activeScope(v) {
-      localStorage.setItem("skillsmgr-scope", v);
-      this.selectedName = null;
-      this.selected = null;
-      this.selectedKeys = [];
-      this.mobileDetailOpen = false;
-      this.allSkills = [];
-      // BUG-4: a live query must keep filtering after the scope changes,
-      // otherwise the search box shows a term while the list shows every skill.
-      this.refreshList();
-      this.loadStatsTokens();
-      if (this.view === "quality") this.loadQualityHygiene();
-    },
-    libraryMode(v) {
-      localStorage.setItem("skillsmgr-library-mode", v);
-    },
-    browseMode(v) {
-      localStorage.setItem("skillsmgr-browse-mode", v);
-    },
-    budgetWindow(v) {
-      localStorage.setItem("skillsmgr-budget-window", v);
-      this.loadStatsTokens();
-    },
-    commandPaletteQuery() {
-      this.commandPaletteActiveIndex = 0;
-    },
-    filteredCommandPaletteCommands(commands) {
-      const max = commands.length - 1;
-      const next = max < 0 ? 0 : Math.min(this.commandPaletteActiveIndex, max);
-      if (next !== this.commandPaletteActiveIndex) this.commandPaletteActiveIndex = next;
-      this.$nextTick(() => this.scrollActiveCommandIntoView());
-    },
-    commandPaletteActiveIndex() {
-      this.$nextTick(() => this.scrollActiveCommandIntoView());
-    },
-    query(value, previous) {
-      clearTimeout(this.searchTimer);
-      if (value.trim() && !String(previous || '').trim() && this.view === "skills") this.searchRestore = this.skills.slice();
-      if (!value.trim() && this.searchRestore.length && this.view === "skills") this.skills = this.searchRestore.slice();
-      if (value.trim() && !["skills", "trash", "install", "recovery", "quality"].includes(this.view)) {
-        // Preserve focus in the persistent search field while making it a
-        // useful global entry point from Overview and auxiliary views.
-        this.view = "skills";
-        this.mobileDetailOpen = false;
-        this.compactControlsOpen = false;
-      }
-      this.searchTimer = setTimeout(() => this.applySearch(), 220);
-    },
-    activeModal(value) {
-      clearTimeout(this.modalFocusTimer);
-      if (value) {
-        this.modalFocusTimer = setTimeout(() => this.$nextTick(() => this.focusModal()), 0);
-      } else {
-        this.modalFocusTimer = setTimeout(() => {
-          if (this.commandPaletteTransfer) {
-            this.commandPaletteTransfer = false;
-            return;
-          }
-          this.restoreModalFocus();
-        }, 0);
-      }
-    },
+    libraryView(value) {try{localStorage.setItem("skillsmgr-v2-library-view",value);}catch(e){}},
+    density(value) {try{localStorage.setItem("skillsmgr-v2-density",value);}catch(e){}},
+    cur: { immediate: true, handler(c) { this.srcChoice = c && c.key === "warn" && this.m && this.m.byName.get(c.skill) ? (this.m.byName.get(c.skill).ref.ambiguous ? "" : (this.m.byName.get(c.skill).ref.holders[0] || {}).scope || "") : ""; if (c && c.key === "warn" && this.curSkill) this.ensureBodies(this.curSkill.copies); } },
+    "cur.id"() { this.inboxComparisonScope = ""; },
+    "route.name"() { this.compareWith = ""; this.leadOpen = false; this.loadSkillHistory(); this.primeBodies(); },
+    "route.page"(page) { if (page !== "map") this.mapOrigin = null; },
+    skill(s) { if (!s && this.edit) this.edit = null; if (s) this.ensureBodies(s.copies); },
+    mapQuery() { this.resetMapPage(); },
+    mapReviewOnly() { this.resetMapPage(); },
   },
-
-  mounted() {
-    this.applyThemePreference(this.theme);
-    this.applyTextSize(this.textSize);
-    this.applyLocale(this.locale);
-    this.prefersReducedMotion = this.readReducedMotion();
-    this.setupThemeListener();
-    document.addEventListener("keydown", this.onKeydown);
-    document.addEventListener("mousedown", this.onDocMousedown);
-      this.loadInitialData();
-  },
-
-  beforeUnmount() {
-    this.removeThemeListener();
-    document.removeEventListener("keydown", this.onKeydown);
-    document.removeEventListener("mousedown", this.onDocMousedown);
-  },
-
   methods: {
-    /* Bar geometry for the context-budget meter. These are methods, not
-     * computeds: they take a percentage and return a CSS width, so a computed
-     * would have to be a computed *returning a function*, and unwrapping that
-     * inside a template render is exactly where a reactive proxy leaks into
-     * arithmetic. */
-    scopePctOf(pct) {
-      const max = this.budgetAxisMax || 125;
-      const v = Number(pct) || 0;
-      return Math.max(0, Math.min(100, (v / max) * 100)).toFixed(2) + "%";
-    },
-    scopePctClass(pct) {
-      const v = Number(pct) || 0;
-      return v > 100 ? "pct-bad" : v > 70 ? "pct-warn" : "pct-ok";
-    },
-    /* The rail carries the scope's share of one context window, so the thing
-     * that decides whether an agent is silently truncated is visible from every
-     * screen rather than only the overview. */
-    scopeBudgetFor(id) {
-      return this.scopeBudgetRows.find((r) => r.id === id) || null;
-    },
-    scopePctFor(id) {
-      const row = this.scopeBudgetFor(id);
-      return row ? row.pctRounded + "%" : "";
-    },
-    renderMarkdown,
-    tokenPctClass,
-    tokenBarWidth,
-    formatCompat,
-    formatTools,
-    groupLogicalSkills,
-    deriveLogicalSkillIdentity,
-    observedIdentity,
+    enc: encodeURIComponent, plural, join, words, titleCase, shortPath, renderDoc,
+    fmt(n) {return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale).format(Number(n));},
+    /* The informative end of a long folder path ("…/.claude/skills"); the full
+     * path stays in the element's title. A leading ellipsis cut the useful part. */
+    shortPath(path) {const text=String(path||"");const parts=text.split(/[\\/]/).filter(Boolean);return text.length<=28||parts.length<=2?text:"…/"+parts.slice(-2).join("/");},
+    /* Sizes read in the unit a person would say: "12 KB", "3.9 MB". */
+    fmtSize(bytes) {const n=Number(bytes)||0;if(n<1024*1024)return this.fmt(Math.max(1,Math.round(n/1024)))+" KB";return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale,{maximumFractionDigits:1}).format(n/1048576)+" MB";},
+    fmtDate(value, timeStyle = "short") {const date=new Date(value);return Number.isNaN(date.getTime())?String(value||"Date unavailable"):Domain.dateFormatter(this.formatLocale==="system"?undefined:this.formatLocale,{dateStyle:"medium",timeStyle}).format(date);},
+    preferencesChanged() {this.theme=savedPreference("skillsmgr-theme",THEMES,"system");this.formatLocale=savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system");document.documentElement.dataset.textSize=savedPreference("skillsmgr-text-size",["standard","large"],"standard");this.applyTheme(); },
+    skillTags(name) {return (this.catalog.tags || {})[name] || [];},
+    openSource(record) { this.toolTarget=markRaw(record);location.hash="#/tools/source-update"; },
+    openSkillTool(tool) { if (this.refCopy) { this.toolTarget = markRaw(this.refCopy.record); location.hash = "#/tools/" + tool; } },
+    openConciseReview(handoff) { if(!handoff||!handoff.target||!handoff.reviewId)return;this.toolTarget=markRaw(handoff.target);this.sourceReviewHandoff={...handoff,target:this.toolTarget};location.hash="#/tools/source-update"; },
+    sourceReviewConsumed(reviewId) { if(this.sourceReviewHandoff&&this.sourceReviewHandoff.reviewId===reviewId)this.sourceReviewHandoff=null; },
+    inspectRecord(record) { this.query=record.name;this.filter="all";this.tagFilter="";this.agentFilter=record.scope||"all";this.libraryView="instances";location.hash="#/skills"; },
+    openRecord(record) {this.toolTarget=markRaw(record);this.readCopyPath=record.physical_path||record.path||"";this.readCopyScope=record.scope||"";this.readCopyName=record.name||"";location.hash="#/skill/"+encodeURIComponent(record.name);},
+    openCommands() {this.commandQuery="";this.commandActive=0;this.openDialog({title:"Go to a page, tool or action",commands:true,cancel:"Close"}); },
+    commandGroup(item) {return item.action?"Actions":!item.path.startsWith("#/tools/")?"Go to":item.path.startsWith("#/tools/ai-")?"AI assist":"Tools";},
+    commandKey(e) {const n=this.commandChoices.length;if(!n)return;if(e.key==="ArrowDown"){e.preventDefault();this.commandActive=(this.commandActive+1)%n;}else if(e.key==="ArrowUp"){e.preventDefault();this.commandActive=(this.commandActive-1+n)%n;}else if(e.key==="Enter"){e.preventDefault();this.commandGo(this.commandChoices[Math.min(this.commandActive,n-1)]);}
+      this.$nextTick(()=>{const row=document.getElementById("cmd-"+this.commandActive);if(row)row.scrollIntoView({block:"nearest"});});},
+    commandGo(item) {if(this.busy)return;const opener=this.opener;this.closeDialog();if(item.action==="create"){this.openCreate();this.opener=opener;}else if(item.action==="refresh")this.refresh();else location.hash=item.path;},
+    agentOf(id) { return (this.m && this.m.agent(id)) || { ...FALLBACK_AGENT, name: id || "Unknown" }; },
 
-    formatBytes(value) {
-      return formatBytes(value, this.resolvedLocale);
-    },
-
-    formatTokens(value) {
-      return formatTokens(value, this.resolvedLocale);
-    },
-
-    formatNumber(value, options = {}) {
-      if (value === null || value === undefined || value === "") return "—";
-      const numeric = typeof value === "number" ? value : Number(value);
-      if (!Number.isFinite(numeric)) return String(value);
+    /* ----- loading ----- */
+    async refresh() {
+      /* Overlapping refreshes (Refresh files, tab focus, Undo, tool changes)
+       * must not let an older, slower response overwrite a newer one. */
+      const gen = ++this.refreshGen;
+      this.loading = true; this.loadError = "";
       try {
-        return numberFormatter(this.resolvedLocale, options).format(numeric);
+        const [scopes, records, history] = await Promise.all([
+          api("/api/scopes"), api("/api/skills?scope=all&body=0"),
+          api("/api/history?limit=8").then(rows => ({rows, error: ""}),
+            e => ({rows: [], error: this.friendly(e.message)})),
+        ]);
+        if (gen !== this.refreshGen) return;
+        this.scopes=markRaw(scopes);this.records=markRaw(records);
+        this.m = markRaw(Model.build(records, scopes, { suggested: 100 }));
+        /* A reload produces fresh copies, so nothing is carried over from the
+         * previous list: a body is re-read only where a view needs one. */
+        this.bodies = {}; this.bodyInflight = {}; this.bodyErrors = {};
+        this.history = Array.isArray(history.rows) ? history.rows : history.rows?.history || [];
+        this.historyError = history.error;
+        this.loadTrash();
+        if (this.route.page === "recovery") this.loadAgentTrash();
+        this.loadCatalog();
+        this.primeBodies();
+        this.loadSkillHistory();
       } catch (e) {
-        return String(value);
-      }
+        if (gen === this.refreshGen) this.loadError = this.friendly(e.message || "The skills could not be read.");
+      } finally { if (gen === this.refreshGen) this.loading = false; }
     },
-
-    formatDate(value, options = {}) {
-      if (!value) return "—";
-      const date = value instanceof Date ? value : new Date(value);
-      if (Number.isNaN(date.getTime())) return String(value);
-      const dateOptions = { dateStyle: "medium", timeStyle: "short", ...options };
+    async loadSkillHistory() {
+      const gen = ++this.historyGen;
+      this.skillHistory = [];this.skillHistoryError="";
+      if (this.route.page !== "skill") return;
+      const name = this.route.name;
       try {
-        return dateFormatter(this.resolvedLocale, dateOptions).format(date);
-      } catch (e) {
-        return String(value);
+        const rows = await api("/api/history?limit=20&name=" + encodeURIComponent(name));
+        if (gen === this.historyGen) this.skillHistory = (Array.isArray(rows) ? rows : []).slice(0, 3);
+      } catch (e) { if (gen === this.historyGen) this.skillHistoryError=this.friendly(e.message); }
+    },
+    async loadCatalog() {
+      const gen = ++this.catalogGen;
+      try {
+        const catalog = await api("/api/catalog");
+        if (gen !== this.catalogGen) return;
+        this.catalog = catalog; this.catalogError = "";
+      } catch (e) { if (gen === this.catalogGen) this.catalogError = this.friendly(e.message); }
+    },
+
+    /* ----- documents (fetched only where a view needs one) -----
+     * The list request omits document bodies; this fetches one lazily. The
+     * cache key includes the observed content hash, so a changed document
+     * always refetches, and two callers asking for the same copy share one
+     * request. A body is never assumed loaded: `bodyLoaded` tells an empty
+     * document from one that has not been read yet. */
+    bodyKey(c) { return JSON.stringify([c?.scope, c?.name, c?.path, c?.hash]); },
+    /* `key in` goes through the reactive proxy's tracked `has` trap;
+     * Object.prototype.hasOwnProperty.call does not, so a computed that read
+     * it never re-ran when the body arrived (Edit stayed disabled). */
+    bodyReady(c) { if (!c) return false; return !!c.bodyLoaded || this.bodyKey(c) in this.bodies; },
+    bodyOf(c) { if (!c) return ""; if (c.bodyLoaded) return c.body || ""; const key = this.bodyKey(c); return key in this.bodies ? this.bodies[key] : ""; },
+    bodyErrorOf(c) { return c ? this.bodyErrors[this.bodyKey(c)] || "" : ""; },
+    applyBody(c, body) { c.body = body; c.bodyLoaded = true; this.bodyErrors[this.bodyKey(c)] = ""; },
+    /* The one predicate for "this tool can read this copy's document at all".
+     * A linked entry is deliberately not followed and a folder name that is
+     * not a valid skill name cannot be addressed, so neither is requested. */
+    bodyFetchable(c) {
+      return !!(c && c.name && c.scope && c.state !== "link" && (!c.record || c.record.addressable !== false));
+    },
+    /* A recursive scope can hold two instances of one name; a name-addressed
+     * read would then serve one document to both copies. The pair key is what
+     * those two share. */
+    bodyPairKey(c) { return `${c && c.scope ? c.scope : ""}\u0000${(c && c.name) || ""}`; },
+    modelCopies() { return this.m ? this.m.skills.reduce((all, s) => all.concat(s.copies), []) : []; },
+    /* (scope, name) → the copies the current model holds for that pair. The
+     * record's own `duplicated` state is not used: in the merged view it is
+     * raised for one skill held by several agents, which is ordinary and is
+     * still read exactly by name. */
+    bodyPairs(copies) {
+      const pairs = new Map();
+      const add = (c) => {
+        if (!c || !c.name || !c.scope) return;
+        const key = this.bodyPairKey(c);
+        const held = pairs.get(key);
+        if (!held) pairs.set(key, [c]); else if (held.indexOf(c) < 0) held.push(c);
+      };
+      const pool = this.modelCopies();
+      for (const c of (pool.length ? pool : (Array.isArray(copies) ? copies : [copies]))) add(c);
+      return pairs;
+    },
+    bodyDuplicated(c, pairs) {
+      const held = c && pairs ? pairs.get(this.bodyPairKey(c)) : null;
+      return !!(held && held.length > 1);
+    },
+    pairCopies(c) {
+      const mine = this.modelCopies().filter((x) => this.bodyPairKey(x) === this.bodyPairKey(c));
+      return mine.length ? mine : [c];
+    },
+    /* Rows from one scoped list read, keyed by the physical path that tells
+     * the copies apart. A name-addressed read cannot make that distinction. */
+    bodiesByPath(c, rows) {
+      const byPath = new Map();
+      for (const r of rows) {
+        if (!r || String(r.name) !== String(c.name)) continue;
+        if (r.scope && c.scope && String(r.scope) !== String(c.scope)) continue;
+        const path = r.physical_path || r.path || "";
+        if (path && typeof r.body === "string") byPath.set(path, r.body);
       }
+      return byPath;
     },
-
-    qualityStateLabel(record) {
-      // Reads the same seam the Overview counts and the Library badges read, so
-      // a state added to the vocabulary cannot appear here and be missing there.
-      switch (observedStateFor(record)) {
-        case "invalid": return "Invalid observed";
-        case "malformed": return "Malformed observed";
-        case "unaddressable": return "Unaddressable observed";
-        case "disabled": return "Disabled observed";
-        default: return "Observed; not a validation verdict";
+    duplicateBodyMap(c) {
+      const flightKey = "list\u0000" + this.bodyPairKey(c);
+      let request = this.bodyInflight[flightKey];
+      if (!request) {
+        request = api(`/api/skills?scope=${encodeURIComponent(c.scope)}&q=${encodeURIComponent(c.name)}`)
+          .then((rows) => this.bodiesByPath(c, Array.isArray(rows) ? rows : []));
+        this.bodyInflight[flightKey] = request;
+        request.then((byPath) => {
+          if (this.bodyInflight[flightKey] !== request) return;
+          for (const sibling of this.pairCopies(c)) {
+            const body = byPath.get(sibling.path);
+            if (typeof body === "string") this.applyBody(sibling, body);
+          }
+        }).catch(() => { /* the caller reports the failure next to its own view */ })
+          .finally(() => { if (this.bodyInflight[flightKey] === request) delete this.bodyInflight[flightKey]; });
       }
+      return request;
     },
-
-    inspectQualityInLibrary() {
-      const record = this.selected;
-      this.query = "";
-      this.filter = "";
-      this.tagFilter = "";
-      this.switchView("skills");
-      if (record) this.$nextTick(() => this.selectSkill(record));
-    },
-
-    identityItems(item) {
-      if (!item) return [];
-      return this.libraryMode === "library"
-        ? (item.identities || [])
-        : [observedIdentity(item, this.scopes)];
-    },
-
-    /* Identities grouped by observed state, problems first.
-     *
-     * A logical skill can exist in seven scopes. Printing one chip per scope
-     * made each row three or four lines tall, so a 638-row list showed about
-     * eleven entries per screen and could not be scanned. Grouping keeps the
-     * list to at most a couple of lines and — more to the point — puts the
-     * disagreement first. This tool exists to answer "which of my agents are
-     * reading different instructions?", and this is the row that answers it:
-     * the scopes that agree are one line, the ones that do not are their own
-     * line above them.
-     *
-     * This is presentation only. It groups values the seam already returned
-     * and asserts nothing the backend did not report.
-     */
-    cachedRowMeta(item) {
-      const meta = item ? this.libraryRowMeta : null;
-      return meta && typeof meta.get === "function" ? meta.get(toRaw(item)) || null : null;
-    },
-
-    groupedIdentities(item) {
-      const hit = this.cachedRowMeta(item);
-      return hit ? hit.groups : this.computeGroupedIdentities(item);
-    },
-
-    computeGroupedIdentities(item) {
-      const items = this.identityItems(item);
-      if (!items.length) return [];
-      const groups = new Map();
-      const order = [];
-      for (const it of items) {
-        const key = (it.stateKeys || []).join(",");
-        if (!groups.has(key)) {
-          groups.set(key, {
-            key,
-            stateLabel: it.stateLabel,
-            problem: !!it.problem,
-            names: [],
-            full: [],
+    namedBody(c) {
+      const key = this.bodyKey(c);
+      let request = this.bodyInflight[key];
+      if (!request) {
+        request = api(`/api/skills/${encodeURIComponent(c.name)}?scope=${encodeURIComponent(c.scope)}`)
+          .then((record) => {
+            const path = record?.physical_path || record?.path;
+            if (path && c.path && path !== c.path) throw new Error("The copy moved. Refresh files to find its current folder.");
+            if (record?.decode_error || typeof record?.body !== "string") throw new Error("The document could not be read.");
+            return record.body;
           });
-          order.push(key);
+        this.bodyInflight[key] = request;
+        request.then((body) => {
+          if (this.bodyInflight[key] === request) { this.bodies[key] = body; delete this.bodyErrors[key]; }
+        })
+          .catch(() => { /* the caller reports the failure next to its own view */ })
+          .finally(() => { if (this.bodyInflight[key] === request) delete this.bodyInflight[key]; });
+      }
+      return request;
+    },
+    async ensureBodies(copies) {
+      const list = (Array.isArray(copies) ? copies : [copies]).filter((c) => c && !c.bodyLoaded && this.bodyFetchable(c));
+      if (!list.length) return;
+      const cache = this.bodies;
+      const pairs = this.bodyPairs(list);
+      await Promise.all(list.map(async (c) => {
+        const key = this.bodyKey(c);
+        try {
+          const body = this.bodyDuplicated(c, pairs) ? (await this.duplicateBodyMap(c)).get(c.path) : await this.namedBody(c);
+          if (typeof body !== "string") throw new Error("This copy could not be matched to a single document.");
+          if (cache === this.bodies) this.applyBody(c, body);
+        } catch (e) {
+          if (cache === this.bodies) this.bodyErrors[key] = this.friendly(e?.message || "The document could not be read.");
         }
-        const group = groups.get(key);
-        group.names.push(it.scopeLabel || it.label);
-        group.full.push(it.label);
+      }));
+    },
+    primeBodies() {
+      if (!this.m) return;
+      const page = this.route && this.route.page;
+      if (page === "skill" && this.skill) return this.ensureBodies(this.skill.copies);
+      if (page === "inbox" && this.curSkill) return this.ensureBodies(this.curSkill.copies);
+      if (page === "map") return this.ensureBodies(this.mapComparePair);
+      return undefined;
+    },
+    comparisonEvidence(pair) {
+      if (!pair) return null;
+      const copies = pair.map((copy) => ({
+        scope: this.agentOf(copy.scope).name,
+        path: copy.path,
+        error: this.bodyErrorOf(copy),
+      }));
+      const preview = pair.every((copy) => this.bodyReady(copy))
+        ? documentPreview(this.bodyOf(pair[0]), this.bodyOf(pair[1])) : null;
+      return { copies, preview };
+    },
+    async retryDocument() {
+      const copy = this.refCopy;
+      await this.ensureBodies(copy);
+      if (this.refCopy === copy && this.bodyReady(copy)) this.$refs.readerIdentity?.focus();
+    },
+
+    /* ----- search / filter ----- */
+    /* The Skills page filter: typing filters the shelf in place. */
+    searchInput(v) { this.query = v; this.extra = {}; },
+    /* The header search never navigates while you type. It lists up to six
+     * name matches under the field; Enter opens the highlighted match, or the
+     * Skills page filtered by the text when nothing is highlighted. */
+    headerInput(v) { this.gq = v; this.gqOpen = !!v.trim(); this.gqActive = -1; },
+    headerKey(e) {
+      const n = this.gqMatches.length;
+      if (e.key === "ArrowDown" && n) { e.preventDefault(); this.gqOpen = true; this.gqActive = (this.gqActive + 1) % n; }
+      else if (e.key === "ArrowUp" && n) { e.preventDefault(); this.gqOpen = true; this.gqActive = this.gqActive <= 0 ? n - 1 : this.gqActive - 1; }
+      else if (e.key === "Escape" && this.gqOpen) { e.preventDefault(); e.stopPropagation(); this.gqOpen = false; this.gqActive = -1; }
+      else if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); this.searchSubmit(); }
+    },
+    headerOpen(name) { this.gqOpen = false; this.gq = ""; location.hash = "#/skill/" + encodeURIComponent(name); },
+    searchSubmit() {
+      if (this.gqOpen && this.gqActive >= 0 && this.gqMatches[this.gqActive]) { this.headerOpen(this.gqMatches[this.gqActive].name); return; }
+      this.headerShowAll();
+    },
+    headerShowAll() {
+      this.query = this.gq; this.extra = {}; this.headerInput("");
+      if (this.route.page !== "skills") location.hash = "#/skills";
+      else this.$nextTick(() => document.getElementById("q")?.focus());
+    },
+    headerBlur() { setTimeout(() => { if (!this.$refs.gsearchForm || !this.$refs.gsearchForm.contains(document.activeElement)) this.gqOpen = false; }, 120); },
+    capReset() { this.extra = {}; },
+    showMore(id) { this.extra = { ...this.extra, [id]: (this.extra[id] || 0) + 96 }; },
+    clearFilters() { this.query = ""; this.filter = "all"; this.agentFilter = "all"; this.tagFilter="";this.extra = {}; this.$nextTick(() => { const q = document.getElementById("q"); if (q) q.focus(); }); },
+    pickAgent(id, query = "") { this.agentFilter = id; this.filter = "all"; this.query = query; this.extra = {}; },
+    findInMap() { this.mapQuery = this.query.trim(); location.hash = "#/map"; },
+    skipToContent() { const h = document.getElementById("h1") || this.$refs.main; if (h) h.focus(); },
+    focusH1() { this.$nextTick(() => { const h = document.getElementById("h1"); if (h) h.focus({ preventScroll: true }); }); },
+
+    /* ----- toasts & dialogs ----- */
+    friendly(msg) {
+      let s = String(msg || "Something went wrong.");
+      if (/invalid archive|not a gzip|ReadError|zipfile/i.test(s)) return "That file is not a backup archive. Choose a .tar.gz, .tar or .zip file made by Skills Manager.";
+      if (/not valid UTF-8/i.test(s)) return "One of the copies is not saved as UTF-8 text. Keep a copy of the original file, then open it in a text editor and save it as UTF-8 before editing it here.";
+      if (/traceback|(?:UnicodeDecode|Recursion|Permission|FileNotFound|Operational)Error|\[Errno \d+\]/i.test(s)) return "The operation could not be completed. Refresh and try again; check that the skill files are readable and writable.";
+      return s.replace(/(?:\/[^\s'":]+)+\/([^\s'":/]+)/g, "$1").replace(/\s*\(byte 0x[0-9a-f]+ at offset \d+\)/i, "");
+    },
+    toast(text, opts = {}) {
+      if (opts.err) text = this.friendly(text);
+      const t = { id: ++this.toastSeq, text, err: !!opts.err, undo: opts.undo || null, onUndo: opts.onUndo || null, undoText: opts.undoText || "Undone" };
+      this.toasts.push(t); this.live = text + (t.undo ? " Undo is available." : "");
+      this.armToast(t, t.undo ? 20000 : (t.err ? 7000 : 4000));
+    },
+    /* WCAG 2.2.1: a toast with an action never times out while the reader is
+     * on it; it waits until focus and pointer leave, then gets its time again. */
+    armToast(t, ms) {
+      clearTimeout(t.timer);
+      t.ms = ms;
+      t.timer = setTimeout(() => { if (!t.held) this.toasts = this.toasts.filter((x) => x.id !== t.id); }, ms);
+    },
+    holdToast(t, held) {
+      t.held = held;
+      if (!held) this.armToast(t, Math.max(t.ms || 4000, 6000));
+    },
+    async runUndo(t) {
+      this.toasts = this.toasts.filter((x) => x.id !== t.id);
+      this.busy = true;
+      try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast(t.undoText); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
+    },
+    openDialog(d) { this.opener = document.activeElement; this.dialog = { cancel: "Cancel", ...d }; this.$nextTick(() => { const d = this.$refs.dlg; const b = d && (d.querySelector("input:not(.sr-only), select, textarea") || d.querySelector("button:not(.sr-only)")); if (b) b.focus(); }); },
+    closeDialog() { if(this.busy)return;if(this.dialog?.aiEdit)this.retireAiEdit(this.dialog.aiEdit.result);this.dialog = null; this.$nextTick(() => { if (this.opener && this.opener.isConnected) this.opener.focus(); }); },
+    async confirmDialog() {
+      if(this.busy || this.dialog?.templateLoading)return;
+      if (this.dialog && this.dialog.form && this.formInvalid) {
+        const f = this.dialog.form;
+        this.live = this.formErrors.name || this.formErrors.desc || (!f.name.trim() ? "Add a name." : "Add a description.");
+        return;
       }
-      return order
-        .map((key) => groups.get(key))
-        .sort((a, b) => Number(b.problem) - Number(a.problem) || a.stateLabel.localeCompare(b.stateLabel));
+      const d = this.dialog;
+      if (d?.recovery) return this.restoreAgentTrash(d.recovery);
+      if (!d?.form) this.dialog = null;
+      if (d?.onConfirm) await d.onConfirm(d);
+      this.$nextTick(() => { if (!this.dialog && this.opener && this.opener.isConnected) this.opener.focus(); });
     },
-
-    setLibraryMode(mode) {
-      this.libraryMode = mode === "instances" ? "instances" : "library";
-    },
-
-    setBrowseMode(mode) {
-      this.browseMode = mode === "grid" ? "grid" : "list";
-    },
-
-    selectLogicalSkill(group) {
-      if (group && group.primary) this.selectSkill(group.primary);
-    },
-
-    targetKey(record) {
-      return (record.scope || "") + "/" + record.name + "|" + (record.physical_path || record.path || "");
-    },
-
-    isSelected(record) {
-      const keys = this.selectedKeySet;
-      const key = this.targetKey(record);
-      return keys instanceof Set ? keys.has(key) : this.selectedKeys.includes(key);
-    },
-
-    groupSelectionState(group) {
-      const instances = group.instances || [];
-      const count = instances.filter((record) => this.isSelected(record)).length;
-      return count === 0 ? "none" : (count === instances.length ? "all" : "some");
-    },
-
-    groupTags(group) {
-      return [...new Set((group.instances || []).flatMap((instance) => instance.tags || []))];
-    },
-
-    /* The row badge row is omitted entirely when it would be empty, so a list
-     * without tags or multi-copy groups does not reserve a blank grid track. */
-    rowBadgeItems(s) {
-      const hit = this.cachedRowMeta(s);
-      return hit ? hit.badges : this.computeRowBadgeItems(s);
-    },
-
-    computeRowBadgeItems(s) {
-      if (!s) return [];
-      if (this.libraryMode === "library") {
-        const tags = this.groupTags(s);
-        return (s.instanceCount > 1 ? [{ key: "copies", text: s.instanceCount + " copies", scope: true }] : [])
-          .concat(tags.map((tag) => ({ key: "tag:" + tag, text: "#" + tag })));
-      }
-      const tags = s.tags || [];
-      return (s.category ? [{ key: "category", text: s.category }] : [])
-        .concat(tags.map((tag) => ({ key: "tag:" + tag, text: "#" + tag })));
-    },
-
-    profileTargets() {
-      const seen = new Set();
-      const targets = [];
-      for (const member of (this.profilePreview && this.profilePreview.members || [])) {
-        for (const instance of (member.instances || [])) {
-          const target = {
-            name: member.name,
-            scope: instance.scope,
-            path: instance.path || instance.physical_path || "",
-          };
-          const key = (target.name || "") + "|" + (target.scope || "") + "|" + target.path;
-          if (!target.name || !target.scope || seen.has(key)) continue;
-          seen.add(key);
-          targets.push(target);
-        }
-      }
-      return targets;
-    },
-
-    toggleSelection(record, checked) {
-      const instances = record.instances || [record];
-      const keys = new Set(this.selectedKeys);
-      for (const instance of instances) {
-        const key = this.targetKey(instance);
-        if (checked) keys.add(key); else keys.delete(key);
-      }
-      this.selectedKeys = [...keys];
-    },
-
-    toggleSelectAll() {
-      const keys = new Set(this.selectedKeys);
-      if (this.allVisibleSelected) this.visibleTargetKeys.forEach((key) => keys.delete(key));
-      else this.visibleTargetKeys.forEach((key) => keys.add(key));
-      this.selectedKeys = [...keys];
-    },
-
-    skipOnboarding() {
-      this.onboardingDismissed = true;
-    },
-
-    dismissFirstScanGuide() {
-      this.firstScanGuideDismissed = true;
-    },
-
-    restartFirstScanGuide() {
-      this.firstScanGuideDismissed = false;
-      this.view = "overview";
-      this.$nextTick(() => {
-        const heading = document.querySelector("#first-scan-title");
-        if (heading) heading.focus();
-      });
-    },
-
-    async runGuideExplain() {
-      const request = ++this.guideExplainRequest;
-      this.guideExplainLoading = true;
-      this.guideExplainError = null;
-      this.guideExplainResult = null;
-      try {
-        const report = await api("/api/doctor?explain=" + encodeURIComponent(this.guideExplainConsumer));
-        if (request === this.guideExplainRequest) this.guideExplainResult = report.explain || null;
-      } catch (e) {
-        if (request === this.guideExplainRequest) this.guideExplainError = "Effective-resolution evidence is unavailable. Open Quality or retry the read-only explanation.";
-      } finally {
-        if (request === this.guideExplainRequest) this.guideExplainLoading = false;
-      }
-    },
-
-    openGuideLibrary() {
-      const record = this.guideSampleRecord;
-      if (record) this.openOverviewSkill({ primary: record });
-      else this.switchView("skills");
-    },
-
-    openGuidePreviewTarget() {
-      const record = this.guidePreviewRecord;
-      if (record) this.openOverviewSkill({ primary: record });
-    },
-
-    restartOnboarding() {
-      this.onboardingDismissed = false;
-      this.view = "skills";
-      this.activeScope = "all";
-    },
-
-    modalElement() {
-      return this.activeModal ? document.querySelector('[data-modal="' + this.activeModal + '"] .modal') : null;
-    },
-
-    focusableInModal() {
-      const modal = this.modalElement();
-      if (!modal) return [];
-      return [...modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')]
-        .filter((el) => !el.closest('[hidden], [inert]') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
-    },
-
-    focusModal() {
-      const modal = this.modalElement();
-      if (!modal) return;
-      const focusables = this.focusableInModal();
-      const preferred = focusables.find((el) => el.matches('button.btn-secondary, input:not([readonly]), textarea, select'));
-      (preferred || focusables[0] || modal).focus();
-    },
-
-    trapModalFocus(e) {
-      if (!this.activeModal) return;
-      const focusables = this.focusableInModal();
-      if (!focusables.length || e.key !== 'Tab') return;
-      const first = focusables[0], last = focusables[focusables.length - 1];
+    dialogKeys(e) {
+      if (e.key === "Escape") { e.stopPropagation(); this.closeDialog(); return; }
+      if (e.key !== "Tab") return;
+      const f = [...this.$refs.dlg.querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], summary")].filter(el=>el.tabIndex!==-1&&el.offsetParent!==null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     },
 
-    restoreModalFocus() {
-      const target = this.modalRestoreFocus;
-      this.modalRestoreFocus = null;
-      if (target && typeof target.focus === 'function' && document.contains(target)) {
-        target.focus();
-        return;
+    /* ----- writes (every one goes through the existing REST routes) ----- */
+    async snapshotIds(name, scope) {
+      const r = await api(`/api/history?name=${encodeURIComponent(name)}&scope=${encodeURIComponent(scope)}&snapshots=1`);
+      if (!r || !Array.isArray(r.snapshots)) throw new Error("Recovery snapshots could not be read. Refresh and try again.");
+      return r.snapshots;
+    },
+    /* Copy `from` over each target. The previous text of each target is
+     * snapshotted by the backend, which is what makes Undo possible. */
+    async doSync(name, from, tos) {
+      const before = {}, prior = {};
+      for (const t of tos) {
+        before[t] = new Set(await this.snapshotIds(name, t));
+        prior[t] = await api(`/api/skills/${encodeURIComponent(name)}?scope=${encodeURIComponent(t)}`).catch(() => null);
       }
-      // Menu items disappear when the actions menu closes before its modal
-      // opens. Return keyboard users to the stable actions trigger instead.
-      const trigger = document.querySelector('[aria-label="Open actions menu"]');
-      if (trigger) trigger.focus();
-    },
-
-    /* ----------------------------------------------------------- data */
-
-    async loadScopes() {
-      try {
-        this.scopes = await api("/api/scopes");
-        this.scopeScanFailed = false;
-      } catch (e) {
-        this.scopeScanFailed = true;
+      const res = await api("/api/sync", { method: "POST", body: JSON.stringify({ name, from_scope: from, to_scopes: tos, force: true }) });
+      const synced = res.synced || [];
+      const undo = []; let manualRecovery = false;
+      for (const t of synced) {
+        let after;
+        try { after = await this.snapshotIds(name, t); } catch (e) { manualRecovery = true; continue; }
+        const fresh = after.filter((id) => !before[t].has(id));
+        if (fresh.length === 1 && prior[t] && !prior[t].decode_error) undo.push([t, fresh[0], !!prior[t].disabled]);
+        else manualRecovery = true;
       }
+      return { synced, skipped: res.skipped || [], undo, manualRecovery,
+        replaced_to_trash: res.replaced_to_trash, retained_backup: res.retained_backup };
     },
-
-    async loadCatalog() {
+    async restoreSyncText(name, scope, snapshot, wasDisabled) {
+      const target = `/api/skills/${encodeURIComponent(name)}`;
+      const query = `?scope=${encodeURIComponent(scope)}`;
+      const current = await api(target + query), initiallyDisabled = !!current.disabled;
+      let restored = false;
       try {
-        this.catalog = await api("/api/catalog");
-        for (const record of this.skills) record.tags = this.catalog.tags[record.name] || record.tags || [];
-      } catch (e) { /* non-fatal: skills remain usable without organization metadata */ }
-    },
-
-    async loadInitialData() {
-      // Every source is requested at once and each loader paints its own part
-      // as soon as it lands, so the list never waits on stats. The order used
-      // to be three awaited stages; scopes, skills and stats each walk the
-      // same merged snapshot, and requesting them together lets the server
-      // share one in-flight scan instead of running three (~4.1 s to a full
-      // Overview on a 2,000-instance library, now one scan's worth).
-      await Promise.all([
-        this.loadScopes(), this.loadSkills(), this.loadTrash(),
-        this.loadOverviewHistory(), this.loadCatalog(), this.loadStatsTokens(),
-      ]);
-    },
-
-    updateTarget(record = this.selected) {
-      if (!record) return null;
-      return {
-        name: record.name,
-        scope: record.scope,
-        consumer: record.consumer || observedIdentity(record, this.scopes).consumerLabel,
-        physical_path: record.physical_path || record.path,
-        physical_root: record.physical_root,
-        disabled: !!record.disabled,
-        activation_state: record.disabled ? "disabled" : "active",
-      };
-    },
-
-    openUpdate() {
-      if (!this.updateTargetAvailable) {
-        this.toast("This exact skill instance is not addressable and writable.", "err");
-        return;
-      }
-      this.openModal("update", {
-        mode: "local", target: this.updateTarget(this.selected), files: [], review: null,
-        error: null, loading: false, confirmingClose: false, confirmed: false,
-        success: null, snapshotId: null,
-      });
-    },
-
-    updateReviewCanApply(modal = this.modals.update) {
-      return !!(modal && modal.review
-        && modal.review.review_state === "pending"
-        && modal.review.validation && modal.review.validation.valid !== false
-        && modal.review.comparison && (modal.review.comparison.changed_files || []).length
-        && modal.confirmed && !modal.loading);
-    },
-
-    async onUpdateFiles(event) {
-      const modal = this.modals.update;
-      if (!modal) return;
-      const files = [...((event && event.target && event.target.files) || [])];
-      modal.files = files;
-      modal.review = null;
-      modal.error = null;
-      modal.confirmed = false;
-      if (files.length) await this.prepareUpdateReview();
-    },
-
-    async prepareUpdateReview() {
-      const modal = this.modals.update;
-      if (!modal || !modal.files || !modal.files.length) return;
-      modal.loading = true;
-      modal.error = null;
-      modal.review = null;
-      modal.confirmed = false;
-      try {
-        const form = new FormData();
-        form.append("name", modal.target.name);
-        form.append("scope", modal.target.scope);
-        form.append("target_path", modal.target.physical_path);
-        for (const file of modal.files) {
-          form.append("files", file, file.webkitRelativePath || file.name);
-        }
-        modal.review = await api("/api/source-updates/reviews", { method: "POST", body: form });
-        this.toast(modal.review.review_state === "pending"
-          ? "Private update review ready. Inspect the evidence before applying."
-          : `Update review is ${modal.review.review_state}.`, modal.review.review_state === "pending" ? "info" : "err");
-      } catch (e) {
-        modal.error = e.message;
-        this.toast("Could not prepare update review: " + e.message, "err");
+        if (initiallyDisabled) await api(target + "/enable" + query, { method: "POST" });
+        await api(`/api/trash/${encodeURIComponent(name)}?snapshot=${encodeURIComponent(snapshot)}&scope=${encodeURIComponent(scope)}`, { method: "POST" });
+        restored = true;
       } finally {
-        if (this.modals.update === modal) modal.loading = false;
+        const disabled = restored ? wasDisabled : initiallyDisabled;
+        const latest = await api(target + query);
+        if (!!latest.disabled !== disabled) await api(target + (disabled ? "/disable" : "/enable") + query, { method: "POST" });
       }
     },
-
-    async prepareSnapshotReview(snapshot) {
-      const modal = this.modals.update;
-      if (!modal || !snapshot || !snapshot.snapshot_id) return;
-      modal.loading = true;
-      modal.error = null;
-      try {
-        modal.review = await api("/api/source-updates/reviews/from-snapshot", {
-          method: "POST",
-          body: JSON.stringify({ name: modal.target.name, scope: modal.target.scope,
-            target_path: modal.target.physical_path, snapshot_id: snapshot.snapshot_id }),
-        });
-        this.toast("Rollback review ready. Review the reverse diff before applying.", "info");
-      } catch (e) {
-        modal.error = e.message;
-        this.toast("Could not prepare rollback review: " + e.message, "err");
-      } finally {
-        if (this.modals.update === modal) modal.loading = false;
-      }
+    undoFor(name, entries) {
+      if (entries.some((e) => e.manualRecovery)) return null;
+      const list = entries.flatMap((e) => e.undo.map(([scope, snap, off]) => [e.name || name, scope, snap, off]));
+      if (!list.length) return null;
+      return async () => { for (const [n, scope, snap, off] of list) await this.restoreSyncText(n, scope, snap, off); };
+    },
+    skipText(skipped) { return skipped.length ? ` ${skipped.length} could not be changed: ${skipped.map((s) => this.friendly(s.reason)).slice(0, 2).join("; ")}.` : ""; },
+    /* A copy's observed token count is what its agent would spend on it; say so
+     * when a switch changes that, and stay silent when the count is unknown. */
+    tokenClause(tokens, turning) {
+      const n = Number(tokens) || 0;
+      if (n <= 0) return "";
+      // A sentence of its own: the toast already ends its first sentence with
+      // a full stop, and "Codex. — frees" read as a typo.
+      return turning === "off" ? ` That frees about ${this.fmt(n)} tokens of that agent's budget.` : ` It uses about ${this.fmt(n)} tokens.`;
     },
 
-    openRollbackReview(snapshot) {
-      if (!this.updateTargetAvailable || !snapshot || snapshot.available === false) {
-        this.toast("Select an exact writable target with an available snapshot first.", "err");
-        return;
-      }
-      const target = this.updateTarget(this.selected);
-      this.openModal("update", {
-        mode: "snapshot", snapshot, target, files: [], review: null, error: null,
-        loading: false, confirmingClose: false, confirmed: false, success: null, snapshotId: null,
-      });
-      this.prepareSnapshotReview(snapshot);
+    async syncDiffering() {
+      const s = this.skill;
+      if (!s || s.ref.ambiguous) return;
+      const from = s.ref.holders[0].scope;
+      await this.runSync(s.name, from, s.differing.filter((c) => !c.readOnly).map((c) => c.scope), `${s.name} now matches in`);
     },
-
-    async applyUpdateReview() {
-      const modal = this.modals.update;
-      if (!this.updateReviewCanApply(modal)) return;
-      modal.loading = true;
-      modal.error = null;
-      try {
-        const result = await api("/api/source-updates/reviews/" + encodeURIComponent(modal.review.review_id) + "/commit", {
-          method: "POST",
-          body: JSON.stringify({ name: modal.target.name, scope: modal.target.scope,
-            target_path: modal.target.physical_path, approve: true }),
-        });
-        modal.success = result;
-        modal.snapshotId = result.snapshot_id || null;
-        this.toast(`Update applied to ${modal.target.name}; recovery snapshot ${modal.snapshotId || "created"}.`, "ok");
-        await Promise.all([this.loadScopes(), this.loadSkills(), this.loadTrash(), this.loadRecoverySnapshots()]);
-      } catch (e) {
-        modal.error = e.message;
-        this.toast("Update was not applied: " + e.message, "err");
-      } finally {
-        if (this.modals.update === modal) modal.loading = false;
-      }
-    },
-
-    requestCloseUpdate() {
-      const modal = this.modals.update;
-      if (!modal) return;
-      if (modal.review && modal.review.review_state === "pending" && !modal.success) {
-        modal.confirmingClose = true;
-        return;
-      }
-      this.closeModal("update");
-    },
-
-    async cancelUpdateReview() {
-      const modal = this.modals.update;
-      if (!modal || !modal.review || !modal.review.review_id) {
-        this.closeModal("update");
-        return;
-      }
-      try {
-        await api("/api/source-updates/reviews/" + encodeURIComponent(modal.review.review_id), { method: "DELETE" });
-        this.toast("Pending update review cancelled.", "info");
-        this.closeModal("update");
-      } catch (e) {
-        modal.error = "Review cancellation failed: " + e.message;
-        this.toast(modal.error, "err");
-      }
-    },
-
-    async loadRecoverySnapshots() {
-      const target = this.updateTarget(this.selected);
-      if (!target || !this.updateTargetAvailable) {
-        this.recoverySnapshots = [];
-        return;
-      }
-      this.loadingRecoverySnapshots = true;
-      try {
-        const query = "?name=" + encodeURIComponent(target.name)
-          + "&scope=" + encodeURIComponent(target.scope)
-          + "&target_path=" + encodeURIComponent(target.physical_path);
-        const result = await api("/api/source-updates/snapshots" + query);
-        this.recoverySnapshots = Array.isArray(result) ? result : (result.snapshots || []);
-      } catch (e) {
-        this.recoverySnapshots = [];
-        this.toast("Could not load source snapshots: " + e.message, "err");
-      } finally {
-        this.loadingRecoverySnapshots = false;
-      }
-    },
-
-    async loadWorkspaces() {
-      this.loadingWorkspaces = true;
-      try {
-        const suffix = this.workspaceProject.trim() ? "?project=" + encodeURIComponent(this.workspaceProject.trim()) : "";
-        this.workspaces = await api("/api/workspaces" + suffix);
-      } catch (e) {
-        this.toast("Could not load workspace evidence: " + e.message, "err");
-      } finally {
-        this.loadingWorkspaces = false;
-      }
-    },
-
-    async loadStatsTokens() {
-      try {
-        const s = await api("/api/stats?window=" + encodeURIComponent(this.budgetWindow || "claude"));
-        this.budget = s;
-        this.dataDir = s.dirs && s.dirs.skills
-          ? s.dirs.skills.replace(/\/skills$/, "")
-          : "";
-      } catch (e) { /* non-fatal */ }
-    },
-
-    installPreview() {
-      if (this.install.mode === "registry") {
-        if (this.install.registryOp === "browse") return `skills.sh leaderboard (${this.install.view || "all-time"})`;
-        if (this.install.registryOp === "search") return `skills.sh search ${this.install.source || "<query>"}`;
-        if (this.install.registryOp === "curated") return "skills.sh curated catalog";
-        return `skills.sh fetch ${this.install.source || "<owner/repo/skill>"} → global store`;
-      }
-      const r = this.install.runner || "npx";
-      const src = (this.install.source || "").trim() || "owner/repo";
-      let cmd = r === "npx" ? `npx skills add ${src}` : r === "pnpm" ? `pnpm dlx skills add ${src}` : r === "yarn" ? `yarn dlx skills add ${src}` : `bunx skills add ${src}`;
-      if (this.install.scope === "global") cmd += " -g";
-      if (this.install.agents && this.install.agents.length) cmd += " " + this.install.agents.map((a) => `-a ${a}`).join(" ");
-      if (this.install.skillsFilter) cmd += ` -s ${this.install.skillsFilter}`;
-      if (this.install.copy) cmd += " --copy";
-      if (this.install.listOnly) cmd += " -l";
-      return cmd;
-    },
-
-    async runInstall(confirm) {
-      if (this.install.mode === "registry") {
-        if (confirm) return this.runRegistry();
-        this.toast(this.installPreview(), "info");
-        return;
-      }
-      if (!this.install.source || !this.install.source.trim()) { this.toast("Enter a source (e.g. vercel-labs/agent-skills).", "err"); return; }
-      if (this.install.runner === "uvx") { this.toast("uvx does not apply to the npm 'skills' package; use npx/pnpm/yarn/bunx.", "err"); return; }
-      if (!confirm) {
-        // Dry-run: the backend returns the offline bridge plan (blockers,
-        // audit links, trust evidence) without a registry request or a run.
-        this.busy = true;
-        try {
-          const payload = {
-            source: this.install.source.trim(),
-            runner: this.install.runner,
-            scope: this.install.scope || "global",
-            agents: this.install.agents && this.install.agents.length ? this.install.agents : undefined,
-            skills: this.install.skillsFilter ? [this.install.skillsFilter] : undefined,
-            copy: !!this.install.copy,
-            list_only: !!this.install.listOnly,
-            preview: true,
-          };
-          this.install.preview = await api("/api/install", { method: "POST", body: JSON.stringify(payload) });
-        } catch (e) {
-          this.install.preview = null;
-          this.toast(this.installPreview(), "info");
-        } finally {
-          this.busy = false;
-        }
-        return;
-      }
-      this.install.preview = null;
+    async runSync(name, from, tos, label, onUndo) {
+      if (this.busy) return null;
       this.busy = true;
       try {
-        const payload = {
-          source: this.install.source.trim(),
-          runner: this.install.runner,
-          scope: this.install.scope || "global",
-          agents: this.install.agents && this.install.agents.length ? this.install.agents : undefined,
-          skills: this.install.skillsFilter ? [this.install.skillsFilter] : undefined,
-          copy: !!this.install.copy,
-          list_only: !!this.install.listOnly,
-          run: true,
-        };
-        const res = await api("/api/install", { method: "POST", body: JSON.stringify(payload) });
-        this.install.lastResult = res;
-        if (res.exit_code === 0) {
-          this.toast(`Installed via ${res.runner}: ${res.source}`, "ok");
-          await this.loadScopes();
-          await this.loadSkills();
-        } else {
-          this.toast(`Install exited ${res.exit_code}: ${(res.stderr || res.stdout || "").slice(0, 200)}`, "err");
-        }
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
+        const r = await this.doSync(name, from, tos);
+        const undo = this.undoFor(name, [r]);
+        await this.refresh();
+        const message = r.synced.length ? `${label} ${join(r.synced.map((id) => this.agentOf(id).name))}.` : "Nothing was changed.";
+        this.toast(message + this.skipText(r.skipped) + Domain.syncRecoveryNotice([r]) +
+          (r.manualRecovery ? " Text Undo is unavailable. Check Recovery or your backup." : ""),
+        { err: !r.synced.length, undo: r.synced.length ? undo : null, onUndo,
+          undoText: "Undone. Text and on/off state restored. Supporting files are unchanged." });
+        return r.synced.length ? r : null;
+      } catch (e) { this.toast(e.message, { err: true }); return null; } finally { this.busy = false; }
     },
-
-    registryReady() {
-      return this.install.registryOp === "browse" || this.install.registryOp === "curated"
-        || !!(this.install.source && this.install.source.trim());
-    },
-
-    async runRegistry() {
-      if (!this.registryReady()) {
-        this.toast("Enter a registry query or skill id first.", "err");
-        return;
-      }
-      // A new request retires the prior review before its response arrives;
-      // the commit action can never be mistaken for the new form values.
-      this.install.review_id = null;
-      this.install.review = null;
-      this.install.lastResult = null;
+    /* A followed link (SCOPE-2) is read-only: it belongs to the agent whose
+     * folder it lives in, and a write here would land in that other copy. */
+    readOnlyWhy(c) { const from = c && c.linkFrom ? this.shortPath(c.linkFrom) : "another folder"; return `This is a link into ${from}; change it in that agent's copy.`; },
+    async toggleCopy(c) {
+      if (c && c.readOnly) { this.toast(this.readOnlyWhy(c), { err: true }); return; }
+      const name = this.skill.name, to = c.state === "on" ? "disable" : "enable";
+      const clause = this.tokenClause(c.tokens, to === "disable" ? "off" : "on");
       this.busy = true;
       try {
-        const op = this.install.registryOp;
-        const payload = {
-          browse: op === "browse" ? true : undefined,
-          search: op === "search" ? this.install.source.trim() : undefined,
-          curated: op === "curated" ? true : undefined,
-          fetch: op === "fetch" ? true : undefined,
-          source: op === "fetch" ? this.install.source.trim() : undefined,
-          page: Number(this.install.page) || 0,
-          per_page: Number(this.install.perPage) || 25,
-          view: this.install.view || "all-time",
-          allow_stale: !!this.install.allowStale,
-        };
-        const res = await api("/api/install", { method: "POST", body: JSON.stringify(payload) });
-        this.install.lastResult = res;
-        if (op === "fetch") {
-          this.install.review_id = res.review_id || null;
-          this.install.review = res.review_id ? res : null;
-          if (res.review_id) {
-            this.toast("Registry snapshot reviewed locally. Inspect the evidence before trusting it.", "info");
-          } else {
-            this.toast("Registry fetch returned no review id; nothing was installed.", "err");
-          }
-        } else {
-          this.toast(`Registry ${op} loaded (${(res.data || []).length} result groups).`, "ok");
-        }
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
+        await api(`/api/skills/${encodeURIComponent(name)}/${to}?scope=${encodeURIComponent(c.scope)}`, { method: "POST" });
+        await this.refresh();
+        const back = to === "disable" ? "enable" : "disable";
+        this.toast(`${name} turned ${to === "disable" ? "off" : "on"} in ${this.agentOf(c.scope).name}.${clause}`, { undo: async () => { await api(`/api/skills/${encodeURIComponent(name)}/${back}?scope=${encodeURIComponent(c.scope)}`, { method: "POST" }); } });
+      } catch (e) { this.toast(e.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
     },
-
-    async commitRegistryReview() {
-      const review = this.install.review;
-      if (!review || !review.review_id) { this.toast("Fetch a registry snapshot for review first.", "err"); return; }
-      this.busy = true;
+    async allOn() {
+      const s = this.skill; this.busy = true; const turned = [];
+      const gained = s.copies.filter((x) => x.state === "off" && !x.readOnly).reduce((n, x) => n + (Number(x.tokens) || 0), 0);
       try {
-        const res = await api("/api/install", {
-          method: "POST",
-          body: JSON.stringify({ fetch: true, review_id: review.review_id, trust_confirmed: true }),
-        });
-        this.install.lastResult = res;
-        this.install.review_id = null;
-        this.install.review = null;
-        this.toast(`Installed ${res.name} from the reviewed registry snapshot.`, "ok");
-        await this.loadScopes();
-        await this.loadSkills();
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
+        for (const c of s.copies.filter((x) => x.state === "off" && !x.readOnly)) { await api(`/api/skills/${encodeURIComponent(s.name)}/enable?scope=${encodeURIComponent(c.scope)}`, { method: "POST" }); turned.push(c.scope); }
+        await this.refresh();
+        const clause = gained > 0 ? ` That uses about ${this.fmt(gained)} tokens across ${plural(turned.length, "agent")}.` : "";
+        this.toast(`${s.name} turned on everywhere.${clause}`, { undo: async () => { for (const sc of turned) await api(`/api/skills/${encodeURIComponent(s.name)}/disable?scope=${encodeURIComponent(sc)}`, { method: "POST" }); } });
+      } catch (e) { this.toast(e.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
     },
-
-    async loadSkills() {
-      const mySeq = ++this.listSeq;
-      const scopeAtCall = this.activeScope || "all";
-      this.loadingList = true;
-      this.banner = null;
+    async turnOffIn(s, scope) {
+      this.busy = true; const name = s.name;
+      const c = s.copies.find((x) => x.scope === scope);
+      if (!c || c.readOnly) { this.busy = false; if (c) this.toast(this.readOnlyWhy(c), { err: true }); return; }
+      const clause = this.tokenClause(c && c.tokens, "off");
       try {
-        const s = scopeAtCall;
-        // body=0: the list never renders a document body (the detail pane
-        // reads it from /api/skills/<name>), and bodies were ~83% of this
-        // response -- 18.9 of 22.7 MB on a 2,061-instance library.
-        const rows = await api("/api/skills?scope=" + encodeURIComponent(s) + "&body=0");
-        if (mySeq !== this.listSeq || (this.activeScope || "all") !== scopeAtCall) return;
-        this.skills = rows;
-        this.allSkills = rows.slice();
-        if (this.query.trim() && this.view === "skills") this.applySearch();
-        if (this.selectedName) {
-          const still = this.skills.find((sk) => sk.name === this.selectedName && (s === "all" || sk.scope === s));
-          if (still) {
-            // The list already re-read the filesystem. Only re-read the detail
-            // when that row actually changed, so a navigation that refreshes
-            // the list does not also re-download the document body and its
-            // frontmatter for a skill the reader did not touch.
-            if (this.detailIsCurrent(still)) this.selected = { ...this.selected, ...this.detailObservations(still) };
-            else this.loadDetail(still.name, still.scope);
-          } else { this.selectedName = null; this.selected = null; }
-        }
-      } catch (e) {
-        if (mySeq !== this.listSeq) return;
-        this.banner = { type: "error", text: "Could not load skills: " + e.message };
-      } finally {
-        if (mySeq === this.listSeq) this.loadingList = false;
-      }
+        await api(`/api/skills/${encodeURIComponent(name)}/disable?scope=${encodeURIComponent(scope)}`, { method: "POST" });
+        await this.refresh();
+        this.toast(`${name} turned off in ${this.agentOf(scope).name}.${clause}`, { undo: async () => { await api(`/api/skills/${encodeURIComponent(name)}/enable?scope=${encodeURIComponent(scope)}`, { method: "POST" }); } });
+      } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
     },
-
-    /* Identity of the exact physical instance a detail belongs to. Two reads
-     * of an unchanged document produce the same signature, which is what lets
-     * a list refresh reuse the detail instead of re-fetching it. */
-    detailSignature(record) {
-      if (!record) return "";
-      return [
-        record.name, record.scope, record.physical_path || record.path || "",
-        record.content_hash || "", record.disabled ? "1" : "0",
-        record.malformed ? "1" : "0", record.addressable === false ? "0" : "1",
-      ].join("|");
+    fixSkillBad() {
+      const p = this.m.problems.find((x) => x.id === "bad:" + this.skill.name);
+      if (p) this.fixBad(p);
     },
-
-    detailIsCurrent(row) {
-      if (!this.selected || this.selected.name !== row.name) return false;
-      if ((this.selected.scope || null) !== (row.scope || null)) return false;
-      return this.detailSignature(this.selected) === this.detailSignature(row);
+    fixBad(p, undoHook) {
+      if (p.fixable) return this.runSync(p.skill, p.source, p.agents, `${p.skill} was replaced in`, undoHook);
+      const s = this.m.byName.get(p.skill);
+      this.openDialog({ title: p.title, lines: [p.text], how: p.how, paths: s.broken.map((c) => shortPath(c.path)), cancel: "Close" });
+      return null;
     },
-
-    /* List rows carry the observed fields the detail pane shows beside the
-     * document; the body and raw frontmatter stay from the last detail read. */
-    detailObservations(row) {
-      const carried = {};
-      for (const key of ["scope", "scope_label", "physical_root", "physical_path",
-        "root_availability", "addressable", "consumer", "disabled", "path",
-        "malformed", "decode_error", "content_hash", "tokens", "tokens_pct",
-        "description", "category", "license", "version", "updated_at", "provenance"]) {
-        if (row[key] != null) carried[key] = row[key];
-      }
-      return carried;
-    },
-
-    async loadQualityHygiene() {
-      const scopeAtCall = this.activeScope || "all";
-      this.qualityHygieneLoading = true;
-      this.qualityHygieneError = null;
-      try {
-        const report = await api("/api/doctor?scope=" + encodeURIComponent(scopeAtCall) + "&hygiene=1");
-        if ((this.activeScope || "all") !== scopeAtCall) return;
-        this.qualityHygiene = report.hygiene || null;
-        if (!this.qualityHygiene) this.qualityHygieneError = "The server returned no hygiene report.";
-        this.liveAnnouncement = "Skill hygiene evidence refreshed.";
-      } catch (e) {
-        this.qualityHygieneError = e.message;
-        this.liveAnnouncement = "Skill hygiene evidence could not be loaded.";
-      } finally {
-        this.qualityHygieneLoading = false;
-      }
-    },
-
-    async applySearch() {
-      const q = this.query.trim();
-      if (!q) {
-        // Restore the last complete scope immediately while the authoritative
-        // refresh settles. This keeps clearing search responsive even when a
-        // local scan takes longer than the debounce window.
-        if (this.allSkills.length) this.skills = this.allSkills.slice();
-        if (this.view === "skills") this.loadSkills();
-        return;
-      }
-      if (["install", "recovery", "quality"].includes(this.view)) return;
-      if (this.view !== "skills" && this.view !== "trash") {
-        this.view = "skills";
-        this.mobileDetailOpen = false;
-        this.compactControlsOpen = false;
-      }
-      if (this.view === "trash") return;
-      // The complete scope snapshot is already local, so filtering it here
-      // keeps search and reset deterministic while preserving the server API
-      // for clients that still use it directly.
-      const needle = q.toLowerCase();
-      const source = this.allSkills.length ? this.allSkills : this.skills;
-      this.skills = source.filter((record) => [record.name, record.description, record.category, ...(record.tags || [])]
-        .some((value) => String(value || "").toLowerCase().includes(needle)));
-      this.loadingList = false;
-    },
-
-    async loadTrash() {
-      this.loadingTrash = true;
-      try {
-        this.trashSkills = await api("/api/trash");
-      } catch (e) {
-        this.toast("Could not load trash: " + e.message, "err");
-      } finally {
-        this.loadingTrash = false;
-      }
-    },
-
-    async loadOverviewHistory() {
-      this.loadingHistory = true;
-      try {
-        this.overviewHistory = await api("/api/history?limit=8");
-      } catch (e) {
-        this.overviewHistory = [];
-      } finally {
-        this.loadingHistory = false;
-      }
-    },
-
-    async loadDetail(name, scope) {
-      const mySeq = ++this.detailSeq;
-      const sc = scope || (this.selected && this.selected.scope) || this.activeScope;
-      // When scope is "all", find the skill's scope from the list.
-      let effScope = sc;
-      if (!effScope || effScope === "all") {
-        const hit = this.skills.find((s) => s.name === name);
-        effScope = (hit && hit.scope) ? hit.scope : "global";
-      }
-      const qp = "?scope=" + encodeURIComponent(effScope);
-      this.loadingDetail = true;
-      try {
-        const record = await api("/api/skills/" + encodeURIComponent(name) + qp);
-        if (mySeq !== this.detailSeq) return;
-        try {
-          const text = await apiText("/api/skills/" + encodeURIComponent(name) + "/raw" + qp);
-          Object.assign(record, parseFrontmatter(text));
-        } catch (e) {
-          if (mySeq === this.detailSeq) {
-            this.toast("Could not load full metadata (compatibility may be missing).", "err");
-          }
-        }
-        if (mySeq !== this.detailSeq) return;
-        const observed = [...(this.skills || []), ...(this.allSkills || [])].find((item) =>
-          item && item.name === name && (!effScope || effScope === "all" || item.scope === effScope));
-        if (observed) {
-          for (const key of ["scope", "scope_label", "physical_root", "physical_path", "root_availability", "addressable", "consumer", "disabled", "path"]) {
-            if (record[key] == null && observed[key] != null) record[key] = observed[key];
-          }
-        }
-        this.selected = record;
-        this.selectedName = name;
-        if (this.view === "recovery") this.loadRecoverySnapshots();
-      } catch (e) {
-        if (mySeq !== this.detailSeq) return;
-        this.toast("Could not load skill: " + e.message, "err");
-        this.selected = null;
-      } finally {
-        if (mySeq === this.detailSeq) this.loadingDetail = false;
-      }
-    },
-
-    selectSkill(s) {
-      // BUG-3: the list keys rows by scope+name and the UI supports the same
-      // skill name in several scopes, so comparing the name alone made
-      // clicking another scope's copy a no-op that left the detail pane
-      // showing the first scope's record.
-      if (
-        this.selectedName === s.name
-        && this.selected
-        && this.selected.scope === (s.scope || null)
-      ) {
-        this.mobileDetailOpen = true;
-        return;
-      }
-      this.mobileReturnKey = (s.scope || "") + "/" + s.name;
-      this.mobileDetailOpen = true;
-      this.loadDetail(s.name, s.scope);
-    },
-
-    closeMobileDetail() {
-      this.mobileDetailOpen = false;
-      this.$nextTick(() => {
-        const row = [...document.querySelectorAll("[data-skill-key]")]
-          .find((el) => el.dataset.skillKey === this.mobileReturnKey);
-        if (row) row.focus();
+    openShare() {
+      if (!this.refCopy) return;
+      const s = this.skill, from = this.refCopy.scope;
+      this.openDialog({
+        title: `Add “${s.name}” to another agent`, lines: ["Choose where to copy it. The copy comes from " + this.agentOf(from).name + ". Whether it is on or off, and its supporting files, are copied too."],
+        picks: this.shareTargets.map((a) => ({ id: a.id, label: a.name, path: a.path })), chosen: this.shareTargets.length === 1 ? [this.shareTargets[0].id] : [], confirm: "Add",
+        onConfirm: (d) => this.runSync(s.name, from, d.chosen, `${s.name} was added to`),
       });
     },
-
-    closeMobileView() {
-      if (this.view === "quality" && this.selected) { this.showQualityReport(); return; }
-      this.mobileDetailOpen = false;
-      this.$nextTick(() => {
-        const label = this.view === "trash" ? "Trash" : this.view.charAt(0).toUpperCase() + this.view.slice(1);
-        const tab = [...document.querySelectorAll('.viewtabs button')]
-          .find((el) => (el.innerText || '').trim().startsWith(label));
-        if (tab) tab.focus();
-      });
-    },
-
-    selectTrash(t) {
-      this.selectedTrash = this.selectedTrash && this.selectedTrash.trash_path === t.trash_path ? null : t;
-      this.mobileReturnKey = "trash/" + (t && t.trash_path || "");
-      this.mobileDetailOpen = true;
-    },
-
-    /* Quality's per-skill panel replaces the hygiene report; this is the way
-     * back to it, without dropping the Library selection elsewhere. */
-    showQualityReport() {
-      this.selected = null;
-      this.selectedName = null;
-      this.mobileDetailOpen = false;
-      this.$nextTick(() => {
-        const heading = document.querySelector("#view-title");
-        if (heading) heading.focus();
-      });
-    },
-
-    switchView(v) {
-      if (v === "quality" && this.view === "quality" && this.selected) { this.showQualityReport(); return; }
-      this.view = v;
-      // Keep auxiliary lists visible on phones; a selected item can then move
-      // to its detail state and the explicit back action returns to that list.
-      this.mobileDetailOpen = false;
-      this.compactControlsOpen = false;
-      if (v === "trash" || v === "recovery") this.loadTrash();
-      if (v === "recovery") this.loadRecoverySnapshots();
-      else if (v === "install") this.loadSkills();
-      else if (v === "workspaces") this.loadWorkspaces();
-      else if (v === "quality") this.loadQualityHygiene();
-      // BUG-4: entering the skills view with a live query must re-apply it, or
-      // the list silently disagrees with the search box.
-      else if (v === "skills") this.refreshList();
-      if (v === "overview") this.loadOverviewHistory();
-      this.$nextTick(() => {
-        this.scrollActiveViewTab();
-        const heading = v === "skills"
-          ? document.querySelector("#library-view-title")
-          : document.querySelector("#view-title, #overview-title");
-        if (heading) heading.focus();
-      });
-    },
-
-    scrollActiveViewTab() {
-      if (typeof window === "undefined" || !window.matchMedia
-        || !window.matchMedia("(max-width: 760px)").matches) return;
-      const active = document.querySelector(".navigation-rail .viewtabs button.active");
-      if (active && typeof active.scrollIntoView === "function") {
-        active.scrollIntoView({ block: "nearest", inline: "center" });
-      }
-    },
-
-    openOverviewSkill(group) {
-      const record = group && (group.primary || (group.instances || [])[0]);
-      this.filter = "";
-      this.tagFilter = "";
-      this.query = "";
-      if (record) {
-        // Pin the requested identity before switchView refreshes the list. A
-        // stale selection here lets the refresh start a competing detail load
-        // for the skill that was selected before returning to Overview.
-        this.selectedName = record.name;
-        this.selected = null;
-        this.mobileReturnKey = (record.scope || "") + "/" + record.name;
-        this.mobileDetailOpen = true;
-      }
-      this.switchView("skills");
-      if (record) this.$nextTick(() => this.selectSkill(record));
-    },
-
-    openOverviewAttention(key) {
-      if (key === "recovery") {
-        this.switchView("recovery");
-        return;
-      }
-      if (key === "disabled") {
-        this.query = "";
-        this.tagFilter = "";
-        this.filter = "disabled";
-        // The filter changes the visible list; clear any prior detail so it
-        // cannot contradict the disabled-only result set.
-        this.selectedName = null;
-        this.selected = null;
-        this.switchView("skills");
-        return;
-      }
-      const group = key === "divergent"
-        ? this.overviewDivergentGroups[0]
-        : this.overviewLogicalSkills.find((item) => (item.instances || []).some((record) => {
-          // The same predicate that built the attention item, so the deep link
-          // cannot point at a group the queue did not count.
-          const observed = observeRecord(record);
-          return observed.malformedDocument || observed.notAddressable;
-        }));
-      this.openOverviewSkill(group);
-    },
-
-    /* Refresh the skills list, honouring an active search query (BUG-4). */
-    refreshList() {
-      if (this.query && this.query.trim() && this.view === "skills") {
-        return this.applySearch();
-      }
-      return this.loadSkills();
-    },
-
-    setFilter(f) {
-      this.filter = f;
-    },
-
-    setTagFilter(tag) {
-      this.tagFilter = tag || "";
-    },
-
-    qualityCategoryCount(category) {
-      return Number((this.qualityHygiene && this.qualityHygiene.category_counts || {})[category] || 0);
-    },
-
-    qualityFindingIsExpanded(id) {
-      return this.qualityExpandedFindings.includes(id);
-    },
-
-    toggleQualityFinding(id) {
-      const current = new Set(this.qualityExpandedFindings);
-      if (current.has(id)) current.delete(id); else current.add(id);
-      this.qualityExpandedFindings = [...current];
-    },
-
-    inspectHygieneInstance(instance, finding = null) {
-      const targetPath = instance && (instance.physical_path || instance.path);
-      const record = this.qualityRecords.find((item) => item.name === (instance && instance.name)
-        && item.scope === (instance && instance.scope)
-        && (!targetPath || (item.physical_path || item.path) === targetPath));
-      if (!record) {
-        this.toast("That exact observed instance is no longer in the current Library snapshot.", "err");
-        return;
-      }
-      this.query = "";
-      this.filter = "";
-      this.tagFilter = "";
-      this.selectedName = record.name;
-      this.selected = record;
-      this.switchView("skills");
-      this.$nextTick(() => {
-        // `record` is a list row, which carries no document body (the list is
-        // requested with body=0). selectSkill() would treat the pre-assigned
-        // row as already loaded and skip the read, so load the detail here.
-        this.mobileReturnKey = (record.scope || "") + "/" + record.name;
-        this.mobileDetailOpen = true;
-        this.loadDetail(record.name, record.scope);
-        if (finding && finding.category === "broken-reference") this.openValidate();
-      });
-    },
-
-    retryQualityHygiene() {
-      return this.loadQualityHygiene();
-    },
-
-    onSearchKeydown(e) {
-      // Keep the native select-all shortcut reliable for keyboard and browser
-      // automation users before a following Backspace/Delete clears the field.
-      // Some embedded Chromium contexts expose the shortcut without applying
-      // the selection to a type=search control.
-      if ((e.ctrlKey || e.metaKey) && String(e.key || "").toLowerCase() === "a") {
-        e.preventDefault();
-        e.target.select();
-      }
-    },
-
-    menuItems() {
-      if (!this.$refs.menuWrap) return [];
-      return [...this.$refs.menuWrap.querySelectorAll('[role="menuitem"]:not([disabled])')];
-    },
-
-    focusFirstMenuItem() {
-      const first = this.menuItems()[0];
-      if (first) first.focus();
-    },
-
-    toggleActionsMenu() {
-      if (this.menuOpen) {
-        this.closeActionsMenu(true);
-        return;
-      }
-      this.menuOpen = true;
-      this.$nextTick(() => this.focusFirstMenuItem());
-    },
-
-    closeActionsMenu(restoreFocus = false) {
-      this.menuOpen = false;
-      if (restoreFocus) {
-        const trigger = this.$refs.menuTrigger;
-        this.$nextTick(() => trigger && trigger.focus());
-      }
-    },
-
-    onMenuKeydown(e) {
-      const items = this.menuItems();
-      if (!items.length) return;
-      if (e.key === "Escape") {
-        e.preventDefault();
-        this.closeActionsMenu(true);
-        return;
-      }
-      const index = items.indexOf(document.activeElement);
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        const delta = e.key === "ArrowDown" ? 1 : -1;
-        items[(index + delta + items.length) % items.length].focus();
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        items[0].focus();
-      } else if (e.key === "End") {
-        e.preventDefault();
-        items[items.length - 1].focus();
-      }
-    },
-
-    clearSearch() {
-      this.query = "";
-      this.$nextTick(() => this.$refs.searchInput && this.$refs.searchInput.focus());
-    },
-
-    toggleCommandPalette(event) {
-      if (this.activeModal && this.activeModal !== "commands") return;
-      if (this.modals.commands) {
-        this.closeModal("commands");
-        return;
-      }
-      this.openCommandPalette(event && event.currentTarget);
-    },
-
-    openCommandPalette(opener = null) {
-      if (this.activeModal && this.activeModal !== "commands") return;
-      this.menuOpen = false;
-      this.commandPaletteQuery = "";
-      this.commandPaletteActiveIndex = 0;
-      this.openModal("commands", {});
-      if (opener && opener.matches && opener.matches(".command-trigger")) {
-        this.modalRestoreFocus = opener;
-      } else if (document.activeElement === document.body || document.activeElement === document.documentElement) {
-        this.modalRestoreFocus = document.querySelector(".command-trigger") || this.modalRestoreFocus;
-      }
-    },
-
-    scrollActiveCommandIntoView() {
-      const active = this.commandPaletteActiveCommand;
-      if (!active) return;
-      const option = document.getElementById("command-option-" + active.id);
-      if (option && typeof option.scrollIntoView === "function") option.scrollIntoView({ block: "nearest" });
-    },
-
-    moveCommandPaletteSelection(delta) {
-      const count = this.filteredCommandPaletteCommands.length;
-      if (!count) return;
-      this.commandPaletteActiveIndex = (this.commandPaletteActiveIndex + delta + count) % count;
-    },
-
-    onCommandPaletteKeydown(e) {
-      const commands = this.filteredCommandPaletteCommands;
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        this.moveCommandPaletteSelection(1);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        this.moveCommandPaletteSelection(-1);
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        this.commandPaletteActiveIndex = 0;
-      } else if (e.key === "End") {
-        e.preventDefault();
-        this.commandPaletteActiveIndex = Math.max(0, commands.length - 1);
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        this.executeCommand(this.commandPaletteActiveCommand);
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        this.closeModal("commands");
-      }
-    },
-
-    executeCommand(command) {
-      if (!command) return;
-      const available = this.filteredCommandPaletteCommands.find((item) => item.id === command.id);
-      if (!available) return;
-      const opener = this.modalRestoreFocus;
-      this.commandPaletteTransfer = !!available.focusDestination;
-      this.closeModal("commands");
-      this.$nextTick(() => {
-        // Let Vue remove Commands before invoking the destination. This keeps
-        // the destination opener distinct from the palette input and gives
-        // navigation commands a stable render to focus.
-        this.modalRestoreFocus = opener;
-        this.invokeCommand(available);
-        if (this.activeModal) {
-          // A newly opened dialog owns restoration now, but it must return to
-          // the original Commands trigger/opener when it closes.
-          this.modalRestoreFocus = opener;
-          this.commandPaletteTransfer = false;
-        }
-      });
-    },
-
-    invokeCommand(command) {
-      const fn = this[command.action];
-      if (typeof fn === "function") fn.apply(this, command.args || []);
-    },
-
-    refreshCommand() {
-      this.loadScopes();
-      this.loadSkills();
-      this.loadTrash();
-      this.loadCatalog();
-      this.loadStatsTokens();
-    },
-
-    removeSelected() {
-      if (this.selectedName && this.selected) this.confirmRemove(this.selected);
-    },
-
-    async updateBatchTags(operation) {
-      if (!this.selectedTargets.length) { this.toast("Select at least one skill instance.", "err"); return; }
-      const tags = this.batchTagInput.split(",").map((tag) => tag.trim()).filter(Boolean);
-      if (!tags.length) { this.toast("Enter at least one tag.", "err"); return; }
-      this.busy = true;
-      try {
-        this.catalog = await api("/api/catalog/tags", {
-          method: "POST",
-          body: JSON.stringify({ operation, names: [...new Set(this.selectedTargets.map((record) => record.name))], tags }),
-        });
-        this.selectedKeys = [];
-        this.batchTagInput = "";
-        await this.loadSkills();
-        this.toast("Tags updated for the selected logical skills.");
-      } catch (e) { this.toast(e.message, "err"); }
-      finally { this.busy = false; }
-    },
-
-    openBatch(operation, explicitTargets = null, context = null) {
-      // Every dialog returns focus to its opener (docs/08); batch did not.
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      const targets = (explicitTargets || this.selectedTargets).map((target) => Object.freeze({
-        name: target.name,
-        scope: target.scope,
-        path: target.path || target.physical_path || "",
-        physical_path: target.physical_path || target.path || "",
-      }));
-      if (!targets.length) { this.toast("Select at least one skill instance.", "err"); return; }
-      const writableScopes = (this.scopes || []).filter((scope) => scope.id !== this.activeScope && scope.writable);
-      this.modals.batch = { operation, targets: Object.freeze(targets.slice()), plan: null, context, toScopes: Object.fromEntries(writableScopes.map((scope) => [scope.id, true])), force: false };
-      this.prepareBatch();
-    },
-
-    async prepareBatch() {
-      const modal = this.modals.batch;
-      if (!modal) return;
-      if (modal.operation === "sync") {
-        const selectedScopes = Object.keys(modal.toScopes).filter((scope) => modal.toScopes[scope]);
-        modal.to_scopes = selectedScopes;
-      }
-      this.busy = true;
-      try {
-        modal.plan = await api("/api/batch/preview", {
-          method: "POST",
-          body: JSON.stringify({ operation: modal.operation, targets: modal.targets, to_scopes: modal.to_scopes || [], force: !!modal.force }),
-        });
-      } catch (e) { this.toast(e.message, "err"); }
-      finally { this.busy = false; }
-    },
-
-    async executeBatch() {
-      const modal = this.modals.batch;
-      if (!modal || !modal.plan || !modal.plan.plan_id || !modal.targets || !modal.targets.length) return;
-      this.busy = true;
-      try {
-        const result = await api("/api/batch/execute", {
-          method: "POST",
-          body: JSON.stringify({ operation: modal.operation, plan_id: modal.plan.plan_id, targets: modal.targets, to_scopes: modal.to_scopes || [], force: !!modal.force }),
-        });
-        const failed = (result.results || []).filter((item) => item.status === "failed").length;
-        this.closeModal("batch");
-        this.selectedKeys = [];
-        await this.loadScopes();
-        await this.loadSkills();
-        if (modal.context && modal.context.profileName) await this.previewProfile(modal.context.profileName);
-        this.toast(failed ? `Batch completed with ${failed} failure(s). See each item for details.` : `Batch ${modal.operation} completed for ${result.target_count} target(s).`, failed ? "err" : "ok");
-      } catch (e) { this.toast(e.message, "err"); }
-      finally { this.busy = false; }
-    },
-
-    async saveProfile() {
-      const form = this.profileForm;
-      if (!form.name.trim()) { this.toast("Profile name is required.", "err"); return; }
-      this.busy = true;
-      try {
-        this.catalog = await api("/api/catalog/profiles", {
-          method: "POST",
-          body: JSON.stringify({
-            name: form.name.trim(),
-            description: form.description.trim(),
-            skills: form.skills.split(",").map((name) => name.trim()).filter(Boolean),
-            targets: form.targets.split(",").map((target) => target.trim()).filter(Boolean),
-          }),
-        });
-        this.profileForm = { name: "", description: "", skills: "", targets: "" };
-        this.toast("Profile saved.");
-      } catch (e) { this.toast(e.message, "err"); }
-      finally { this.busy = false; }
-    },
-
-    async previewProfile(name) {
-      try { this.profilePreview = await api("/api/catalog/profiles/" + encodeURIComponent(name) + "/preview"); }
-      catch (e) { this.toast(e.message, "err"); }
-    },
-
-    openProfileBatch() {
-      const targets = this.profileTargets();
-      if (!targets.length) { this.toast("This profile has no observed physical instances to enable.", "err"); return; }
-      const unresolved = this.profileUnresolvedMembers;
-      this.openBatch("enable", targets, {
-        profileName: this.profilePreview && this.profilePreview.name,
-        unresolvedCount: unresolved.length,
-        unresolvedMembers: unresolved.map((member) => member.name),
-      });
-    },
-
-    async deleteProfile(name) {
-      this.busy = true;
-      try {
-        this.catalog = await api("/api/catalog/profiles/" + encodeURIComponent(name), { method: "DELETE" });
-        if (this.profilePreview && this.profilePreview.name === name) this.profilePreview = null;
-        this.toast("Profile deleted.");
-      } catch (e) { this.toast(e.message, "err"); }
-      finally { this.busy = false; }
-    },
-
-    /* ---------------------------------------------------------- helpers */
-
-    toast(text, type = "ok", undo = null) {
-      const id = ++this.toastSeq;
-      this.toasts.push({ id, text, type, undo });
-      this.liveAnnouncement = text;
-      setTimeout(() => {
-        this.toasts = this.toasts.filter((t) => t.id !== id);
-      }, undo ? 8000 : 4000);
-    },
-
-    async undoToast(t) {
-      this.toasts = this.toasts.filter((x) => x.id !== t.id);
-      try { await t.undo(); } catch (e) { this.toast("Undo failed: " + e.message, "err"); }
-    },
-
-    async copy(text) {
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch (e) {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-      }
-      this.toast("Path copied to clipboard.");
-    },
-
-    normalizeThemePreference(value) {
-      return ["light", "dark", "system"].includes(value) ? value : "system";
-    },
-
-    normalizeLocale(value) {
-      const supported = ["system", ...this.localeOptions.map((option) => option.value)];
-      return supported.includes(value) ? value : "system";
-    },
-
-    readSystemLocale() {
-      const browserLocale = (typeof navigator !== "undefined" && navigator.language)
-        || (typeof window !== "undefined" && window.navigator && window.navigator.language);
-      return browserLocale || "en-US";
-    },
-
-    applyLocale(value) {
-      const preference = this.normalizeLocale(value);
-      let resolved = preference === "system" ? this.readSystemLocale() : preference;
-      try {
-        new Intl.NumberFormat(resolved).format(1234);
-      } catch (e) {
-        resolved = "en-US";
-      }
-      this.resolvedLocale = resolved;
-      document.documentElement.dataset.locale = resolved;
-      document.documentElement.dataset.localePreference = preference;
-      // Keep the document language truthful until translated resources exist.
-      document.documentElement.lang = "en";
-    },
-
-    readSystemTheme() {
-      if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
-        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      }
-      return "light";
-    },
-
-    readReducedMotion() {
-      return typeof window !== "undefined"
-        && typeof window.matchMedia === "function"
-        && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    },
-
-    applyThemePreference(value) {
-      const preference = this.normalizeThemePreference(value);
-      const systemTheme = this.readSystemTheme();
-      const resolved = preference === "system" ? systemTheme : preference;
-      this.systemTheme = systemTheme;
-      this.resolvedTheme = resolved;
-      document.documentElement.dataset.theme = resolved;
-      document.documentElement.dataset.themePreference = preference;
-    },
-
-    setupThemeListener() {
-      this.removeThemeListener();
-      if (this.theme !== "system" || typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-      this.themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      this.themeMediaHandler = () => {
-        if (this.theme === "system") this.applyThemePreference("system");
-      };
-      if (typeof this.themeMediaQuery.addEventListener === "function") {
-        this.themeMediaQuery.addEventListener("change", this.themeMediaHandler);
-      } else if (typeof this.themeMediaQuery.addListener === "function") {
-        this.themeMediaQuery.addListener(this.themeMediaHandler);
-      }
-    },
-
-    removeThemeListener() {
-      if (!this.themeMediaQuery || !this.themeMediaHandler) {
-        this.themeMediaQuery = null;
-        this.themeMediaHandler = null;
-        return;
-      }
-      if (typeof this.themeMediaQuery.removeEventListener === "function") {
-        this.themeMediaQuery.removeEventListener("change", this.themeMediaHandler);
-      } else if (typeof this.themeMediaQuery.removeListener === "function") {
-        this.themeMediaQuery.removeListener(this.themeMediaHandler);
-      }
-      this.themeMediaQuery = null;
-      this.themeMediaHandler = null;
-    },
-
-    setThemePreference(value) {
-      this.theme = this.normalizeThemePreference(value);
-    },
-
-    applyTextSize(value) {
-      const mode = value === "large" ? "large" : "standard";
-      this.textSize = mode;
-      document.documentElement.dataset.textSize = mode;
-    },
-
-    toggleTheme() {
-      const next = this.theme === "system" ? "light" : (this.theme === "light" ? "dark" : "system");
-      this.setThemePreference(next);
-    },
-
-    closeModal(key) {
-      this.modals[key] = null;
-    },
-
-    openModal(key, value = {}) {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals[key] = value;
-      this.$nextTick(() => this.focusModal());
-    },
-
-    onKeydown(e) {
-      this.trapModalFocus(e);
-      const commandShortcut = (e.ctrlKey || e.metaKey) && String(e.key || "").toLowerCase() === "k";
-      if (commandShortcut && (!this.activeModal || this.activeModal === "commands")) {
-        e.preventDefault();
-        this.toggleCommandPalette();
-        return;
-      }
-      const tag = (e.target.tagName || "").toLowerCase();
-      const typing = ["input", "textarea", "select"].includes(tag) || e.target.isContentEditable;
-      if (e.key === "/" && !typing && !this.activeModal) {
-        e.preventDefault();
-        this.$refs.searchInput && this.$refs.searchInput.focus();
-      } else if (e.key === "?" && !typing && !this.activeModal) {
-        e.preventDefault();
-        this.openModal("help", {});
-      } else if (e.key === "Escape") {
-        if (this.menuOpen) this.closeActionsMenu(true);
-        else if (this.activeModal === "update") this.requestCloseUpdate();
-        else if (this.activeModal) this.closeModal(this.activeModal);
-      }
-    },
-
-    onDocMousedown(e) {
-      if (this.menuOpen && this.$refs.menuWrap && !this.$refs.menuWrap.contains(e.target)) {
-        this.menuOpen = false;
-      }
-    },
-
-    menuDo(action) {
-      this.menuOpen = false;
-      const trigger = this.$refs.menuTrigger;
-      if (trigger) trigger.focus();
-      const actions = {
-        create: this.openCreate,
-        add: this.openAdd,
-        edit: this.openEdit,
-        toggle: this.toggleSelected,
-        validate: this.openValidate,
-        remove: () => this.selectedName && this.confirmRemove(this.selected),
-        sync: this.openSync,
-        update: this.openUpdate,
-        install: this.openInstall,
-        help: () => this.openModal("help", {}),
-        import: this.openImport,
-        export: this.exportArchive,
-        fullExport: () => this.exportArchive(true),
-        templates: this.openTemplates,
-        newtemplate: this.openNewTemplate,
-        stats: this.openStats,
-        doctor: this.openDoctor,
-        history: this.openHistory,
-        rebuild: this.rebuildIndex,
-        resync: this.resyncIndex,
-        refresh: () => { this.loadScopes(); this.loadSkills(); this.loadTrash(); this.loadCatalog(); this.loadStatsTokens(); },
-      };
-      const fn = actions[action];
-      if (fn) fn.call(this);
-    },
-
-    openInstall() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.install = true;
-    },
-
-    /* ----------------------------------------------------- skill actions */
-
-    openCreate() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      const defScope = (this.activeScope && this.activeScope !== "all") ? this.activeScope : "global";
-      this.modals.skill = {
-        mode: "create",
-        form: { name: "", description: "", category: "", version: "", license: "", compatibility: "", allowed_tools: "", body: "", scope: defScope },
-        errors: {},
-      };
-      nextTick(() => { const el = document.getElementById("f-name"); (el || this.modalElement())?.focus(); });
-    },
-
-    async openEdit() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      // While a detail request is active, `selectedName` may still describe a
-      // previous row and `selected` may be null. In an all-scopes view that
-      // does not identify which same-name copy is loading, so don't guess and
-      // start a competing request for the first matching list row.
-      if (this.loadingDetail) {
-        this.toast("Wait for the selected skill to finish loading before editing.", "info");
-        return;
-      }
-      if (!this.selectedName) { this.toast("Select a skill first.", "err"); return; }
-      const editName = this.selectedName;
-      const listed = (this.skills || []).find((record) => record.name === editName);
-      const editScope = (this.selected && this.selected.name === editName && this.selected.scope)
-        || (this.activeScope !== "all" ? this.activeScope : (listed && listed.scope))
-        || null;
-      // Never seed the editor from a list row: list rows carry no body, and an
-      // editor opened on an empty body invites saving one.
-      if (!this.selected || this.selected.name !== editName
-          || (editScope && this.selected.scope !== editScope)
-          || typeof this.selected.body !== "string") {
-        await this.loadDetail(editName, editScope || "all");
-      }
-      // The detail request may have failed, or another selection may have
-      // superseded it while it was in flight. Never open an editor for a
-      // different row or seed it from a body-less list record.
-      if (this.selectedName !== editName || !this.selected
-          || this.selected.name !== editName
-          || (editScope && this.selected.scope !== editScope)
-          || typeof this.selected.body !== "string") {
-        return;
-      }
-      const modal = {
-        mode: editName,
-        form: {
-          name: editName,
-          description: this.selected.description || "",
-          category: this.selected.category || "",
-          version: this.selected.version || "",
-          license: this.selected.license || "",
-          compatibility: this.selected.compatibility || "",
-          allowed_tools: this.selected.allowed_tools || "",
-          body: this.selected.body || "",
+    openTrash() {
+      const s = this.skill;
+      this.openDialog({
+        title: `Move “${s.name}” to the trash?`, danger: true, confirm: "Move to trash",
+        lines: ["Choose the places to remove it from. Each agent keeps its own trash folder, and every copy you remove here can be restored from Recovery or with Undo."],
+      picks: s.copies.filter(c => !c.readOnly).map((c) => ({ id: c.scope, label: this.agentOf(c.scope).name, path: shortPath(c.path) })), chosen: s.copies.filter(c => !c.readOnly).length === 1 ? [s.copies.find(c => !c.readOnly).scope] : [],
+        onConfirm: async (d) => {
+          this.busy = true;
+          try {
+            const trashed = [];
+            for (const sc of d.chosen) {
+              const r = await api(`/api/skills/${encodeURIComponent(s.name)}?scope=${encodeURIComponent(sc)}&purge=0`, { method: "DELETE" });
+              if (r && r.trash_path) trashed.push({ scope: sc, trash_path: r.trash_path });
+            }
+            await this.refresh();
+            const undo = trashed.length ? async () => { for (const t of trashed) await this.restoreTrashed(s.name, t.scope, t.trash_path); } : null;
+            this.toast(`${s.name} moved to the trash in ${join(d.chosen.map((id) => this.agentOf(id).name))}.`, { undo });
+            if (!this.m.byName.get(s.name)) location.hash = "#/skills";
+          } catch (e) { this.toast(e.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
         },
-        errors: {},
-      };
-      this.modals.skill = modal;
+      });
+    },
+    openPermanentDelete() {const skill=this.skill;if(!skill)return;this.openDialog({title:`Permanently delete “${skill.name}”?`,danger:true,confirm:"Delete permanently",lines:["This removes the selected copies without moving them to trash. There is no Undo or trash restore for this action."],picks:skill.copies.filter(c=>!c.readOnly&&c.record.addressable!==false&&c.state!=="link"&&this.agentOf(c.scope).writable).map(c=>({id:c.scope,label:this.agentOf(c.scope).name,path:shortPath(c.path)})),chosen:[],onConfirm:async d=>{this.busy=true;try{for(const scope of d.chosen)await api(`/api/skills/${encodeURIComponent(skill.name)}?scope=${encodeURIComponent(scope)}&purge=1`,{method:"DELETE"});await this.refresh();this.toast("Selected copies permanently deleted.");if(!this.m.byName.get(skill.name))location.hash="#/skills";}catch(e){await this.refresh();this.toast(e.message,{err:true});}finally{this.busy=false;}}});},
+
+    /* ----- create, recovery, theme, help ----- */
+    authorInput(estimate) {
+      const { form, author } = this.dialog;
+      return { scope: form.scope, name: form.name.trim(), brief: author.brief.trim(),
+        context: author.context, verify: false, estimate, plan: estimate ? undefined : author.estimate?.plan };
+    },
+    async requestAuthorDraft(estimate) {
+      const d = this.dialog, a = d.author;
+      if (!a.brief.trim() || a.pending) return;
+      const key = JSON.stringify(this.authorInput(true));
+      const revision = JSON.stringify(d.form);
+      if (!estimate && key !== a.key) { a.estimate = null; a.error = "Preview the request again after changing its inputs."; return; }
+      a.pending = true; a.error = ""; a.result = null;
       try {
-        const sc = editScope || this.selected.scope || (this.activeScope !== "all" ? this.activeScope : "global");
-        const qp = "?scope=" + encodeURIComponent(sc);
-        const text = await apiText("/api/skills/" + encodeURIComponent(editName) + "/raw" + qp);
-        const fm = parseFrontmatter(text);
-        if (this.modals.skill !== modal) return;
-        if (fm.compatibility && !this.modals.skill.form.compatibility) this.modals.skill.form.compatibility = fm.compatibility;
-        if (fm.allowed_tools && !this.modals.skill.form.allowed_tools) this.modals.skill.form.allowed_tools = fm.allowed_tools;
-      } catch (e) { /* optional */ }
+        const result = await api("/api/ai/draft-skill", { method: "POST", body: JSON.stringify(this.authorInput(estimate)) });
+        if (this.dialog !== d || key !== JSON.stringify(this.authorInput(true))) return;
+        if (estimate) { a.estimate = result; a.key = key; }
+        else { a.result = result; a.revision = revision; }
+      } catch (error) { if (this.dialog === d) a.error = this.friendly(error.message); }
+      finally { a.pending = false; }
     },
-
-    async saveSkill() {
-      const m = this.modals.skill;
-      if (!m) return;
-      m.errors = {};
-      if (!m.form.name) m.errors.name = "Name is required.";
-      if (!m.form.description) m.errors.description = "Description is required.";
-      if (Object.keys(m.errors).length) {
-        this.$nextTick(() => {
-          const firstInvalid = document.querySelector('[data-modal="skill"] .form-field.has-error input, [data-modal="skill"] .form-field.has-error textarea, [data-modal="skill"] .form-field.has-error select');
-          if (firstInvalid) firstInvalid.focus();
-        });
-        return;
+    useAuthorDraft() {
+      const { form, author } = this.dialog;
+      if (author.revision !== JSON.stringify(form) || author.key !== JSON.stringify(this.authorInput(true))) {
+        author.error = "The form changed after drafting. Preview a fresh request."; return;
       }
-
-      const payload = {};
-      const payloadKeys = m.mode === "create"
-        ? ["name", "description", "category", "version", "license", "compatibility", "allowed_tools", "body"]
-        : ["description", "category", "version", "license", "compatibility", "allowed_tools", "body"];
-      for (const k of payloadKeys) {
-        const v = (m.form[k] || "").trim();
-        if (v) payload[k] = v;
+      const draft = author.result.draft;
+      Object.assign(form, { name: draft.name, desc: draft.description, body: draft.body });
+      author.cases = author.result.cases || [];
+      author.result = null; author.estimate = null; author.key = "";
+    },
+    async saveAuthorCases(d, name) {
+      const prompts = d.author.cases.filter((row) => row.selected).map((row) => ({
+        text: row.text, expected: row.should_trigger ? name : null,
+      }));
+      if (prompts.length) {
+        try { await api("/api/ai/prompt-sets", { method: "POST", body: JSON.stringify({ scope: d.form.scope, prompts }) }); }
+        catch (error) { this.toast("Skill created. Test cases could not be saved. " + this.friendly(error.message), { err: true }); }
       }
-
-      const effScope = (m.form.scope || this.activeScope || "global");
-      const createScope = effScope === "all" ? "global" : effScope;
-      const editScope = (this.selected && this.selected.scope) ? this.selected.scope : createScope;
-      this.busy = true;
+    },
+    openCreate(prefill = {}) {
+      const first = this.createTargets.find((x) => !x.library) || this.createTargets[0];
+      const target = this.createTargets.find((x) => x.id === prefill.scope);
+      this.openDialog({
+        title: "New skill", form: { name: prefill.name || "", desc: prefill.description || "", scope: target ? target.id : first ? first.id : "global", category:prefill.category || "",version:prefill.version || "",license:prefill.license || "",compatibility:prefill.compatibility || "",allowed_tools:prefill.allowed_tools || "",body:typeof prefill.body === "string" ? prefill.body : "## When to use\n\nDescribe the situations where an agent should use this skill.\n\n## Steps\n\n1. \n",template:"" }, confirm: "Create skill",
+        author: { brief: "", context: "", estimate: null, key: "", result: null, revision: "", cases: [], pending: false, error: "" },
+        onConfirm: async (d) => {
+          const f = d.form; this.busy = true;
+          try {
+            await api("/api/skills?scope=" + encodeURIComponent(f.scope), { method: "POST",
+              body: JSON.stringify({ name: f.name.trim(), description: f.desc.trim(), category:f.category,version:f.version,license:f.license,compatibility:f.compatibility,allowed_tools:f.allowed_tools,body:f.body.replaceAll("{name}",f.name.trim()) }) });
+            this.dialog=null;
+            await this.saveAuthorCases(d, f.name.trim());
+            await this.refresh();
+            this.toast(`${f.name.trim()} created in ${this.agentOf(f.scope).name}.`);
+            location.hash = "#/skill/" + encodeURIComponent(f.name.trim());
+          } catch (e) { d.error=this.friendly(e.message);this.live=d.error; } finally { this.busy = false; }
+        },
+      });
+      const dialog=this.dialog;
+      api("/api/templates").then(r=>{if(this.dialog===dialog)this.createTemplates=r.templates||[];}).catch(e=>{if(this.dialog===dialog)dialog.error="Templates unavailable: "+this.friendly(e.message);});
+    },
+    useDraft(draft) {
+      if (!draft || typeof draft !== "object") return;
+      this.openCreate({
+        scope: draft.scope, name: draft.name, description: draft.description, body: draft.body,
+        category: draft.category, version: draft.version, license: draft.license,
+        compatibility: draft.compatibility, allowed_tools: draft.allowed_tools,
+      });
+    },
+    async loadCreateTemplate() {const d=this.dialog;if(!d?.form?.template)return;const name=d.form.template;d.templateLoading=true;try{const t=await api("/api/templates/"+encodeURIComponent(name));if(this.dialog===d&&d.form.template===name)d.form.body=stripFrontmatter(t.body||"");}catch(e){if(this.dialog===d)d.error=this.friendly(e.message);}finally{if(this.dialog===d)d.templateLoading=false;}},
+    async loadTrash() {
+      const gen = ++this.trashGen;
+      this.trashLoading = true;
       try {
-        if (m.mode === "create") {
-          await api("/api/skills?scope=" + encodeURIComponent(createScope), {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
-          this.toast('Skill "' + payload.name + '" created in ' + createScope + '.');
-        } else {
-          const res = await api("/api/skills/" + encodeURIComponent(m.mode) + "?scope=" + encodeURIComponent(editScope), {
-            method: "PATCH",
-            body: JSON.stringify(payload),
-          });
-          this.toast(res.changed ? 'Skill "' + m.mode + '" updated.' : 'No changes to "' + m.mode + '".');
-        }
-        this.closeModal("skill");
-        this.query = "";
-        await this.loadScopes();
-        await this.loadSkills();
-        await this.loadTrash();
-        if (m.mode === "create") this.selectedName = payload.name;
-        this.loadDetail(m.mode === "create" ? payload.name : m.mode, m.mode === "create" ? createScope : editScope);
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
+        const rows = await api("/api/trash");
+        if (gen !== this.trashGen) return;
+        this.trash = rows; this.trashError = "";
+      } catch (e) { if (gen === this.trashGen) this.trashError = this.friendly(e.message); }
+      finally { if (gen === this.trashGen) this.trashLoading = false; }
     },
-
-    openAdd() {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.webkitdirectory = true;
-      input.onchange = async () => {
-        if (!input.files || !input.files.length) return;
-        const form = new FormData();
-        for (const f of input.files) {
-          const rel = f.webkitRelativePath || f.name;
-          form.append("files", f, rel);
-        }
-        this.busy = true;
-        try {
-          const data = await api("/api/import", { method: "PUT", body: form });
-          await this.loadSkills();
-          if (data.imported && data.imported.length) {
-            this.toast("Added skill(s): " + data.imported.join(", ") + ".");
-            this.loadDetail(data.imported[0]);
-          } else {
-            this.toast("Nothing added: " + (data.skipped || []).join(", "), "info");
-          }
-        } catch (e) {
-          this.toast(e.message, "err");
-        } finally {
-          this.busy = false;
-        }
-      };
-      input.click();
-    },
-
-    async toggleSelected() {
-      if (!this.selectedName) { this.toast("Select a skill first.", "err"); return; }
-      const name = this.selectedName;
-      const sc = (this.selected && this.selected.scope) ? this.selected.scope : (this.activeScope !== "all" ? this.activeScope : "global");
-      const qp = "?scope=" + encodeURIComponent(sc);
-      this.busy = true;
-      try {
-        const action = this.selectedDisabled ? "enable" : "disable";
-        await api("/api/skills/" + encodeURIComponent(name) + "/" + action + qp, { method: "POST" });
-        this.toast('Skill "' + name + '" ' + action + "d in " + sc + ".");
-        await this.loadScopes();
-        await this.loadSkills();
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    confirmRemove(record) {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      if (!record) { this.toast("Select a skill first.", "err"); return; }
-      // BUG-5: bind the modal to the record it was opened for.  The scope was
-      // re-derived from live `this.selected` at confirm time, so a selection
-      // change (or a same-name skill in another scope) between opening and
-      // confirming removed a different skill than the one the dialog named --
-      // irreversibly for the purge path.
-      this.modals.remove = {
-        name: record.name,
-        scope: record.scope || (this.activeScope !== "all" ? this.activeScope : "global"),
-        mode: "trash",
-      };
-    },
-
-    async doRemove() {
-      const m = this.modals.remove;
-      if (!m) return;
-      this.busy = true;
-      try {
-        await this.removeSkill(m.name, m.mode === "purge", m.scope);
-        this.closeModal("remove");
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    async removeSkill(name, purge, scope) {
-      const sc = scope
-        || (this.selected && this.selected.scope)
-        || (this.activeScope !== "all" ? this.activeScope : "global");
-      const qp = "?scope=" + encodeURIComponent(sc) + "&purge=" + (purge ? "1" : "0");
-      const removed = await api("/api/skills/" + encodeURIComponent(name) + qp, { method: "DELETE" });
-      if (purge) {
-        this.toast('Skill "' + name + '" permanently deleted from ' + sc + '.');
-      } else {
-        // Undo restores the same scope-trashes only global; agent scopes have
-        // their own per-scope trash without a UI restore path yet.
-        if (sc === "global") {
-          this.toast('Skill "' + name + '" moved to trash.', "ok", async () => {
-            await api("/api/trash/" + encodeURIComponent(name) + "?scope=global", {
-              method: "POST", body: JSON.stringify({ trash_path: removed.trash_path }),
-            });
-            await this.loadSkills();
-            await this.loadTrash();
-            this.loadDetail(name, sc);
-            this.toast('Skill "' + name + '" restored.');
-          });
-        } else {
-          this.toast('Skill "' + name + '" moved to the ' + sc + ' scope trash (restore from trash view is global-only).', "ok");
-        }
-      }
-      await this.loadScopes();
-      await this.loadSkills();
-      await this.loadTrash();
-      if (this.selectedName === name) { this.selectedName = null; this.selected = null; }
-    },
-
-    confirmPurge() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.purge = {};
-    },
-
-    async purgeTrash() {
-      this.busy = true;
-      try {
-        const res = await api("/api/trash/purge", { method: "POST" });
-        this.closeModal("purge");
-        this.toast("Purged " + (res.purged || []).length + " skill(s) from trash.");
-        this.selectedTrash = null;
-        await this.loadTrash();
-        await this.loadSkills();
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    async restoreTrash() {
-      if (!this.selectedTrash || this.busy) return;
-      const { name, trash_path } = this.selectedTrash;
-      this.busy = true;
-      try {
-        await api("/api/trash/" + encodeURIComponent(name) + "?scope=global", {
-          method: "POST", body: JSON.stringify({ trash_path }),
-        });
-        this.toast('Skill "' + name + '" restored.');
-        this.selectedTrash = null;
-        await this.loadTrash();
-        await this.loadSkills();
-        // Trash view is global-only: pass the global scope explicitly so the
-        // restored skill resolves even when activeScope is an agent scope.
-        this.loadDetail(name, "global");
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    /* --------------------------------------------------------- validate */
-
-    openValidate() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.validate = {
-        name: this.selectedName || "",
-        loading: false,
-        result: null,
-        error: null,
-      };
-    },
-
-    async runValidate() {
-      const m = this.modals.validate;
-      if (!m) return;
-      m.loading = true;
-      m.error = null;
-      m.result = null;
-      try {
-        m.result = await api("/api/validate", {
-          method: "POST",
-          body: JSON.stringify({ name: m.name, scope: (this.selected && this.selected.scope) || this.activeScope || "global" }),
-        });
-      } catch (e) {
-        m.error = e.message;
-      } finally {
-        m.loading = false;
-      }
-    },
-
-    /* ------------------------------------------------------- maintenance */
-
-    openDoctor() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.doctor = { loading: true, report: null };
-      api("/api/doctor" + (this.activeScope === "all" ? "?scope=all" : ""))
-        .then((report) => { if (this.modals.doctor) this.modals.doctor.report = report; })
-        .catch((e) => { this.closeModal("doctor"); this.toast(e.message, "err"); })
-        .finally(() => { if (this.modals.doctor) this.modals.doctor.loading = false; });
-    },
-
-    syncDupe(name, fromScope) {
-      this.selectedName = name;
-      this.selected = { name, scope: fromScope };
-      this.closeModal("doctor");
-      this.openSync();
-    },
-
-    openStats() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.stats = { loading: true, report: null };
-      api("/api/stats")
-        .then((report) => { if (this.modals.stats) this.modals.stats.report = report; })
-        .catch((e) => { this.closeModal("stats"); this.toast(e.message, "err"); })
-        .finally(() => { if (this.modals.stats) this.modals.stats.loading = false; });
-    },
-
-    openHistory(scopeOverride = null) {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.history = { name: "", rows: [], snapshots: [], loading: false, scope: scopeOverride || "" };
-      this.loadHistory();
-    },
-
-    async loadHistory() {
-      const m = this.modals.history;
-      if (!m) return;
-      m.loading = true;
-      try {
-        const name = m.name ? "&name=" + encodeURIComponent(m.name) : "";
-        m.rows = await api("/api/history?limit=200" + name);
-        m.snapshots = [];
-        if (m.name) {
-          const scope = m.scope || ((this.selected && this.selected.scope) ? this.selected.scope : "global");
-          const snapshotResult = await api("/api/history?name=" + encodeURIComponent(m.name) + "&scope=" + encodeURIComponent(scope) + "&snapshots=1");
-          m.snapshots = snapshotResult.snapshots || [];
-        }
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        m.loading = false;
-      }
-    },
-
-    async rollbackSnapshot(name, snapshot) {
-      this.busy = true;
-      try {
-        const scope = (this.modals.history && this.modals.history.scope)
-          || ((this.selected && this.selected.scope) ? this.selected.scope : "global");
-        const res = await api("/api/trash/" + encodeURIComponent(name) + "?snapshot=" + encodeURIComponent(snapshot) + "&scope=" + encodeURIComponent(scope), { method: "POST" });
-        this.toast(`Rolled back "${res.name}" to snapshot ${snapshot}.`);
-        await this.loadSkills();
-        await this.loadDetail(name, scope);
-        await this.loadHistory();
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    async rebuildIndex() {
-      this.busy = true;
-      try {
-        const res = await api("/api/rebuild", { method: "POST" });
-        this.toast("Index rebuilt: " + res.added + " added, " + res.updated + " updated, " + res.removed + " removed.");
-        await this.loadSkills();
-        await this.loadTrash();
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    async resyncIndex() {
-      this.busy = true;
-      try {
-        const res = await api("/api/resync", { method: "POST" });
-        this.toast("Store resynced: " + res.added + " added, " + res.updated + " updated, " + res.removed + " removed.");
-        await this.loadSkills();
-        await this.loadTrash();
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    /* -------------------------------------------------------- templates */
-
-    openTemplates() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.templates = { loading: true, names: [] };
-      api("/api/templates")
-        .then((res) => { if (this.modals.templates) this.modals.templates.names = res.templates || []; })
-        .catch((e) => { this.closeModal("templates"); this.toast(e.message, "err"); })
-        .finally(() => { if (this.modals.templates) this.modals.templates.loading = false; });
-    },
-
-    openNewTemplate() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.newtemplate = { name: "", body: "", error: "" };
-    },
-
-    async saveTemplate() {
-      const m = this.modals.newtemplate;
-      if (!m) return;
-      if (!m.name.trim()) { m.error = "Template name is required."; return; }
-      this.busy = true;
-      try {
-        await api("/api/templates", {
-          method: "POST",
-          body: JSON.stringify({ name: m.name.trim(), body: m.body || null }),
-        });
-        this.closeModal("newtemplate");
-        this.toast('Template "' + m.name.trim() + '" created.');
-      } catch (e) {
-        m.error = e.message;
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    /* ------------------------------------------------------ import/export */
-
-    openImport(full = false) {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      this.modals.import = { file: null, force: false, full: !!full, result: null, error: "" };
-    },
-
-    pickImportFile() {
-      this.$refs.importInput && this.$refs.importInput.click();
-    },
-
-    onImportPicked(e) {
-      const files = e.target.files;
-      if (files && files.length) {
-        this.modals.import.file = files[0];
-      }
-      e.target.value = "";
-    },
-
-    onDropImport(e) {
-      const files = e.dataTransfer.files;
-      if (files && files.length) {
-        this.modals.import.file = files[0];
-      }
-    },
-
-    async doImport() {
-      const m = this.modals.import;
-      if (!m || !m.file || this.busy) return;
-      this.busy = true;
-      m.error = "";
-      try {
-        const url = "/api/import?filename=" + encodeURIComponent(m.file.name) + "&force=" + (m.force ? "1" : "0") + "&full=" + (m.full ? "1" : "0");
-        const data = await api(url, { method: "PUT", body: m.file });
-        m.result = data;
-        m.file = null;
-        if (this.modals.import !== m) this.toast(this.archiveImportSummary(data), "info");
-        else this.$nextTick(() => this.$refs.importSummary?.focus());
-        await this.loadSkills();
-        await this.loadTrash();
-        if (data.imported && data.imported.length) this.loadDetail(data.imported[0]);
-      } catch (e) {
-        m.error = e.message;
-        if (this.modals.import !== m) this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-    archiveImportSummary(result) { return SkillManagerDomain.archiveImportSummary(result); },
-
-    openSync() {
-      if (!(this.commandPaletteTransfer && this.modalRestoreFocus)) this.modalRestoreFocus = document.activeElement;
-      if (!this.selectedName) { this.toast("Select a skill first.", "err"); return; }
-      const from = (this.selected && this.selected.scope) ? this.selected.scope : "global";
-      const targets = (this.scopes || []).filter((s) => s.id !== from && s.writable);
-      this.modals.sync = { name: this.selectedName, from_scope: from, targets, picked: {}, force: false };
-      for (const t of targets) this.modals.sync.picked[t.id] = true;
-    },
-
-    async doSync() {
-      const m = this.modals.sync;
-      if (!m) return;
-      const to = Object.keys(m.picked).filter((k) => m.picked[k]);
-      if (!to.length) { this.toast("Pick at least one target scope.", "err"); return; }
-      this.busy = true;
-      try {
-        const res = await api("/api/sync", {
-          method: "POST",
-          body: JSON.stringify({ name: m.name, from_scope: m.from_scope, to_scopes: to, force: !!m.force }),
-        });
-        this.closeModal("sync");
-        const ok = (res.synced || []).length;
-        const skip = (res.skipped || []).length;
-        this.toast(`Synced "${m.name}" to ${ok} scope(s)` + (skip ? `, skipped ${skip}.` : ".") +
-          SkillManagerDomain.syncRecoveryNotice([res]), ok ? "ok" : "info");
-        await this.loadScopes();
-        await this.loadSkills();
-      } catch (e) {
-        this.toast(e.message, "err");
-      } finally {
-        this.busy = false;
-      }
-    },
-
-    async exportArchive(full = false) {
+    async restoreTrash(t) {
       if (this.busy) return;
       this.busy = true;
-      this.exportPending = true;
-      this.exportError = "";
+      try { await this.restoreTrashed(t.name, "global", t.trash_path); await this.refresh(); this.toast(`${t.name} restored to your library.`); }
+      catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
+    },
+    /* Both Recovery rows and Undo address the listed trash entry. */
+    async restoreTrashed(name, scope, trashPath) {
+      const url = `/api/trash/${encodeURIComponent(name)}?scope=${encodeURIComponent(scope || "global")}`;
+      await api(url, { method: "POST", body: trashPath ? JSON.stringify({ trash_path: trashPath }) : undefined });
+    },
+    async loadAgentTrash() {
+      const gen = ++this.agentTrashGen;
+      const agents = (this.m ? this.m.agents : []).filter((a) => !a.library && a.writable);
+      this.agentTrashLoading = true;
+      const rows = [], errors = [];
+      await Promise.all(agents.map(async (a) => {
+        try {
+          const list = await api("/api/trash?scope=" + encodeURIComponent(a.id));
+          for (const row of Array.isArray(list) ? list : []) rows.push({ ...row, scopeLabel: a.name });
+        } catch (e) { errors.push({ scope: a.id, message: this.friendly(e.message) }); }
+      }));
+      if (gen !== this.agentTrashGen) return;
+      rows.sort((a, b) => String(b.trashed_at).localeCompare(String(a.trashed_at)) || a.name.localeCompare(b.name));
+      const counts = new Map(), positions = new Map();
+      const keyOf = (row) => JSON.stringify([row.scope, row.name]);
+      for (const row of rows) {
+        const key = keyOf(row);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      for (const row of rows) {
+        const key = keyOf(row), position = (positions.get(key) || 0) + 1;
+        positions.set(key, position);
+        if (counts.get(key) > 1) row.copyLabel = `copy ${position} of ${counts.get(key)}`;
+      }
+      this.agentTrash = rows; this.agentTrashErrors = errors; this.agentTrashLoading = false;
+    },
+    async retryAgentTrash() {
+      if (this.agentTrashLoading) return;
+      await this.loadAgentTrash();
+      if (!this.agentTrashErrors.length) this.$refs.agentTrashHeading?.focus();
+    },
+    agentRestoreLabel(row) {
+      const target = `Review restore for ${row.name} in ${row.scopeLabel}`;
+      return row.copyLabel ? `${target}, ${row.copyLabel}` : target;
+    },
+    reviewAgentTrash(row) {
+      this.openDialog({
+        title: `Restore ${row.name}?`,
+        recovery: row,
+        confirm: "Restore folder",
+        error: "",
+      });
+    },
+    async restoreAgentTrash(t) {
+      if (this.busy) return;
+      const dialog = this.dialog;
+      this.busy = true;
       try {
-        const { blob, filename: served } = await apiBlob("/api/export" + (full ? "?full=1" : ""));
-        const filename = served || "skills-export.tar.gz";
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
-        this.toast("Download started for " + filename);
+        await this.restoreTrashed(t.name, t.scope, t.trash_path);
+        this.dialog = null;
+        await this.refresh();
+        this.toast(`${t.name} restored to ${t.scopeLabel}.`);
+        this.$refs.agentTrashHeading?.focus();
       } catch (e) {
-        this.exportError = SkillManagerDomain.archiveDownloadError(e);
-        if (this.view !== "recovery") this.toast(this.exportError, "err");
+        if (this.dialog === dialog) {
+          dialog.error = this.friendly(e.message);
+          this.$nextTick(() => this.$refs.restoreError?.focus());
+        }
+      } finally { this.busy = false; }
+    },
+    /* A reviewed batch removal reports the trash path of every copy it moved;
+     * the toast keeps those exact paths so Undo restores each one it removed. */
+    removedBatch(items) {
+      const entries = (items || []).filter((i) => i && i.trash_path);
+      if (!entries.length) return;
+      this.toast(`${plural(entries.length, "copy", "copies")} moved to the trash.`, {
+        undo: async () => { for (const e of entries) await this.restoreTrashed(e.name, e.scope, e.trash_path); },
+      });
+    },
+    openPurge() {
+      this.openDialog({ title: "Empty the trash?", danger: true, confirm: "Delete permanently", lines: [`${plural(this.trash.length, "skill")} will be deleted permanently. This cannot be undone.`],
+        onConfirm: async () => { this.busy = true; try { await api("/api/trash/purge", { method: "POST" }); await this.loadTrash(); this.toast("The trash was emptied."); } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; } } });
+    },
+    async exportBackup(full) {
+      if (this.busy) return;
+      this.busy = true; this.exportPending = true; this.exportError = "";
+      try {
+        const { blob, filename } = await Domain.apiBlob("/api/export" + (full ? "?full=1" : ""));
+        const url = URL.createObjectURL(blob), a = document.createElement("a");
+        a.href = url; a.download = filename || "skills-backup.tar.gz"; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        this.toast("Backup download started.");
+      } catch (e) {
+        this.exportError = Domain.archiveDownloadError(e);
+        if (this.route.page !== "recovery") this.toast(this.exportError, { err: true });
+      } finally { this.busy = false; this.exportPending = false; }
+    },
+    /* The picker filters by `accept`; a dropped file is not, so check its name.
+     * The server still decides whether the bytes are a real archive. */
+    pickImport(list) {
+      if (this.busy) return;
+      const file = (list && list[0]) || null;
+      if (file && !/\.(tar\.gz|tgz|tar|zip)$/i.test(file.name)) { this.importFile = null; this.importReject = `${file.name} is not a backup file. Choose a .tar.gz, .tgz, .tar or .zip file.`; return; }
+      this.importReject = ""; this.importFile = file;
+    },
+    archiveImportSummary(result) { return Domain.archiveImportSummary(result); },
+    async doImport() {
+      const f = this.importFile; if (!f || this.busy) return;
+      this.busy = true; this.importResult = null; this.importError = "";
+      try {
+        const r = await api(`/api/import?filename=${encodeURIComponent(f.name)}&force=${this.importForce ? 1 : 0}&full=${this.importFull ? 1 : 0}`, { method: "PUT", body: f });
+        this.importResult = r;
+        this.live = this.archiveImportSummary(r);
+        this.importFile = null;
+        const input = document.getElementById("imp-file"); if (input) input.value = "";
+        await this.refresh();
+      } catch (e) { this.importError = this.friendly(e.message); } finally { this.busy = false; }
+    },
+    applyTheme() {
+      const root = document.documentElement;
+      const dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.themePreference = this.theme;
+      root.dataset.theme = this.theme === "system" ? (dark ? "dark" : "light") : this.theme;
+    },
+    cycleTheme() {
+      this.theme = THEMES[(THEMES.indexOf(this.theme) + 1) % THEMES.length];
+      try { localStorage.setItem("skillsmgr-theme", this.theme); } catch (e) { /* storage may be blocked */ }
+      this.applyTheme(); this.live = "Theme: " + this.themeLabel;
+    },
+    openHelp() {
+      this.openDialog({ title: "Keyboard shortcuts", cancel: "Close", keys: [
+        [["/"], "Find a skill"], [["?"], "Show this list"], [["Esc"], "Close a dialog"],
+        [["Ctrl/Cmd", "K"], "Find tools and actions"],
+        [["Ctrl", "S"], "Save while editing"], [["Enter"], "Fix the item in the Inbox"], [["S"], "Skip it for now"],
+      ] });
+    },
+
+    /* ----- editing ----- */
+    async startEdit() {
+      const s = this.skill, c = this.refCopy;
+      if (!s || !c || !this.bodyFetchable(c)) return;
+      /* The editor must never open on a body that has not loaded: read it
+       * first, and abandon silently if the reader navigated away meanwhile.
+       * A periodic re-read replaces `skill` with an equal-named object, so the
+       * identity that matters is the name and the route, not the object. */
+      await this.ensureBodies([c]);
+      if (!this.skill || this.skill.name !== s.name || this.route.page !== "skill") return;
+      if (!this.bodyReady(c)) { this.toast(this.bodyErrorOf(c) || "The document could not be read. Try again.", { err: true }); return; }
+      const body = stripFrontmatter(this.bodyOf(c).replace(/^\uFEFF/, ""));
+      const metadata={category:c.record.category||"",version:c.record.version||"",license:c.record.license||"",compatibility:Domain.formatCompat(c.record.compatibility),allowed_tools:Domain.formatTools(c.record.allowed_tools)};
+      this.edit = { name: s.name, desc: c.description, baseDesc: c.description, body, baseBody: body, metadata,baseMetadata:{...metadata},tab: "write", targets: this.readCopyPath ? [c.scope] : this.editTargets.map((x) => x.scope), copy: { path: c.path, scope: c.scope, hash: c.hash } };
+      this.$nextTick(() => { this.growArea(); const d = document.getElementById("ed-desc"); if (d) d.focus(); });
+    },
+    openAiDiagnosis() {
+      if (this.refCopy) this.openDialog({ title: "Why didn’t this skill run?", diagnosis: this.refCopy });
+    },
+    async repairAiDiagnosis(prompt) {
+      const dialog = this.dialog;
+      await this.startEdit();
+      await this.$nextTick();
+      if (this.dialog === dialog && this.edit?.copy.path === dialog.diagnosis.path) this.openAiEdit(prompt);
+    },
+    openAiEdit(example = "") {
+      const e = this.edit, area = this.$refs.edbody;
+      if (!e?.copy.hash || !area || this.busy) return;
+      const body = area.value;
+      const start = area.selectionStart, end = area.selectionEnd;
+      const selection = start < end ? [Array.from(body.slice(0, start)).length, Array.from(body.slice(0, end)).length] : null;
+      this.openDialog({ title: "Edit with AI", aiEdit: {
+        target: e.copy, name: e.name, body, selection, selectedText: selection ? body.slice(start, end) : "",
+        instruction: "", example, estimate: null, key: "", result: null, keep: [], pending: false, error: "",
+      } });
+    },
+    aiEditInput(estimate) {
+      const a = this.dialog.aiEdit;
+      return { name: a.name, scope: a.target.scope, target_path: a.target.path, document_hash: a.target.hash,
+        body: a.body, selection: a.selection, instruction: a.instruction.trim(), example: a.example.trim(),
+        tree_hash: estimate ? undefined : a.estimate?.tree_hash, plan: estimate ? undefined : a.estimate?.plan, estimate };
+    },
+    async retireAiEdit(result) {
+      const review = result?.review;
+      if (review?.review_state !== "pending") return;
+      try { await api(`/api/source-updates/reviews/${encodeURIComponent(review.review_id)}`, { method: "DELETE" }); }
+      catch (error) { this.toast(this.friendly(error.message), { err: true }); }
+    },
+    async requestAiEdit(estimate) {
+      const d = this.dialog, a = d.aiEdit;
+      if (a.pending || !a.instruction.trim()) return;
+      const key = JSON.stringify(this.aiEditInput(true));
+      if (!estimate && key !== a.key) return;
+      a.pending = true; a.error = "";
+      try {
+        const previous = a.result;
+        a.result = null;
+        await this.retireAiEdit(previous);
+        if (this.dialog !== d || key !== JSON.stringify(this.aiEditInput(true))) return;
+        const result = await api("/api/ai/edit-skill", { method: "POST", body: JSON.stringify(this.aiEditInput(estimate)) });
+        if (this.dialog !== d || key !== JSON.stringify(this.aiEditInput(true))) { await this.retireAiEdit(result); return; }
+        if (estimate) { a.estimate = result; a.key = key; }
+        else { a.result = result; a.keep = (result.hunks || []).map(h => h.id); }
+      } catch (error) { if (this.dialog === d) a.error = this.friendly(error.message); }
+      finally { a.pending = false; }
+    },
+    aiEditPartial(a) { const hunks = a?.result?.hunks || []; return hunks.length > 1 && a.keep.length !== hunks.length; },
+    hunkText(h) {
+      const lines = (text, mark) => text ? text.replace(/\n$/, "").split("\n").map(line => mark + line) : [];
+      return [...lines(h.removed, "- "), ...lines(h.added, "+ ")].join("\n");
+    },
+    /* Keep only the checked hunks: the server restages a fresh review from them
+     * (no model call) and cancels the full proposal, so the comparison, the
+     * checks and the saved edit all describe exactly what is kept. */
+    async selectAiHunks() {
+      const d = this.dialog, a = d?.aiEdit, review = a?.result?.review;
+      if (!a || a.pending || this.busy || !this.aiEditPartial(a) || !a.keep.length || review?.review_state !== "pending") return;
+      a.pending = true; a.error = "";
+      try {
+        const result = await api("/api/ai/edit-select", { method: "POST",
+          body: JSON.stringify({ review_id: review.review_id, body: a.body, accepted: [...a.keep] }) });
+        if (this.dialog !== d) { await this.retireAiEdit(result); return; }
+        a.result = { ...a.result, ...result };
+        a.keep = (result.hunks || []).map(h => h.id);
+      } catch (error) { if (this.dialog === d) a.error = this.friendly(error.message); }
+      finally { a.pending = false; }
+    },
+    async applyAiEdit() {
+      const d = this.dialog, a = d.aiEdit, e = this.edit, review = a.result?.review;
+      if (!e || this.busy || a.pending || review?.review_state !== "pending" || !review.validation?.valid) return;
+      if (this.aiEditPartial(a)) return;
+      if (e.copy !== a.target || a.key !== JSON.stringify(this.aiEditInput(true))) return;
+      this.busy = true; a.error = "";
+      try {
+        const committed = await api(`/api/source-updates/reviews/${encodeURIComponent(review.review_id)}/commit`, {
+          method: "POST", body: JSON.stringify({ name: a.name, scope: a.target.scope, target_path: a.target.path, approve: true }),
+        });
+        this.dialog = null;
+        e.body = e.baseBody = a.result.proposed;
+        e.targets = [a.target.scope];
+        await this.refresh();
+        e.copy.hash = this.skill?.copies.find(c => c.path === a.target.path && c.scope === a.target.scope)?.hash || "";
+        this.toast(committed.warning || "AI edit saved. The previous folder is available in Recovery.");
+        this.$nextTick(() => { this.growArea(); this.$refs.edbody?.focus(); });
+      } catch (error) { a.error = this.friendly(error.message); }
+      finally { this.busy = false; }
+    },
+    async cancelEdit() {
+      if (this.editDirty) return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true, onConfirm: () => { this.edit = null; } });
+      this.edit = null; return null;
+    },
+    async saveEdit() {
+      /* Same guard as the Save button: Ctrl/Cmd+S must not save to zero
+       * targets (which discarded the edit), save nothing, or save twice. */
+      const e = this.edit; if (!e || this.editError || this.busy || !e.targets.length || !this.editDirty) return;
+      this.busy = true; const saved = [];
+      try {
+        const fields = {};
+        if(e.desc!==e.baseDesc)fields.description=e.desc;
+        if(e.body!==e.baseBody)fields.body=e.body;
+        for(const key of Object.keys(e.metadata))if(e.metadata[key]!==e.baseMetadata[key])fields[key]=e.metadata[key];
+        const snaps = {};
+        for (const sc of e.targets) snaps[sc] = new Set(await this.snapshotIds(e.name, sc));
+        for (const sc of e.targets) {
+          await api(`/api/skills/${encodeURIComponent(e.name)}?scope=${encodeURIComponent(sc)}`, { method: "PATCH", body: JSON.stringify(fields) });
+          const fresh = (await this.snapshotIds(e.name, sc)).find((id) => !snaps[sc].has(id));
+          if (fresh) saved.push([sc, fresh]);
+        }
+        this.edit = null;
+        await this.refresh();
+        const undo = saved.length ? async () => { for (const [sc, snap] of saved) await api(`/api/trash/${encodeURIComponent(e.name)}?snapshot=${encodeURIComponent(snap)}&scope=${encodeURIComponent(sc)}`, { method: "POST" }); } : null;
+        this.toast(`${e.name} saved to ${plural(e.targets.length, "place")}.`, { undo });
+      } catch (err) { this.toast(err.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
+    },
+    growArea() { const a = this.$refs.edbody; if (a) { a.style.height = "auto"; a.style.height = Math.max(420, a.scrollHeight + 4) + "px"; } },
+    insertText(prefix) {
+      const a = this.$refs.edbody; if (!a) return;
+      const at = a.selectionStart, ls = this.edit.body.lastIndexOf("\n", at - 1) + 1;
+      this.edit.body = this.edit.body.slice(0, ls) + prefix + this.edit.body.slice(ls);
+      this.$nextTick(() => { a.focus(); a.setSelectionRange(at + prefix.length, at + prefix.length); });
+    },
+    wrapText(mark) {
+      const a = this.$refs.edbody; if (!a) return;
+      const s = a.selectionStart, e2 = a.selectionEnd, b = this.edit.body;
+      this.edit.body = b.slice(0, s) + mark + b.slice(s, e2) + mark + b.slice(e2);
+      this.$nextTick(() => { a.focus(); a.setSelectionRange(s + mark.length, e2 + mark.length); });
+    },
+
+    /* ----- sync map ----- */
+    mapComparison(skill, copy) {
+      if (!copy.hash) return "";
+      if (skill.ref.ambiguous) return "Copies differ (no majority)";
+      return skill.ref.hash && copy.hash !== skill.ref.hash ? "Different copy" : "";
+    },
+    needsMapReview(skill, scopes) {
+      const seen = new Set();
+      for (const copy of skill.copies) {
+        if (!scopes.has(copy.scope)) continue;
+        if (seen.has(copy.scope) || copy.state === "broken" || copy.state === "link" || this.mapComparison(skill, copy)) return true;
+        seen.add(copy.scope);
+      }
+      return false;
+    },
+    mapCell(skill, scope) {
+      const copies = skill.copies.filter((copy) => copy.scope === scope);
+      if (copies.length !== 1) {
+        return copies.length ? { state: "warn", label: "Multiple copies listed" } : { state: "missing", label: MAP_STATES.missing.label };
+      }
+      const [copy] = copies;
+      if (copy.state === "broken") return { state: "bad", label: MAP_STATES.bad.label, copy };
+      if (copy.state === "link") return { state: "link", label: "Link target not inspected", copy };
+      const comparison = this.mapComparison(skill, copy);
+      const label = copy.state === "off" ? MAP_STATES.off.label : copy.readOnly ? "Linked copy (read-only)" : MAP_STATES.on.label;
+      const state = comparison ? "warn" : copy.state === "off" ? "off" : copy.readOnly ? "link" : "on";
+      const detail = comparison || (copy.hash && skill.ref.holders.length > 1 ? "Document text matches the reference" : "");
+      return { state, label: detail ? `${label} · ${detail}` : label, copy };
+    },
+    tagFor(inf) {
+      return inf.key === "bad" ? `${plural(inf.broken.length, "skill")} can't be read` : inf.key === "warn" ? `${plural(inf.differing.length, "copy", "copies")} ${inf.differing.length === 1 ? "differs" : "differ"}` : "No copy differences flagged";
+    },
+    selectMap(id, event, name = "") {
+      if (id !== this.mapSelId || name !== this.mapSkillName) {
+        this.mapPicked = name ? [] : this.mapDefaults(id);
+        this.peek = null;
+      }
+      this.mapSelId = id;
+      this.mapSkillName = name;
+      this.mapOrigin = event.currentTarget;
+      this.$nextTick(() => this.$refs.mapHeading?.focus());
+    },
+    backToMap() {
+      const target = this.mapOrigin?.isConnected ? this.mapOrigin : this.$refs.mapSearch;
+      target?.focus();
+    },
+    resetMapPage() {
+      this.mapPage = 0;
+      if (this.$refs.matrix) this.$refs.matrix.scrollTop = 0;
+    },
+    moveMapPage(step) {
+      this.mapPage = this.mapPageIndex + step;
+      this.$refs.matrix.scrollTop = 0;
+      this.$refs.matrix.focus();
+    },
+    mapSyncable(skill, scope) {
+      const cell = this.mapCell(skill, scope);
+      return this.agentOf(scope).writable && !!cell.copy && !cell.copy.readOnly && !skill.ref.ambiguous;
+    },
+    mapDefaults(id) {
+      const info = this.m.info(id);
+      return info ? info.differing.slice(0, 12).filter((s) => this.mapSyncable(s, id)).map((s) => s.name) : [];
+    },
+    togglePick(n) { this.mapPicked = this.mapPicked.includes(n) ? this.mapPicked.filter((x) => x !== n) : [...this.mapPicked, n]; },
+    togglePeek(skill) {
+      this.peek = this.peek === skill.name ? null : skill.name;
+      if (this.peek) this.$nextTick(() => {
+        document.querySelector("#map-comparison .copy-compare-head")?.scrollIntoView({ block: "nearest" });
+      });
+      return this.ensureBodies(this.mapComparePair);
+    },
+    brokenShort(s, scope) { const c = s.copies.find((x) => x.scope === scope); return (BROKEN_WHY[c && c.kind] || BROKEN_WHY.invalid)[0]; },
+    async syncPicked() {
+      const inf = this.mapSel;
+      if (this.busy || !inf) return;
+      const picked = this.mapSelected;
+      if (!picked.length) return;
+      const detailName = this.mapSkillName;
+      const results = [];
+      let failure = "";
+      this.busy = true;
+      try {
+        for (const s of picked) {
+          try {
+            const result = await this.doSync(s.name, s.ref.holders[0].scope, [inf.id]);
+            results.push({ ...result, name: s.name });
+          } catch (e) {
+            failure = ` Sync stopped at ${s.name}. ${this.friendly(e.message)}`;
+            break;
+          }
+        }
+        const undo = this.undoFor("", results);
+        await this.refresh();
+        if (this.mapSel?.id === inf.id && this.mapSkillName === detailName) this.mapPicked = [];
+        const ok = results.filter((r) => r.synced.length).length;
+        const summary = ok ? `${plural(ok, "skill")} now ${ok === 1 ? "matches" : "match"} in ${inf.agent.name}.` : "No skills were confirmed as synced.";
+        const skipped = results.flatMap((r) => r.skipped);
+        const recovery = results.some((r) => r.manualRecovery) ? " Use your backup or retained snapshots for recovery." : "";
+        this.toast(summary + this.skipText(skipped) + failure + recovery + Domain.syncRecoveryNotice(results),
+          { err: !!failure || !!skipped.length, undo,
+            undoText: "Undone. Text and on/off state restored. Supporting files are unchanged." });
+      } finally { this.busy = false; }
+    },
+
+    /* ----- inbox ----- */
+    openInboxFor(skillName) {
+      const issue = this.queue.find((p) => p.skill === skillName && p.key === "warn");
+      if (issue) this.front = issue.id;
+      location.hash = "#/inbox";
+    },
+    async fixCurrent() {
+      const p = this.cur; if (!p || this.busy) return null;
+      if (p.key === "warn" && !this.curSyncTargets.length) return null;
+      /* Undo of a fix puts the item back in the queue, since the file is back. */
+      const back = () => { if (!this.m.problems.some((item) => item.id === p.id)) return; this.dismissed = this.dismissed.filter((id) => id !== p.id); this.done = Math.max(0, this.done - 1); };
+      let ok = false;
+      if (p.key === "warn") {
+        const tos = this.curSyncTargets.map((c) => c.scope);
+        ok = !!(await this.runSync(p.skill, this.curSyncSource.scope, tos, `${p.skill} now matches in`, back));
+      } else if (p.key === "bad") {
+        if (!p.fixable) return this.fixBad(p);
+        ok = !!(await this.fixBad(p, back));
+      } else {
+        /* A note acknowledged is not a fix: it leaves the queue without counting. */
+        this.dismissed.push(p.id); this.skipped = this.skipped.filter((id) => id !== p.id); if (this.front === p.id) this.front = null;
+        this.toast("Hidden until you reload."); return null;
+      }
+      if (ok) { this.dismissed.push(p.id); this.skipped = this.skipped.filter((id) => id !== p.id); if (this.front === p.id) this.front = null; this.done++; }
+      return null;
+    },
+    updateTabsClip() {
+      const el = this.$refs.tabs; if (!el) return;
+      el.classList.toggle("is-clipped", el.scrollWidth - el.clientWidth - el.scrollLeft > 1);
+    },
+    skipCurrent() { if (!this.cur) return; const id = this.cur.id; this.skipped = [...this.skipped.filter((x) => x !== id), id]; this.front = null; this.focusH1(); },
+  },
+  mounted() {
+    this.refresh();
+    if (window.ResizeObserver && this.$refs.tabs) {
+      this.tabsObserver = new ResizeObserver(() => this.updateTabsClip());
+      this.tabsObserver.observe(this.$refs.tabs);
+    }
+    this.updateTabsClip();
+    window.addEventListener("hashchange", () => {
+      const next = parseRoute();
+      if (this.edit && this.editDirty && !(next.page === "skill" && next.name === this.edit.name)) {
+        const target = location.hash;
+        location.hash = "#/skill/" + encodeURIComponent(this.edit.name);
+        return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true,
+          onConfirm: () => { this.edit = null; location.hash = target; } });
+      }
+      this.headerInput("");
+      this.route = next; if (next.page !== "skill") this.edit = null;
+      this.primeBodies();
+      if (next.page === "recovery") this.loadAgentTrash();
+      document.title = (next.page === "skill" ? next.name : TITLES[next.page]) + " · Skills Manager";
+      window.scrollTo(0, 0); this.focusH1();
+    });
+    window.addEventListener("beforeunload", (e) => { if (this.editDirty) { e.preventDefault(); e.returnValue = ""; } });
+    document.addEventListener("keydown", (e) => {
+      const t = e.target, typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      if(document.querySelector("dialog[open]"))return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==="k" && !this.dialog && !document.querySelector("dialog[open]")) {e.preventDefault();this.openCommands();}
+      if (e.key === "?" && !typing && !this.dialog) { e.preventDefault(); this.openHelp(); }
+      if (e.key === "/" && !typing && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.$refs.gsearch.focus(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && this.edit) { e.preventDefault(); if (!this.dialog) this.saveEdit(); }
+      if (this.route.page === "inbox" && this.cur && !typing && !this.dialog && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        /* Shortcuts never fire from a link, button or field: Enter on "Open
+         * skill" must open the skill, not run the fix (screen-reader E2E SR-1). */
+        const onControl = t && t.closest && t.closest("a, button, input, select, textarea, summary, [role=button], [contenteditable]");
+        const inScope = !t || t === document.body || (t.closest && t.closest("#main"));
+        if (!onControl && inScope) {
+          if (e.key === "s" || e.key === "S") { e.preventDefault(); this.skipCurrent(); }
+          else if (e.key === "Enter") { e.preventDefault(); this.fixCurrent(); }
+        }
+      }
+    });
+    document.title = (this.route.page === "skill" ? this.route.name : TITLES[this.route.page]) + " · Skills Manager";
+    window.addEventListener("storage",event=>{if(["skillsmgr-theme","skillsmgr-text-size","skillsmgr-locale"].includes(event.key))this.preferencesChanged();});
+    this.loadSkillHistory();
+    this.applyTheme();
+    /* The filesystem is the source of truth and other tools edit it, so re-read
+     * it whenever the tab comes back into view (at most every 15 s, never
+     * while an edit is open so a refresh cannot disturb unsaved work). */
+    let lastLoad = Date.now();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible" || this.edit || this.busy || Date.now() - lastLoad < 15000) return;
+      lastLoad = Date.now(); this.refresh();
+    });
+    if (window.matchMedia) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const on = () => { if (this.theme === "system") this.applyTheme(); };
+      if (mq.addEventListener) mq.addEventListener("change", on); else if (mq.addListener) mq.addListener(on);
+    }
+  },
+  updated() { if (this.edit && this.edit.tab === "write") this.growArea(); },
+});
+
+app.component("ic", {
+  props: { name: String, cls: { type: String, default: "" } },
+  computed: { path() { return PATHS[this.name] || PATHS.info; } },
+  template: '<svg :class="[\'i\', cls]" viewBox="0 0 24 24" aria-hidden="true" v-html="path"></svg>',
+});
+app.component("logo", {
+  props: { agent: Object, size: { type: String, default: "" } },
+  /* A real agent mark when one is vendored (model.js AGENT_ICONS), otherwise
+   * the initials badge. Both are decorative: the agent name is always shown. */
+  template: '<span v-if="agent.icon" :class="[\'logo\', \'mark-tile\', size]" aria-hidden="true">'
+    + '<svg :viewBox="agent.icon.vb"><path v-for="(p, i) in agent.icon.paths" :key="i" :d="p.d" :style="{ fill: p.fill || \'currentColor\' }" :fill-rule="p.evenodd ? \'evenodd\' : null"></path></svg></span>'
+    + '<span v-else :class="[\'logo\', size]" :style="{ background: agent.color }" aria-hidden="true">{{ agent.initials }}</span>',
+});
+
+app.component("listing-budgets", {
+  props: { records: Array, locale: { type: String, default: "system" } },
+  data() { return { report: null, loading: false, error: "", generation: 0 }; },
+  computed: {
+    sections() {
+      return [["claude_listing", "Claude Code", "chars"], ["codex_listing", "Codex", "tokens"]].flatMap(([key, label, unit]) => {
+        const section = this.report && this.report[key];
+        if (!section || !section.instances_observed) return [];
+        const budget = section.budget || {};
+        const statuses = { within_budget: "Within the estimated budget", over_budget_estimate: "Over the estimated budget", no_instances: "No model-visible entries" };
+        const unknown = !Object.prototype.hasOwnProperty.call(statuses, section.status);
+        const metadataUnknown = Number((section.unknown_metadata || {}).total || 0) > 0;
+        const status = unknown ? (metadataUnknown ? "Listing unknown: invocation metadata unreadable" : "Budget unknown") : statuses[section.status];
+        return [{ key, label, unit, used: unit === "chars" ? section.listing_chars : section.listing_tokens_estimate,
+          budget: unknown && !metadataUnknown ? null : unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens,
+          subtotal: metadataUnknown,
+          basis: budget.basis || "Budget basis unavailable",
+          cuts: (section.largest_cuts || section.entries || []).filter((e) => Number(e.cut_chars) > 0)
+            .sort((a, b) => Number(b.cut_chars) - Number(a.cut_chars) || String(a.name).localeCompare(String(b.name))).slice(0, 20),
+          thin: (section.entries || []).filter((e) => e.thin).map((e) => e.name).sort(),
+          status, partial: section.confidence === "partial", over: section.status === "over_budget_estimate",
+          fill: !unknown && Number(unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens) > 0
+            ? Math.min(100, Math.max(1.5, 80 * Number(unit === "chars" ? section.listing_chars : section.listing_tokens_estimate) / Number(unit === "chars" ? budget.budget_chars_estimate : budget.budget_tokens))) : null }];
+      });
+    },
+  },
+  watch: { records: { immediate: true, handler() { this.load(); } } },
+  beforeUnmount() { this.generation++; },
+  methods: {
+    fmtN(value) { return Domain.numberFormatter(this.locale === "system" ? undefined : this.locale).format(Number(value || 0)); },
+    async load() {
+      const generation = ++this.generation;
+      this.loading = true; this.error = ""; this.report = null;
+      try {
+        const envelope = await api("/api/doctor?scope=all&hygiene=1");
+        if (generation !== this.generation) return;
+        if (!envelope || !envelope.hygiene) throw new Error("No listing evidence returned");
+        const { claude_listing, codex_listing } = envelope.hygiene;
+        if (!claude_listing || !codex_listing) throw new Error("Incomplete listing evidence");
+        this.report = markRaw({ claude_listing, codex_listing });
+      } catch (e) {
+        if (generation === this.generation) this.error = "Couldn't read listing estimates. Retry, or open Tools → Quality.";
       } finally {
-        this.busy = false;
-        this.exportPending = false;
+        if (generation === this.generation) this.loading = false;
       }
     },
   },
-}).mount("#app");
+  template: `<section class="card" aria-label="Skill listing budgets" :aria-busy="loading">
+    <h2>Skill listing budgets</h2>
+    <p class="sub">Names and descriptions shown to the model. Estimates; agent loading is not verified.</p>
+    <p class="sub" v-if="loading" role="status">Reading listing estimates…</p>
+    <p class="state-note err" v-else-if="error" role="alert">{{ error }} <button type="button" class="btn btn-line btn-sm" @click="load()">Retry listing estimates</button></p>
+    <template v-else>
+      <div class="listing-budget" v-for="section in sections" :key="section.key">
+        <h3>{{ section.label }} <span v-if="section.over" class="pill warn lb-pill">Over</span></h3>
+        <p class="num lb-num"><template v-if="section.subtotal">Known subtotal: </template>~{{ fmtN(section.used) }} {{ section.unit === "chars" ? "characters" : "tokens" }}<template v-if="section.budget != null"> of ~{{ fmtN(section.budget) }}</template></p>
+        <div class="track" v-if="section.fill != null" role="img" :aria-label="section.status"><i :class="{ warn: section.over }" :style="{ width: section.fill + '%' }"></i><span class="lim" style="left:80%"></span></div>
+        <p class="sub">{{ section.status }}{{ section.partial ? ", from partial evidence" : "" }}.</p>
+        <details class="listing-cuts"><summary>How this is estimated</summary><p class="sub">{{ section.basis }}</p></details>
+        <details v-if="section.cuts.length" class="listing-cuts"><summary>{{ section.cuts.length }} description{{ section.cuts.length === 1 ? "" : "s" }} cut before the model sees {{ section.cuts.length === 1 ? "it" : "them" }}</summary>
+          <ul><li v-for="e in section.cuts" :key="e.name"><span class="mono">{{ e.name }}</span> loses {{ fmtN(e.cut_chars) }} of {{ fmtN(e.description_chars) }} characters</li></ul></details>
+        <details v-if="section.thin.length" class="listing-cuts"><summary>{{ section.thin.length }} description{{ section.thin.length === 1 ? " is" : "s are" }} too short to route on</summary>
+          <p class="sub">Under 20 characters, the model has almost nothing to choose {{ section.thin.length === 1 ? "this skill" : "these skills" }} by.</p>
+          <ul><li v-for="n in section.thin.slice(0, 20)" :key="n"><span class="mono">{{ n }}</span></li></ul></details>
+      </div>
+      <p class="sub" v-if="!sections.length">No Claude Code or Codex listing instances observed.</p>
+      <a class="see-all" href="#/tools/quality">Review listing evidence <ic name="arrow" cls="i-s"></ic></a>
+    </template>
+  </section>`,
+});
+
+app.component("library-tools", window.SkillsV2LibraryTools);
+app.component("copy-comparison", {
+  props: {
+    evidence: { type: Object, required: true },
+    fromLabel: { type: String, required: true },
+    toLabel: { type: String, required: true },
+    reload: { type: Function, required: true },
+  },
+  data() { return { unified: false, retrying: false }; },
+  computed: {
+    errors() { return this.evidence.copies.filter((copy) => copy.error); },
+    preview() { return this.evidence.preview; },
+  },
+  methods: {
+    async retry() {
+      if (this.retrying) return;
+      this.retrying = true;
+      try { await this.reload(); }
+      finally {
+        this.retrying = false;
+        await this.$nextTick();
+        if (document.activeElement === document.body) (this.$refs.retryButton || this.$refs.heading)?.focus();
+      }
+    },
+  },
+  template: `<section class="copy-compare" aria-label="Document comparison">
+    <header class="copy-compare-head">
+      <h3 tabindex="-1" ref="heading">Document comparison</h3>
+      <button v-if="preview?.status === 'changes'" class="btn btn-line btn-sm compare-layout" type="button"
+        :aria-pressed="unified" @click="unified = !unified">Unified view</button>
+    </header>
+    <dl class="compare-identities">
+      <div v-for="(copy, index) in evidence.copies" :key="index">
+        <dt>{{ index === 0 ? fromLabel : toLabel }}</dt>
+        <dd><b>{{ copy.scope }}</b><code v-if="copy.path" translate="no">{{ copy.path }}</code></dd>
+      </div>
+    </dl>
+    <p class="compare-coverage">Preview covers SKILL.md text. Supporting files haven’t been compared here.</p>
+    <div v-if="errors.length" class="compare-error">
+      <ul role="alert"><li v-for="copy in errors" :key="copy.scope"><b>{{ copy.scope }}.</b> {{ copy.error }}</li></ul>
+      <button type="button" class="btn btn-line btn-sm" ref="retryButton" :disabled="retrying" @click="retry()">{{ retrying ? 'Reading…' : 'Retry comparison' }}</button>
+    </div>
+    <p v-else-if="!preview" class="compare-status" role="status">Reading both documents…</p>
+    <p v-else-if="preview.status === 'too-large'" class="compare-status" role="status">These documents exceed the comparison preview limit. Open the individual copies to review their text.</p>
+    <p v-else-if="preview.status === 'same'" class="compare-status" role="status">The returned document text matches.</p>
+    <p v-else-if="preview.status === 'line-endings'" class="compare-status" role="status">Only line endings differ in the returned text.</p>
+    <template v-else>
+      <ul :class="['compare-lines', { unified }]" aria-label="Changed lines with context">
+        <li v-for="(row, index) in preview.rows" :key="index" class="compare-row" :class="{ 'compare-context': row.context }">
+          <template v-for="side in ['before', 'after']" :key="side">
+            <div :class="['compare-line', side, row[side]?.kind || 'gap']" :aria-hidden="row[side] ? null : 'true'">
+              <template v-if="row[side]">
+                <span class="sr-only">{{ row[side].kind === 'del' ? 'Removed, original line ' : row[side].kind === 'add' ? 'Added, new line ' : 'Context, line ' }}</span>
+                <span class="compare-number num">{{ row[side].number }}</span>
+                <span class="compare-sign" aria-hidden="true">{{ row[side].kind === 'del' ? '−' : row[side].kind === 'add' ? '+' : '' }}</span>
+                <code translate="no">{{ row[side].text }}</code>
+              </template>
+            </div>
+          </template>
+        </li>
+      </ul>
+      <p v-if="preview.omitted" class="compare-status">Showing the first {{ preview.rows.length }} rows. {{ preview.omitted }} more rows omitted.</p>
+      <ai-copy-brief :rows="preview.rows" :from-label="fromLabel" :to-label="toLabel"></ai-copy-brief>
+    </template>
+  </section>`,
+});
+app.component("section-jumps", {
+  props: { sections: { type: Array, required: true } },
+  methods: {
+    jumpTo(id) {
+      // The page address already uses the fragment for routing.
+      const heading = document.getElementById(id);
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      heading.scrollIntoView({ block: "start" });
+    },
+  },
+  template: `<div class="section-jumps" role="group" aria-label="On this page">
+    <span aria-hidden="true">On this page</span>
+    <button v-for="[id, label] in sections" :key="id" type="button" class="btn btn-line btn-sm" @click="jumpTo(id)">{{ label }}</button>
+  </div>`,
+});
+app.component("tool-center", window.SkillsV2ToolCenter);
+app.component("ai-center", window.SkillsV2AiCenter);
+app.component("ai-briefing", window.SkillsV2AiBriefing);
+app.component("ai-compare", window.SkillsV2AiCompare);
+app.component("trial-stats", window.SkillsV2TrialStats);
+app.component("ai-copy-brief", window.SkillsV2AiCopyBrief);
+app.component("ai-diagnostic", window.SkillsV2AiDiagnostic);
+
+app.mount("#app");

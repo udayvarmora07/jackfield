@@ -2,7 +2,7 @@
   "name": "skills-manager-e2e-tools",
   "version": "0.0.0",
   "private": true,
-  "description": "Developer/CI-only browser test tooling for tools/e2e_v2 and tools/e2e_classic. Never shipped, never a runtime dependency.",
+  "description": "Developer/CI-only browser test tooling for tools/e2e_v2. Never shipped, never a runtime dependency.",
   "license": "MIT",
   "dependencies": {
     "playwright": "1.61.0"

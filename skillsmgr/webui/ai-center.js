@@ -18,8 +18,8 @@
         busy: false, inflight: 0, error: "", note: "", connection: null,
         scope: "", mode: "generate", chosen: [], filter: "", perSkill: 3, nearMisses: 2, promptText: "", repeats: 1,
         estimate: null, result: null,
-        portName: "", portTarget: "codex", ported: null,
-        explainName: "", explained: null,
+        portName: "", portTarget: "codex", ported: null, portEstimate: null, portRequest: 0,
+        explainName: "", explained: null, explainEstimate: null, explainRequest: 0,
         question: "", askScope: "all", asked: null, askEstimate: null, askKey: "",
         evalName: "", evalMax: 10, evalTrials: 3, evalResult: null, evalEstimate: null,
         ablateName: "", ablateSection: "", ablateTrials: 3, ablateMax: 10, ablatePlacebo: false, ablateSections: [], ablateEstimate: null, ablateEstimateKey: "",
@@ -96,9 +96,11 @@
       profileDroppedCount() { const value = this.profileResult && this.profileResult.dropped_names; return Array.isArray(value) ? value.length : Number(value) || 0; },
     },
     watch: {
-      page: { immediate: true, handler(next, previous) { if (previous === "ai-concise" && next !== "ai-concise") this.clearConciseProposal(); if (previous === "ai-profile" && next !== "ai-profile") this.clearProfileSuggestion(); if (previous === "ai-ablate" && next !== "ai-ablate") this.clearAblate(); this.error = ""; this.note = ""; this.load(); this.takeHandoff(); this.loadSaved(); } },
-      explainName() { this.explained = null; },
-      scope() { this.ported = null; this.explained = null; this.explainName = ""; this.loadSaved(); this.budget = null; this.budgetEstimate = null; this.pairs = []; this.overlap = null; this.overlapEstimate = null; this.chosen = []; this.estimate = null; this.result = null; this.improve = null; this.improveEstimate = null; },
+      page: { immediate: true, handler(next, previous) { if (previous === "ai-port" || previous === "ai-explain") { this.clearPort(); this.clearExplain(); } if (previous === "ai-concise" && next !== "ai-concise") this.clearConciseProposal(); if (previous === "ai-profile" && next !== "ai-profile") this.clearProfileSuggestion(); if (previous === "ai-ablate" && next !== "ai-ablate") this.clearAblate(); this.error = ""; this.note = ""; this.load(); this.takeHandoff(); this.loadSaved(); } },
+      explainName() { this.clearExplain(); },
+      portName() { this.clearPort(); },
+      portTarget() { this.clearPort(); },
+      scope() { this.clearPort(); this.clearExplain(); this.portName = ""; this.explainName = ""; this.loadSaved(); this.budget = null; this.budgetEstimate = null; this.pairs = []; this.overlap = null; this.overlapEstimate = null; this.chosen = []; this.estimate = null; this.result = null; this.improve = null; this.improveEstimate = null; },
       draftScope() { this.clearDraftProposal(); },
       draftName() { this.clearDraftProposal(); },
       draftBrief() { this.clearDraftProposal(); },
@@ -110,10 +112,16 @@
       profileScope() { this.clearProfileSuggestion(); },
       profileScopes: { immediate: true, handler(list) { if (!list.some((s) => s.id === this.profileScope)) this.profileScope = (list[0] || {}).id || ""; } },
       conciseScopes: { immediate: true, handler(list) { if (!list.some((s) => s.id === this.conciseScope)) this.conciseScope = (list[0] || {}).id || ""; } },
-      agentScopes: { immediate: true, handler(list) { if (!this.scope && list.length) this.scope = (list.find((s) => s.id === "claude-code") || list[0]).id; } },
+      /* Default the agent pickers. "Your library" can be empty, which left the
+       * Contradiction check's "Skills from" select blank; fall back to the
+       * first agent folder that has skills. */
+      agentScopes: { immediate: true, handler(list) { if (!this.scope && list.length) this.scope = (list.find((s) => s.id === "claude-code") || list[0]).id; if (list.length && !list.some((sc) => sc.id === this.conflictsScope)) this.conflictsScope = list[0].id; } },
       draftScopes: { immediate: true, handler(list) { if (!list.some((s) => s.id === this.draftScope)) this.draftScope = (list.find((s) => s.id === "global") || list[0] || {}).id || ""; } },
     },
     methods: {
+      /* The page's one-line purpose, from the shared tool catalog, so a page
+       * reached with AI off still says what it is for. */
+      toolLede(id) { const item = (window.SkillsV2Model.toolItems || []).find((t) => t.id === id); return item ? item.text : ""; },
       pct,
       fmt(n) { return n == null ? "–" : Number(n).toLocaleString(); },
       relationTone(r) { return { "same-purpose": "bad", overlapping: "warn", uncertain: "note", distinct: "ok" }[r] || "off"; },
@@ -127,8 +135,34 @@
         const ok = await this.guard(() => api("/api/skills/" + encodeURIComponent(p.name) + "?scope=" + encodeURIComponent(this.budget.scope), { method: "PATCH", body: JSON.stringify({ description: p.proposed }) }));
         if (ok) { this.appliedNames.push(p.name); this.note = "Saved " + p.name + ". The previous version is in Recovery → history."; this.$emit("changed"); }
       },
-      async port(estimate) { const r = await this.guard(() => post("/api/ai/porting-notes", { scope: this.scope, name: this.portName, target: this.portTarget, estimate })); if (r) { this.ported = r; if (!estimate) this.load(); } },
-      async explain(estimate) { const r = await this.guard(() => post("/api/ai/explain-findings", { scope: this.scope, name: this.explainName, estimate })); if (r) { this.explained = r; if (!estimate) this.load(); } },
+      async localToolRequest(fn, current) {
+        this.begin();
+        try { return await fn(); } catch (e) { if (current()) this.error = (e && e.message) || String(e); return null; } finally { this.end(); }
+      },
+      clearPort() { this.portRequest++; this.ported = null; this.portEstimate = null; },
+      clearExplain() { this.explainRequest++; this.explained = null; this.explainEstimate = null; },
+      async port(step) {
+        if (this.busy || this.page !== "ai-port" || !this.portName || (step !== "local" && !this.configured) || (step === "send" && (!this.portEstimate || this.portEstimate.scope !== this.scope || this.portEstimate.name !== this.portName || this.portEstimate.target !== this.portTarget))) return;
+        const request = ++this.portRequest, key = JSON.stringify([this.scope, this.portName, this.portTarget]);
+        const body = { scope: this.scope, name: this.portName, target: this.portTarget, local_only: step === "local", estimate: step === "estimate", reviewed: true, plan: step === "send" ? this.portEstimate.plan : undefined };
+        this.portEstimate = null;
+        const current = () => request === this.portRequest && this.page === "ai-port" && key === JSON.stringify([this.scope, this.portName, this.portTarget]);
+        const r = await this.localToolRequest(() => post("/api/ai/porting-notes", body), current);
+        if (!r || !current()) return;
+        if (step === "estimate" && r.run) this.portEstimate = r;
+        else { this.ported = r; if (step === "send") { this.portEstimate = null; this.load(); } }
+      },
+      async explain(step) {
+        if (this.busy || this.page !== "ai-explain" || !this.explainName || (step !== "local" && !this.configured) || (step === "send" && (!this.explainEstimate || this.explainEstimate.scope !== this.scope || this.explainEstimate.name !== this.explainName))) return;
+        const request = ++this.explainRequest, key = JSON.stringify([this.scope, this.explainName]);
+        const body = { scope: this.scope, name: this.explainName, local_only: step === "local", estimate: step === "estimate", reviewed: true, plan: step === "send" ? this.explainEstimate.plan : undefined };
+        this.explainEstimate = null;
+        const current = () => request === this.explainRequest && this.page === "ai-explain" && key === JSON.stringify([this.scope, this.explainName]);
+        const r = await this.localToolRequest(() => post("/api/ai/explain-findings", body), current);
+        if (!r || !current()) return;
+        if (step === "estimate" && r.run) this.explainEstimate = r;
+        else { this.explained = r; if (step === "send") { this.explainEstimate = null; this.load(); } }
+      },
       opinionFor(i) { return ((this.explained && this.explained.opinions) || []).find((o) => o.index === i) || null; },
       opinionLabel(o) { return { "likely-real": ["warn", "Likely a real concern"], "likely-false-positive": ["ok", "Likely a false positive"], unclear: ["off", "No clear opinion"] }[o] || ["off", o]; },
       askInputKey() { return JSON.stringify([this.question.trim(), this.askScope]); },
@@ -366,7 +400,11 @@
           this.askScope = "all";
         }
         if (this.target && this.page === "ai-port") {
-          this.scope = this.target.scope; this.portName = this.target.name;
+          const target = this.target, scope = target.scope, name = target.name;
+          this.scope = scope;
+          this.$nextTick(() => {
+            if (this.page === "ai-port" && this.target === target && this.scope === scope && target.scope === scope && target.name === name) this.portName = name;
+          });
         }
         if (!t && this.target && this.page === "ai-improve") t = { scope: this.target.scope, name: this.target.name };
         if (t && t.scope) { this.scope = t.scope; this.$nextTick(() => { if (t.name) this.improveName = t.name; }); }
@@ -504,9 +542,9 @@
                 <small v-else-if="provider && provider.env.length">Or set {{ provider.env.join(' / ') }} before starting the app, and leave this blank.</small></label>
               <input id="ai-key" class="field tp-mono" type="password" v-model="form.api_key" autocomplete="off" spellcheck="false" placeholder="Paste key"></div>
             <div class="tp-set-row"><label for="ai-run"><b>Cap per run</b><small>Input tokens one test may send. A run that would exceed it is refused before anything is sent.</small></label>
-              <input id="ai-run" class="field num" type="number" min="1000" step="1000" v-model="form.max_run_tokens"></div>
+              <span class="ai-cap"><input id="ai-run" class="field num" type="number" min="1000" step="1000" v-model="form.max_run_tokens" aria-describedby="ai-run-v"><small id="ai-run-v" class="tp-fine">{{ fmt(form.max_run_tokens) }} tokens</small></span></div>
             <div class="tp-set-row"><label for="ai-day"><b>Cap per day</b><small>Today so far: {{ fmt(usage && usage.input_tokens) }} input tokens in {{ fmt(usage && usage.calls) }} calls.</small></label>
-              <input id="ai-day" class="field num" type="number" min="1000" step="1000" v-model="form.max_day_tokens"></div>
+              <span class="ai-cap"><input id="ai-day" class="field num" type="number" min="1000" step="1000" v-model="form.max_day_tokens" aria-describedby="ai-day-v"><small id="ai-day-v" class="tp-fine">{{ fmt(form.max_day_tokens) }} tokens</small></span></div>
           </div>
           <div class="tp-acts"><button class="btn btn-ink" :disabled="busy || !form.provider || !form.model" @click="save()">Save</button>
             <button class="btn btn-line" :disabled="busy || !configured" @click="testConnection()">Test connection</button>
@@ -516,19 +554,26 @@
         </section>
         <section class="card tp-panel" aria-labelledby="ai-priv-h">
           <h2 id="ai-priv-h">What leaves this computer</h2>
+          <p class="ai-warn" role="note"><ic name="warn"></ic><span><b>This app has no login.</b> It relies on listening only on this computer, so any program you run can reach it and could spend this key up to your caps. Keep the caps low.</span></p>
           <ul class="tp-fine ai-list">
             <li>Nothing, until you run a test. Each test shows exactly what it will send and its token estimate first.</li>
             <li>The trigger test sends skill names, descriptions and test prompts. Improving a description also sends the start of that one skill's body.</li>
             <li>A local provider (Ollama, LM Studio) keeps everything on this computer.</li>
             <li>{{ settings ? settings.storage : '' }} It is never shown again, logged or exported.</li>
-            <li>This app has no login: it relies on listening only on this computer. Any program you run can reach it, and so could spend this key up to your caps.</li>
           </ul>
         </section>
       </template>
 
-      <template v-else-if="!configured && settings && page !== 'ai-conflicts'">
+      <template v-else-if="!configured && settings && page !== 'ai-conflicts' && page !== 'ai-port' && page !== 'ai-explain'">
         <h1 class="h1" id="h1" tabindex="-1">{{ {'ai-concise':'Shorten a skill','ai-explain':'Explain risk findings','ai-port':'Porting notes','ai-ask':'Ask your library','ai-draft':'Draft a skill','ai-profile':'Suggest a profile','ai-trigger':'Trigger test','ai-improve':'Improve a description','ai-overlap':'Overlap check','ai-budget':'Fit the listing budget','ai-evals':'Does it help?','ai-ablate':'Does it earn its place?','ai-conflicts':'Contradiction check'}[page] || 'AI assist' }}</h1>
-        <section class="card tp-panel"><p>AI features are off. Connect a model first; nothing is sent until you run a test.</p>
+        <p class="lede">{{ toolLede(page) }}</p>
+        <section class="card tp-panel ai-off" aria-labelledby="ai-off-h">
+          <h2 id="ai-off-h">Connect a model to use this tool</h2>
+          <ol class="ai-steps">
+            <li><b>Connect a model</b><span>Your own Anthropic or OpenAI-compatible key, or a model running on this computer. Set spending caps at the same time.</span></li>
+            <li><b>Check what would be sent</b><span>Every run first shows exactly what leaves this computer and its token estimate. Nothing is sent at this step.</span></li>
+            <li><b>Send and review</b><span>Results are shown beside your own files; nothing is changed until you apply it.</span></li>
+          </ol>
           <div class="tp-acts"><a class="btn btn-ink" href="#/tools/ai-settings">Open AI settings</a></div></section>
       </template>
 
@@ -701,7 +746,7 @@
             <div class="tp-set-row"><label for="ai-scope6"><b>Agent</b></label><select id="ai-scope6" class="field" v-model="scope"><option v-for="s in agentScopes" :key="s.id" :value="s.id">{{ s.label }} ({{ s.count }})</option></select></div>
             <div class="tp-set-row"><label for="ai-exn"><b>Skill</b></label><select id="ai-exn" class="field" v-model="explainName"><option value="">Choose…</option><option v-for="n in scopeSkills" :key="n" :value="n">{{ n }}</option></select></div>
           </div>
-          <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !explainName" @click="explain(true)">Scan</button></div>
+          <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !explainName" @click="explain('local')">Scan</button></div>
         </section>
         <section v-if="explained" class="card tp-panel" aria-labelledby="ai-exr-h" aria-live="polite">
           <header class="tp-panel-h"><div><h2 id="ai-exr-h">{{ explained.name }}</h2><p>{{ explained.policy }}</p></div>
@@ -711,8 +756,10 @@
             <small v-if="opinionFor(i)"><span :class="['pill', opinionLabel(opinionFor(i).opinion)[0]]">{{ opinionLabel(opinionFor(i).opinion)[1] }}</span> {{ opinionFor(i).why }}<template v-if="opinionFor(i).quote"> · quotes <span class="tp-mono">{{ opinionFor(i).file }}</span>: “{{ opinionFor(i).quote }}”</template></small></span></li></ul>
           <p v-if="explained.findings_total > explained.findings_shown" class="tp-fine">Showing the first {{ explained.findings_shown }} of {{ explained.findings_total }} findings.</p>
           <template v-if="!explained.clean && !explained.opinions">
-            <p v-for="(line,i) in (explained.egress||[])" :key="i" class="tp-fine">{{ line }} About {{ fmt(explained.run.estimated_input_tokens) }} tokens to {{ explained.run.model }}.</p>
-            <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="explain(false)">Send for a second opinion</button></div>
+            <p v-if="!configured" class="tp-fine">For an optional second opinion, <a href="#/tools/ai-settings">connect a model</a>.</p>
+            <div v-else-if="!explainEstimate" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="explain('estimate')">Preview AI request</button></div>
+            <template v-else><p v-for="(line,i) in (explainEstimate.egress||[])" :key="i" class="tp-fine">{{ line }} About {{ fmt(explainEstimate.run.estimated_input_tokens) }} tokens to {{ explainEstimate.run.model }} at <code>{{ explainEstimate.destination }}</code>.</p>
+            <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="explain('send')">Send for a second opinion</button></div></template>
           </template>
           <p v-if="explained.uncited_demoted" class="tp-fine">{{ explained.uncited_demoted }} false-positive claim(s) without a matching quote were shown as “no clear opinion”.</p>
           <p v-if="explained.dropped_opinions" class="tp-fine">{{ explained.dropped_opinions }} opinion(s) about findings that do not exist were dropped.</p>
@@ -729,7 +776,7 @@
             <div class="tp-set-row"><label for="ai-pon"><b>Skill</b></label><select id="ai-pon" class="field" v-model="portName"><option value="">Choose…</option><option v-for="n in scopeSkills" :key="n" :value="n">{{ n }}</option></select></div>
             <div class="tp-set-row"><label for="ai-pot"><b>Target agent</b><small>Agents whose documented frontmatter keys are recorded.</small></label><select id="ai-pot" class="field" v-model="portTarget"><option v-for="c in (settings && settings.consumers) || []" :key="c.id" :value="c.id">{{ c.label }}</option></select></div>
           </div>
-          <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !portName" @click="port(true)">Find the facts</button></div>
+          <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !portName" @click="port('local')">Find the facts</button></div>
         </section>
         <section v-if="ported" class="card tp-panel" aria-labelledby="ai-por-h" aria-live="polite">
           <header class="tp-panel-h"><div><h2 id="ai-por-h">{{ ported.name }} → {{ ported.target_label }}</h2><p v-if="ported.source">Key list from <span class="tp-mono">{{ ported.source }}</span></p></div>
@@ -737,8 +784,10 @@
           <ul v-if="ported.facts.length" class="tp-rows"><li v-for="f in ported.facts" :key="f.id" class="v2-tool-row"><span class="tp-row-main"><strong>{{ f.kind==='frontmatter' ? 'Setting' : 'Text' }}: {{ f.detail }}</strong><small v-if="f.line" class="tp-mono">{{ f.line }}</small>
             <small v-for="n in (ported.notes||[]).filter(n => n.fact===f.id)" :key="n.fact + n.suggestion">{{ n.explanation }} <b>Suggestion:</b> {{ n.suggestion }}</small></span></li></ul>
           <template v-if="!ported.portable && !ported.notes">
-            <p v-for="(line,i) in (ported.egress||[])" :key="i" class="tp-fine">{{ line }} About {{ fmt(ported.run.estimated_input_tokens) }} tokens to {{ ported.run.model }}.</p>
-            <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="port(false)">Send and explain</button></div>
+            <p v-if="!configured" class="tp-fine">For optional explanations, <a href="#/tools/ai-settings">connect a model</a>.</p>
+            <div v-else-if="!portEstimate" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="port('estimate')">Preview AI request</button></div>
+            <template v-else><p v-for="(line,i) in (portEstimate.egress||[])" :key="i" class="tp-fine">{{ line }} About {{ fmt(portEstimate.run.estimated_input_tokens) }} tokens to {{ portEstimate.run.model }} at <code>{{ portEstimate.destination }}</code>.</p>
+            <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="port('send')">Send and explain</button></div></template>
           </template>
           <p v-if="ported.summary" class="tp-fine">{{ ported.summary }}</p>
           <p v-if="ported.dropped_notes" class="tp-fine">{{ ported.dropped_notes }} note(s) about things not in the facts were dropped.</p>
@@ -898,7 +947,7 @@
         <section class="card tp-panel" aria-labelledby="ai-cf-h">
           <h2 id="ai-cf-h">Set up</h2>
           <div class="tp-set">
-            <div class="tp-set-row"><label for="ai-cfs"><b>Skills from</b></label><select id="ai-cfs" class="field" v-model="conflictsScope" @change="conflictsReport=null; conflictsEstimate=null"><option v-for="sc in agentScopes" :key="sc.id" :value="sc.id">{{ sc.label }} ({{ sc.count }})</option></select></div>
+            <div class="tp-set-row"><label for="ai-cfs"><b>Skills from</b><small>Instruction files are compared with the skills in this agent folder.</small></label><select id="ai-cfs" class="field" v-model="conflictsScope" @change="conflictsReport=null; conflictsEstimate=null"><option v-for="sc in agentScopes" :key="sc.id" :value="sc.id">{{ sc.label }} ({{ sc.count }})</option></select></div>
             <div class="tp-set-row"><label for="ai-cfp"><b>Project folder</b><small>Optional. Also reads that project's CLAUDE.md, AGENTS.md and GEMINI.md. It must be inside the folders this app may read.</small></label><input id="ai-cfp" class="field" type="text" v-model="conflictsProject" @change="conflictsReport=null; conflictsEstimate=null" placeholder="/path/to/project"></div>
           </div>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !conflictsScope" @click="findConflicts()">Find possible contradictions</button></div>
@@ -1050,7 +1099,7 @@
         </section>
       </template>
 
-      <section class="card tp-panel" aria-labelledby="ai-history-h">
+      <section class="card tp-panel" aria-labelledby="ai-history-h" v-if="configured || pastRuns.length || historyError">
         <header class="tp-panel-h"><h2 id="ai-history-h">Past runs</h2>
           <button class="btn btn-line btn-sm" :disabled="historyBusy" @click="loadRuns()">Refresh past runs</button></header>
         <p class="tp-fine">Latest 20 saved runs across AI tools.</p>
@@ -1058,7 +1107,7 @@
         <p v-if="historyBusy" class="tp-fine" role="status">Loading past runs…</p>
         <p v-else-if="!pastRuns.length" class="tp-empty">No saved runs yet.</p>
         <ul class="tp-rows"><li v-for="r in pastRuns" :key="r.run_id" class="v2-tool-row">
-          <span class="tp-row-main"><strong>{{ r.kind }}<span v-if="r.status==='disconnected'"> · Partial run</span></strong><small>{{ r.started }} · {{ r.model }}<span v-if="r.scope"> · {{ r.scope }}</span><span v-if="r.name"> · {{ r.name }}</span></small></span>
+          <span class="tp-row-main"><strong>{{ r.kind }}<span v-if="r.status==='disconnected'" class="pill off ai-partial">Partial run</span></strong><small>{{ [r.started, r.model, r.scope, r.name].filter(Boolean).join(', ') }}</small></span>
           <button class="btn btn-line btn-sm" :disabled="historyBusy" :aria-label="'View run ' + r.run_id" @click="openRun(r.run_id)">View</button>
         </li></ul>
         <div v-if="pastRun" aria-live="polite"><h3>Saved run details</h3><p class="tp-fine">Saved model output, shown as text. Results are estimates.</p>

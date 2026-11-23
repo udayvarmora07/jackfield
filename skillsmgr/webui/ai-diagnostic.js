@@ -27,7 +27,7 @@
   }
 
   window.SkillsV2AiDiagnostic = {
-    props: { copy: Object, records: Array, editable: Boolean },
+    props: { copy: Object, agentLabel: String, records: Array, editable: Boolean },
     emits: ["repair"],
     data() { return { agents: [], consumer: this.copy.record.consumer || "", project: "", report: null,
       prompt: "", wanted: true, estimate: null, result: null, key: "", busy: false, error: "",
@@ -91,37 +91,47 @@
         }
       },
     },
-    template: `<div>
-      <p><strong>{{ copy.name }}</strong> · {{ copy.scope }} <code>{{ copy.path }}</code></p>
+    template: `<div class="ai-diagnosis">
+      <p><strong class="tp-mono" translate="no">{{ copy.name }}</strong> in {{ agentLabel }}</p>
+      <details v-if="copy.path" class="paths">
+        <summary>Skill folder</summary>
+        <code translate="no">{{ copy.path }}</code>
+      </details>
       <p class="tp-fine" v-if="copy.record.disabled">This copy is disabled on disk.</p>
       <p class="tp-fine" v-if="copy.record.frontmatter_extensions?.['disable-model-invocation'] === true">Its frontmatter declares manual invocation.</p>
       <p class="tp-fine" v-if="duplicates > 1">{{ duplicates }} copies share this name in the selected scope. Simulation resolves names.</p>
-      <h3>Discovery on disk</h3>
-      <label class="tp-field">Agent<select class="field" v-model="consumer" :disabled="busy" @change="report=null"><option value="">Choose an agent</option><option v-for="agent in agents" :key="agent.id" :value="agent.id">{{ agent.label }}</option></select></label>
-      <label class="tp-field">Project path (optional)<input class="field" maxlength="4096" v-model="project" :disabled="busy" @input="report=null"></label>
-      <button type="button" class="btn btn-line btn-sm" :disabled="busy || !consumer" @click="inspect()">Check discovery</button>
-      <div v-if="report" class="ai-confirm">
-        <p>{{ entry?.reason || report.reason || (report.resolution === 'project-outside-managed-roots' ? 'This project is outside the allowed folders.' : 'No instance was reported by the documented rules.') }}</p>
-        <p v-if="entry?.winner?.path">Suggested copy <code>{{ entry.winner.path }}</code></p>
-        <p v-for="(note, i) in report.warnings" :key="i" class="tp-fine">{{ note }}</p>
-      </div>
-      <h3>Simulate a request</h3>
-      <label class="tp-field">Request<textarea class="field instance-create-body" rows="3" maxlength="600" :disabled="busy" v-model="prompt"></textarea></label>
-      <label class="tp-check"><input type="checkbox" :disabled="busy" v-model="wanted"> This request should select {{ copy.name }}</label>
-      <button type="button" class="btn btn-line btn-sm" :disabled="busy || !prompt.trim()" @click="simulate(true)">Preview simulation</button>
-      <div v-if="estimate && key === inputKey && !result" class="ai-confirm">
-        <p v-for="(line,i) in estimate.egress" :key="i">{{ line }}</p><button type="button" class="btn btn-ink btn-sm" :disabled="busy" @click="simulate(false)">Send and simulate</button>
-      </div>
-      <div v-if="result && key === inputKey" class="ai-confirm">
-        <p>Simulated {{ result.repeats }} times with {{ result.run.model }}. This scope supplied {{ result.listed }} skill descriptions.</p>
-        <ul v-if="choices.length"><li v-for="[name, count] in choices" :key="name">{{ name === '(none)' ? 'No skill' : name }} · {{ count }}</li></ul>
-        <p v-else>There were no conclusive choices.</p>
-        <p v-if="result.invalid_answers || result.missing_answers">Incomplete or invalid answers were reported.</p>
-        <button type="button" class="btn btn-line btn-sm" :disabled="busy || !!saved" @click="saveCase()">Save regression case</button>
-        <p v-if="saved" role="status">{{ saved }}</p>
-      </div>
+      <section aria-labelledby="diag-discovery">
+        <h3 id="diag-discovery">Discovery on disk</h3>
+        <label class="tp-field">Agent<select class="field" v-model="consumer" :disabled="busy" @change="report=null"><option value="">Choose an agent</option><option v-for="agent in agents" :key="agent.id" :value="agent.id">{{ agent.label }}</option></select></label>
+        <label class="tp-field">Project path (optional)<input class="field" maxlength="4096" v-model="project" :disabled="busy" @input="report=null"></label>
+        <button type="button" class="btn btn-line btn-sm" :disabled="busy || !consumer" @click="inspect()">Check discovery</button>
+        <div v-if="report" class="ai-confirm">
+          <p>{{ entry?.reason || report.reason || (report.resolution === 'project-outside-managed-roots' ? 'This project is outside the allowed folders.' : 'No instance was reported by the documented rules.') }}</p>
+          <p v-if="entry?.winner?.path">Suggested copy <code>{{ entry.winner.path }}</code></p>
+          <p v-for="(note, i) in report.warnings" :key="i" class="tp-fine">{{ note }}</p>
+        </div>
+      </section>
+      <section aria-labelledby="diag-simulation">
+        <h3 id="diag-simulation">Simulate a request</h3>
+        <label class="tp-field">Request<textarea class="field instance-create-body" rows="3" maxlength="600" :disabled="busy" v-model="prompt"></textarea></label>
+        <label class="tp-check"><input type="checkbox" :disabled="busy" v-model="wanted"> This request should select {{ copy.name }}</label>
+        <div class="tp-acts">
+          <button type="button" class="btn btn-line btn-sm" :disabled="busy || !prompt.trim()" @click="simulate(true)">Preview simulation</button>
+          <button type="button" class="btn btn-line btn-sm" v-if="editable" :disabled="!prompt.trim() || busy" @click="$emit('repair', prompt.trim())">Edit skill using this request</button>
+        </div>
+        <div v-if="estimate && key === inputKey && !result" class="ai-confirm">
+          <p v-for="(line,i) in estimate.egress" :key="i">{{ line }}</p><button type="button" class="btn btn-ink btn-sm" :disabled="busy" @click="simulate(false)">Send and simulate</button>
+        </div>
+        <div v-if="result && key === inputKey" class="ai-confirm">
+          <p>Simulated {{ result.repeats }} times with {{ result.run.model }}. This scope supplied {{ result.listed }} skill descriptions.</p>
+          <ul v-if="choices.length"><li v-for="[name, count] in choices" :key="name">{{ name === '(none)' ? 'No skill' : name }} · {{ count }}</li></ul>
+          <p v-else>There were no conclusive choices.</p>
+          <p v-if="result.invalid_answers || result.missing_answers">Incomplete or invalid answers were reported.</p>
+          <button type="button" class="btn btn-line btn-sm" :disabled="busy || !!saved" @click="saveCase()">Save regression case</button>
+          <p v-if="saved" role="status">{{ saved }}</p>
+        </div>
+      </section>
       <p v-if="busy" role="status">Checking…</p><p v-if="error" class="state-note err" role="alert">{{ error }}</p>
-      <button type="button" class="btn btn-line btn-sm" v-if="editable" :disabled="!prompt.trim() || busy" @click="$emit('repair', prompt.trim())">Edit skill using this request</button>
       <details class="tp-more">
         <summary>Observed invocation from an OpenCode trace</summary>
         <p class="tp-fine">Select OpenCode 2.3.2 JSONL from one completed run. The file is read in this browser.</p>
