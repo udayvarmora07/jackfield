@@ -216,10 +216,11 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
     const text = heading ? heading.innerText.trim() : '';
     const rooms = document.querySelectorAll('.room').length;
     const note = document.querySelector('.state-note');
+    const emptyHome = document.querySelector('.room-empty');
     const alert = document.querySelector('[role="alert"]');
-    const representative = rooms > 0 || !!note || !!alert;
+    const representative = rooms > 0 || !!note || !!emptyHome || !!alert;
     return {ready: !!app && !app.hasAttribute('v-cloak') && !!text && !/^Looking at/.test(text) && representative,
-      rooms, note: note ? note.innerText.slice(0, 200) : '', alert: alert ? alert.innerText.slice(0, 200) : '',
+      rooms, emptyHome: emptyHome ? emptyHome.innerText.slice(0, 200) : '', alert: alert ? alert.innerText.slice(0, 200) : '',
       looks: document.querySelectorAll('.look').length, marker: (document.querySelector('#main') || document.body).innerText.slice(0, 400)};
   })()`;
   let previousMarker = null, stableChecks = 0, ready = false, lastState = null;
@@ -239,7 +240,7 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
   // queue (the malformed-observed fixture); empty says so in words; a failed
   // first scan shows an alert instead of a blank or crashed page.
   if (scenario === 'populated' && !(home.rooms > 0 && home.looks > 0)) errors.push('Populated home did not show agent cards and the Needs-a-look queue: ' + JSON.stringify(home));
-  if (scenario === 'empty' && !(home.rooms === 0 && /No agent skill folders/.test(home.note))) errors.push('Empty home did not explain that no agent folders were found: ' + JSON.stringify(home));
+  if (scenario === 'empty' && !(home.rooms === 0 && /No agent skill folders/.test(home.emptyHome))) errors.push('Empty home did not explain that no agent folders were found: ' + JSON.stringify(home));
   if ((scenario === 'scope-failure' || scenario === 'inventory-failure') && !home.alert) errors.push('A failed first scan did not surface an alert: ' + JSON.stringify(home));
   if (scenario === 'unavailable-root' && home.alert) errors.push('An unavailable agent root broke the first render: ' + JSON.stringify(home));
 

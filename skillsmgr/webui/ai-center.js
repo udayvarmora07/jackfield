@@ -17,7 +17,7 @@
         settings: null, form: { provider: "", model: "", base_url: "", api_key: "", max_run_tokens: 300000, max_day_tokens: 2000000 },
         busy: false, inflight: 0, error: "", note: "", connection: null,
         scope: "", mode: "generate", chosen: [], filter: "", perSkill: 3, nearMisses: 2, promptText: "", repeats: 1,
-        estimate: null, result: null,
+        estimate: null, result: null, previewKeys: {},
         portName: "", portTarget: "codex", ported: null, portEstimate: null, portRequest: 0,
         explainName: "", explained: null, explainEstimate: null, explainRequest: 0,
         question: "", askScope: "all", asked: null, askEstimate: null, askKey: "",
@@ -50,7 +50,15 @@
         for (const r of this.records) if (r.scope === this.scope && !r.disabled && !seen.has(r.name)) { seen.add(r.name); out.push(r.name); }
         return out.sort();
       },
-      pickable() { const q = this.filter.trim().toLowerCase(); return this.scopeSkills.filter((n) => !q || n.includes(q)); },
+      pickable() {
+        const q = this.filter.trim().toLowerCase(), names = new Set();
+        for (const r of this.records) {
+          if (r.scope !== this.scope || typeof r.name !== "string" || r.disabled || r.decode_error || r.document_missing || r.addressable === false || r.malformed) continue;
+          if ([r.portable_frontmatter, r.frontmatter_extensions].some(m => m && m["disable-model-invocation"] === true)) continue;
+          if (!q || r.name.includes(q)) names.add(r.name);
+        }
+        return [...names].sort();
+      },
       parsedPrompts() {
         return this.promptText.split("\n").map((l) => l.trim()).filter(Boolean).map((line) => {
           const m = line.match(/^(.*?)\s*=>\s*([a-z0-9-]+|none)\s*$/);
@@ -127,9 +135,21 @@
       relationTone(r) { return { "same-purpose": "bad", overlapping: "warn", uncertain: "note", distinct: "ok" }[r] || "off"; },
       relationLabel(r) { return { "same-purpose": "Same purpose", overlapping: "Overlapping", uncertain: "Uncertain: depends on order", distinct: "Distinct", unknown: "No clear answer" }[r] || r; },
       actionLabel(a) { return { merge: "Merge them", "narrow-descriptions": "Sharpen both descriptions", "keep-both": "Keep both as they are", review: "Answers disagreed: review yourself" }[a] || a; },
+      previewKey(body) {
+        return JSON.stringify([this.page, this.settings && [this.settings.provider, this.settings.model, this.settings.base_url], body,
+          this.page === "ai-trigger" && this.mode === "saved" ? this.savedPrompts : null]);
+      },
+      previewCurrent(field, body) { return !!this[field] && this.previewKeys[field] === this.previewKey(body); },
+      async requestPreview(field, endpoint, body, currentBody) {
+        if (this.busy) return;
+        const key = this.previewKey(body);
+        this[field] = null; this.previewKeys[field] = "";
+        const result = await this.guard(() => post(endpoint, body));
+        if (result && key === this.previewKey(currentBody())) { this[field] = result; this.previewKeys[field] = key; }
+      },
       budgetBody(estimate) { const b = { scope: this.scope, max_skills: Number(this.budgetMax), estimate }; if (String(this.budgetChars).trim()) b.budget_chars = Number(this.budgetChars); return b; },
-      async estimateBudget() { this.budget = null; this.appliedNames = []; this.budgetEstimate = await this.guard(() => post("/api/ai/fit-budget", this.budgetBody(true))); },
-      async runBudget() { const r = await this.guard(() => post("/api/ai/fit-budget", this.budgetBody(false))); if (r) { this.budget = r; this.budgetEstimate = null; this.load(); } },
+      async estimateBudget() { this.budget = null; this.appliedNames = []; await this.requestPreview("budgetEstimate", "/api/ai/fit-budget", this.budgetBody(true), () => this.budgetBody(true)); },
+      async runBudget() { if (this.busy || !this.previewCurrent("budgetEstimate", this.budgetBody(true))) return; const r = await this.guard(() => post("/api/ai/fit-budget", this.budgetBody(false))); if (r) { this.budget = r; this.budgetEstimate = null; this.load(); } },
       async applyShort(p) {
         if (!confirm("Replace the description of " + p.name + " in " + this.budget.scope + " with the shorter version? A snapshot of the current file is kept.")) return;
         const ok = await this.guard(() => api("/api/skills/" + encodeURIComponent(p.name) + "?scope=" + encodeURIComponent(this.budget.scope), { method: "PATCH", body: JSON.stringify({ description: p.proposed }) }));
@@ -229,13 +249,13 @@
         const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({})));
         if (req === this.conflictsRequest) this.conflictsReport = r;
       },
+      conflictEstimateBody() { return this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), votes: Number(this.conflictsVotes), estimate: true }); },
       async estimateConflictJudge() {
-        const req = ++this.conflictsRequest;
-        const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), votes: Number(this.conflictsVotes), estimate: true })));
-        if (req === this.conflictsRequest) this.conflictsEstimate = r;
+        ++this.conflictsRequest;
+        await this.requestPreview("conflictsEstimate", "/api/ai/conflicts", this.conflictEstimateBody(), () => this.conflictEstimateBody());
       },
       async runConflictJudge() {
-        if (!this.conflictsEstimate || !this.conflictsEstimate.plan) return;
+        if (this.busy || !this.previewCurrent("conflictsEstimate", this.conflictEstimateBody()) || !this.conflictsEstimate.plan) return;
         const req = ++this.conflictsRequest;
         const r = await this.guard(() => post("/api/ai/conflicts", this.conflictsBody({ judge: true, max_pairs: Number(this.conflictsMax), votes: Number(this.conflictsVotes), plan: this.conflictsEstimate.plan })));
         if (r && req === this.conflictsRequest) { this.conflictsReport = r; this.conflictsEstimate = null; this.loadRuns(); }
@@ -246,13 +266,13 @@
         return { conflict: ["bad", "AI: conflict"], compatible: ["ok", "AI: compatible"], unclear: ["warn", "AI: unclear"] }[j.verdict] || ["off", j.verdict];
       },
       evalBody(estimate) { return { name: this.evalName, max_cases: Number(this.evalMax), trials: Number(this.evalTrials), estimate }; },
-      async estimateEvals() { this.evalResult = null; this.evalEstimate = await this.guard(() => post("/api/ai/evals", this.evalBody(true))); },
-      async runEvals() { const r = await this.guard(() => post("/api/ai/evals", this.evalBody(false))); if (r) { this.evalResult = r; this.evalEstimate = null; this.load(); } },
+      async estimateEvals() { this.evalResult = null; await this.requestPreview("evalEstimate", "/api/ai/evals", this.evalBody(true), () => this.evalBody(true)); },
+      async runEvals() { if (this.busy || !this.previewCurrent("evalEstimate", this.evalBody(true))) return; const r = await this.guard(() => post("/api/ai/evals", this.evalBody(false))); if (r) { this.evalResult = r; this.evalEstimate = null; this.load(); } },
       evalVerdict(v) { return { helps: ["ok", "The skill helps"], "not-needed": ["warn", "Passes without the skill: it may no longer be needed"], "no-gain": ["warn", "No difference with the skill"], hurts: ["bad", "Worse with the skill"], ungraded: ["off", "No assertions to grade"] }[v] || ["off", v]; },
       addPair() { if (this.pairA && this.pairB && this.pairA !== this.pairB && this.pairs.length < 12) { this.pairs.push([this.pairA, this.pairB]); this.pairA = this.pairB = ""; } },
       overlapBody(estimate) { return { scope: this.scope, max_pairs: Number(this.overlapLimit), pairs: this.pairs, estimate }; },
-      async estimateOverlap() { this.overlap = null; this.overlapEstimate = await this.guard(() => post("/api/ai/overlap-judge", this.overlapBody(true))); },
-      async runOverlap() { const r = await this.guard(() => post("/api/ai/overlap-judge", this.overlapBody(false))); if (r) { this.overlap = r; this.overlapEstimate = null; this.load(); } },
+      async estimateOverlap() { this.overlap = null; await this.requestPreview("overlapEstimate", "/api/ai/overlap-judge", this.overlapBody(true), () => this.overlapBody(true)); },
+      async runOverlap() { if (this.busy || !this.previewCurrent("overlapEstimate", this.overlapBody(true))) return; const r = await this.guard(() => post("/api/ai/overlap-judge", this.overlapBody(false))); if (r) { this.overlap = r; this.overlapEstimate = null; this.load(); } },
       verdictTone(v) { return v === "fires" ? "ok" : v === "never-fires" ? "bad" : "warn"; },
       verdictLabel(v) { return { fires: "Selected in simulation", "never-fires": "Not selected in simulation", unreliable: "Mixed simulation results", unknown: "Unknown" }[v] || v; },
       skillLabel(n) { return n === "(none)" ? "no skill" : n; },
@@ -506,11 +526,11 @@
         else body.prompts = this.parsedPrompts;
         return body;
       },
-      async estimateTrigger() { this.result = null; this.estimate = await this.guard(() => post("/api/ai/trigger-test", this.triggerBody(true))); },
-      async runTrigger() { const r = await this.guard(() => post("/api/ai/trigger-test", this.triggerBody(false))); if (r) { this.result = r; this.estimate = null; this.load(); } },
+      async estimateTrigger() { this.result = null; await this.requestPreview("estimate", "/api/ai/trigger-test", this.triggerBody(true), () => this.triggerBody(true)); },
+      async runTrigger() { if (this.busy || !this.previewCurrent("estimate", this.triggerBody(true))) return; const r = await this.guard(() => post("/api/ai/trigger-test", this.triggerBody(false))); if (r) { this.result = r; this.estimate = null; this.load(); } },
       improveBody(estimate) { return { scope: this.scope, name: this.improveName, candidates: Number(this.candidates), repeats: Number(this.repeats), estimate }; },
-      async estimateImprove() { this.improve = null; this.applied = ""; this.improveEstimate = await this.guard(() => post("/api/ai/improve-description", this.improveBody(true))); },
-      async runImprove() { const r = await this.guard(() => post("/api/ai/improve-description", this.improveBody(false))); if (r) { this.improve = r; this.improveEstimate = null; this.load(); } },
+      async estimateImprove() { this.improve = null; this.applied = ""; await this.requestPreview("improveEstimate", "/api/ai/improve-description", this.improveBody(true), () => this.improveBody(true)); },
+      async runImprove() { if (this.busy || !this.previewCurrent("improveEstimate", this.improveBody(true))) return; const r = await this.guard(() => post("/api/ai/improve-description", this.improveBody(false))); if (r) { this.improve = r; this.improveEstimate = null; this.load(); } },
       async applyCandidate(c) {
         if (!confirm("Replace the description of " + this.improve.name + " in " + this.improve.scope + "? A snapshot of the current file is kept and you can restore it from Recovery.")) return;
         const ok = await this.guard(() => api("/api/skills/" + encodeURIComponent(this.improve.name) + "?scope=" + encodeURIComponent(this.improve.scope), { method: "PATCH", body: JSON.stringify({ description: c.description }) }));
@@ -620,7 +640,7 @@
           <p v-if="savedError" class="v2-tool-error" role="alert">{{ savedError }}</p>
           <p v-if="savedNote" class="tp-fine" role="status">{{ savedNote }}</p>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !scope || (mode==='generate' ? !chosen.length : mode==='saved' ? !savedCount : !parsedPrompts.length)" @click="estimateTrigger()">Check what will be sent</button></div>
-          <div v-if="estimate" class="ai-confirm" role="region" aria-label="Before sending">
+          <div v-if="previewCurrent('estimate', triggerBody(true))" class="ai-confirm" role="region" aria-label="Before sending">
             <p v-for="(line,i) in estimate.egress" :key="i" class="tp-fine">{{ line }}</p>
             <p class="tp-fine">At most about {{ fmt(estimate.run.estimated_input_tokens) }} tokens to {{ estimate.run.model }}<span v-if="estimate.over_cap.length">; {{ estimate.over_cap.length }} descriptions are longer than the agent's cap and are cut, as the agent would.</span></p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="runTrigger()">Send and run test</button><button class="btn btn-line" :disabled="busy" @click="estimate=null">Cancel</button></div>
@@ -694,7 +714,7 @@
           <h2 id="ai-draft-h">Describe the skill</h2>
           <div class="tp-set">
             <div class="tp-set-row"><label for="ai-draft-scope"><b>Test against</b><small>Choose where this skill would be used. Empty writable scopes are included.</small></label>
-              <select id="ai-draft-scope" class="field" v-model="draftScope" :disabled="busy"><option v-for="s in draftScopes" :key="s.id" :value="s.id">{{ s.label }} ({{ s.count }} skills)</option></select></div>
+              <select id="ai-draft-scope" class="field" v-model="draftScope" :disabled="busy"><option v-for="s in draftScopes" :key="s.id" :value="s.id">{{ s.label }} ({{ s.count }} {{ s.count === 1 ? 'skill' : 'skills' }})</option></select></div>
             <div class="tp-set-row"><label for="ai-draft-name"><b>Skill name</b><small>Optional. Leave blank to let the model suggest one.</small></label><input id="ai-draft-name" class="field" v-model.trim="draftName" maxlength="64" autocomplete="off" spellcheck="false" :disabled="busy"></div>
           </div>
           <label class="tp-field" for="ai-draft-brief">What should the skill help an agent do?</label>
@@ -876,7 +896,7 @@
             <div class="tp-set-row"><label for="ai-evt"><b>Repeats</b><small>Model answers vary. Repeats show whether a difference holds up; each repeat is saved as its own iteration.</small></label><select id="ai-evt" class="field" v-model.number="evalTrials" @change="evalEstimate=null"><option :value="1">Once</option><option :value="3">3 times</option><option :value="5">5 times</option></select></div>
           </div>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !evalName" @click="estimateEvals()">Check what will be sent</button></div>
-          <div v-if="evalEstimate" class="ai-confirm" role="region" aria-label="Before sending">
+          <div v-if="previewCurrent('evalEstimate', evalBody(true))" class="ai-confirm" role="region" aria-label="Before sending">
             <p v-for="(line,i) in evalEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
             <p class="tp-fine">At most about {{ fmt(evalEstimate.run.estimated_input_tokens) }} tokens to {{ evalEstimate.run.model }}.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="runEvals()">Send and run</button><button class="btn btn-line" :disabled="busy" @click="evalEstimate=null">Cancel</button></div>
@@ -969,9 +989,9 @@
             <div class="tp-set-row"><label for="ai-cfn"><b>Pairs to judge</b><small>Only the two quoted lines of each pair are sent, never whole files.</small></label><select id="ai-cfn" class="field" v-model.number="conflictsMax" @change="conflictsEstimate=null"><option v-for="n in [5,10,20,40]" :key="n" :value="n">{{ n }}</option></select></div>
             <div class="tp-set-row"><label for="ai-cfv"><b>Votes per pair</b><small>Each pair is always asked in both orders. A third vote catches answers that flip between runs; every vote must agree.</small></label><select id="ai-cfv" class="field" v-model.number="conflictsVotes" @change="conflictsEstimate=null"><option :value="2">2 (both orders)</option><option :value="3">3 (both orders and a repeat)</option></select></div>
           </div>
-          <div v-if="configured && conflictsReport.candidates.length && !conflictsEstimate" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="estimateConflictJudge()">Ask your model to judge…</button></div>
+          <div v-if="configured && conflictsReport.candidates.length && !previewCurrent('conflictsEstimate', conflictEstimateBody())" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="estimateConflictJudge()">Ask your model to judge…</button></div>
           <p v-else-if="!configured && conflictsReport.candidates.length" class="tp-fine">To have a model judge these pairs, <a href="#/tools/ai-settings">connect one in AI settings</a>.</p>
-          <div v-if="conflictsEstimate && conflictsEstimate.status==='estimate'" class="ai-confirm" role="region" aria-label="Before sending">
+          <div v-if="previewCurrent('conflictsEstimate', conflictEstimateBody()) && conflictsEstimate.status==='estimate'" class="ai-confirm" role="region" aria-label="Before sending">
             <p v-for="(line,i) in conflictsEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
             <p class="tp-fine">At most about {{ fmt(conflictsEstimate.run.estimated_input_tokens) }} tokens to {{ conflictsEstimate.run.model }}.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="runConflictJudge()">Send and judge</button><button class="btn btn-line" :disabled="busy" @click="conflictsEstimate=null">Cancel</button></div>
@@ -999,7 +1019,7 @@
             <div class="tp-set-row"><label for="ai-bmax"><b>Descriptions to shorten</b><small>Largest first.</small></label><select id="ai-bmax" class="field" v-model.number="budgetMax"><option v-for="n in 10" :key="n" :value="n">{{ n }}</option></select></div>
           </div>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !scope" @click="estimateBudget()">Measure and check what will be sent</button></div>
-          <div v-if="budgetEstimate" class="ai-confirm" role="region" aria-label="Before sending">
+          <div v-if="previewCurrent('budgetEstimate', budgetBody(true))" class="ai-confirm" role="region" aria-label="Before sending">
             <p class="tp-fine">Listing: {{ fmt(budgetEstimate.listing_chars) }} characters; budget: {{ fmt(budgetEstimate.budget_chars) }} ({{ budgetEstimate.source }}).</p>
             <p v-if="budgetEstimate.status==='within-budget'" class="tp-fine">Already within budget. Nothing to do and nothing will be sent.</p>
             <p v-else-if="budgetEstimate.status==='nothing-to-shorten'" class="tp-fine">{{ fmt(budgetEstimate.chars_to_free) }} characters over, but no description is long enough to shorten usefully. Consider turning some skills off or name-only instead.</p>
@@ -1040,7 +1060,7 @@
           </div>
           <p v-if="pairs.length" class="tp-fine">Chosen: <span v-for="(p,i) in pairs" :key="i" class="tp-mono">{{ p[0] }} + {{ p[1] }}<button class="btn btn-line btn-sm" type="button" @click="pairs.splice(i,1)" :aria-label="'Remove ' + p.join(' and ')">×</button> </span></p>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !scope" @click="estimateOverlap()">Find pairs and check what will be sent</button></div>
-          <div v-if="overlapEstimate" class="ai-confirm" role="region" aria-label="Before sending">
+          <div v-if="previewCurrent('overlapEstimate', overlapBody(true))" class="ai-confirm" role="region" aria-label="Before sending">
             <p class="tp-fine">{{ overlapEstimate.candidates_found }} candidate pair{{ overlapEstimate.candidates_found===1?'':'s' }} found; {{ overlapEstimate.pairs_judged===1 ? 'this one' : 'the top ' + overlapEstimate.pairs_judged }} would be judged:</p>
             <ul class="tp-fine ai-list"><li v-for="p in overlapEstimate.pairs" :key="p.skills.join('+')"><span class="tp-mono">{{ p.skills.join(' + ') }}</span> ({{ p.sources.join(', ') }})</li></ul>
             <p v-for="(line,i) in overlapEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
@@ -1076,7 +1096,7 @@
             <div class="tp-set-row"><label for="ai-rep2"><b>Repeats</b></label><select id="ai-rep2" class="field" v-model.number="repeats"><option v-for="n in 5" :key="n" :value="n">{{ n }}</option></select></div>
           </div>
           <div class="tp-acts"><button class="btn btn-line" :disabled="busy || !improveName" @click="estimateImprove()">Check what will be sent</button></div>
-          <div v-if="improveEstimate" class="ai-confirm" role="region" aria-label="Before sending">
+          <div v-if="previewCurrent('improveEstimate', improveBody(true))" class="ai-confirm" role="region" aria-label="Before sending">
             <p v-for="(line,i) in improveEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
             <p class="tp-fine">About {{ fmt(improveEstimate.run.estimated_input_tokens) }} tokens to {{ improveEstimate.run.model }}.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="runImprove()">Send and propose</button><button class="btn btn-line" :disabled="busy" @click="improveEstimate=null">Cancel</button></div>

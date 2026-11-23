@@ -243,6 +243,7 @@ class PeerLinkInterfaceTests(PeerLinkCase):
         const alias=skill.copies.find(c=>c.scope==='claude-code');
         const owner=skill.copies.find(c=>c.scope==='agents');
         const visibleContext={m:reversedModel,query:'',filter:'all',agentFilter:'claude-code',tagFilter:'',catalog:{tags:{}}};
+        visibleContext.shelfSkills=ctx.options.computed.shelfSkills.call(visibleContext);
         const visible=ctx.options.computed.visible.call(visibleContext);
         const defaultRef=ctx.options.computed.refCopy.call({skill,readCopyName:'',readCopyScope:'',readCopyPath:''});
         const exactAlias=ctx.options.computed.refCopy.call({skill,readCopyName:'a',readCopyScope:'claude-code',readCopyPath:'/p/agents/a'});

@@ -10,6 +10,14 @@ records, not additional live work.
 
 ## One interface, desktop-first UI pass (2026-11-23)
 
+- [x] Repeat the audit on 2026-11-24. Keep Sync map actions within their side
+  panel and dismiss idle dialogs from the previous page on browser navigation.
+- [x] Clarify first-run and filtered states, keep reader
+  comparisons available at laptop and narrow widths, make the editor toolbar
+  and save controls easier to use, and expose the command palette in the header.
+- [x] Fix stale reader history and global search filters, shortcut handling on
+  focused controls, and AI estimate callbacks that outlive their input values.
+  Align Trigger test choices with simulation eligibility.
 - [x] Remove the classic interface (`webui/index.html`, `app.js`, `styles.css`,
   `tools/e2e_classic`, 131 classic-only tests); move the interface out of
   `webui/v2/` so it is served at `/`; `/v2/` and `/classic/` redirect (307).

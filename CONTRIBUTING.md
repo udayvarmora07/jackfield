@@ -73,8 +73,9 @@ not a security proof. Package metadata uses SPDX `MIT` plus
 `license-files = ["LICENSE"]`, and `check_package_data.py` verifies those
 headers and exact license bytes in both artifacts.
 
-Building distributions locally must use the pinned, hash-verified toolchain
-(SEC-8) so your artifacts are the ones CI and the release job would produce:
+Build from a clean source tree with the pinned, hash-verified toolchain
+(SEC-8). Setuptools can reuse a previous `build/` directory and package files
+that were removed or moved in the source tree.
 
 ```bash
 python3 -m venv /tmp/sm-build

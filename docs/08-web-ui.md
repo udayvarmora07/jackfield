@@ -858,7 +858,7 @@ registry bridge evidence. Registry eligibility remains unverified offline.
 | Workspaces | Project containment observations and consumer adapter explanations; effective loading remains unresolved |
 | Settings | Shared theme, text-size and regional-format preferences, the optional SkillSpector scan preference (off / static / static + your LLM key), OS preference observations, explicit index rebuild/resync |
 | Source update | Exact-instance candidate review, per-file comparison, validation/risk evidence, apply/cancel, retained whole-tree snapshots and reviewed rollback |
-| Recovery | Global trash restore/empty, explicit permanent per-copy removal, skill/full archive modes, import outcomes, persistent scoped history and older text-snapshot rollback |
+| Recovery | Global trash restore/empty, reviewed agent trash restore, explicit permanent per-copy removal, skill/full archive modes, import outcomes, persistent scoped history and older text-snapshot rollback |
 
 **[SPEC] Operation identity.** Batch previews freeze target identities, options,
 content hashes, enabled state and (for sync) destination copies; per-target
@@ -870,8 +870,8 @@ File objects; changing selection invalidates pending/completed review. Text
 previews are bounded to 20 skill documents of at most 512 KiB each, with
 unpreviewed companion files disclosed. Source reviews are cancelled on target
 changes or route departure. Registry fetch/commit installs into the global
-store only. Agent-scope trash still has no in-app restore. Full archives cover
-manager data, not every external agent directory.
+store only. Eligible copies in agent trash can be reviewed and restored in
+Recovery. Full archives cover manager data, not every external agent directory.
 
 **[NOTE] Frontend modules.** `app.js` owns shell/routing and ordinary skill
 flows; `model.js` owns derived state and safe document rendering;
@@ -882,6 +882,10 @@ The contained `GET /api/templates/<name>` read
 supports stored-template previews. The searchable action launcher is available
 with Ctrl/Cmd K and from the desktop header.
 
+- Header search covers the whole observed library. Opening its matching Skills
+  view clears earlier agent, state and tag filters.
+- The reader places comparison controls next to the document at every width.
+  Its history follows the current skill and discards reads from an earlier route.
 - **Honesty rules** (`model.js`): there is no version order, so a skill whose
   copies differ is "Copies differ" and the reference copy is the content most
   copies hold; a tie is reported as ambiguous and the Inbox asks which copy to
@@ -892,7 +896,7 @@ with Ctrl/Cmd K and from the desktop header.
   manual step.
 - **Undo** for sync, edit and on/off uses the backend's own snapshots
   (`write_snapshot` on forced sync and edit) and the snapshot rollback route.
-  Agent-scope trash has no in-app restore, and the dialog says so.
+  Agent-scope trash offers Undo and the reviewed restore in Recovery.
 - Keyboard shortcuts (`/`, `?`, and the Inbox's Enter/`S`) never fire from a
   link, button, field or summary, so Enter on a link always follows it. An Undo
   toast lasts 20 s and pauses while focused or hovered. "Skip to content"

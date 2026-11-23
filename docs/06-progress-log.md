@@ -7,6 +7,50 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-24 — Repeat UI and workflow audit
+
+- Sync map actions wrap within the side panel. An inventory with tied copies
+  exposed a clipped Inbox link at a 1366-pixel viewport.
+- Browser Back closes an idle dialog from the previous page and moves focus
+  to the destination heading. Unsaved editor changes still trigger a discard
+  confirmation.
+- The AI draft scope selector uses singular wording for a one-skill library.
+- Browser regressions cover a tied-copy panel at 1366, 1024 and 320 pixels
+  and the Back sequence from an open New skill dialog.
+- Repeat verification passed 70 Chromium and 69 Firefox scenarios, plus
+  2,473 Python test cases with 13 skips. Chromium included real 200% and 400%
+  zoom. The audit recorded five visual checks per image for 85 captures.
+  Axe reported zero violations across 124 page and 14 dialog scans.
+
+## 2026-11-23 — Desktop UI and workflow audit
+
+- Empty Home, Skills, Inbox and Sync map states now describe the observed
+  state and offer relevant actions. The populated Home cards show a navigation
+  affordance, and Skills sorts controls and status counts into readable rows.
+- Exact-copy reviews keep their heading and actions in view while long
+  selections scroll inside a keyboard-focusable list. Checkbox accents follow
+  the app palette.
+- The reader exposes copy selection and highlighting alongside the document
+  at laptop and narrow widths. The editor has labeled formatting controls, a
+  shared Write/Preview switch and an in-flow save area on shorter screens.
+- The header command palette has a pointer entry. Global search clears stale
+  Skills filters, arrow selection stays in view, and single-key shortcuts
+  respect focused controls. Search and the reader tree omit non-skill
+  observations. Reader history is refreshed on skill navigation.
+- Trigger, eval, budget, overlap, description and contradiction previews must
+  still match the displayed inputs before the UI permits a model send. Late
+  estimates are discarded when their inputs change. The Trigger test picker
+  hides records ineligible for simulation.
+- Reference decisions came from Linear's empty and detail states, Raycast's
+  grouped keyboard search and Primer's data-table guidance. Skills Manager
+  retains its own desktop layout and the tokens in DESIGN.md.
+- Verification covered 2,473 Python test cases with 13 skips, 68 Chromium
+  scenarios, 67 Firefox scenarios, both smoke suites, and 16 HTTP contract
+  requests. Chromium ran 200% and 400% zoom checks. Automated accessibility
+  scans covered 31 views in both themes at 1366 and 320 pixels. The separate
+  visual log records five checks on each of 81 captures. Model-enabled browser
+  scenarios used synthetic responses.
+
 ## 2026-11-23 — One interface at `/`, desktop-first redesign pass
 
 - The classic interface is removed. The interface moved from `webui/v2/` to

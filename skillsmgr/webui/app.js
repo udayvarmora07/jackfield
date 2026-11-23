@@ -17,10 +17,12 @@ if (!Domain || !Model) {
 const { api } = Domain;
 const { createApp, markRaw } = Vue;
 const { plural, join, words, titleCase, shortPath, BROKEN_WHY, documentPreview, renderDoc, stripFrontmatter, validName, toolIds, toolItems } = Model;
+const matchesSkillQuery = (skill, query) => `${skill.name} ${skill.description} ${skill.category}`.toLowerCase().includes(query);
 
 /* ---------- Icons (constant, trusted markup) ---------- */
 const PATHS = {
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  terminal: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m6 0h4"/>',
   ok: '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   warn: '<path d="M12 3.5 2.8 19.5h18.4L12 3.5Z"/><path d="M12 10v4M12 17v.01"/>',
@@ -89,15 +91,16 @@ const app = createApp({
     inboxCount() { return this.m ? this.queue.length : 0; },
     inboxLabel() { return this.inboxCount ? "Inbox, " + plural(this.inboxCount, "item") : "Inbox"; },
     agentInfos() { return this.m ? this.m.infos.filter((i) => !i.agent.library) : []; },
+    shelfSkills() { return this.m?.skills.filter((s) => s.status.key !== "note") || []; },
     gqMatches() {
       const q = this.gq.trim().toLowerCase();
-      if (!q || !this.m) return [];
+      if (!q) return [];
       const starts = [], has = [];
-      for (const s of this.m.skills) { const n = s.name.toLowerCase(); if (n.startsWith(q)) starts.push(s); else if (n.includes(q)) has.push(s); if (starts.length >= 6) break; }
+      for (const s of this.shelfSkills) { const n = s.name.toLowerCase(); if (n.startsWith(q)) starts.push(s); else if (n.includes(q)) has.push(s); if (starts.length >= 6) break; }
       return [...starts, ...has].slice(0, 6);
     },
-    gqTotal() { const q = this.gq.trim().toLowerCase(); return q && this.m ? this.m.skills.filter((s) => s.name.toLowerCase().includes(q) || String(s.description || "").toLowerCase().includes(q)).length : 0; },
-    sharedSkills() { return this.m ? [...this.m.skills].sort((a, b) => b.tools.length - a.tools.length || a.name.localeCompare(b.name)).slice(0, 3) : []; },
+    gqTotal() { const q = this.gq.trim().toLowerCase(); return q ? this.shelfSkills.filter((s) => matchesSkillQuery(s, q)).length : 0; },
+    sharedSkills() { return this.shelfSkills.filter((s) => s.tools.length > 1).sort((a, b) => b.tools.length - a.tools.length || a.name.localeCompare(b.name)).slice(0, 3); },
     /* Categories only help when the skills actually carry them; otherwise the
      * shelf falls back to an alphabet, which is what people can scan. */
     grouping() { return this.m && new Set(this.m.skills.map((s) => s.category).filter(Boolean)).size > 1 ? "category" : "letter"; },
@@ -109,7 +112,7 @@ const app = createApp({
         { id: "off", label: "Turned off", n: sk.filter((s) => s.status.key === "off").length },
       ];
     },
-    shelfTotal() { return this.m ? this.m.skills.filter((s) => s.status.key !== "note").length : 0; },
+    shelfTotal() { return this.shelfSkills.length; },
     careCount() { return this.m ? this.m.skills.filter((s) => s.status.key === "warn" || s.status.key === "bad").length : 0; },
     catalogTags() { return [...new Set(Object.values(this.catalog.tags || {}).flat())].sort(); },
     visibleNames() { return this.visible.map(s => s.name); },
@@ -130,18 +133,16 @@ const app = createApp({
       return hits.map((item,i)=>({item,i})).sort((a,b)=>tier(a.item)-tier(b.item)||a.i-b.i).map(x=>x.item);
     },
     visible() {
-      if (!this.m) return [];
       const q = this.query.trim().toLowerCase();
-      return this.m.skills.filter((s) => {
+      return this.shelfSkills.filter((s) => {
         const k = s.status.key;
-        if (k === "note") return false; /* not a skill: listed in the Inbox only */
         if (this.filter === "care" && k !== "warn" && k !== "bad") return false;
         if (this.filter === "off" && k !== "off") return false;
         if (this.agentFilter !== "all" && !s.copies.some((c) => c.scope === this.agentFilter)) return false;
         const tags = (this.catalog.tags || {})[s.name] || [];
         if (this.tagFilter === "__untagged" && tags.length) return false;
         if (this.tagFilter && this.tagFilter !== "__untagged" && !tags.includes(this.tagFilter)) return false;
-        return !q || `${s.name} ${s.description} ${s.category}`.toLowerCase().includes(q);
+        return !q || matchesSkillQuery(s, q);
       });
     },
     groups() {
@@ -166,13 +167,12 @@ const app = createApp({
     leadLong() { return !!(this.skill && this.skill.description && this.skill.description.length > 360); },
     skill() { return this.m && this.route.page === "skill" ? this.m.byName.get(this.route.name) || null : null; },
     treeAll() {
-      if (!this.m) return [];
       const q = this.treeQuery.trim().toLowerCase();
-      return q ? this.m.skills.filter((s) => s.name.toLowerCase().includes(q)) : this.m.skills;
+      return q ? this.shelfSkills.filter((s) => s.name.toLowerCase().includes(q)) : this.shelfSkills;
     },
     treeList() {
       const list = this.treeAll.slice(0, 200);
-      if (this.skill && !list.includes(this.skill) && !this.treeQuery) list.unshift(this.skill);
+      if (this.skill && this.skill.status.key !== "note" && !list.includes(this.skill) && !this.treeQuery) list.unshift(this.skill);
       return list;
     },
     treeHidden() { return Math.max(0, this.treeAll.length - 200); },
@@ -576,8 +576,13 @@ const app = createApp({
     headerInput(v) { this.gq = v; this.gqOpen = !!v.trim(); this.gqActive = -1; },
     headerKey(e) {
       const n = this.gqMatches.length;
-      if (e.key === "ArrowDown" && n) { e.preventDefault(); this.gqOpen = true; this.gqActive = (this.gqActive + 1) % n; }
-      else if (e.key === "ArrowUp" && n) { e.preventDefault(); this.gqOpen = true; this.gqActive = this.gqActive <= 0 ? n - 1 : this.gqActive - 1; }
+      if (n && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        e.preventDefault();
+        this.gqOpen = true;
+        if (e.key === "ArrowDown") this.gqActive = (this.gqActive + 1) % n;
+        else this.gqActive = this.gqActive <= 0 ? n - 1 : this.gqActive - 1;
+        this.$nextTick(() => document.getElementById("gq-" + this.gqActive)?.scrollIntoView({block:"nearest"}));
+      }
       else if (e.key === "Escape" && this.gqOpen) { e.preventDefault(); e.stopPropagation(); this.gqOpen = false; this.gqActive = -1; }
       else if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); this.searchSubmit(); }
     },
@@ -587,7 +592,8 @@ const app = createApp({
       this.headerShowAll();
     },
     headerShowAll() {
-      this.query = this.gq; this.extra = {}; this.headerInput("");
+      this.pickAgent("all", this.gq);
+      this.headerInput("");
       if (this.route.page !== "skills") location.hash = "#/skills";
       else this.$nextTick(() => document.getElementById("q")?.focus());
     },
@@ -595,7 +601,7 @@ const app = createApp({
     capReset() { this.extra = {}; },
     showMore(id) { this.extra = { ...this.extra, [id]: (this.extra[id] || 0) + 96 }; },
     clearFilters() { this.query = ""; this.filter = "all"; this.agentFilter = "all"; this.tagFilter="";this.extra = {}; this.$nextTick(() => { const q = document.getElementById("q"); if (q) q.focus(); }); },
-    pickAgent(id, query = "") { this.agentFilter = id; this.filter = "all"; this.query = query; this.extra = {}; },
+    pickAgent(id, query = "") { this.agentFilter = id; this.filter = "all"; this.tagFilter = ""; this.query = query; this.extra = {}; },
     findInMap() { this.mapQuery = this.query.trim(); location.hash = "#/map"; },
     skipToContent() { const h = document.getElementById("h1") || this.$refs.main; if (h) h.focus(); },
     focusH1() { this.$nextTick(() => { const h = document.getElementById("h1"); if (h) h.focus({ preventScroll: true }); }); },
@@ -631,7 +637,13 @@ const app = createApp({
       try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast(t.undoText); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
     },
     openDialog(d) { this.opener = document.activeElement; this.dialog = { cancel: "Cancel", ...d }; this.$nextTick(() => { const d = this.$refs.dlg; const b = d && (d.querySelector("input:not(.sr-only), select, textarea") || d.querySelector("button:not(.sr-only)")); if (b) b.focus(); }); },
-    closeDialog() { if(this.busy)return;if(this.dialog?.aiEdit)this.retireAiEdit(this.dialog.aiEdit.result);this.dialog = null; this.$nextTick(() => { if (this.opener && this.opener.isConnected) this.opener.focus(); }); },
+    closeDialog(restoreFocus = true) {
+      if (this.busy || !this.dialog) return;
+      const opener = this.opener, aiEdit = this.dialog.aiEdit;
+      this.dialog = null;
+      if (aiEdit) this.retireAiEdit(aiEdit.result);
+      if (restoreFocus) this.$nextTick(() => { if (!this.dialog && opener?.isConnected) opener.focus(); });
+    },
     async confirmDialog() {
       if(this.busy || this.dialog?.templateLoading)return;
       if (this.dialog && this.dialog.form && this.formInvalid) {
@@ -1333,7 +1345,9 @@ const app = createApp({
           onConfirm: () => { this.edit = null; location.hash = target; } });
       }
       this.headerInput("");
+      if (next.page !== this.route.page || next.name !== this.route.name || next.tool !== this.route.tool) this.closeDialog(false);
       this.route = next; if (next.page !== "skill") this.edit = null;
+      this.loadSkillHistory();
       this.primeBodies();
       if (next.page === "recovery") this.loadAgentTrash();
       document.title = (next.page === "skill" ? next.name : TITLES[next.page]) + " · Skills Manager";
@@ -1342,15 +1356,15 @@ const app = createApp({
     window.addEventListener("beforeunload", (e) => { if (this.editDirty) { e.preventDefault(); e.returnValue = ""; } });
     document.addEventListener("keydown", (e) => {
       const t = e.target, typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      const onControl = t && t.closest && t.closest("a, button, input, select, textarea, summary, [role=button], [contenteditable]");
       if(document.querySelector("dialog[open]"))return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==="k" && !this.dialog && !document.querySelector("dialog[open]")) {e.preventDefault();this.openCommands();}
-      if (e.key === "?" && !typing && !this.dialog) { e.preventDefault(); this.openHelp(); }
-      if (e.key === "/" && !typing && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.$refs.gsearch.focus(); }
+      if (e.key === "?" && !typing && !onControl && !this.dialog) { e.preventDefault(); this.openHelp(); }
+      if (e.key === "/" && !typing && !onControl && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.$refs.gsearch.focus(); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && this.edit) { e.preventDefault(); if (!this.dialog) this.saveEdit(); }
       if (this.route.page === "inbox" && this.cur && !typing && !this.dialog && !e.ctrlKey && !e.metaKey && !e.altKey) {
         /* Shortcuts never fire from a link, button or field: Enter on "Open
          * skill" must open the skill, not run the fix (screen-reader E2E SR-1). */
-        const onControl = t && t.closest && t.closest("a, button, input, select, textarea, summary, [role=button], [contenteditable]");
         const inScope = !t || t === document.body || (t.closest && t.closest("#main"));
         if (!onControl && inScope) {
           if (e.key === "s" || e.key === "S") { e.preventDefault(); this.skipCurrent(); }
