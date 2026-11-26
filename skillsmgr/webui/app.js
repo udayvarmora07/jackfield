@@ -63,15 +63,380 @@ function parseRoute() {
   const [p, ...rest] = h.split("/");
   if (p === "skill" && rest.length) { try { return { page: "skill", name: decodeURIComponent(rest.join("/")) }; } catch (e) { return { page: "skills" }; } }
   if (p === "tools") return { page: "tools", tool: toolIds.includes(rest[0]) ? rest[0] : "tools" };
+  /* What to track and its two forms: #/settings/tracking[/add-agent|/add-project|/agent/<id>]. */
+  if (p === "settings" && rest[0] === "tracking") {
+    const sub = rest[1] === "add-agent" || rest[1] === "add-project" ? rest[1] : rest[1] === "agent" && /^custom-[a-z0-9-]+$/.test(rest[2] || "") ? "agent:" + rest[2] : "";
+    return { page: "tracking", name: sub };
+  }
   return ["skills", "map", "inbox", "recovery"].includes(p) ? { page: p } : { page: "home" };
 }
-const TITLES = { home: "Home", skills: "Skills", map: "Sync map", inbox: "Inbox", recovery: "Recovery", tools: "Tools" };
+const TITLES = { home: "Home", skills: "Skills", map: "Sync map", inbox: "Inbox", recovery: "Recovery", tools: "Tools", tracking: "What to track" };
 const THEMES = ["system", "light", "dark"];
 function savedPreference(key, choices, fallback) {try{const value=localStorage.getItem(key);return choices.includes(value)?value:fallback;}catch(e){return fallback;}}
 
+
+/* ---------- What to track (agent tracking) ----------
+ * The server filters every route by tracking.json; this mixin only reads the
+ * report, writes the whole document back (PUT /api/tracking, revision-checked)
+ * and offers Undo by putting the previous document back. Nothing on disk
+ * outside tracking.json ever changes from here. */
+const TRACK_GROUPS = [
+  { id: "add-skills", key: "add", name: "Add skills", text: "Install from a registry or folder, profiles and templates." },
+  { id: "check-setup", key: "inspect", name: "Check my setup", text: "Quality checks, where agents look, and updating a copy from a folder." },
+  { id: "ai-assist", key: "ai", name: "AI assist", text: "Write, test, shorten and check skills with your AI service." },
+];
+const TRACK_RESERVED = ["shared folder", "global", "your library"];
+const trackClone = (value) => JSON.parse(JSON.stringify(value));
+const trackSlug = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "agent";
+/* Settings belongs to no tool group, so it can never be switched off. */
+function toolEnabled(groupsOn, id) {
+  if (id === "settings" || !groupsOn) return true;
+  const group = Model.toolGroups.find((g) => g.items.some((item) => item.id === id));
+  return !group || groupsOn[group.key] !== false;
+}
+const trackingMixin = {
+  data() {
+    return { tracking: null, trackingError: "", trackingNotes: {}, trackOpen: "", trackBrokenSeen: false,
+      mapMenu: "", mapConfirm: "", projectMenu: false, trackForm: null, trackCheckSeq: 0, trackSeq: 0, trackFailSeq: 0, mapMenuPos: {} };
+  },
+  computed: {
+    trackGroups() { return TRACK_GROUPS; },
+    trackAgents() { return this.tracking ? this.tracking.agents : []; },
+    trackTrackedCount() { return this.trackAgents.filter((a) => a.tracked).length; },
+    trackSummary() {
+      const t = this.tracking; if (!t) return "";
+      const s = t.summary;
+      return `Tracking ${s.agents_tracked} of ${plural(s.agents_total, "agent")} · ${plural(s.project_folders, "project folder")} · ${s.tool_groups_on} of 3 tool groups on`;
+    },
+    trackSettingsLine() {
+      const t = this.tracking; if (!t) return "";
+      const s = t.summary;
+      return `${plural(s.agents_tracked, "agent")}, ${plural(s.project_folders, "project folder")}, ${s.tool_groups_on === 3 ? "3 tool groups" : s.tool_groups_on + " of 3 tool groups"}`;
+    },
+    toolGroupsOn() {
+      const on = this.tracking ? this.tracking.tool_groups : {};
+      return Object.fromEntries(TRACK_GROUPS.map((g) => [g.key, on[g.id] !== false]));
+    },
+    trackNoAgents() { return !!this.tracking && this.tracking.summary.agents_tracked === 0; },
+    trackNewlyFound() { return this.tracking && this.tracking.newly_found.length ? this.tracking.newly_found[0] : null; },
+    trackShowing() {
+      const t = this.tracking; if (!t || !t.showing) return null;
+      return t.projects.find((p) => p.path === t.showing) || { path: t.showing, status: "missing" };
+    },
+    trackShowingLabel() { const s = this.trackShowing; return s ? s.path.split("/").filter(Boolean).pop() : "None"; },
+    trackFormAgent() { const f = this.trackForm; return f && f.kind === "agent" ? f : null; },
+    trackFormProject() { const f = this.trackForm; return f && f.kind === "project" ? f : null; },
+    trackNameError() {
+      const f = this.trackFormAgent; if (!f || f.saving) return "";
+      const name = f.name.trim().replace(/\s+/g, " ");
+      if (!name) return f.nameTouched ? "Give the agent a name." : "";
+      if (name.length > 40) return "Use 40 characters or fewer.";
+      if (/[\u0000-\u001f\u007f]/.test(name)) return "Use letters, numbers and spaces.";
+      const lower = name.toLowerCase();
+      if (TRACK_RESERVED.includes(lower)) return `“${name}” is already used in the app. Choose another name.`;
+      const taken = this.trackAgents.find((a) => a.id !== f.id && a.name.replace(/\s+/g, " ").toLowerCase() === lower);
+      return taken ? `${taken.name} is already an agent. Choose another name.` : "";
+    },
+    trackFolderInsideError() {
+      const f = this.trackFormAgent; if (!f || !f.projectFolder.trim()) return "";
+      const v = f.projectFolder.trim();
+      if (v.startsWith("/") || v.startsWith("~")) return "Use a folder inside the project, such as .kilo/skills.";
+      if (v.split(/[\\/]/).includes("..")) return "Stay inside the project folder.";
+      return "";
+    },
+    trackFormDirty() {
+      const f = this.trackForm; if (!f) return false;
+      if (f.kind === "project") return !!f.path.trim();
+      return f.path.trim() !== f.basePath || f.name.trim() !== f.baseName || f.projectFolder.trim() !== f.baseProject;
+    },
+    trackFormReady() {
+      const f = this.trackForm; if (!f || f.saving) return false;
+      if (!f.check || f.check.path !== f.path || !f.check.ok) return false;
+      if (f.kind === "agent") return !!f.name.trim() && !this.trackNameError && !this.trackFolderInsideError;
+      return true;
+    },
+  },
+  methods: {
+    /* A pointer press outside an open column or project menu closes it. */
+    watchTrackMenus() {
+      document.addEventListener("mousedown", (e) => {
+        if (!(e.target instanceof Element) || e.target.closest(".trk-colmenu, .trk-picker")) return;
+        this.mapMenu = ""; this.projectMenu = false;
+      });
+      window.addEventListener("scroll", () => { if (this.mapMenu) this.mapMenu = ""; }, { passive: true });
+      window.addEventListener("resize", () => { if (this.mapMenu) this.mapMenu = ""; });
+    },
+    async loadTracking() {
+      /* A slower read must never replace a newer read or a save's answer. */
+      const seq = ++this.trackSeq;
+      try { const res = await api("/api/tracking"); if (seq !== this.trackSeq) return; this.tracking = markRaw(res); this.trackingError = ""; }
+      catch (e) { if (seq === this.trackSeq) this.trackingError = this.friendly(e.message); return; }
+      if (this.route.page === "tracking" && this.route.name && !this.trackForm) this.openTrackForm(this.route.name);
+    },
+
+    trackAgent(id) { return this.trackAgents.find((a) => a.id === id) || null; },
+    trackingTrackable(id) { const a = this.trackAgent(id); return !!a && a.tracked; },
+    /* The document to send: the saved settings, with the effective tracked set
+     * written out the first time the user chooses (the server marks every
+     * agent found at that moment as seen). */
+    trackDocument() {
+      const t = this.tracking;
+      const doc = trackClone(t.settings);
+      doc.revision = t.revision;
+      if (t.file.state !== "ok") { doc.custom_agents = []; }
+      if (!doc.agents.chosen) { doc.agents.chosen = true; doc.agents.tracked = [...t.tracked]; }
+      return doc;
+    },
+    async putTracking(doc) {
+      const res = await api("/api/tracking", { method: "PUT", body: JSON.stringify(doc) });
+      this.trackSeq++;
+      this.tracking = markRaw(res);
+      return res;
+    },
+    /* One change, saved at once, with Undo. `rowId` places a failure next to
+     * the row that caused it instead of a toast far away. */
+    async saveTracking(change, { message, undoText, rowId = "", undo = true } = {}) {
+      if (!this.tracking || this.busy) return false;
+      const before = trackClone(this.tracking.settings);
+      const doc = this.trackDocument();
+      change(doc);
+      this.busy = true;
+      this.trackingNotes = { ...this.trackingNotes, [rowId || "_"]: "" };
+      try {
+        await this.putTracking(doc);
+      } catch (e) {
+        const text = this.friendly(e.message);
+        await this.loadTracking();
+        this.trackFailSeq++; // re-render switches and radios the browser already flipped
+        if (rowId && this.route.page === "tracking") this.trackingNotes = { ...this.trackingNotes, [rowId]: text }; else this.toast(text, { err: true });
+        return false;
+      } finally { this.busy = false; }
+      await this.refresh();
+      /* A filter on an agent that just left would hide every skill. */
+      if (this.agentFilter !== "all" && !this.agentInfos.some((i) => i.id === this.agentFilter)) this.agentFilter = "all";
+      /* Undo puts a whole earlier document back, so only the latest change may
+       * offer it: an older Undo would also revert every change made since. */
+      this.toasts = this.toasts.filter((t) => !t.trackingUndo);
+      if (message) this.toast(message, undo ? { undoText: undoText || "Undone.", undo: async () => {
+        await this.putTracking({ ...before, revision: this.tracking.revision });
+      } } : {});
+      if (message && undo) this.toasts[this.toasts.length - 1].trackingUndo = true;
+      return true;
+    },
+    trackStatus(a) {
+      if (a.folder_status === "missing") return a.kind === "custom" ? "Folder missing: not shown in the table" : "Not found: nothing to show yet";
+      if (a.folder_status === "not-a-folder") return "That path isn't a folder: not shown in the table";
+      if (a.folder_status === "unreadable") return "Its folder can't be read";
+      if (a.folder_status === "outside-home") return "Its folder is outside your home folder: not shown";
+      const n = a.skill_count == null ? "" : " · " + plural(a.skill_count, "skill");
+      return (a.tracked ? "Tracked" : "Found") + n + (a.tracked ? "" : " · Not tracked");
+    },
+    trackLastAgent(a) { return a.tracked && this.trackTrackedCount <= 1; },
+    trackToggle(a, on) {
+      if (on) {
+        return this.saveTracking((doc) => { doc.agents.tracked = [...new Set([...doc.agents.tracked, a.id])]; },
+          { rowId: a.id, message: `Tracking ${a.name}.`, undoText: `Stopped tracking ${a.name} again.` });
+      }
+      this.askStopTracking(a.id);
+    },
+    /* What leaves the table, worded once for the page dialog and the Sync map panel. */
+    trackLeaving(id) {
+      const a = this.trackAgent(id); if (!a) return null;
+      const only = a.only_here;
+      const lines = [`The ${a.name} column and its counts leave the table.`];
+      let count = null;
+      if (a.folder_status === "missing" || a.folder_status === "not-a-folder" || a.folder_status === "outside-home") lines.splice(0, 1, `${a.name} has nothing in the table now, so nothing leaves it.`);
+      else if (a.folder_status !== "ok" || !only) lines.push(`${a.name}'s folder can't be read, so we can't count its skills.`);
+      else if (!only.count) { lines.push(`Every skill in ${a.name} also lives in another agent.`); count = 0; }
+      else { lines.push(`${plural(only.count, "skill lives", "skills live")} only in ${a.name} and will no longer show.`); count = only.count; }
+      const custom = a.kind === "custom";
+      /* The mini table preview (TablePreview): today's columns with their skill
+       * counts, the leaving one marked. Shown only when a column really leaves. */
+      const columns = this.agentInfos.map((inf) => ({ id: inf.id, name: inf.agent.name, count: inf.mine.length, leaving: inf.id === id }));
+      return { agent: a, lines, count, columns: columns.some((c) => c.leaving) ? columns : [], names: only ? only.names : [], more: only ? Math.max(0, only.count - only.names.length) : 0,
+        preview: count ? `Skills shown: ${this.fmt(this.shelfTotal)} → ${this.fmt(Math.max(0, this.shelfTotal - count))}` : "",
+        safe: custom ? `Nothing on disk changes. ${a.folder} stays as it is.` : "Nothing on disk changes. You can track it again any time.",
+        title: custom ? `Remove ${a.name}?` : `Stop tracking ${a.name}?`, confirm: custom ? `Remove ${a.name}` : `Stop tracking ${a.name}`, custom };
+    },
+    askStopTracking(id) {
+      const leave = this.trackLeaving(id); if (!leave) return;
+      if (this.trackLastAgent(leave.agent)) { this.trackingNotes = { ...this.trackingNotes, [id]: "At least one agent stays tracked." }; return; }
+      this.openDialog({ title: leave.title, lines: leave.lines, columns: leave.columns, columnsAgent: leave.agent.name, cancel: leave.custom ? "Keep " + leave.agent.name : "Keep tracking", preview: leave.preview, names: leave.names, namesMore: leave.more,
+        namesLabel: `See the ${plural(leave.count || 0, "skill")}`, safe: leave.safe, confirm: leave.confirm,
+        onConfirm: () => this.stopTracking(id) });
+    },
+    stopTracking(id) {
+      const a = this.trackAgent(id); if (!a) return;
+      this.mapConfirm = "";
+      if (a.kind === "custom") {
+        /* The server checks a re-added folder again, so a folder that is gone
+         * could not come back: no Undo is offered then. */
+        return this.saveTracking((doc) => {
+          doc.custom_agents = doc.custom_agents.filter((c) => c.id !== id);
+          doc.agents.tracked = doc.agents.tracked.filter((x) => x !== id);
+        }, { rowId: id, message: `Removed ${a.name}. Its folder is unchanged.`, undoText: `${a.name} is back.`, undo: a.folder_status === "ok" });
+      }
+      return this.saveTracking((doc) => { doc.agents.tracked = doc.agents.tracked.filter((x) => x !== id); },
+        { rowId: id, message: `Stopped tracking ${a.name}. Nothing on disk changed.`, undoText: `Tracking ${a.name} again.` });
+    },
+    trackCountProjects(a, on) {
+      return this.saveTracking((doc) => { doc.agents.count_projects = { ...doc.agents.count_projects, [a.id]: on }; },
+        { rowId: a.id, message: on ? `Counting project folders for ${a.name}.` : `Not counting project folders for ${a.name}.` });
+    },
+    trackGroup(group, on) {
+      return this.saveTracking((doc) => { doc.tool_groups = { ...doc.tool_groups, [group.id]: on }; },
+        { rowId: group.id, message: on ? `${group.name} is on. Its settings were kept.` : `${group.name} is off. Its settings are kept.` });
+    },
+    trackGroupByKey(key, on) { const g = TRACK_GROUPS.find((x) => x.key === key); if (g) this.trackGroup(g, on); },
+    trackShow(folder) {
+      if (this.projectMenu) { this.projectMenu = false; this.$nextTick(() => this.$refs.projectBtn?.focus()); }
+      return this.saveTracking((doc) => { doc.projects.showing = folder; },
+        { message: folder ? `Showing ${folder} in the table.` : "No project folder is shown in the table." });
+    },
+    trackRemoveProject(folder) {
+      const row = this.tracking && this.tracking.projects.find((p) => p.path === folder);
+      return this.saveTracking((doc) => {
+        doc.projects.folders = doc.projects.folders.filter((f) => f !== folder);
+        if (doc.projects.showing === folder) doc.projects.showing = null;
+      }, { rowId: folder, message: `Removed ${folder} from the list. Its files are unchanged.`, undoText: `${folder} is back in the list.`, undo: !!row && row.status === "ok" });
+    },
+    trackFoundTrack(found) {
+      return this.saveTracking((doc) => { doc.agents.tracked = [...new Set([...doc.agents.tracked, found.id])]; doc.agents.seen = [...new Set([...doc.agents.seen, found.id])]; },
+        { message: `Tracking ${found.name}.`, undoText: `Stopped tracking ${found.name} again.` });
+    },
+    trackFoundLater(found) {
+      return this.saveTracking((doc) => { doc.agents.seen = [...new Set([...doc.agents.seen, found.id])]; },
+        { message: `${found.name} stays on What to track as Not tracked.`, undo: false });
+    },
+    trackReset() {
+      const t = this.tracking;
+      return this.saveTracking((doc) => {
+        doc.agents = { chosen: false, tracked: [], seen: [], count_projects: {} };
+        doc.custom_agents = []; doc.tool_groups = { "add-skills": true, "check-setup": true, "ai-assist": true };
+        doc.projects = { folders: t.projects.map((p) => p.path), showing: t.showing };
+      }, { message: "Tracking everything found. The unreadable file was kept as a copy beside it.", undo: false });
+    },
+    trackDetails(id) { this.mapMenu = ""; this.trackOpen = id; location.hash = "#/settings/tracking"; },
+    /* ----- Sync map column menu and its panel confirm ----- */
+    /* The table scrolls inside its own box, so the menu is placed on the
+     * viewport (fixed) from its button, kept inside the window, and closed
+     * when the table scrolls under it. */
+    toggleMapMenu(id) {
+      const b = document.getElementById("map-menu-btn-" + id)?.getBoundingClientRect();
+      if (b) this.mapMenuPos = { top: Math.round(b.bottom + 4) + "px", left: Math.round(Math.max(8, Math.min(b.left, innerWidth - 268))) + "px" };
+      this.mapMenu = this.mapMenu === id ? "" : id; if (this.mapMenu) this.$nextTick(() => document.querySelector(".map-menu [role^=menuitem]:not([disabled])")?.focus()); },
+    mapMenuKeys(e) {
+      if (e.key === "Escape") { const id = this.mapMenu; this.mapMenu = ""; this.$nextTick(() => document.getElementById("map-menu-btn-" + id)?.focus()); return; }
+      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+      e.preventDefault();
+      const items = [...e.currentTarget.querySelectorAll("[role^=menuitem]:not([disabled])")];
+      const i = items.indexOf(document.activeElement);
+      const next = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : (i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    },
+    mapAskStop(id, event) {
+      this.mapMenu = "";
+      const a = this.trackAgent(id);
+      if (!a || this.trackLastAgent(a)) return;
+      this.selectMap(id, event);
+      this.mapOrigin = document.getElementById("map-menu-btn-" + id) || this.mapOrigin;
+      this.mapConfirm = id;
+      this.$nextTick(() => document.getElementById("map-confirm-h")?.focus());
+    },
+    /* WAI-ARIA menu button: Tab out of an open menu closes it. Only a real
+     * focus target outside counts, so a click on an item is never lost. */
+    trackMenuBlur(e) {
+      const next = e.relatedTarget;
+      if (next instanceof Element && !e.currentTarget.contains(next)) { this.mapMenu = ""; this.projectMenu = false; }
+    },
+    toggleProjectMenu() {
+      this.projectMenu = !this.projectMenu;
+      if (this.projectMenu) this.$nextTick(() => document.querySelector("#trk-project-menu [role^=menuitem]:not([disabled])")?.focus());
+    },
+    mapCancelStop() { const id = this.mapConfirm; this.mapConfirm = ""; this.$nextTick(() => document.getElementById("map-menu-btn-" + id)?.focus()); },
+    /* ----- Add other agent / Edit agent / Add project folder ----- */
+    openTrackForm(route) {
+      const t = this.tracking;
+      if (!route || !t) { this.trackForm = null; return; }
+      if (route === "add-project") {
+        this.trackForm = { kind: "project", path: "", check: null, checking: false, show: true, saving: false, error: "" };
+        return;
+      }
+      const editing = route.startsWith("agent:") ? t.agents.find((a) => a.id === route.slice(6) && a.kind === "custom") : null;
+      if (route.startsWith("agent:") && !editing) { this.trackForm = null; return; }
+      this.trackForm = { kind: "agent", id: editing ? editing.id : "", path: editing ? editing.folder : "", basePath: editing ? editing.folder : "",
+        name: editing ? editing.name : "", baseName: editing ? editing.name : "", nameTouched: !!editing,
+        projectFolder: editing?.project_folder || "", baseProject: editing?.project_folder || "", more: !!editing?.project_folder,
+        check: null, checking: false, saving: false, error: "" };
+      if (editing) this.trackCheck();
+    },
+    trackPathInput(value) {
+      const f = this.trackForm; if (!f) return;
+      f.path = value; f.check = null; f.checking = false;
+      this.trackCheckSeq++; // an answer for the earlier text must not land
+      clearTimeout(this.trackCheckTimer);
+      this.trackCheckTimer = setTimeout(() => this.trackCheck(), 250);
+    },
+    async trackCheck() {
+      const f = this.trackForm; if (!f) return;
+      const seq = ++this.trackCheckSeq, path = f.path;
+      if (!path.trim()) { f.check = null; f.checking = false; return; }
+      f.checking = true;
+      try {
+        const res = await api("/api/tracking/check-folder", { method: "POST",
+          body: JSON.stringify({ path, purpose: f.kind, ignore_id: f.kind === "agent" ? (f.id || null) : null }) });
+        if (seq !== this.trackCheckSeq || this.trackForm !== f) return;
+        f.check = res;
+        if (f.kind === "agent" && !f.nameTouched && res.preview?.suggested_name) f.name = res.preview.suggested_name;
+      } catch (e) {
+        if (seq === this.trackCheckSeq && this.trackForm === f) f.check = { path, ok: false, problems: [{ code: "failed", message: this.friendly(e.message) }] };
+      } finally { if (seq === this.trackCheckSeq && this.trackForm === f) f.checking = false; }
+    },
+    trackFormCancel() {
+      if (!this.trackFormDirty) { location.hash = "#/settings/tracking"; return; }
+      const agent = this.trackForm.kind === "agent";
+      this.openDialog({ title: agent ? (this.trackForm.id ? "Discard your changes?" : "Discard this agent?") : "Discard this folder?",
+        lines: ["What you typed here won't be saved."], cancel: "Keep editing", confirm: "Discard",
+        onConfirm: () => { this.trackForm = null; location.hash = "#/settings/tracking"; } });
+    },
+    async trackFormSave() {
+      const f = this.trackForm;
+      if (!this.trackFormReady) { if (f && f.kind === "agent") f.nameTouched = true; return; }
+      const display = f.check.display || f.path.trim();
+      f.saving = true; f.error = "";
+      let ok;
+      if (f.kind === "project") {
+        ok = await this.saveTracking((doc) => {
+          doc.projects.folders = [...doc.projects.folders.filter((x) => x !== display), display];
+          if (f.show) doc.projects.showing = display;
+        }, { rowId: "_form", message: `Added ${display}.` + (f.show ? " It's showing in the table." : ""), undoText: `${display} is no longer listed.` });
+      } else {
+        const name = f.name.trim().replace(/\s+/g, " "), inside = f.projectFolder.trim() || null;
+        let id = f.id;
+        if (!id) {
+          const used = new Set(this.trackAgents.map((a) => a.id));
+          const base = "custom-" + trackSlug(name);
+          id = base; for (let i = 2; used.has(id); i++) id = base.slice(0, 60) + "-" + i;
+        }
+        ok = await this.saveTracking((doc) => {
+          const entry = { id, name, folder: display, project_folder: inside };
+          const at = doc.custom_agents.findIndex((c) => c.id === id);
+          if (at >= 0) doc.custom_agents.splice(at, 1, entry); else doc.custom_agents.push(entry);
+          doc.agents.tracked = [...new Set([...doc.agents.tracked, id])];
+        }, f.id ? { rowId: "_form", message: `Saved ${name}.`, undoText: `${name}'s earlier settings are back.` }
+                : { rowId: "_form", message: `Added ${name}. Its column is at the end of the table.`, undoText: `${name} was removed. Its folder is unchanged.` });
+      }
+      if (this.trackForm !== f) return;
+      f.saving = false;
+      if (ok) { this.trackForm = null; location.hash = "#/settings/tracking"; }
+      else f.error = this.trackingNotes._form || "Couldn't save. Try again.";
+    },
+  },
+};
+
 const app = createApp({
   data() {
-    return { refreshGen: 0, historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
+    return { ...trackingMixin.data(), refreshGen: 0, historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
       route: parseRoute(), m: null, loading: true, loadError: "", history: [], busy: false,
       records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0, gq: "", gqOpen: false, gqActive: -1,
@@ -88,6 +453,7 @@ const app = createApp({
     };
   },
   computed: {
+    ...trackingMixin.computed,
     inboxCount() { return this.m ? this.queue.length : 0; },
     inboxLabel() { return this.inboxCount ? "Inbox, " + plural(this.inboxCount, "item") : "Inbox"; },
     agentInfos() { return this.m ? this.m.infos.filter((i) => !i.agent.library) : []; },
@@ -120,8 +486,8 @@ const app = createApp({
      * then tools. Each row matches its label, plus synonyms for pages and the
      * tool's own name and description, so "sync", "trash" or "backup" work. */
     commandChoices() {
-      const nav=[{label:"Home",path:"#/home",keys:"agents overview start"},{label:"Skills",path:"#/skills",keys:"library shelf list instances"},{label:"Sync map",path:"#/map",keys:"sync compare copies map differ"},{label:"Inbox",path:"#/inbox",keys:"problems fix review queue"},{label:"Recovery and history",path:"#/recovery",keys:"trash restore backup export import history undo"},{label:"All tools",path:"#/tools",keys:"tools settings"}];
-      const items=[...nav,{label:"New skill",action:"create",keys:"create add write"},{label:"Refresh files",action:"refresh",keys:"reload rescan reread"},...toolItems.filter((item)=>item.commandLabel).map((item)=>({label:item.commandLabel,path:"#/tools/"+item.id}))];
+      const nav=[{label:"Home",path:"#/home",keys:"agents overview start"},{label:"Skills",path:"#/skills",keys:"library shelf list instances"},{label:"Sync map",path:"#/map",keys:"sync compare copies map differ"},{label:"Inbox",path:"#/inbox",keys:"problems fix review queue"},{label:"Recovery and history",path:"#/recovery",keys:"trash restore backup export import history undo"},{label:"All tools",path:"#/tools",keys:"tools settings"},{label:"What to track",path:"#/settings/tracking",keys:"track tracking agents agent project folder folders tool groups manage"},{label:"Add other agent",path:"#/settings/tracking/add-agent",keys:"track custom agent new"},{label:"Add project folder",path:"#/settings/tracking/add-project",keys:"track project folder repo"}];
+      const items=[...nav,{label:"New skill",action:"create",keys:"create add write"},{label:"Refresh files",action:"refresh",keys:"reload rescan reread"},...toolItems.filter((item)=>item.commandLabel&&toolEnabled(this.toolGroupsOn,item.id)).map((item)=>({label:item.commandLabel,path:"#/tools/"+item.id}))];
       const q=this.commandQuery.toLowerCase().trim();
       if(!q)return items;
       const toolText=(item)=>{const tool=item.path&&toolItems.find(t=>"#/tools/"+t.id===item.path);return tool?tool.name+" "+tool.text:"";};
@@ -356,7 +722,8 @@ const app = createApp({
     mapReviewOnly() { this.resetMapPage(); },
   },
   methods: {
-    enc: encodeURIComponent, plural, join, words, titleCase, shortPath, renderDoc,
+    ...trackingMixin.methods,
+    enc: encodeURIComponent, agentMark: Model.agentMark, plural, join, words, titleCase, shortPath, renderDoc,
     fmt(n) {return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale).format(Number(n));},
     /* The informative end of a long folder path ("…/.claude/skills"); the full
      * path stays in the element's title. A leading ellipsis cut the useful part. */
@@ -394,6 +761,10 @@ const app = createApp({
         if (gen !== this.refreshGen) return;
         this.scopes=markRaw(scopes);this.records=markRaw(records);
         this.m = markRaw(Model.build(records, scopes, { suggested: 100 }));
+        /* What to track only decorates the pages (the server already filters).
+         * Its report counts every agent folder, so it starts after the skills
+         * have arrived instead of competing with them, and nothing waits on it. */
+        this.loadTracking();
         /* A reload produces fresh copies, so nothing is carried over from the
          * previous list: a body is re-read only where a view needs one. */
         this.bodies = {}; this.bodyInflight = {}; this.bodyErrors = {};
@@ -632,6 +1003,7 @@ const app = createApp({
       if (!held) this.armToast(t, Math.max(t.ms || 4000, 6000));
     },
     async runUndo(t) {
+      if (this.busy) return;
       this.toasts = this.toasts.filter((x) => x.id !== t.id);
       this.busy = true;
       try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast(t.undoText); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
@@ -1226,6 +1598,7 @@ const app = createApp({
       return inf.key === "bad" ? `${plural(inf.broken.length, "skill")} can't be read` : inf.key === "warn" ? `${plural(inf.differing.length, "copy", "copies")} ${inf.differing.length === 1 ? "differs" : "differ"}` : "No copy differences flagged";
     },
     selectMap(id, event, name = "") {
+      if (id !== this.mapConfirm) this.mapConfirm = "";
       if (id !== this.mapSelId || name !== this.mapSkillName) {
         this.mapPicked = name ? [] : this.mapDefaults(id);
         this.peek = null;
@@ -1344,7 +1717,15 @@ const app = createApp({
         return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true,
           onConfirm: () => { this.edit = null; location.hash = target; } });
       }
+      if (this.route.page === "tracking" && this.route.name && this.trackFormDirty && !(next.page === "tracking" && next.name === this.route.name)) {
+        const target = location.hash, here = this.route.name;
+        location.hash = "#/settings/tracking/" + (here.startsWith("agent:") ? "agent/" + here.slice(6) : here);
+        return this.openDialog({ title: "Discard what you typed?", lines: ["What you typed here won't be saved."], cancel: "Keep editing", confirm: "Discard",
+          onConfirm: () => { this.trackForm = null; location.hash = target; } });
+      }
       this.headerInput("");
+      this.mapMenu = ""; this.projectMenu = false; if (next.page !== "map") this.mapConfirm = "";
+      if (next.page === "tracking" && (next.name !== this.route.name || this.route.page !== "tracking")) this.openTrackForm(next.name);
       if (next.page !== this.route.page || next.name !== this.route.name || next.tool !== this.route.tool) this.closeDialog(false);
       this.route = next; if (next.page !== "skill") this.edit = null;
       this.loadSkillHistory();
@@ -1373,6 +1754,7 @@ const app = createApp({
       }
     });
     document.title = (this.route.page === "skill" ? this.route.name : TITLES[this.route.page]) + " · Skills Manager";
+    this.watchTrackMenus();
     window.addEventListener("storage",event=>{if(["skillsmgr-theme","skillsmgr-text-size","skillsmgr-locale"].includes(event.key))this.preferencesChanged();});
     this.loadSkillHistory();
     this.applyTheme();

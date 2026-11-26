@@ -3951,7 +3951,7 @@
       "lineno": 647
     },
     "skillsmgr/scopes.py::known_scopes": {
-      "complexity": 5,
+      "complexity": 3,
       "end_lineno": 333,
       "lineno": 310
     },
@@ -5186,12 +5186,12 @@
       "lineno": 1350
     },
     "skillsmgr/webapp.py::WebAppHandler._route_library_get": {
-      "complexity": 7,
+      "complexity": 3,
       "end_lineno": 935,
       "lineno": 916
     },
     "skillsmgr/webapp.py::WebAppHandler._route_new_post": {
-      "complexity": 3,
+      "complexity": 2,
       "end_lineno": 1275,
       "lineno": 1270
     },
@@ -5211,7 +5211,7 @@
       "lineno": 937
     },
     "skillsmgr/webapp.py::WebAppHandler._route_put": {
-      "complexity": 8,
+      "complexity": 3,
       "end_lineno": 1681,
       "lineno": 1648
     },

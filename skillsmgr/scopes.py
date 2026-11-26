@@ -37,7 +37,7 @@ from .documents import (
 from .loader import load_skill, scan_dir
 from . import root_discovery as _root_discovery
 from .atomic_io import atomic_write_text, move_trash_tree, mutation_lock
-from .context import active_store
+from .context import active_scope_overlay, active_store
 from .read_flights import coalesced_read
 from .store import (
     SkillNotFound,
@@ -125,7 +125,10 @@ def _peer_link_roots(scope: "Scope") -> tuple[Path, ...]:
     except OSError:
         own = scope.base
     roots: list[Path] = []
-    for other in known_scopes():
+    # Every built-in root counts as a peer, tracked or not: a link inside a
+    # tracked agent's folder that points into an untracked agent's folder is
+    # still the tracked agent's skill, not a link escape (agent tracking, B1).
+    for other in known_scopes() + builtin_agent_scopes():
         if other.id == "global" or other.id == scope.id:
             continue
         try:
@@ -322,17 +325,16 @@ def _aliases_known_scope(candidate: Path, scopes: list[Scope]) -> bool:
     return any(physical == scope.base.resolve() for scope in scopes if scope.base.exists())
 
 
-def known_scopes(*, include_project_aliases: bool = False) -> list[Scope]:
-    """All scopes we know about, in stable UI order.
+def builtin_agent_scopes() -> list[Scope]:
+    """Every built-in agent root (shared folder included), without the global store.
 
     The home directory comes from ``paths.home_dir()`` so an empty ``$HOME``
-    cannot relocate every agent scope to ``/`` (SCOPE-17). Inventory callers
-    can keep project aliases when their discovery rules also matter.
+    cannot relocate every agent scope to ``/`` (SCOPE-17).  Resolving these
+    needs no data root, so callers that only compare agent folders never
+    trigger data-root validation.
     """
     home = paths.home_dir()
-    cwd = _cwd()
-    scopes: list[Scope] = [
-        Scope("global", "Global", _global_skills_dir(), "global", True, consumer="skills-manager"),
+    return [
         Scope("claude-code", "Claude Code", home / ".claude/skills", "agent", True, consumer="claude-code"),
         Scope("codex", "Codex", home / ".codex/skills", "agent", True, consumer="codex"),
         Scope("cursor", "Cursor", home / ".cursor/skills", "agent", True, recursive=True, consumer="cursor"),
@@ -341,12 +343,85 @@ def known_scopes(*, include_project_aliases: bool = False) -> list[Scope]:
         Scope("commandcode", "Command Code", home / ".commandcode/skills", "agent", True, recursive=True, consumer="commandcode"),
         Scope("agents", "Agents", home / ".agents/skills", "agent", True, recursive=True, consumer="shared-agent-skills"),
     ]
-    for label, rel, recursive, consumer in _root_discovery.project_scope_specs():
-        cand = cwd / rel
-        if cand.is_dir() and (include_project_aliases or not _aliases_known_scope(cand, scopes)):
-            sid = label.lower().replace(" ", "-").replace(".", "")
-            scopes.append(Scope(sid, label, cand, "project", True, recursive, True, consumer))
+
+
+def base_agent_scopes() -> list[Scope]:
+    """The global store plus every built-in agent root, before any overlay."""
+    return [Scope("global", "Global", _global_skills_dir(), "global", True, consumer="skills-manager"),
+            *builtin_agent_scopes()]
+
+
+def project_scope_id(label: str) -> str:
+    """The scope id a project descriptor label maps to (``Project .claude`` -> ``project-claude``)."""
+    return label.lower().replace(" ", "-").replace(".", "")
+
+
+def _overlaid_scopes(base: list[Scope], view) -> tuple[list[Scope], list, Path | None]:
+    """Apply a tracking view: tracked roots, custom agents, the shown project."""
+    specs = list(_root_discovery.project_scope_specs())
+    if view is None:
+        return list(base), specs, _cwd()
+    kept = [s for s in base if s.id == "global" or view.shows(s.id)]
+    kept.extend(Scope(sid, label, folder, "agent", True, consumer=sid)
+                for sid, label, folder in view.custom_scopes())
+    specs.extend(view.custom_project_specs())
+    return kept, specs, view.project()
+
+
+def _project_scopes(project: Path, specs: list, view, known: list[Scope],
+                    include_project_aliases: bool) -> list[Scope]:
+    """Project-local scopes under *project* that exist and are counted.
+
+    Aliases are judged against every built-in root, tracked or not, so a
+    project folder that *is* an untracked agent's root cannot bring that agent
+    back under another name.
+    """
+    found: list[Scope] = []
+    for label, rel, recursive, consumer in specs:
+        if view is not None and not view.counts_project(consumer):
+            continue
+        cand = project / rel
+        if cand.is_dir() and (include_project_aliases or not _aliases_known_scope(cand, known)):
+            found.append(Scope(project_scope_id(label), label, cand, "project", True, recursive, True, consumer))
+    return found
+
+
+def known_scopes(*, include_project_aliases: bool = False) -> list[Scope]:
+    """All scopes we know about, in stable UI order.
+
+    Inventory callers can keep project aliases when their discovery rules also
+    matter.  When the web app has bound a tracking overlay (B1), only what the
+    user tracks is returned: untracked agents are absent, custom agents are
+    added, and project scopes come from the folder the table is showing
+    instead of the start-up folder.  The CLI never binds one.
+    """
+    base = base_agent_scopes()
+    overlay = active_scope_overlay()
+    view = overlay.view() if overlay is not None else None
+    scopes, specs, project = _overlaid_scopes(base, view)
+    if project is not None:
+        scopes.extend(_project_scopes(project, specs, view, base + scopes, include_project_aliases))
     return scopes
+
+
+def _untracked_reason(scope_id: str) -> str | None:
+    """Plain words for an agent the bound tracking view leaves out, if any."""
+    overlay = active_scope_overlay()
+    return overlay.view().untracked_message(scope_id) if overlay is not None else None
+
+
+def _unknown_skip_reason(scope_id: str) -> str:
+    """A sync target's skip reason: untracked in plain words, else ``unknown scope``."""
+    return _untracked_reason(scope_id) or "unknown scope"
+
+
+def unknown_scope_error(scope_id: str) -> StoreError:
+    """The refusal for a scope id this view does not know.
+
+    Under a tracking overlay an untracked agent is named in plain words rather
+    than reported as an unknown id.
+    """
+    return StoreError(_untracked_reason(scope_id) or f"unknown scope {scope_id!r}")
 
 
 def scope_by_id(scope_id: str) -> Scope | None:
@@ -569,7 +644,7 @@ def scan_scope(scope_id: str, *, include_husks: bool = False, collector: list[di
         return _annotate_instance_states(rows)
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     return _scan_agent_scope(scope, include_husks=include_husks, collector=collector)
 
 
@@ -722,7 +797,7 @@ def get_skill(scope_id: str, name: str) -> dict:
         return rec
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     skill_dir, link = _scope_read_dir(scope, name)
     if not skill_dir.is_dir():
         raise SkillNotFound(f"skill '{name}' is not installed in scope '{scope_id}'")
@@ -762,7 +837,7 @@ def get_raw(scope_id: str, name: str) -> str:
     else:
         scope = scope_by_id(scope_id)
         if scope is None:
-            raise StoreError(f"unknown scope {scope_id!r}")
+            raise unknown_scope_error(scope_id)
         p, _link = _scope_read_dir(scope, name)
     document = document_path(p)
     if document is not None:
@@ -826,7 +901,7 @@ def create_skill(
         )
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     try:
         name = validate_skill_name(name.strip())
     except ValueError as exc:
@@ -907,7 +982,7 @@ def edit_skill(
         )
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     skill_dir = safe_scope_skill_path(scope, name)
     with _scope_mutation_lock(skill_dir):
         _check_mutation_documents(skill_dir)
@@ -978,7 +1053,7 @@ def remove_skill(scope_id: str, name: str, *, purge: bool = False) -> dict:
         return _global_store().remove(name, purge=purge)
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     skill_dir = safe_scope_skill_path(scope, name)
     if not skill_dir.is_dir():
         raise SkillNotFound(f"skill '{name}' is not installed in scope '{scope_id}'")
@@ -1131,7 +1206,7 @@ def _agent_scope(scope_id: str) -> Scope:
         raise StoreError("the global library trash is not an agent trash folder")
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     return scope
 
 
@@ -1358,7 +1433,7 @@ def toggle_skill(scope_id: str, name: str, *, enable: bool) -> dict:
         return store.enable(name) if enable else store.disable(name)
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     skill_dir = safe_scope_skill_path(scope, name)
     # STORE-11: the checks and the rename are one step under the same lock key
     # the sibling scope writers use.
@@ -1444,7 +1519,7 @@ def sync_skill(
             continue
         scope = scope_by_id(sid)
         if scope is None:
-            skipped.append({"scope": sid, "reason": "unknown scope"})
+            skipped.append({"scope": sid, "reason": _unknown_skip_reason(sid)})
             continue
         root_key = _resolved_scope_root(scope)
         if root_key in target_roots:
@@ -1596,7 +1671,7 @@ def list_snapshots_for(scope_id: str, name: str) -> list[str]:
     if scope_id == "global":
         return list_snapshots(_global_store().data_dir, "global", name)
     if scope_by_id(scope_id) is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     return list_snapshots(_global_store().data_dir, scope_id, name)
 
 
@@ -1605,7 +1680,7 @@ def restore_snapshot(scope_id: str, name: str, snapshot: str) -> dict:
         return _global_store().restore(name, snapshot=snapshot)
     scope = scope_by_id(scope_id)
     if scope is None:
-        raise StoreError(f"unknown scope {scope_id!r}")
+        raise unknown_scope_error(scope_id)
     content = read_snapshot(_global_store().data_dir, scope_id, name, snapshot)
     skill_dir = safe_scope_skill_path(scope, name)
     md = skill_dir / "SKILL.md"

@@ -93,6 +93,8 @@ def main():
         put(scope, 'damaged-fm', 'Readable text.')
     (roots['codex']/'damaged-fm/SKILL.md').write_text('---\nname: [broken\n---\n')
     (roots['claude']/'.system').mkdir()
+    # An agent the app doesn't know, for the "Add other agent" check (What to track).
+    kilo = home/'.kilo/skills/kilo-only'; kilo.mkdir(parents=True); (kilo/'SKILL.md').write_text(doc('kilo-only', 'Only in Kilo.'))
     (home/'.claude/settings.json').write_text(json.dumps({'skillOverrides': {'same-everywhere': 'off'}}))
     (home/'.config/opencode/opencode.json').write_text(json.dumps({'permission': {'skill': {'same-everywhere': 'deny'}}}))
     if args.pilot:

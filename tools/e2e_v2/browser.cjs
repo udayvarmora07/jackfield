@@ -584,6 +584,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await outcome.getByText('Skipped entries',{exact:true}).click();
     assert((await outcome.getByRole('listitem').count())>0);
     const bad=path.join(root,'bad-archive.tar.gz');fs.writeFileSync(bad,'not an archive');
+    // The first import's refresh still holds the (disabled) picker for a moment; a person can't pick then either.
+    await page.waitForFunction(()=>!document.getElementById('imp-file').disabled);
     await page.locator('#imp-file').setInputFiles(bad);
     await page.getByRole('button',{name:'Load skills',exact:true}).click();
     await outcome.waitFor();
@@ -1142,7 +1144,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
     for(const width of [320,768,1280])for(const mode of ['light','dark']){
       await page.setViewportSize({width,height:900});await go('tools/settings');await page.getByLabel('Theme',{exact:true}).selectOption(mode);
-      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','tools/ai-settings','skills','recovery']){
+      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','tools/ai-settings','skills','recovery','settings/tracking','settings/tracking/add-agent']){
         await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`${route} ${width} ${mode}`);
         if (route.startsWith('tools/')) {
           const nav = page.getByRole('navigation',{name:'Tools navigation'});
@@ -1160,6 +1162,52 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       }
     }
     await page.setViewportSize({width:1280,height:900});await go('tools');await page.screenshot({path:path.join(root,'final-tools-desktop.png')});
+  });
+  await test('Stop tracking an agent leaves its files alone and Undo brings its column back', async () => {
+    const f=file('.codex','same-everywhere'), bytes=fs.readFileSync(f);
+    const heads=async()=>(await page.locator('.map-table thead th').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
+    await go('map');
+    assert((await heads()).some(t=>t.startsWith('Codex')));
+    await page.getByRole('button',{name:'Codex options',exact:true}).click();
+    await page.getByRole('menuitem',{name:'Stop tracking Codex…'}).click();
+    const form=page.locator('.trk-confirm');
+    assert.match(await form.innerText(),/The Codex column and its counts leave the table[\s\S]*Nothing on disk changes/);
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'map-confirm-h');
+    await form.getByRole('button',{name:'Stop tracking Codex',exact:true}).click();
+    const toast=page.locator('.toast',{hasText:'Stopped tracking Codex. Nothing on disk changed.'});
+    await toast.waitFor();
+    assert(!(await heads()).some(t=>t.startsWith('Codex')));
+    assert(!(await (await context.request.get(base+'/api/scopes')).json()).some(s=>s.id==='codex'));
+    assert.deepEqual(fs.readFileSync(f),bytes);
+    await toast.getByRole('button',{name:'Undo'}).click();
+    await page.locator('.toast',{hasText:'Tracking Codex again.'}).waitFor();
+    assert((await heads()).some(t=>t.startsWith('Codex')));
+    assert((await (await context.request.get(base+'/api/scopes')).json()).some(s=>s.id==='codex'));
+  });
+  await test('Add other agent checks the folder live, adds a column, and Remove keeps its folder', async () => {
+    const kilo=path.join(home,'.kilo','skills','kilo-only','SKILL.md'), bytes=fs.readFileSync(kilo);
+    await go('settings/tracking');
+    await page.getByRole('link',{name:'Add other agent'}).click();
+    const folder=page.locator('#trk-folder'); await folder.waitFor();
+    await folder.fill('/etc');
+    await page.locator('#trk-folder-hint',{hasText:'Pick a folder inside your home folder.'}).waitFor();
+    await folder.fill('~/.kilo/skills');
+    await page.locator('#trk-folder-hint',{hasText:'1 skill found in ~/.kilo/skills'}).waitFor();
+    assert.equal(await page.locator('#trk-name').inputValue(),'Kilo');
+    await page.getByRole('button',{name:'Add Kilo',exact:true}).click();
+    await page.locator('.toast',{hasText:'Added Kilo.'}).waitFor();
+    assert.equal(new URL(page.url()).hash,'#/settings/tracking');
+    assert.match(await page.locator('#trk-st-custom-kilo').innerText(),/Tracked · 1 skill/);
+    await go('map');
+    assert((await page.locator('.map-table thead th').allInnerTexts()).some(t=>t.includes('Kilo')));
+    await go('settings/tracking');
+    await page.locator('.trk-row',{hasText:'Kilo'}).getByRole('button',{name:'Details'}).click();
+    await page.locator('.trk-row',{hasText:'Kilo'}).getByRole('button',{name:'Remove'}).click();
+    assert.match(await page.locator('.dlg').innerText(),/Remove Kilo\?[\s\S]*Nothing on disk changes/);
+    await page.locator('.dlg-f').getByRole('button',{name:'Remove Kilo',exact:true}).click();
+    await page.locator('.toast',{hasText:'Removed Kilo. Its folder is unchanged.'}).waitFor();
+    assert.equal(await page.locator('#trk-st-custom-kilo').count(),0);
+    assert.deepEqual(fs.readFileSync(kilo),bytes);
   });
   await test('No uncaught page errors',async()=>assert.deepEqual(exceptions,[]));
   record('Coverage limit','NOTE','Actual browser zoom is checked only in headed Chrome. Screen-reader and perceptual review require a person.');

@@ -1020,3 +1020,69 @@ details[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; 
 .sk-top .kbd-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 /* Search fields: a drawn clear button in the ink colour, not the browser's blue. */
 input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; cursor: pointer; background: var(--muted); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 3l8 8M11 3l-8 8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 14px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 3l8 8M11 3l-8 8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 14px no-repeat; }
+
+/* ---------- What to track (agent tracking) ----------
+ * Only tokens declared in :root above (an undeclared one renders transparent). */
+.trk-back { margin-bottom: 8px; }
+.trk-sec { margin-top: 20px; padding: 20px 22px; display: grid; gap: 12px; }
+.trk-sec h2 { font-family: var(--display); font-size: 18px; font-weight: 600; }
+.trk-list { list-style: none; margin: 0; padding: 0; border: 0; display: grid; }
+.trk-row { border-top: 1px solid var(--line); padding: 10px 0; }
+.trk-row:first-child { border-top: 0; }
+.trk-row.off .trk-name b { color: var(--ink-2); }
+.trk-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 32px; }
+.trk-line input[type="checkbox"], .trk-line input[type="radio"] { width: 18px; height: 18px; flex: none; accent-color: var(--ink); }
+.trk-name { display: inline-flex; align-items: center; gap: 8px; min-width: 9rem; overflow-wrap: anywhere; }
+.trk-status { color: var(--ink-2); font-size: 14px; flex: 1 1 12rem; }
+.trk-fold { margin-left: auto; }
+.trk-note { margin: 4px 0 0 28px; text-align: left; }
+.trk-details { margin: 8px 0 0 28px; padding: 12px 14px; border-radius: var(--r-md); background: var(--sunken); display: grid; gap: 8px; }
+.trk-plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.trk-plain code, .trk-will code, .trk-strip code { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+.trk-auto-mark { width: 18px; text-align: center; color: var(--muted); }
+.trk-radios legend { padding: 0; }
+.trk-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.trk-form-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; margin-top: 20px; align-items: start; }
+.trk-form { padding: 20px 22px; display: grid; gap: 6px; }
+.trk-form .ed-hint, .trk-form .ed-err { text-align: left; margin-bottom: 8px; }
+.trk-input { width: 100%; font-family: var(--mono); }
+.trk-opt { font-weight: 400; color: var(--muted); }
+.trk-will { padding: 20px 22px; display: grid; gap: 10px; }
+.trk-will h2 { font-size: 16px; font-weight: 600; }
+.trk-will-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.trk-ribbon { align-items: flex-start; }
+.trk-more summary { cursor: pointer; color: var(--ink-2); }
+.trk-names { margin: 6px 0 0; padding-left: 18px; max-height: 12rem; overflow: auto; font-family: var(--mono); font-size: 13px; }
+.trk-preview { font-weight: 600; }
+.trk-safe { margin-top: 4px; }
+.trk-strip { margin-top: 16px; padding: 10px 14px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.trk-strip > span { flex: 1 1 16rem; }
+.trk-strip.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.trk-empty { margin-top: 20px; }
+.trk-picker, .trk-colmenu { position: relative; display: inline-flex; }
+.trk-menu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; min-width: 15rem; max-width: min(22rem, 90vw); padding: 6px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-lift); display: grid; text-align: left; }
+.trk-menu-items { display: grid; }
+.trk-menu [role^=menuitem] { display: block; padding: 8px 10px; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: inherit; font-size: 14px; text-align: left; text-decoration: none; cursor: pointer; }
+.trk-menu [role^=menuitem]:hover:not([disabled]), .trk-menu [role^=menuitem]:focus-visible { background: var(--hover); }
+.trk-menu [role^=menuitem][disabled] { color: var(--muted); cursor: not-allowed; }
+.trk-menu [aria-checked="true"]::before { content: "✓"; display: inline-block; width: 1.1em; }
+.trk-menu [aria-checked="false"]::before { content: ""; display: inline-block; width: 1.1em; }
+.trk-menu [role^=menuitem] small { display: block; padding: 2px 0 0; }
+.trk-menu small, .trk-menu-info { color: var(--ink-2); font-size: 13px; font-weight: 400; padding: 4px 10px; margin: 0; }
+.map-menu { position: fixed; width: 260px; max-width: calc(100vw - 16px); max-height: calc(100vh - 24px); overflow: auto; }
+.trk-manage { align-self: center; white-space: nowrap; }
+.map-menu-btn { border: 0; background: none; color: var(--ink-2); padding: 2px 6px; border-radius: var(--r-sm); cursor: pointer; font: inherit; }
+.map-menu-btn:hover, .map-menu-btn[aria-expanded="true"] { background: var(--hover); color: var(--ink); }
+.trk-confirm { margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--line-2); border-radius: var(--r-lg); background: var(--surface); display: grid; gap: 8px; }
+.trk-confirm h3 { font-size: 16px; font-weight: 600; }
+.trk-mini { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--sunken); }
+.trk-mini-t { border-collapse: collapse; font-size: 13px; width: 100%; }
+.trk-mini-t th, .trk-mini-t td { padding: 6px 10px; text-align: center; white-space: nowrap; border-left: 1px solid var(--line); }
+.trk-mini-t th:first-child, .trk-mini-t td:first-child { border-left: 0; }
+.trk-mini-t th { font-weight: 600; color: var(--ink-2); }
+.trk-mini-t .leaving { color: var(--muted); text-decoration: line-through; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--line) 6px 7px); }
+@media (max-width: 760px) {
+  .trk-form-grid { grid-template-columns: 1fr; }
+  .trk-fold { margin-left: 28px; }
+  .trk-menu { left: auto; right: 0; }
+}

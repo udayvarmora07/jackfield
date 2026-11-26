@@ -345,6 +345,57 @@ scope-qualified.
 - Agent scopes are read/written directly on disk (no DB index). Disable/enable renames `SKILL.md` <-> `SKILL.md.disabled` in place; remove trashes to `<scope-base>/../trash` (e.g. `~/.agents/trash`).
 - Global scope is the manager's Store + SQLite index; export is global-only.
 
+### Agent tracking (2026-11-26) [SPEC]
+
+`<data>/tracking.json` says which agents, project folders and tool groups the
+**web UI** shows; it never changes a skill on disk, and the CLI never reads it
+(`--scope` is unchanged). `skillsmgr/tracking.py` owns the document; the web
+server binds a per-server `tracking.Overlay` in each request thread
+(`context.SCOPE_OVERLAY`, like the bound Store), and `scopes.known_scopes()`
+then returns the tracked view: untracked built-in agents are absent, custom
+agents (`custom-<name>`, flat folder) are added, the Shared folder (`agents`)
+appears only while a tracked agent reads it, and project scopes come from
+`projects.showing` (filtered by each agent's `count_projects`) instead of the
+start-up folder. So `/api/scopes`, `/api/stats`, `/api/skills`, `/api/search`,
+`/api/tokens`, batch, sync and the per-skill read/write/toggle/trash routes all
+filter or refuse on the server; an untracked agent is refused in plain words
+("Cursor isn't tracked. Track it in What to track…"). `/api/workspaces` drops
+the adapter records of untracked built-in agents. A missing file means "track
+everything found" (with the start-up folder as the one project when it holds a
+project skill folder that isn't a built-in root), which is exactly the
+pre-tracking behaviour. A broken file also tracks everything found, drops
+custom agents, and is copied aside before the first save. Links inside a
+tracked agent's folder into an untracked agent's folder still read as the
+tracked agent's skill (peer roots are every built-in root). The `check-folder`
+route and the report count skill folders by checking that `SKILL.md` /
+`SKILL.md.disabled` exist; they never open a file. Like every route, these are
+protected only by the 127.0.0.1 binding.
+
+**Frontend (mapped onto the shipped UI, option A).** The approved screens are
+drawn on the unshipped "one table" redesign; they are placed on today's pages:
+
+- `#/settings/tracking` is What to track (S14), with Add other agent / Edit
+  (`#/settings/tracking/add-agent`, `#/settings/tracking/agent/<id>`, S16) and
+  Add project folder (`#/settings/tracking/add-project`, S18). Markup is in
+  `index.html`; state and actions are `trackingMixin` in `app.js`, spread into
+  the root app (the node contract harnesses bind only the app's own members).
+- Every change is one whole-document `PUT /api/tracking`; Undo puts the
+  previous document back with the current revision. A failed save (including
+  409) is shown beside the row that caused it; the row keeps its saved state.
+- Stop tracking / Remove confirms in the shipped dialog on What to track, and
+  inside the Sync map side panel from a column header's ▾ menu (S1+ "menus in
+  place", on the Sync map table). Both say what leaves, show a mini table of
+  today's columns with the leaving one struck through (the approved
+  TablePreview), list the skills only there, and say "Nothing on disk changes";
+  the save offers Undo.
+- Skills toolbar: the project picker (S19), "Manage agents", the Found-agent
+  notice (T7), the broken-file notice (T8), the missing-project strip and the
+  "No agents are tracked." empty state (T9; also on the Sync map).
+- Tools stands in for "Advanced": switched-off groups (`add` → add-skills,
+  `inspect` → check-setup, `ai` → ai-assist) leave the directory, the tool nav
+  and the command palette; Settings always stays; a switched-off tool page says
+  so with Turn it on. Tools → Settings gets a "What to track" first row.
+
 ## REST API
 
 Scoped skill list/search/detail records additionally include `native_state`.
@@ -552,6 +603,9 @@ stated beside the setting and in every result.
 | POST | `/api/batch/preview` | body `{operation, targets[], options?}` → backend re-resolves exact physical targets and returns target count, plan hash, before-state evidence, and recovery/partial-failure policy |
 | POST | `/api/batch/execute` | body `{operation, targets[], options?, plan_id}` → per-target results; stale or widened plans are rejected. The plan id binds each target's `content_hash` and `disabled` state and, for `sync`, the observed destination copies, so a document rewritten, toggled or overwritten after the preview is a clean `stale` 400 (2026-11-07) |
 | GET | `/api/workspaces?project=DIR` | read-only adapter catalog, configured `managed_roots` choices and contained project-root observation using the same agent project-root conventions as `/api/scopes`; outside paths are redacted |
+| GET | `/api/tracking` | agent tracking (web only): saved `<data>/tracking.json` or defaults plus a live report — `file` (`ok`/`default`/`broken` + reason, broken copies), `settings`, `revision`, `tracked`, per agent (name, known/custom, tracked, found, folder status, skill count, skills only here: count + first 50 names, folders read, also reads), `shared` (Shared folder shown + read by), per project folder (status, skill folders found, count), `showing`, `tool_groups`, `newly_found`, `summary`. Never writes |
+| PUT | `/api/tracking` | replace the whole tracking document; body carries the `revision` it read, stale → 409 `conflict` ("These settings changed in another window."). Every rule is re-checked (custom agent: 1–40 character name unique in any case, an existing readable folder inside home that is no other agent's; project folders inside home or the start-up folder; at least one tracked agent; known ids only). A broken file is copied aside as `<data>/tracking.broken-<stamp>.json` first. Undo = PUT the previous document. Written atomically, mode 0600. Returns the GET payload |
+| POST | `/api/tracking/check-folder` | body `{path, purpose: agent\|project, ignore_id?}` → `{ok, display, problems[{code, message}], preview}`; read-only: checks inside home (links resolving outside count as outside), exists, a folder, readable, already tracked by X / already listed, and counts skill folders without opening any file |
 | POST | `/api/install` | Legacy body `{source, runner?, scope?, agents[], skills[], copy?, list_only?, run?}` builds/runs `skills add`; `{preview: true, trust_confirmed?, registry_hash?, description?}` returns the offline bridge plan with no request/execution. Registry body uses one of `{browse: true, page?, per_page?, view?, allow_stale?}`, `{search: QUERY, limit?, owner?, allow_stale?}`, `{curated: true, allow_stale?}`, `{fetch: true, source: ID, registry_hash?, allow_stale?, external_scan?}` for a read-only review, or `{fetch: true, review_id: ID, trust_confirmed: true}` for a no-network commit. Browse/search/curated return bounded catalog data. Fetch is global-store-only, writes a private expiring review artifact after full validation/risk evidence, and only the separate reviewed commit writes credential-free `.skillsmgr-provenance.json` and calls `Store.add`. Cache state is returned under `_registry`; stale fallback is opt-in. |
 
 When forced Sync replaces a copy whose supporting files differ, the previous

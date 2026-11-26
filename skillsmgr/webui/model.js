@@ -543,8 +543,15 @@
     return Object.freeze({ maxInstances, maxChars, read, snapshot, compare, merge });
   })();
 
+  /* The mark for an agent the table may not list (What to track shows
+   * untracked and custom agents too). Custom agents get a neutral badge. */
+  function agentMark(id, label) {
+    const brand = BRAND[id] || [initialsOf(label || id), String(id).startsWith("custom-") ? "#55585f" : PALETTE[hash(String(id)) % PALETTE.length]];
+    return { id, name: label || id, initials: brand[0], color: brand[1], icon: AGENT_ICONS[id] || null };
+  }
+
   window.SkillsV2Model = Object.freeze({
-    plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
+    agentMark, plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
     toolGroups: Object.freeze(toolGroups), toolItems, toolIds,
     diffLines, changes, documentPreview, plainLine, renderDoc, stripFrontmatter, documentBaseline, consumerDiscovery,
   });

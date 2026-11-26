@@ -46,7 +46,7 @@
 
   <main id="main" ref="main" tabindex="-1" :inert="!!dialog">
     <!-- loading / failure -->
-    <tool-center v-if="route.page === 'tools'" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
+    <tool-center v-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine" @tool-group="trackGroupByKey" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
     <div class="page" v-else-if="loading && !m">
       <h1 class="h1" id="h1" tabindex="-1">Looking at your agents…</h1>
       <p class="lede">Reading the skill folders on this computer.</p>
@@ -118,6 +118,147 @@
       </div>
     </div>
 
+    <!-- ========== WHAT TO TRACK (#/settings/tracking) ========== -->
+    <div class="page trk" v-else-if="route.page === 'tracking'">
+      <p class="trk-back"><a class="link" :href="route.name ? '#/settings/tracking' : '#/tools/settings'"><span aria-hidden="true">←</span> {{ route.name ? 'What to track' : 'Settings' }}</a></p>
+      <p v-if="trackingError && !tracking" class="state-note err" role="alert">{{ trackingError }} <button type="button" class="btn btn-line btn-sm" @click="loadTracking()">Try again</button></p>
+      <template v-else-if="!tracking"><h1 class="h1" id="h1" tabindex="-1">What to track</h1><div class="rooms" aria-hidden="true"><div class="skeleton"></div><div class="skeleton"></div></div></template>
+
+      <!-- Add other agent / Edit agent (S16): folder first, name filled from it -->
+      <template v-else-if="trackFormAgent">
+        <h1 class="h1" id="h1" tabindex="-1">{{ trackFormAgent.id ? 'Edit ' + trackFormAgent.baseName : 'Add other agent' }}</h1>
+        <p class="lede">Point at the folder where the agent keeps its skills. Its files are never touched.</p>
+        <div class="trk-form-grid">
+          <form class="card trk-form" @submit.prevent="trackFormSave()" novalidate>
+            <label class="ed-label" for="trk-folder">Skills folder</label>
+            <input class="field trk-input" id="trk-folder" :value="trackFormAgent.path" @input="trackPathInput($event.target.value)" placeholder="~/.kilo/skills" autocomplete="off" spellcheck="false" :aria-invalid="trackFormAgent.check && !trackFormAgent.check.ok ? 'true' : null" aria-describedby="trk-folder-hint">
+            <p id="trk-folder-hint" :class="trackFormAgent.check && !trackFormAgent.check.ok ? 'ed-err' : 'ed-hint'" aria-live="polite">
+              <template v-if="trackFormAgent.checking">Checking…</template>
+              <template v-else-if="trackFormAgent.check && !trackFormAgent.check.ok">{{ trackFormAgent.check.problems[0].message }}</template>
+              <template v-else-if="trackFormAgent.check">{{ plural(trackFormAgent.check.preview.skill_count, 'skill') }} found in {{ trackFormAgent.check.display }}</template>
+              <template v-else>A folder inside your home folder, such as ~/.kilo/skills.</template></p>
+            <label class="ed-label" for="trk-name">Name</label>
+            <input class="field trk-input" id="trk-name" v-model="trackFormAgent.name" @input="trackFormAgent.nameTouched = true" maxlength="60" autocomplete="off" :aria-invalid="trackNameError ? 'true' : null" aria-describedby="trk-name-hint">
+            <p id="trk-name-hint" :class="trackNameError ? 'ed-err' : 'ed-hint'">{{ trackNameError || 'Shown as the column heading. Up to 40 characters.' }}</p>
+            <details class="instance-metadata" :open="trackFormAgent.more" @toggle="trackFormAgent.more = $event.target.open">
+              <summary>More options</summary>
+              <label class="ed-label" for="trk-inside">Folder inside projects <span class="trk-opt">(optional)</span></label>
+              <input class="field trk-input" id="trk-inside" v-model="trackFormAgent.projectFolder" placeholder=".kilo/skills" autocomplete="off" spellcheck="false" :aria-invalid="trackFolderInsideError ? 'true' : null" aria-describedby="trk-inside-hint">
+              <p id="trk-inside-hint" :class="trackFolderInsideError ? 'ed-err' : 'ed-hint'">{{ trackFolderInsideError || 'Where this agent keeps skills inside a project, so project folders count for it.' }}</p>
+            </details>
+            <p v-if="trackFormAgent.error" class="state-note err" role="alert">{{ trackFormAgent.error }}</p>
+            <div class="trk-acts"><button type="button" class="btn btn-line" @click="trackFormCancel()">Cancel</button>
+              <button type="submit" class="btn btn-ink" :aria-disabled="trackFormReady ? null : 'true'" :disabled="trackFormAgent.saving">{{ trackFormAgent.saving ? 'Saving…' : trackFormAgent.id ? 'Save changes' : 'Add ' + (trackFormAgent.name.trim() || 'agent') }}</button></div>
+          </form>
+          <aside class="card trk-will" aria-labelledby="trk-will-h">
+            <h2 id="trk-will-h">What will be added</h2>
+            <p v-if="!trackFormAgent.check || !trackFormAgent.check.ok" class="sub">Type a folder to see what it holds.</p>
+            <template v-else>
+              <p class="trk-will-line"><logo :agent="agentMark('custom-new', trackFormAgent.name.trim() || 'New agent')" size="xs"></logo><b>{{ trackFormAgent.name.trim() || 'New agent' }}</b> · {{ plural(trackFormAgent.check.preview.skill_count, 'skill') }} found in <code translate="no">{{ trackFormAgent.check.display }}</code></p>
+              <p class="sub">{{ trackFormAgent.id ? 'Its column keeps its place in the table.' : 'A new column at the end of the Skills and Sync map tables.' }} Nothing on disk changes.</p>
+            </template>
+          </aside>
+        </div>
+      </template>
+
+      <!-- Add project folder (S18) -->
+      <template v-else-if="trackFormProject">
+        <h1 class="h1" id="h1" tabindex="-1">Add project folder</h1>
+        <p class="lede">A project's own skill folders, such as .claude/skills, show as extra columns while it's the project shown.</p>
+        <div class="trk-form-grid">
+          <form class="card trk-form" @submit.prevent="trackFormSave()" novalidate>
+            <label class="ed-label" for="trk-project">Project folder</label>
+            <input class="field trk-input" id="trk-project" :value="trackFormProject.path" @input="trackPathInput($event.target.value)" placeholder="~/work/api" autocomplete="off" spellcheck="false" :aria-invalid="trackFormProject.check && !trackFormProject.check.ok ? 'true' : null" aria-describedby="trk-project-hint">
+            <p id="trk-project-hint" :class="trackFormProject.check && !trackFormProject.check.ok ? 'ed-err' : 'ed-hint'" aria-live="polite">
+              <template v-if="trackFormProject.checking">Checking…</template>
+              <template v-else-if="trackFormProject.check && !trackFormProject.check.ok">{{ trackFormProject.check.problems[0].message }}</template>
+              <template v-else-if="trackFormProject.check">Found it: {{ trackFormProject.check.display }}</template>
+              <template v-else>A folder inside your home folder.</template></p>
+            <label class="hl-row"><input type="checkbox" v-model="trackFormProject.show"> Show it in the table now</label>
+            <p v-if="trackFormProject.error" class="state-note err" role="alert">{{ trackFormProject.error }}</p>
+            <div class="trk-acts"><button type="button" class="btn btn-line" @click="trackFormCancel()">Cancel</button>
+              <button type="submit" class="btn btn-ink" :aria-disabled="trackFormReady ? null : 'true'" :disabled="trackFormProject.saving">{{ trackFormProject.saving ? 'Adding…' : 'Add folder' }}</button></div>
+          </form>
+          <aside class="card trk-will" aria-labelledby="trk-pwill-h">
+            <h2 id="trk-pwill-h">Skill folders found</h2>
+            <p v-if="!trackFormProject.check || !trackFormProject.check.ok" class="sub">Type a folder to see what it holds.</p>
+            <template v-else-if="trackFormProject.check.preview.skill_folders.length">
+              <ul class="trk-plain"><li v-for="f in trackFormProject.check.preview.skill_folders" :key="f"><code translate="no">{{ f }}</code></li></ul>
+              <p class="sub">{{ plural(trackFormProject.check.preview.skill_count, 'skill') }} in all.</p>
+            </template>
+            <p v-else class="sub">None yet. That's fine: they show once the project has a skill folder.</p>
+            <p class="sub">Its files are never touched.</p>
+          </aside>
+        </div>
+      </template>
+
+      <!-- What to track (S14) -->
+      <template v-else>
+        <h1 class="h1" id="h1" tabindex="-1">What to track</h1>
+        <p class="lede">{{ trackSummary }}. Choose what the app shows. Nothing on disk changes.</p>
+        <div v-if="tracking.file.state === 'broken'" class="ribbon trk-ribbon" role="alert"><ic name="warn"></ic>
+          <div><b>Your tracking settings couldn't be read, so everything found is shown.</b>
+            <details class="trk-more"><summary>Details</summary><p class="sub">{{ tracking.file.reason }}</p><code translate="no">{{ tracking.file.path }}</code><p class="sub">The file is kept as a copy beside it before the first new save.</p></details></div>
+          <div class="ribbon-actions"><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="trackReset()">Reset to everything found</button></div></div>
+        <p v-else-if="!tracking.settings.agents.chosen" class="state-note">Every agent found is tracked. Untick any you don't use.</p>
+
+        <section class="card trk-sec" aria-labelledby="trk-agents-h">
+          <h2 id="trk-agents-h">Agents</h2>
+          <ul class="trk-list">
+            <li v-for="a in tracking.agents" :key="a.id" :class="['trk-row', { off: !a.tracked }]">
+              <div class="trk-line">
+                <input type="checkbox" :id="'trk-' + a.id" :checked="a.tracked" :disabled="busy || trackLastAgent(a)" @change="$event.target.checked = a.tracked; trackToggle(a, !a.tracked)" :aria-describedby="'trk-st-' + a.id">
+                <label :for="'trk-' + a.id" class="trk-name"><logo :agent="agentMark(a.id, a.name)" size="xs"></logo><b>{{ a.name }}</b></label>
+                <span class="trk-status" :id="'trk-st-' + a.id">{{ trackLastAgent(a) ? 'At least one agent stays tracked.' : trackStatus(a) }}</span>
+                <button type="button" class="link trk-fold" :aria-expanded="trackOpen === a.id ? 'true' : 'false'" :aria-controls="'trk-d-' + a.id" @click="trackOpen = trackOpen === a.id ? '' : a.id">Details</button>
+              </div>
+              <p v-if="trackingNotes[a.id]" class="ed-err trk-note" role="alert">{{ trackingNotes[a.id] }}</p>
+              <div v-if="trackOpen === a.id" class="trk-details" :id="'trk-d-' + a.id">
+                <p class="sub">Reads:</p>
+                <ul class="trk-plain"><li v-for="r in a.folders_read" :key="r.id + r.path">{{ r.own ? 'Its own folder' : r.name + "'s folder" }}<template v-if="!r.own && !r.tracked"> · <span class="pill off">Not tracked</span></template> <code translate="no">{{ r.path }}</code></li></ul>
+                <p v-if="a.only_here && a.only_here.count" class="sub">{{ plural(a.only_here.count, 'skill lives', 'skills live') }} only here.</p>
+                <label v-if="a.has_project_folder" class="hl-row" :key="'c' + trackFailSeq"><input type="checkbox" role="switch" :checked="a.count_projects" :disabled="busy" @change="trackCountProjects(a, $event.target.checked)"> Count project folders for {{ a.name }}</label>
+                <p v-if="a.kind === 'custom'" class="trk-acts"><a class="btn btn-line btn-sm" :href="'#/settings/tracking/agent/' + a.id">Edit</a><button type="button" class="btn btn-line btn-sm" :disabled="busy || trackLastAgent(a)" @click="askStopTracking(a.id)">Remove</button></p>
+              </div>
+            </li>
+            <li class="trk-row trk-auto">
+              <div class="trk-line"><span class="trk-auto-mark" aria-hidden="true">·</span><span class="trk-name"><b>Shared folder</b></span>
+                <span class="trk-status">{{ tracking.shared.shown ? 'Automatic · read by ' + join(tracking.shared.read_by.map((id) => trackAgent(id)?.name || id)) + (tracking.shared.skill_count != null ? ' · ' + plural(tracking.shared.skill_count, 'skill') : '') : 'Automatic · no tracked agent reads it, so it isn\'t shown' }}</span></div>
+            </li>
+          </ul>
+          <p><a class="btn btn-line btn-sm" href="#/settings/tracking/add-agent"><ic name="plus"></ic>Add other agent</a></p>
+        </section>
+
+        <section class="card trk-sec" aria-labelledby="trk-proj-h">
+          <h2 id="trk-proj-h">Project folders</h2>
+          <p class="sub">One project is shown in the table at a time.</p>
+          <fieldset class="trk-list trk-radios" v-if="tracking.projects.length" :key="'p' + trackFailSeq"><legend class="sr-only">Showing in the table</legend>
+            <label class="trk-row trk-line"><input type="radio" name="trk-show" :checked="!tracking.showing" :disabled="busy" @change="trackShow(null)"><span class="trk-name">None</span></label>
+            <div v-for="p in tracking.projects" :key="p.path" class="trk-row">
+              <div class="trk-line"><input type="radio" name="trk-show" :id="'trk-p-' + p.path" :checked="tracking.showing === p.path" :disabled="busy || p.status !== 'ok'" @change="trackShow(p.path)">
+                <label :for="'trk-p-' + p.path" class="trk-name"><code translate="no">{{ p.path }}</code></label>
+                <span class="trk-status">{{ p.status !== 'ok' ? 'Folder not found' : tracking.showing === p.path ? 'Showing in the table' : p.skill_folders && p.skill_folders.length ? plural(p.skill_count || 0, 'skill') : 'No skill folders yet' }}</span>
+                <button type="button" class="link" :disabled="busy" @click="trackRemoveProject(p.path)" :aria-label="'Remove ' + p.path">Remove</button></div>
+              <p v-if="trackingNotes[p.path]" class="ed-err trk-note" role="alert">{{ trackingNotes[p.path] }}</p>
+            </div>
+          </fieldset>
+          <p v-else class="sub">No project folders yet.</p>
+          <p><a class="btn btn-line btn-sm" href="#/settings/tracking/add-project"><ic name="plus"></ic>Add project folder</a></p>
+        </section>
+
+        <section class="card trk-sec" aria-labelledby="trk-groups-h">
+          <h2 id="trk-groups-h">Tool groups</h2>
+          <p class="sub">Switched-off groups leave Tools and search. Their settings are kept.</p>
+          <ul class="trk-list" :key="'g' + trackFailSeq">
+            <li v-for="g in trackGroups" :key="g.id" class="trk-row">
+              <label class="trk-line"><input type="checkbox" role="switch" :checked="toolGroupsOn[g.key]" :disabled="busy" @change="trackGroup(g, $event.target.checked)"><span class="trk-name"><b>{{ g.name }}</b></span><span class="trk-status">{{ g.text }}</span></label>
+              <p v-if="trackingNotes[g.id]" class="ed-err trk-note" role="alert">{{ trackingNotes[g.id] }}</p>
+            </li>
+          </ul>
+        </section>
+      </template>
+    </div>
+
     <!-- ========== SKILLS ========== -->
     <div class="page" v-else-if="route.page === 'skills'">
       <div class="shelf-head">
@@ -125,6 +266,17 @@
           <p class="lede">{{ fmt(shelfTotal) }} {{ shelfTotal === 1 ? 'skill' : 'skills' }} across {{ plural(agentInfos.length, 'agent') }}, {{ grouping === 'category' ? 'grouped by category' : 'A to Z' }}. Open one to read, change or copy it.</p></div>
         <div class="instance-actions"><a class="btn btn-line" href="#/tools/install">Add from source</a><button type="button" class="btn btn-ink" @click="openCreate()"><ic name="plus"></ic>New skill</button></div>
       </div>
+      <template v-if="tracking">
+        <div v-if="trackNewlyFound" class="trk-strip" role="status"><span>Found {{ trackNewlyFound.name }}{{ trackNewlyFound.skill_count != null ? ' (' + plural(trackNewlyFound.skill_count, 'skill') + ')' : '' }}. Track it?</span>
+          <button type="button" class="btn btn-ink btn-sm" :disabled="busy" @click="trackFoundTrack(trackNewlyFound)">Track</button><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="trackFoundLater(trackNewlyFound)">Not now</button></div>
+        <div v-if="tracking.file.state === 'broken' && !trackBrokenSeen" class="trk-strip" role="status"><span>Your tracking settings couldn't be read, so everything found is shown.</span>
+          <a class="btn btn-line btn-sm" href="#/settings/tracking">Open What to track</a><button type="button" class="link" @click="trackBrokenSeen = true">Dismiss</button></div>
+        <div v-if="trackShowing && trackShowing.status !== 'ok'" class="trk-strip warn" role="status"><span><code translate="no">{{ trackShowing.path }}</code> can't be found.</span>
+          <button type="button" class="btn btn-line btn-sm" @click="projectMenu = false; toggleProjectMenu()">Choose another</button><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="trackRemoveProject(trackShowing.path)">Remove</button></div>
+        <div v-if="trackNoAgents" class="card empty trk-empty">
+          <h2>No agents are tracked.</h2><p>Choose which coding agents' skills to show. Nothing on disk changes.</p>
+          <div class="empty-acts"><a class="btn btn-ink" href="#/settings/tracking">Choose agents</a></div></div>
+      </template>
       <div class="tools">
         <div class="searchf"><ic name="search"></ic><label class="sr-only" for="q">Search skills</label><input class="field" id="q" type="search" placeholder="Search by name or what it does" :value="query" @input="searchInput($event.target.value)" autocomplete="off"></div>
         <div class="seg skill-state-filter" role="group" aria-label="Show">
@@ -132,6 +284,16 @@
         </div>
         <label class="sr-only" for="agent-f">Agent</label>
         <select class="field" id="agent-f" v-model="agentFilter" @change="capReset()"><option value="all">All agents</option><option v-for="inf in agentInfos" :key="inf.id" :value="inf.id">Only {{ inf.agent.name }}</option></select>
+        <div class="trk-picker" v-if="tracking && tracking.projects.length" @keydown.esc.stop="projectMenu = false; $refs.projectBtn?.focus()" @focusout="trackMenuBlur">
+          <button type="button" class="btn btn-line trk-picker-btn" ref="projectBtn" aria-haspopup="menu" :aria-expanded="projectMenu ? 'true' : 'false'" aria-controls="trk-project-menu" @click="toggleProjectMenu()">Project: {{ trackShowingLabel }} <span aria-hidden="true">▾</span></button>
+          <div class="trk-menu" id="trk-project-menu" role="menu" aria-label="Which project to show" v-if="projectMenu" @keydown="mapMenuKeys">
+            <button type="button" role="menuitemradio" :aria-checked="!tracking.showing ? 'true' : 'false'" :disabled="busy" @click="trackShow(null)">None</button>
+            <button v-for="p in tracking.projects" :key="p.path" type="button" role="menuitemradio" :aria-checked="tracking.showing === p.path ? 'true' : 'false'" :disabled="busy || p.status !== 'ok'" @click="trackShow(p.path)"><span translate="no">{{ p.path }}</span><small v-if="p.status !== 'ok'">Folder not found</small></button>
+            <a role="menuitem" href="#/settings/tracking/add-project">Add project folder…</a>
+            <a role="menuitem" href="#/settings/tracking">Manage project folders</a>
+          </div>
+        </div>
+        <a class="link trk-manage" href="#/settings/tracking">Manage agents</a>
         <label class="sr-only" for="sort-f">Sort</label>
         <select class="field" id="sort-f" v-model="sortBy" @change="capReset()"><option value="name">A to Z</option><option value="size">Largest first</option><option value="shared">In most agents</option></select>
         <label class="sr-only" for="tag-f">Tag</label>
@@ -301,7 +463,7 @@
         <ul class="map-legend" aria-label="Copy states" v-if="agentInfos.length && mapRows.length">
           <li v-for="(status, state) in mapStates" :key="state"><span :class="['map-state', 'map-' + state]"><ic :name="status.icon"></ic></span>{{ status.label }}</li>
         </ul>
-        <div class="map-scroll" v-if="agentInfos.length && mapRows.length" ref="matrix" role="region" aria-label="Scrollable skill copies table" tabindex="0">
+        <div class="map-scroll" v-if="agentInfos.length && mapRows.length" @scroll.passive="mapMenu = ''" ref="matrix" role="region" aria-label="Scrollable skill copies table" tabindex="0">
           <table class="map-table" aria-label="Skill copies by agent">
             <thead>
               <tr>
@@ -310,6 +472,18 @@
                   <button type="button" class="map-agent" :aria-pressed="inf.id === mapSel.id" aria-controls="map-details" :title="tagFor(inf)" @click="selectMap(inf.id, $event)">
                     <logo :agent="inf.agent" size="xs"></logo>{{ inf.agent.name }}
                   </button>
+                  <span class="trk-colmenu" v-if="trackingTrackable(inf.id)" @keydown="mapMenu === inf.id && mapMenuKeys($event)" @focusout="trackMenuBlur">
+                    <button type="button" class="map-menu-btn" :id="'map-menu-btn-' + inf.id" aria-haspopup="menu" :aria-expanded="mapMenu === inf.id ? 'true' : 'false'" :aria-label="inf.agent.name + ' options'" @click="toggleMapMenu(inf.id)"><span aria-hidden="true">▾</span></button>
+                    <div class="trk-menu map-menu" v-if="mapMenu === inf.id" :style="mapMenuPos">
+                      <p class="trk-menu-info" v-if="trackAgent(inf.id).skill_count != null">{{ plural(trackAgent(inf.id).skill_count, 'skill') }}<template v-if="trackAgent(inf.id).only_here && trackAgent(inf.id).only_here.count"> · {{ fmt(trackAgent(inf.id).only_here.count) }} live only here</template></p>
+                      <p v-if="trackLastAgent(trackAgent(inf.id))" id="map-menu-why" class="trk-menu-info">At least one agent stays tracked.</p>
+                      <div role="menu" class="trk-menu-items" :aria-label="inf.agent.name + ' options'">
+                      <button type="button" role="menuitem" :disabled="busy || trackLastAgent(trackAgent(inf.id))" :aria-describedby="trackLastAgent(trackAgent(inf.id)) ? 'map-menu-why' : null" @click="mapAskStop(inf.id, $event)">{{ trackAgent(inf.id).kind === 'custom' ? 'Remove ' + trackAgent(inf.id).name + '…' : 'Stop tracking ' + trackAgent(inf.id).name + '…' }}</button>
+                      <button type="button" role="menuitem" @click="trackDetails(inf.id)">{{ trackAgent(inf.id).name }} details</button>
+                      <a role="menuitem" href="#/settings/tracking">Manage agents</a>
+                      </div>
+                    </div>
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -328,6 +502,7 @@
             </tbody>
           </table>
         </div>
+        <div v-else-if="trackNoAgents" class="card empty trk-empty"><h2>No agents are tracked.</h2><p>Choose which coding agents' skills to show. Nothing on disk changes.</p><div class="empty-acts"><a class="btn btn-ink" href="#/settings/tracking">Choose agents</a></div></div>
         <p v-else-if="!agentInfos.length" class="state-note">No agent skill folders found. <a class="link" href="#/tools/workspaces">See where agents look for skills</a></p>
         <p v-else-if="mapReviewOnly" class="state-note" role="status">No skills match the review filter.</p>
         <p v-else-if="mapQuery.trim()" class="state-note" role="status">No skills match this search.</p>
@@ -345,6 +520,15 @@
           <h2 id="map-heading" tabindex="-1" ref="mapHeading">{{ mapSel.agent.name }}</h2>
           <button v-if="mapOrigin" type="button" class="btn btn-line btn-sm" @click="backToMap()">Back to map</button>
         </div>
+        <form class="trk-confirm" v-if="mapConfirm && trackLeaving(mapConfirm)" @submit.prevent="stopTracking(mapConfirm)" @keydown.esc.stop.prevent="mapCancelStop()" aria-labelledby="map-confirm-h">
+          <h3 id="map-confirm-h" tabindex="-1">{{ trackLeaving(mapConfirm).title }}</h3>
+          <p v-for="(line, i) in trackLeaving(mapConfirm).lines" :key="i">{{ line }}</p>
+          <div class="trk-mini" v-if="trackLeaving(mapConfirm).columns.length" role="group" :aria-label="'Table after the change: the ' + trackLeaving(mapConfirm).agent.name + ' column leaves'"><table class="trk-mini-t"><thead><tr><th v-for="c in trackLeaving(mapConfirm).columns" :key="c.id" scope="col" :class="{ leaving: c.leaving }">{{ c.name }}<span v-if="c.leaving" class="sr-only"> (leaves the table)</span></th></tr></thead><tbody><tr><td v-for="c in trackLeaving(mapConfirm).columns" :key="c.id" :class="['num', { leaving: c.leaving }]">{{ fmt(c.count) }}</td></tr></tbody></table></div>
+          <p v-if="trackLeaving(mapConfirm).preview" class="trk-preview num">{{ trackLeaving(mapConfirm).preview }}</p>
+          <details v-if="trackLeaving(mapConfirm).names.length" class="trk-more"><summary>See the {{ plural(trackLeaving(mapConfirm).count, 'skill') }}</summary><ul class="trk-names"><li v-for="n in trackLeaving(mapConfirm).names" :key="n" translate="no">{{ n }}</li><li v-if="trackLeaving(mapConfirm).more">and {{ trackLeaving(mapConfirm).more }} more</li></ul></details>
+          <p class="trk-safe"><b>{{ trackLeaving(mapConfirm).safe }}</b></p>
+          <div class="trk-acts"><button type="button" class="btn btn-line" @click="mapCancelStop()">{{ trackLeaving(mapConfirm).custom ? 'Keep ' + trackLeaving(mapConfirm).agent.name : 'Keep tracking' }}</button><button type="submit" class="btn btn-ink" :disabled="busy">{{ busy ? 'Working…' : trackLeaving(mapConfirm).confirm }}</button></div>
+        </form>
         <section class="map-copy" v-if="mapDetail">
           <h3 translate="no">{{ mapDetail.skill.name }}</h3>
           <p>{{ mapDetail.label }}</p>
@@ -513,6 +697,10 @@
       <div class="dlg-h"><h2 id="dlg-t">{{ dialog.title }}</h2></div>
       <div class="dlg-b">
         <p v-for="(line, i) in dialog.lines" :key="i">{{ line }}</p>
+        <div class="trk-mini" v-if="dialog.columns && dialog.columns.length" role="group" :aria-label="'Table after the change: the ' + dialog.columnsAgent + ' column leaves'"><table class="trk-mini-t"><thead><tr><th v-for="c in dialog.columns" :key="c.id" scope="col" :class="{ leaving: c.leaving }">{{ c.name }}<span v-if="c.leaving" class="sr-only"> (leaves the table)</span></th></tr></thead><tbody><tr><td v-for="c in dialog.columns" :key="c.id" :class="['num', { leaving: c.leaving }]">{{ fmt(c.count) }}</td></tr></tbody></table></div>
+        <p v-if="dialog.preview" class="trk-preview num">{{ dialog.preview }}</p>
+        <details v-if="dialog.names && dialog.names.length" class="trk-more"><summary>{{ dialog.namesLabel }}</summary><ul class="trk-names"><li v-for="n in dialog.names" :key="n" translate="no">{{ n }}</li><li v-if="dialog.namesMore">and {{ dialog.namesMore }} more</li></ul></details>
+        <p v-if="dialog.safe" class="trk-safe"><b>{{ dialog.safe }}</b></p>
         <ai-diagnostic v-if="dialog.diagnosis" :copy="dialog.diagnosis" :agent-label="agentOf(dialog.diagnosis.scope).name" :records="records" :editable="canEdit" @repair="repairAiDiagnosis($event)"></ai-diagnostic>
         <template v-if="dialog.aiEdit">
           <p>{{ dialog.aiEdit.name }} in {{ agentOf(dialog.aiEdit.target.scope).name }} <code>{{ dialog.aiEdit.target.path }}</code></p>

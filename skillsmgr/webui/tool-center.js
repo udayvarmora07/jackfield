@@ -36,8 +36,8 @@
   const { toolGroups: TOOL_GROUPS } = window.SkillsV2Model;
 
   window.SkillsV2ToolCenter = {
-    props: {page:String, records:{type:Array,default:()=>[]}, scopes:{type:Array,default:()=>[]}, target:Object, sourceReviewHandoff:Object},
-    emits:['changed','inspect','preference','use-draft','open-source-review','source-review-consumed','open-record'],
+    props: {page:String, records:{type:Array,default:()=>[]}, scopes:{type:Array,default:()=>[]}, target:Object, sourceReviewHandoff:Object, groupsOn:{type:Object,default:()=>({})}, trackingLine:{type:String,default:''}},
+    emits:['tool-group','changed','inspect','preference','use-draft','open-source-review','source-review-consumed','open-record'],
     data() { return {
       busy:false,error:'',result:null,sequence:0,readTokens:{},loading:{},qualityEnvelope:null, tab:'registry', source:'',op:'browse',view:'all-time',stale:false, pageNo:0,review:null,trust:false,
       runnerPreview:'',runnerPlan:null,runnerPlanError:'',runnerGeneration:0,runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
@@ -55,11 +55,16 @@
        * so a bulk import is one row, not a screen of identical lines. A single
        * event stays a plain row; the names stay reachable in a native <details>. */
       historyGroups(){const out=[];for(const row of (this.history||[])){const minute=String(row.at||'').slice(0,16);const last=out[out.length-1];if(last&&last.action===row.action&&last.minute===minute&&row.action){last.rows.push(row);}else{out.push({action:row.action,minute,at:row.at,rows:[row]});}}return out;},
-      toolGroups(){return TOOL_GROUPS;},
+      /* Switched-off tool groups (What to track) leave the directory, the nav and
+       * search. Settings belongs to no group, so it always stays. */
+      toolGroups(){return TOOL_GROUPS.map(g=>(this.groupsOn||{})[g.key]===false?{...g,items:g.items.filter(i=>i.id==='settings')}:g).filter(g=>g.items.length);},
+      allGroupsOff(){return TOOL_GROUPS.every(g=>(this.groupsOn||{})[g.key]===false);},
+      offGroup(){if(this.page==='settings'||this.page==='tools'||this.page==='recovery-extra')return null;const g=TOOL_GROUPS.find(x=>x.items.some(i=>i.id===this.page));return g&&(this.groupsOn||{})[g.key]===false?g:null;},
+      offGroupName(){const g=this.offGroup;return g?{add:'Add skills',inspect:'Check my setup',ai:'AI assist'}[g.key]:'';},
       matchingToolGroups() {
         const terms = this.toolQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
-        if (!terms.length) return TOOL_GROUPS;
-        return TOOL_GROUPS.map(group => ({
+        if (!terms.length) return this.toolGroups;
+        return this.toolGroups.map(group => ({
           ...group,
           items: group.items.filter(item => {
             const text = [group.label, item.name, item.text, item.commandLabel].join(' ').toLowerCase();
@@ -438,9 +443,15 @@
       <p v-if="error" class="v2-tool-error" role="alert">{{ error }}</p>
       <p v-if="busy" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Working…</p><p v-else-if="page!=='quality' && Object.values(loading).some(Boolean)" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Reading current evidence…</p>
 
-      <template v-if="page==='tools'">
+      <template v-if="offGroup">
+        <h1 class="h1" id="h1" tabindex="-1">{{offGroupName}} is switched off</h1>
+        <p class="lede">This tool belongs to {{offGroupName}}, which is switched off in What to track. Its settings are kept.</p>
+        <div class="tp-acts"><button type="button" class="btn btn-ink" @click="$emit('tool-group',offGroup.key,true)">Turn it on</button><a class="btn btn-line" href="#/settings/tracking">Open What to track</a></div>
+      </template>
+      <template v-else-if="page==='tools'">
         <h1 class="h1" id="h1" tabindex="-1">Tools</h1>
         <p class="lede">Install skills, check your library, and configure Skills Manager.</p>
+        <p v-if="allGroupsOff" class="tp-fine">Tool groups are switched off. Turn them on in <a href="#/settings/tracking">What to track</a>.</p>
         <div class="tp-directory-search" role="search" aria-label="Tool directory">
           <div class="tp-directory-field">
             <ic name="search"></ic>
@@ -897,7 +908,13 @@ ${scanPanel('(review.inspection||{}).external_scan')}
 
       <template v-else-if="page==='settings'">
         <h1 class="h1" id="h1" tabindex="-1">Settings</h1>
-        <p class="lede">Stored in this browser only.</p>
+        <p class="lede">Appearance and scanning are stored in this browser only.</p>
+        <section class="card tp-panel" aria-labelledby="tp-track-h">
+          <h2 id="tp-track-h">What to track</h2>
+          <div class="tp-set">
+            <div class="tp-set-row"><span><b>Agents, project folders and tool groups</b><small>{{trackingLine || 'Choose which agents, project folders and tool groups the app shows.'}}</small></span><a class="btn btn-line" href="#/settings/tracking">What to track</a></div>
+          </div>
+        </section>
         <section class="card tp-panel" aria-labelledby="tp-ap-h">
           <h2 id="tp-ap-h">Appearance</h2>
           <div class="tp-set">

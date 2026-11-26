@@ -7,6 +7,125 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-26 — Agent tracking web UI
+
+Mapped the approved Agent tracking screens onto the shipped UI (option A): What to track at
+`#/settings/tracking` with Add other agent / Edit and Add project folder
+(`index.html` markup, `trackingMixin` in `app.js`), Sync map column ▾ menus
+whose Stop tracking confirm opens in the map's side panel, the Skills project
+picker and notices (Found agent, broken file, missing project, no agents),
+Tools hiding switched-off groups with a Turn it on page, a Tools → Settings
+"What to track" row, and palette entries. `model.js` gains `agentMark` (marks
+for agents the table doesn't list). Every change is one revision-checked PUT
+with Undo; only the newest change keeps its Undo, because Undo restores the
+whole earlier document. Failures, including 409, show beside their row.
+
+Verified by hand in the built-in browser on the seeded e2e fixture: stop and
+Undo, the panel confirm (focus to its heading, Esc back to ▾), add Kilo with
+live checks, tool groups off/on, the project picker, the Found Gemini notice,
+a 409 from a file changed on disk, a broken file and Reset, and no horizontal
+scroll at 375 px. `tools/e2e_v2/browser.cjs` gains two tests (stop tracking
+with Undo; add then remove a custom agent) and the tracking pages join the
+overflow sweep; `run.py` seeds `~/.kilo/skills`.
+`tests/test_v2_interface_contracts.py` now allows the documented
+`/api/tracking` family.
+
+Fixed after the first e2e run: `refresh()` had awaited the tracking report, so
+every refresh took as long as its slowest read; "Backup download/import"
+failed because its second file was picked while the first import's refresh
+still held `busy`. The report now loads alongside, never blocking the skills,
+and a sequence number keeps an older read from replacing a newer read or a
+save's answer. The column menu and project picker follow the WAI-ARIA menu
+button pattern: focus moves to the first item on open, arrows move, Esc returns
+to the button, Tab out closes. "Add-to-agent single target is selected and
+creates a copy" fails on untouched `HEAD` too (checked on a `git archive HEAD`
+copy with the repo-root skill folders present), so it was not caused here.
+
+The maintainer confirmed A ("A: fit shipped UI") afterwards. Per its second
+condition, both stop-tracking confirms gained the mini table preview: today's
+columns and their skill counts, the leaving one struck through and hatched.
+
+An independent review (Sonnet subagent) found state bugs, all fixed:
+- Undo is not offered when removing a project folder or custom agent whose
+  folder is gone (the server would refuse to re-add it).
+- An "Only <agent>" Skills filter resets when that agent leaves.
+- Switches and radios re-render after a failed save.
+- Failures off the What to track page show as a toast.
+- Undo waits while another save runs.
+- Focus returns to the picker button after a choice.
+- The info lines sit outside `role="menu"`, and Home/End work.
+- The column menu is placed on the viewport, so the scrolling table no longer
+  clips it.
+- Names compare with spaces collapsed, as the server does.
+- A folder check for earlier text can't land.
+
+A full e2e run then caught a regression the manual checks had missed: the
+shared dialog read `dialog.columns.length` for every dialog, so every other
+dialog failed to render (14 tests). It is guarded now. "No uncaught page
+errors" stayed green throughout: a Vue render error is not a page error, so
+that check can't see this class of failure.
+
+"Backup download/import" raced the first import's refresh, which holds the
+disabled picker for about 50 ms. It passed or failed by timing. The test now
+waits for the picker to be enabled before the second pick.
+
+Final run: 69 pass. Two fail, and both fail on an untouched `HEAD` copy too:
+"Header search reopens…" and "Add-to-agent single target…".
+
+## 2026-11-26 — Agent tracking backend
+
+- New `skillsmgr/tracking.py` (named by the signed-off contract) for
+  `<data>/tracking.json`: hand-readable, home-relative paths, atomic write with
+  mode 0600 under the cross-process mutation lock, `revision` checked (stale →
+  409 "These settings changed in another window."), a broken file shown as
+  "track everything found" and copied to `<data>/tracking.broken-<stamp>.json`
+  before the first new save.
+- Routes: `GET /api/tracking` (settings plus live report: per agent found /
+  folder status / skill count / skills only here / folders read / also reads;
+  Shared folder; project folders; newly found agents), `PUT /api/tracking`
+  (whole document, every rule re-checked; Undo = PUT the previous one) and
+  `POST /api/tracking/check-folder` (read-only; counts skill folders by
+  existence of `SKILL.md`, never opens a file).
+- `scopes.known_scopes()` gains an optional overlay that only the web server
+  binds per request thread, so `/api/scopes`, stats, skills, search, tokens,
+  batch, sync and per-skill writes filter or refuse untracked agents on the
+  server ("Cursor isn't tracked…"); custom agents get a writable flat scope;
+  project scopes follow `projects.showing`. The CLI binds nothing, so
+  `--scope` is unchanged. A missing file reproduces today's view exactly.
+- Hostile review fixes before declaring done: a hand-edited file can't point a
+  custom agent or the shown project outside the home folder (left out of the
+  view, never writable); the home folder is never auto-listed as a project;
+  links inside a tracked agent into an untracked agent's folder still read as
+  the tracked agent's skill; agents on the page at the first choice count as
+  seen, so the "Found Gemini" notice fires only for later arrivals.
+- Complexity ratchet: `known_scopes`, `_route_library_get`, `_route_new_post`
+  and `_route_put` were split into helpers; their baselines go down, none up.
+- Found while verifying: the repo-root `.claude/skills/` and `.agents/skills/`
+  installed on 2026-11-24 are picked up as start-up project scopes, so 15
+  existing tests fail when the suite runs from the repository root — on an
+  untouched `HEAD` checkout too — and pass from a clean working directory.
+  Not caused by this change; left as is.
+- UI not started: the approved screens assume the unshipped "one table"
+  redesign; waiting on the maintainer's choice (see `task.md`).
+
+## 2026-11-24 — Install AI Tooltip project skills
+
+- Installed `uxui-workflow` and all 12 skill folders from `ai-tooltip-skill-set`
+  under both `.agents/skills/` and `.claude/skills/`. The upstream skill files,
+  phase references and per-skill `LICENSE.txt` notices are copied unchanged.
+- Sources: [AiTooltip/uxui-workflow](https://github.com/AiTooltip/uxui-workflow)
+  at `2f507d7c50efaaaefc7a05e16aecbc8b4aa6df18` and
+  [AiTooltip/ai-tooltip-skill-set](https://github.com/AiTooltip/ai-tooltip-skill-set)
+  at `e200967b38c4d4193af21c71c96e431cfc15eee8`.
+- Codex's current project skill root is `.agents/skills/`; Claude Code's is
+  `.claude/skills/`. Other agents that implement the shared project skill root
+  can discover the `.agents/skills/` copies. The skill sources remain Claude
+  authored; UI steps that depend on Claude Design may need the documented HTML
+  fallback in other agents.
+- Verified all 13 skills in each root and compared the copies with the cloned
+  source trees. No automated tests were run; this change only adds skill files
+  and project delivery records.
+
 ## 2026-11-24 — Repeat UI and workflow audit
 
 - Sync map actions wrap within the side panel. An inventory with tied copies

@@ -21,9 +21,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import ai, ai_ablate, ai_ask, ai_budget, ai_concise, ai_conflicts, ai_draft, ai_edit, ai_evals, ai_explain, ai_overlap, ai_port, ai_profiles, ai_review, ai_skills, batch, doctor, effective, evals, install, scopes
+from . import ai, ai_ablate, ai_ask, ai_budget, ai_concise, ai_conflicts, ai_draft, ai_edit, ai_evals, ai_explain, ai_overlap, ai_port, ai_profiles, ai_review, ai_skills, batch, doctor, effective, evals, install, scopes, tracking
 from .documents import document_text
-from .context import set_active_store
+from .context import set_active_store, set_scope_overlay
 from .store import Store, StoreError, SkillNotFound
 from .loader import scan_dir
 from .tokens import DEFAULT_WINDOW, aggregate, estimate, window_name
@@ -972,18 +972,28 @@ class WebAppHandler(BaseHTTPRequestHandler):
         with an optional contained project.  They are one guard because they
         share a shape and a purpose, not because they share code.
         """
-        if parts == ["api", "scopes"]:
-            self._send_json(_scope_summary(self.store))
-            return True
-        if parts == ["api", "catalog"]:
-            self._send_json(load_catalog(self.store.data_dir))
-            return True
-        if parts == ["api", "workspaces"]:
-            project = (qs.get("project", [""])[0] or "").strip() or None
-            roots = getattr(self.server, "diagnostics_roots", None) or [self.store.data_dir]
-            self._send_json(workspaces_payload(project, roots))
-            return True
+        routes = (
+            (["api", "scopes"], lambda: _scope_summary(self.store)),
+            (["api", "catalog"], lambda: load_catalog(self.store.data_dir)),
+            (["api", "workspaces"], lambda: self._workspaces(qs)),
+            (["api", "tracking"], lambda: tracking.report(self.store.data_dir, self.store.skills_dir)),
+        )
+        for path, route in routes:
+            if parts == path:
+                self._send_json(route())
+                return True
         return False
+
+    def _workspaces(self, qs: dict[str, list[str]]) -> dict:
+        """The adapter catalog plus a contained project, without untracked agents."""
+        project = (qs.get("project", [""])[0] or "").strip() or None
+        roots = getattr(self.server, "diagnostics_roots", None) or [self.store.data_dir]
+        payload = workspaces_payload(project, roots)
+        overlay = getattr(self.server, "tracking_overlay", None)
+        if overlay is not None:
+            keep = tracking.adapters_filter(overlay.view())
+            payload["adapters"] = [record for record in payload["adapters"] if keep(record)]
+        return payload
 
     def _route_profile_preview_get(self, parts: list[str]) -> bool:
         """Serve ``GET /api/catalog/profiles/<name>/preview``.
@@ -1318,12 +1328,17 @@ class WebAppHandler(BaseHTTPRequestHandler):
         self._send_json(save_profile(self.store.data_dir, name, data))
         return True
 
+    def _route_tracking_post(self, parts: list[str]) -> bool:
+        if parts != ["api", "tracking", "check-folder"]:
+            return False
+        self._send_json(tracking.check_folder(self.store.data_dir, self.store.skills_dir, self._body_json()))
+        return True
+
     def _route_new_post(self, parts: list[str]) -> bool:
-        if parts[:2] == ["api", "batch"]:
-            return self._route_batch_post(parts)
-        if parts[:2] == ["api", "catalog"]:
-            return self._route_catalog_post(parts)
-        return False
+        families = {("api", "batch"): self._route_batch_post, ("api", "catalog"): self._route_catalog_post,
+                    ("api", "tracking"): self._route_tracking_post}
+        route = families.get(tuple(parts[:2]))
+        return route is not None and route(parts)
 
     @staticmethod
     def _multipart_fields(file_parts: list[dict]) -> tuple[dict, list[dict]]:
@@ -1719,9 +1734,19 @@ class WebAppHandler(BaseHTTPRequestHandler):
 
     def _route_put(self):
         parts = self._parts()
+        if parts == ["api", "tracking"]:
+            # Agent tracking: replace the whole document (409 when stale).
+            self._send_json(tracking.save(self.store.data_dir, self.store.skills_dir, self._body_json()))
+        elif parts == ["api", "import"]:
+            self._route_import_put()
+        else:
+            self._send_error(404, "unknown endpoint", code="unknown_endpoint")
+
+    def _route_import_put(self):
+        """``PUT /api/import``: a multipart folder upload or one archive body."""
         qs = parse_qs(urlparse(self.path).query, keep_blank_values=True)
         ctype = self.headers.get("Content-Type", "")
-        if parts == ["api", "import"] and ctype.lower().startswith("multipart/form-data"):
+        if ctype.lower().startswith("multipart/form-data"):
             boundary_m = re.search(r"boundary=([^;]+)", ctype)
             if not boundary_m:
                 self._send_error(400, "multipart boundary missing")
@@ -1729,7 +1754,7 @@ class WebAppHandler(BaseHTTPRequestHandler):
             file_parts = parse_multipart(self._read_body(), boundary_m.group(1).strip('"'))
             uploaded = upload_folder(file_parts, self.store.add)
             self._send_json(uploaded)
-        elif parts == ["api", "import"]:
+        else:
             filename = os.path.basename(
                 qs.get("filename", ["skills-import.tar.gz"])[0] or "skills-import.tar.gz"
             )
@@ -1749,8 +1774,6 @@ class WebAppHandler(BaseHTTPRequestHandler):
             finally:
                 shutil.rmtree(target.parent, ignore_errors=True)
             self._send_json(result)
-        else:
-            self._send_error(404, "unknown endpoint", code="unknown_endpoint")
 
 
 def _diagnostics_roots(store: Store, extra_allowed_roots) -> list[Path]:
@@ -1784,6 +1807,9 @@ class _StoreBoundHTTPServer(ThreadingHTTPServer):
     def process_request_thread(self, request, client_address):
         if self.store is not None:  # type: ignore[attr-defined]
             set_active_store(self.store)  # type: ignore[attr-defined]
+        # Agent tracking (B1): this server's view of which scopes exist.  Only
+        # request threads bind it, so the CLI and direct callers never see it.
+        set_scope_overlay(getattr(self, "tracking_overlay", None))
         super().process_request_thread(request, client_address)
 
 
@@ -1820,6 +1846,7 @@ class WebAppServer:
         # gaierror out of the constructor (docs/24 §D3-12).
         self.httpd = _bind_server(normalized_host, port, host)
         self.httpd.store = store  # type: ignore[attr-defined]
+        self.httpd.tracking_overlay = tracking.Overlay(store.data_dir)  # type: ignore[attr-defined]
         self.host = host
         self.port = self.httpd.server_address[1]
         self.httpd.diagnostics_roots = _diagnostics_roots(store, extra_allowed_roots)  # type: ignore[attr-defined]

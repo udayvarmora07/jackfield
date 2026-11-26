@@ -34,3 +34,31 @@ def bound_store(store):
         yield store
     finally:
         ACTIVE_STORE.reset(token)
+
+
+# Agent tracking (web UI only, B1): what the web app shows.  The CLI never
+# binds this, so ``--scope`` and every command keep seeing every scope.  The
+# web server binds one overlay per server at the start of each request thread,
+# the same way it binds its Store above.  The overlay is duck-typed: it has a
+# ``view()`` returning the current tracking view (see ``skillsmgr.tracking``).
+SCOPE_OVERLAY: ContextVar = ContextVar("skillsmgr_scope_overlay", default=None)
+
+
+def active_scope_overlay():
+    """The bound tracking overlay, or ``None`` (CLI and direct callers)."""
+    return SCOPE_OVERLAY.get()
+
+
+def set_scope_overlay(overlay) -> None:
+    """Bind ``overlay`` for this context (``None`` unbinds)."""
+    SCOPE_OVERLAY.set(overlay)
+
+
+@contextlib.contextmanager
+def bound_scope_overlay(overlay):
+    """Bind ``overlay`` for the block, restoring the prior binding after."""
+    token = SCOPE_OVERLAY.set(overlay)
+    try:
+        yield overlay
+    finally:
+        SCOPE_OVERLAY.reset(token)

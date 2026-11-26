@@ -8,6 +8,38 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## Agent tracking (2026-11-26)
+
+Approved design: `design-brief.md` / `ux-brief.md` "Feature: Agent tracking"
+(flows T1–T9, screens S14–S19, signed-off backend contract), canvas rows
+`ATA-01`…`ATA-09` / `ATD-01`…`ATD-09` (version 52).
+
+- [x] Backend per the contract: `skillsmgr/tracking.py` owns
+  `<data>/tracking.json` (atomic, 0600, revision-checked, broken file copied
+  aside); `GET`/`PUT /api/tracking` (409 when stale) and
+  `POST /api/tracking/check-folder`. Web-only scope overlay
+  (`context.SCOPE_OVERLAY`) so every existing route filters or refuses on the
+  server; CLI and `--scope` unchanged. `tests/test_tracking.py`.
+- [x] Web UI, mapped onto the shipped UI (option A, chosen by the
+  maintainer: "A: fit shipped UI"): What to track (`#/settings/tracking`), Add
+  other agent / Edit, Add project folder; Sync map column ▾ menus with the
+  confirm in its side panel; Skills project picker, Manage agents, Found-agent,
+  broken-file and missing-project notices, "No agents are tracked." empty
+  state; Tools hides switched-off groups (Settings stays), a switched-off tool
+  page offers Turn it on, Tools → Settings gets a "What to track" row; command
+  palette entries. Every change saves at once with Undo; stop-tracking confirms
+  show the mini table preview and "Nothing on disk changes".
+- [x] Browser e2e (`tools/e2e_v2`): stop tracking with Undo (Sync map menu and
+  panel confirm), add a custom agent with live folder checks, then Remove it
+  with its folder unchanged; What to track pages join the width/theme overflow
+  sweep.
+
+## Project-local AI Tooltip skills (2026-11-24)
+
+- [x] Install `uxui-workflow` and the 12 skills from `ai-tooltip-skill-set` in
+  `.agents/skills/` for Codex and compatible agents, and `.claude/skills/` for
+  Claude Code. Retain upstream supporting files and MIT notices.
+
 ## One interface, desktop-first UI pass (2026-11-23)
 
 - [x] Repeat the audit on 2026-11-24. Keep Sync map actions within their side
