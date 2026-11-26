@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t">
+  <title id="t">Jackfield symbol, concept c-patch-cord</title>
+  <g id="symbol" transform="translate(0 14)">
+    <path fill="none" stroke="#191917" stroke-width="36" stroke-linecap="round" d="M172 116V164A56 56 0 0 1 60 164"/>
+    <path fill="#2D58D0" d="M144 76H200V124A8 8 0 0 1 192 132H152A8 8 0 0 1 144 124Z"/>
+    <rect fill="#2D58D0" x="162" y="52" width="20" height="18"/>
+    <rect fill="#2D58D0" x="162" y="34" width="20" height="12"/>
+    <path fill="#2D58D0" d="M160 28V20A12 12 0 0 1 184 20V28Z"/>
+  </g>
+</svg>

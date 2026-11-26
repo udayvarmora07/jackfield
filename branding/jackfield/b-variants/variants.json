@@ -1,0 +1,30 @@
+{
+ "b1-pure-j": [
+  "Pure J",
+  "Just the six lit cells. Boldest at 16 px."
+ ],
+ "b2-patched-route": [
+  "Patched route",
+  "Cells fuse into one J; the blue jack at the top is where it plugs in."
+ ],
+ "b3-open-sockets": [
+  "Open sockets",
+  "Empty cells are open sockets, ready for the next skill or MCP server."
+ ],
+ "b4-quiet-field": [
+  "Quiet field",
+  "The whole field stays visible in a quiet grey; only the J is lit."
+ ],
+ "b5-soft-j": [
+  "Soft J",
+  "The same cells with the bowl's outer corners rounded, so it reads as a letter first."
+ ],
+ "b7-quiet-soft-j": [
+  "Quiet soft J",
+  "B4 and B5 together: the soft J, lit inside a quiet field."
+ ],
+ "b6-panel-j": [
+  "Panel J",
+  "The field becomes a faceplate and the J is lit through it. App-icon ready."
+ ]
+}

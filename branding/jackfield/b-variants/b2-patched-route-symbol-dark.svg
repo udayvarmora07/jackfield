@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t">
+  <title id="t">Jackfield symbol, Patched route</title>
+  <g id="symbol">
+    <rect fill="#8CAEFF" x="176" y="16" width="64" height="64" rx="8"/>
+    <path fill="#EDEDEA" d="M184 96H232A8 8 0 0 1 240 104V232A8 8 0 0 1 232 240H24A8 8 0 0 1 16 232V136A8 8 0 0 1 24 128H72A8 8 0 0 1 80 136V176H176V104A8 8 0 0 1 184 96Z"/>
+    <circle fill="#EDEDEA" cx="48" cy="48" r="12"/>
+    <circle fill="#EDEDEA" cx="128" cy="48" r="12"/>
+  </g>
+</svg>

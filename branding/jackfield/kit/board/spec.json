@@ -1,0 +1,34 @@
+{
+  "brand": "Jackfield",
+  "tagline": "Every skill and MCP server your coding agents load, in one field",
+  "brief": "A local control plane for the skills (and soon MCP servers) that AI coding agents load. For developers running 2-4 agents who need to see what each one has, spot what drifted and fix it safely. It should feel like a calm, exact instrument.",
+  "adjectives": ["precise", "trustworthy", "calm", "engineered"],
+  "criteria": "Readable at 16 px, works in one colour, light and dark first-class, distinct from AI dev-tool cliches (sparkles, gradients, node networks, hexagons).",
+  "industry": "software",
+  "nav": ["Docs", "Agents", "GitHub"],
+  "brand_color": "#2D58D0",
+  "greyscale": false,
+  "final": true,
+  "designer": "Claude, with the logo-design skill",
+  "round": 3,
+  "concepts": [
+    {
+      "name": "Quiet soft J",
+      "symbol": "../svg/jackfield-symbol.svg",
+      "lockup": "../svg/jackfield-horizontal.svg",
+      "stacked": "../svg/jackfield-stacked.svg",
+      "avatar": "../svg/jackfield-symbol.svg",
+      "symbol_on_tile": "../svg/jackfield-symbol-white.svg",
+      "lockup_on_dark": "../svg/jackfield-horizontal-dark.svg",
+      "tile_color": "#F6F6F3",
+      "idea": "A 3x3 field of jacks: the cells that spell J are lit, and the blue one is the jack being patched in.",
+      "rationale": [
+        "Mirrors the product's own skills x agents table, with the active cells lit",
+        "Reads as a J at every size; below 24 px the grey cells fade and it becomes the small cut automatically",
+        "Every cell edge sits on a whole pixel at 16 px; one radius (8) plus one soft radius (40)"
+      ]
+    }
+  ],
+  "recommendation": "Quiet soft J: the field tells the product story, the J carries the name.",
+  "next_steps": ["Trademark and domain check for 'Jackfield'", "Decide the rename (CLI, package, docs)", "Swap the web UI favicon, header mark and README logo"]
+}

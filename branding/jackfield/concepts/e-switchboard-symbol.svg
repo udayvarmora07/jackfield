@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t">
+  <title id="t">Jackfield symbol, concept e-switchboard</title>
+  <g id="symbol">
+    <rect fill="#191917" x="16" y="30" width="56" height="56" rx="7"/>
+    <rect fill="#191917" x="86" y="30" width="56" height="56" rx="7"/>
+    <rect fill="#191917" x="156" y="30" width="56" height="56" rx="7"/>
+    <rect fill="#191917" x="44" y="100" width="56" height="56" rx="7"/>
+    <rect fill="#191917" x="114" y="100" width="56" height="56" rx="7"/>
+    <path fill="#2D58D0" fill-rule="evenodd" d="M191 100H233A7 7 0 0 1 240 107V149A7 7 0 0 1 233 156H191A7 7 0 0 1 184 149V107A7 7 0 0 1 191 100Z M198 128a14 14 0 1 0 28 0a14 14 0 1 0 -28 0Z"/>
+    <rect fill="#191917" x="16" y="170" width="56" height="56" rx="7"/>
+    <rect fill="#191917" x="86" y="170" width="56" height="56" rx="7"/>
+    <rect fill="#191917" x="156" y="170" width="56" height="56" rx="7"/>
+  </g>
+</svg>

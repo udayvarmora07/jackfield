@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t">
+  <title id="t">Jackfield symbol, concept a-patched-panel</title>
+  <g id="symbol">
+    <path fill="#EDEDEA" fill-rule="evenodd" d="M48 16H208A32 32 0 0 1 240 48V208A32 32 0 0 1 208 240H48A32 32 0 0 1 16 208V48A32 32 0 0 1 48 16Z M44 64a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z M108 64a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z M172 64a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z M44 128a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z M108 128a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z M44 192a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z M108 192a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z M172 192a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z"/>
+    <circle fill="#8CAEFF" cx="192" cy="128" r="20"/>
+  </g>
+</svg>

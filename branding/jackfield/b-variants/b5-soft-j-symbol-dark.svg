@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t">
+  <title id="t">Jackfield symbol, Soft J</title>
+  <g id="symbol">
+    <rect fill="#8CAEFF" x="176" y="16" width="64" height="64" rx="8"/>
+    <rect fill="#EDEDEA" x="176" y="96" width="64" height="64" rx="8"/>
+    <rect fill="#EDEDEA" x="16" y="96" width="64" height="64" rx="8"/>
+    <path fill="#EDEDEA" d="M24 176H72A8 8 0 0 1 80 184V232A8 8 0 0 1 72 240H56A40 40 0 0 1 16 200V184A8 8 0 0 1 24 176Z"/>
+    <rect fill="#EDEDEA" x="96" y="176" width="64" height="64" rx="8"/>
+    <path fill="#EDEDEA" d="M184 176H232A8 8 0 0 1 240 184V200A40 40 0 0 1 200 240H184A8 8 0 0 1 176 232V184A8 8 0 0 1 184 176Z"/>
+  </g>
+</svg>

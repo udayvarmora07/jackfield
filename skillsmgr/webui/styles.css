@@ -90,10 +90,11 @@ a { color: inherit; }
 /* A click inside a dialog focuses the dialog itself, so Escape and the Tab
  * trap keep working; that programmatic focus needs no ring. */
 .dlg:focus { outline: none; }
-/* The brand mark (same drawing as logo.svg), coloured by theme tokens so it
- * follows the in-app theme toggle rather than the OS colour scheme. */
+/* The brand mark (same drawing as logo.svg: Jackfield, quiet soft J), coloured
+ * by theme tokens so it follows the in-app theme toggle rather than the OS
+ * colour scheme. The jack takes the signal ink; the quiet cells take --line. */
 .mark { width: 30px; height: 30px; flex: none; display: block; }
-.mark .cl { fill: var(--ink); } .mark .fl { fill: var(--brand); }
+.mark .cl { fill: var(--ink); } .mark .fl { fill: var(--brand); } .mark .ql { fill: var(--line); }
 .tabs { display: flex; gap: 2px; }
 .tabs a { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: var(--r-sm); color: var(--ink-2); font-weight: 600; text-decoration: none; white-space: nowrap; transition: background-color .12s var(--ease), color .12s var(--ease); }
 .tabs a:hover { background: var(--hover); color: var(--ink); }

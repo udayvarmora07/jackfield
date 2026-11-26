@@ -7,6 +7,32 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-26 — Jackfield name study and brand mark
+
+**[NOTE] Name.** "Skills Manager" stops fitting once MCP servers arrive. A naming
+pass (Igor's name types, Lexicon's process, Neumeier-style criteria, dev-tool and
+rename case studies) checked 40 candidates against PyPI, npm and GitHub's agent
+space. The owner shortlisted Shadowboard, Tackleboard, Jackfield and Patchbay;
+**Jackfield** scored highest (32/35). Shadowboard was dropped because "shadow MCP
+servers" is OWASP MCP09:2025. The product is **not renamed in code yet**, and no
+trademark or domain search has been run. Research and scoring:
+https://claude.ai/artifact/Aag9hffBrvbZhQpmgSGPnB (private).
+
+**[NOTE] Mark.** The vetted MIT `logo-design` skill (kaankiziltug/logo-design-skill
+at e9eaddc0789) is installed in `.claude/skills/logo-design/`. Five directions,
+then seven variants of the owner's pick (Field J), were tested at 16–64 px, in
+one colour, reversed and against real marks. The owner chose **B7 Quiet soft J**:
+a 3×3 field whose lit cells spell J, three quiet cells, and one blue jack.
+Kit: `branding/jackfield/kit/` (SVG masters, PNGs, web icons, board,
+`GUIDELINES.md`); guide: https://claude.ai/artifact/C2DFx7Tp3SNYUEmawBgm3G.
+
+**[NOTE] Wired in.** `skillsmgr/webui/logo.svg` (favicon and README image) is the new
+mark on the same 32-unit grid (viewBox unchanged, so `BrandMarkTests` holds),
+adaptive to the OS colour scheme. The header mark in `index.html` uses the same
+paths coloured by tokens: `--ink`, `--brand` for the jack, `--line` for the quiet
+cells. The jack therefore shows the current teal `--brand` in the app until
+design system v11 (blue `#2D58D0`) lands; the standalone `logo.svg` uses the kit blue.
+
 ## 2026-11-26 — Agent tracking web UI
 
 Mapped the approved Agent tracking screens onto the shipped UI (option A): What to track at

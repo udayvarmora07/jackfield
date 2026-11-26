@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t">
+  <title id="t">Jackfield symbol, Open sockets</title>
+  <g id="symbol">
+    <rect fill="#2D58D0" x="176" y="16" width="64" height="64" rx="8"/>
+    <rect fill="#191917" x="176" y="96" width="64" height="64" rx="8"/>
+    <rect fill="#191917" x="16" y="96" width="64" height="64" rx="8"/>
+    <rect fill="#191917" x="16" y="176" width="64" height="64" rx="8"/>
+    <rect fill="#191917" x="96" y="176" width="64" height="64" rx="8"/>
+    <rect fill="#191917" x="176" y="176" width="64" height="64" rx="8"/>
+    <circle fill="none" stroke="#191917" stroke-width="10" cx="48" cy="48" r="19"/>
+    <circle fill="none" stroke="#191917" stroke-width="10" cx="128" cy="48" r="19"/>
+    <circle fill="none" stroke="#191917" stroke-width="10" cx="128" cy="128" r="19"/>
+  </g>
+</svg>

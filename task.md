@@ -8,6 +8,16 @@ older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
 
+## Jackfield name and brand mark (2026-11-26)
+
+- [x] Naming research and scoring; owner shortlist; Jackfield recommended.
+- [x] Logo kit for the chosen mark (B7 Quiet soft J) in `branding/jackfield/kit/`.
+- [x] New mark wired into `skillsmgr/webui/logo.svg` (favicon, README) and the
+  header mark in `index.html` / `styles.css`.
+- [ ] Rename Skills Manager to Jackfield across code, data paths, package,
+  GitHub repository and local folder: plan awaiting owner decisions.
+- [ ] Trademark (USPTO/EUIPO) and domain check for "Jackfield".
+
 ## Agent tracking (2026-11-26)
 
 Approved design: `design-brief.md` / `ux-brief.md` "Feature: Agent tracking"
