@@ -1,11 +1,38 @@
 # Progress Log — Skills Manager
 
-**Version 0.8.1**
+**Version 0.8.2**
 
 **AI manifest**: Current delivery receipts and a bounded resident window.
 Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-17.md;
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
+
+## 2026-11-27 — Seven-day session audit, repository cleanup, suite isolation
+
+**[NOTE] Audit.** All 16 Claude sessions of 2026-11-20…27 (and the Codex
+sessions that resumed two of them) were read against `main`. Every change they
+made is on `main` and `origin/main`; CI is green on `10e4aec`. The two sessions
+that ended mid-work (2026-11-22 AI QA batch 3, 2026-11-23 UI pass) were finished
+in `bd67b89` and `f814d4f`/`0766a0f`.
+
+**[NOTE] Cleanup.** Removed the worktrees and branches whose work was already
+on `main`: `claude/ci-portability-4e60d5` (every patch on `main`),
+`claude/list-perf-965a4d` (landed as `82a4bfd`/`5db30c6`) and the agent
+worktree `agent-a08c0fe58a3d5c3ea`, whose uncommitted diff is on `main` in
+`868e67a`, except a stat-counting fixture that `487de61` replaced on purpose.
+Deleted the two stale Dependabot branches (PRs #16 and #18 closed; `main` pins
+`checkout` 7.0.1 and `setup-node` 7.1.0). Each tip and the worktree diff are
+kept under `refs/wip/branches/*` and `refs/wip/stale-worktrees/agent-a08c-20261127`.
+The installed third-party skills in `.agents/skills` and `.claude/skills` are
+excluded locally (`.git/info/exclude`), not committed.
+
+**[SPEC]** The unit suite no longer treats the checkout as a project.
+`tests/test_00_portable_environment.py` wraps `scopes._cwd()` so that, while the
+working directory is the repository root, project scopes read an empty folder.
+Before this, those installed skills made 15 "all scopes" tests fail locally
+while CI (a clean checkout) stayed green. Tests that `chdir` or patch `_cwd`
+are unaffected; `test_the_checkout_is_not_a_project_but_other_folders_are`
+covers both sides.
 
 ## 2026-11-27 — Skills Manager renamed to Jackfield
 

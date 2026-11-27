@@ -33,11 +33,22 @@ module directly bypasses it; on macOS or Windows run through discovery.
    the pre-rename ``SKILLS_MANAGER_DATA`` that the suite sets to isolate each
    test, so a developer's own ``JACKFIELD_DATA`` would point tests at their real
    library.  It is cleared for the whole run; a test that needs it sets it.
+
+5. **The checkout is not a project.**  Project scopes (``Project .claude``,
+   ``Project .agents``, ...) are read from the working directory through
+   ``scopes._cwd()``.  The suite runs from the repository root, so skills a
+   maintainer installed there for their own agents (``.claude/skills``,
+   ``.agents/skills``) leaked into "all scopes" expectations: 15 failures on
+   2026-11-27 in a checkout whose CI was green.  While the working directory
+   is the checkout, ``_cwd()`` now answers an empty folder instead.  A test
+   that changes directory, or patches ``_cwd`` itself, is unaffected.
 """
 
 from __future__ import annotations
 
+import atexit
 import os
+import shutil
 import tempfile
 import threading
 import time
@@ -46,6 +57,27 @@ from pathlib import Path
 
 tempfile.tempdir = os.path.realpath(tempfile.gettempdir())
 os.environ.pop("JACKFIELD_DATA", None)
+
+from skillsmgr import scopes as _scopes  # noqa: E402  (after the env reset)
+
+_CHECKOUT = os.path.realpath(Path(__file__).resolve().parent.parent)
+_EMPTY_PROJECT = Path(tempfile.mkdtemp(prefix="jackfield-suite-project-"))
+atexit.register(shutil.rmtree, _EMPTY_PROJECT, True)
+_original_cwd = _scopes._cwd
+
+
+def _same_folder(a, b) -> bool:
+    return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
+
+
+def _cwd_outside_the_checkout() -> Path:
+    here = _original_cwd()
+    if _same_folder(here, _CHECKOUT):
+        return _EMPTY_PROJECT
+    return here
+
+
+_scopes._cwd = _cwd_outside_the_checkout
 
 if os.name == "nt":
     _original_write_text = Path.write_text
@@ -84,6 +116,17 @@ class PortableEnvironmentTests(unittest.TestCase):
             target = Path(made) / "lf.txt"
             target.write_text("a\nb\n", encoding="utf-8")
             self.assertEqual(target.read_bytes(), b"a\nb\n")
+
+    def test_the_checkout_is_not_a_project_but_other_folders_are(self):
+        previous = os.getcwd()
+        self.addCleanup(os.chdir, previous)
+        os.chdir(_CHECKOUT)
+        self.assertEqual(_scopes._cwd(), _EMPTY_PROJECT)
+        self.assertEqual(list(_EMPTY_PROJECT.iterdir()), [])
+        with tempfile.TemporaryDirectory() as made:
+            os.chdir(made)
+            self.assertEqual(os.path.realpath(_scopes._cwd()), os.path.realpath(made))
+            os.chdir(_CHECKOUT)
 
     @unittest.skipUnless(os.name == "nt", "Windows sharing violations only")
     def test_cleanup_waits_out_a_briefly_held_file(self):

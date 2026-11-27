@@ -1,6 +1,6 @@
 # Task Checklist — Skills Manager
 
-**Version 0.12.0**
+**Version 0.12.1**
 
 **AI manifest**: Live work and the remaining gated/deferred queue. `[ ]` means
 pending, `[/]` in progress, `[x]` completed. Historical milestones, including
@@ -24,6 +24,14 @@ records, not additional live work.
 - [ ] At the next release: publish as `jackfield` on PyPI (trusted publisher for
   the new project, installers' `DIST`/`COMMAND`, `tools/verify_published.py`,
   README badge) and a final `skill-control-plane` that points to it.
+  [?] 2026-11-27: `jackfield` is still unclaimed on PyPI and TestPyPI, and a
+  pending publisher does not reserve a name. The GitHub repository was renamed,
+  so the existing `skill-control-plane` trusted publisher very likely still
+  names `skills-manager` and must be updated before that final release
+  (not checked: needs the maintainer's PyPI account).
+- [x] Seven-day session audit, cleanup of merged worktrees/branches (tips kept
+  in `refs/wip/branches/*`) and suite isolation from the checkout's own
+  project skills (2026-11-27; see the progress log).
 - [ ] Trademark (USPTO/EUIPO) and domain check for "Jackfield".
 
 ## Agent tracking (2026-11-26)
