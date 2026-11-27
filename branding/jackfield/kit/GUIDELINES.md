@@ -1,7 +1,8 @@
 # Jackfield — Logo Guidelines
 
-Status: **approved direction (B7, Quiet soft J), 2026-11-26.** The product is still called Skills Manager in
-code; nothing here renames it. Trademark and domain checks for "Jackfield" are not done yet.
+Status: **approved direction (B7, Quiet soft J), 2026-11-26; in use since the rename on 2026-11-27.**
+The product, repository and CLI are Jackfield (formerly Skills Manager). Trademark and domain checks
+for "Jackfield" are not done yet.
 
 ## 1. The logo
 
@@ -44,7 +45,7 @@ in the lockups is also one cell.
 | Jack blue (dark) | `#8CAEFF` | — | — | 8.6:1 on `#121211` |
 | Quiet (dark) | `#2C2C2A` | — | — | decorative |
 
-These are the Skills Manager design system v11 tokens (`--ink`, `--accent`, dark `--line`). CMYK values are
+These are the Jackfield design system v11 tokens (`--ink`, `--accent`, dark `--line`). CMYK values are
 straight conversions, so match on press. No Pantone has been chosen.
 
 **One colour:** black, white or blue files drop the quiet cells and keep the J. The J carries the identity

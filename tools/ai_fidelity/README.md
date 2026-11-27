@@ -3,7 +3,7 @@
 This development-only script compares an existing saved-prompt trigger-test result
 with Claude Code `Skill` tool events. It reuses a saved simulator result; explicit
 agent execution may call the maintainer's configured provider and spend its account.
-Those calls do not use the Skills Manager AI usage ledger or caps. The prompt set and run must both be for `claude-code`, match exactly by prompt
+Those calls do not use the Jackfield AI usage ledger or caps. The prompt set and run must both be for `claude-code`, match exactly by prompt
 text and expected skill, and contain a complete, untied simulation. All joins are
 validated before the first N prompts are selected in saved order; this convenience
 sample is not random. Default execution is a dry run and starts

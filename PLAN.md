@@ -1,16 +1,16 @@
-# Implementation Plan — Skills Manager World-Class Roadmap
+# Implementation Plan — Jackfield World-Class Roadmap
 
 **Plan version:** 2.1.0
 **Prepared:** 2026-09-07
 **Research annex:** 2026-09-09 (loop probes + ~200 sources; verdicts in §9
 and §11). Docs-only change: no code, no locked-constraint changes.
-**Repository:** `/home/uday-varmora/skills-manager`
+**Repository:** `/home/uday-varmora/jackfield`
 **Baseline:** `main` at `667fabb`
-**Execution backlog:** `/home/uday-varmora/skills-manager/TODO.md`
+**Execution backlog:** `/home/uday-varmora/jackfield/TODO.md`
 
 ## Executive summary
 
-`skills-manager` already has a valuable functional core: a dependency-free
+`jackfield` already has a valuable functional core: a dependency-free
 Python CLI, a localhost Vue UI, a filesystem-first store, a rebuildable SQLite
 index, agent-scope operations, validation, token estimates, import/export,
 trash/restore, history, templates, and a meaningful smoke/unit-test baseline.
@@ -99,9 +99,9 @@ local requests and must be fixed before feature expansion:
 Two worktrees contain useful but competing implementations. The plan treats
 them as evidence and candidate patches, not as truth:
 
-- `/home/uday-varmora/skills-manager.worktrees/todo-plan-implementation`
+- `/home/uday-varmora/jackfield.worktrees/todo-plan-implementation`
   contains approved snapshots/full migration and adversarial hardening.
-- `/home/uday-varmora/skills-manager.worktrees/milestone5-research-user-needs`
+- `/home/uday-varmora/jackfield.worktrees/milestone5-research-user-needs`
   contains ZIP/import hardening, stricter link handling, preview, and shortcut
   UX work.
 

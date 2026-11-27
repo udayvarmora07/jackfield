@@ -35,6 +35,13 @@ symlink so existing sessions, worktrees and tool configs keep resolving, and
 `git worktree repair` updated the three `.claude/worktrees` and
 `~/overnight-ui/worktree`.
 
+**[NOTE] Remaining names.** The design and UX briefs, `.ui-craft/`, `TODO.md`/`PLAN.md`
+paths, the e2e npm package (`jackfield-e2e-tools`) and the brand kit now say Jackfield.
+`check_docs.py` checks README links against the `udayvarmora07/jackfield` prefixes; with the
+old prefixes it had silently stopped checking all 37 README links after the repository rename.
+Local folders `~/jackfield-artifacts`, `~/jackfield.worktrees`, the Codex handoff and bundle,
+and `~/.local/share/jackfield-devtools` were renamed (dated docs still name the old paths).
+
 **[NOTE] Defects found while renaming.** (1) In-process `--data-dir` set the data
 variable for the rest of the process; with a new higher-precedence name the leak
 pointed 478 tests at deleted temp roots. `cli.main` now scopes the override to

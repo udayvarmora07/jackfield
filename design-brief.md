@@ -1,11 +1,11 @@
-# Skills Manager UI — Design brief
+# Jackfield UI — Design brief
 
 Self-contained handoff for phase 3 (UI) of the `/uxui-workflow`. Written 2026-11-24.
 Full detail lives in `requirements.md` and `ux-brief.md`; this brief stands on its own.
 
 ## The product
 
-Skills Manager is a local web app (Python stdlib backend on `127.0.0.1`, Vue vendored in the
+Jackfield is a local web app (Python stdlib backend on `127.0.0.1`, Vue vendored in the
 repository, no build step) that shows and manages the skills of AI coding agents — Claude Code,
 Codex, OpenCode, Cursor, Gemini, Command Code, the shared `~/.agents` folder and project folders —
 in one place. The files on disk are always the truth. The current UI works (no crashes, no
@@ -60,7 +60,7 @@ Plus: one global search (`/` and Ctrl+K) to jump to any skill, action or page; a
 
 ## Navigation model
 
-- **Global top bar:** Skills Manager · Skills · Needs attention (n) · Trash & backups · Advanced;
+- **Global top bar:** Jackfield · Skills · Needs attention (n) · Trash & backups · Advanced;
   right side: one search (`/`, Ctrl+K), theme, help. Global "changed on disk" banner. One Undo
   area for the latest change; messages close themselves and never follow the user across pages.
 - **Contextual:** the table's side panel (acts on one square); the skill page (read, edit,
@@ -164,11 +164,11 @@ screens and backend contract).**
 
 ## The feature
 
-A place to choose which coding agents, project folders and Advanced tool groups Skills Manager
+A place to choose which coding agents, project folders and Advanced tool groups Jackfield
 shows, and to add agents it doesn't know yet (a name and a folder). Today the agent list is fixed
 in code and project folders come only from the folder the app was started in.
 
-**Problem statement:** developers who use some, but not all, of the agents Skills Manager knows
+**Problem statement:** developers who use some, but not all, of the agents Jackfield knows
 need to choose what the app shows and to add agents it doesn't know, because today every agent
 found fills the table, counts and choices, and a new agent can't be added at all.
 

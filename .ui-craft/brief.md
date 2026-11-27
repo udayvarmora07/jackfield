@@ -1,8 +1,8 @@
-# Skills Manager UI brief
+# Jackfield UI brief
 
 Date: 2026-09-20
 
-Skills Manager is a local developer tool for choosing, inspecting, and moving
+Jackfield is a local developer tool for choosing, inspecting, and moving
 skill documents. Its visual job is to make scope, selection, and documentation
 legible at a glance without turning filesystem details into the primary story.
 

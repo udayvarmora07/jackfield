@@ -490,8 +490,8 @@ def check_public_readme_links(root: Path = ROOT) -> list[str]:
     if not readme.is_file():
         return []
     branch_urls = (
-        "https://github.com/udayvarmora07/skills-manager/blob/main/",
-        "https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/",
+        "https://github.com/udayvarmora07/jackfield/blob/main/",
+        "https://raw.githubusercontent.com/udayvarmora07/jackfield/main/",
     )
     no_examples = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", readme.read_text(encoding="utf-8"))
     targets = re.findall(r'\]\(([^)\s]+)\)|<img\b[^>]*?\bsrc="([^"]+)"', no_examples)

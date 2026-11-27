@@ -24,7 +24,7 @@ class DocumentationConsistencyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "guide.md").write_text("# Install it\n", encoding="utf-8")
-            base = "https://github.com/udayvarmora07/skills-manager/blob/main/"
+            base = "https://github.com/udayvarmora07/jackfield/blob/main/"
             (root / "README.md").write_text(
                 '# Getting started\n[Jump](#getting-started)\n'
                 f'[Guide]({base}guide.md#install-it)\n'

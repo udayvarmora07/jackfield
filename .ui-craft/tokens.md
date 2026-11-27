@@ -1,4 +1,4 @@
-# Skills Manager UI tokens
+# Jackfield UI tokens
 
 These tokens are the persistent design decisions for the no-build frontend.
 

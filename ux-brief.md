@@ -1,4 +1,4 @@
-# Skills Manager UI — UX brief
+# Jackfield UI — UX brief
 
 Phase 2 output of the `/uxui-workflow`. Written 2026-11-24. Input: `requirements.md`.
 Structure, flow and content only — no visuals. "A1…A21" refer to the signed-off assumptions in
@@ -167,7 +167,7 @@ becomes Trash & backups; Tools becomes Advanced.
 ## Information architecture
 
 **Global (every screen)**
-- Top bar: Skills Manager · **Skills** · **Needs attention (n)** · **Trash & backups** · **Advanced**.
+- Top bar: Jackfield · **Skills** · **Needs attention (n)** · **Trash & backups** · **Advanced**.
 - Right: one search (`/`, Ctrl+K) for skills, actions and pages; theme; help.
 - Global banner when files change on disk.
 - One Undo area for the latest change; messages close themselves and never follow the user to
@@ -267,7 +267,7 @@ the maintainer on 2026-11-26 ("Approve all").**
 
 ## Problem (from requirements)
 
-Developers who use some, but not all, of the AI coding agents Skills Manager knows need to choose
+Developers who use some, but not all, of the AI coding agents Jackfield knows need to choose
 which agents, project folders and tool groups the app shows, and to add agents it doesn't know
 yet. Today every agent found is shown with no say, and a new agent can't be added. Primary user:
 the same developer (2–4 agents, 50–200 skills) with more agents installed than they use, on an

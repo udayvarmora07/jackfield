@@ -1,9 +1,9 @@
-# TODO — Skills Manager World-Class Execution Backlog
+# TODO — Jackfield World-Class Execution Backlog
 
 **Plan version:** 2.1.0
 **Backlog date:** 2026-09-07
-**Baseline:** `main` at `667fabb` in `/home/uday-varmora/skills-manager`
-**Companion plan:** `/home/uday-varmora/skills-manager/PLAN.md`
+**Baseline:** `main` at `667fabb` in `/home/uday-varmora/jackfield`
+**Companion plan:** `/home/uday-varmora/jackfield/PLAN.md`
 
 **Current queue (2026-11-20):** [task.md](task.md) tracks live work and its
 remaining decisions. This file retains the original milestones and verdicts.
@@ -46,7 +46,7 @@ performed here.
 - Anything requiring a new CLI command, new CLI flag, new `Store` method,
   SQLite schema change, runtime dependency, public network bind, or data-model
   change requires an issue/ADR and maintainer approval before implementation.
-- Never modify `/home/uday-varmora/skills-manager/.autogit` as part of this work.
+- Never modify `/home/uday-varmora/jackfield/.autogit` as part of this work.
 
 ## Ground truth at the start of this backlog
 
@@ -97,12 +97,12 @@ performed here.
 
 ### Important integration facts
 
-- [x] Historical worktree `/home/uday-varmora/skills-manager.worktrees/todo-plan-implementation`
+- [x] Historical worktree `/home/uday-varmora/jackfield.worktrees/todo-plan-implementation`
   was reviewed and archived at local tag
   `archive/todo-plan-implementation-2bb7280`; its 2 commits were not merged
   wholesale because their substantive behavior is already present in the
   stronger current `main` implementation.
-- [x] Historical worktree `/home/uday-varmora/skills-manager.worktrees/milestone5-research-user-needs`
+- [x] Historical worktree `/home/uday-varmora/jackfield.worktrees/milestone5-research-user-needs`
   was reviewed and archived at local tag
   `archive/milestone5-research-user-needs-c5a7161`; its 1 commit was not merged
   wholesale because its ZIP/UX behavior is already present or superseded on
