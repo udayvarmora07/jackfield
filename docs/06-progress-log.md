@@ -1,11 +1,21 @@
 # Progress Log — Skills Manager
 
-**Version 0.8.4**
+**Version 0.8.5**
 
 **AI manifest**: Current delivery receipts and a bounded resident window.
 Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-17.md;
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
+
+## 2026-11-27 — Brand working files and project status committed
+
+**[NOTE]** Committed the remaining brand exploration files in `branding/jackfield/`
+(work boards, Field J variants, concept sheet, kit check, shelf and test sheets,
+and `renders/`) plus the root `project-status.md` / `project-status.html` board.
+Before commit: gitleaks found no leaks, and a scan found no emails other than the
+`alex@example.com` placeholder, no home paths and no PNG text metadata. Per Q8,
+`handoff/` (and its zip, a byte-identical copy of the folder) stays out of git.
+No product code changed.
 
 ## 2026-11-27 — Redesign decisions Q1, Q3, Q4, Q8
 

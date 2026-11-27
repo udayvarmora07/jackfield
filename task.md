@@ -1,6 +1,6 @@
 # Task Checklist — Skills Manager
 
-**Version 0.13.1**
+**Version 0.13.2**
 
 **AI manifest**: Live work and the remaining gated/deferred queue. `[ ]` means
 pending, `[/]` in progress, `[x]` completed. Historical milestones, including
@@ -59,6 +59,8 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Seven-day session audit, cleanup of merged worktrees/branches (tips kept
   in `refs/wip/branches/*`) and suite isolation from the checkout's own
   project skills (2026-11-27; see the progress log).
+- [x] Brand working files in `branding/jackfield/` and `project-status.md`
+  committed; `handoff/` stays untracked per Q8 (2026-11-27).
 - [ ] Trademark (USPTO/EUIPO) and domain check for "Jackfield".
 
 ## Agent tracking (2026-11-26)
