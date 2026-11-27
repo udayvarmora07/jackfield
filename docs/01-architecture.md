@@ -1,4 +1,4 @@
-# Architecture — Skills Manager
+# Architecture — Jackfield
 
 **Version 0.7.1**
 
@@ -7,7 +7,7 @@
 ## Repo map
 
 ```text
-skills-manager/
+jackfield/
   skillsmgr/
     __init__.py      # __version__ = "1.1.0"
     __main__.py      # entry: python3 -m skillsmgr -> cli.main()
@@ -115,7 +115,7 @@ skills-manager/
 
 ## Data-dir resolution
 
-**[SPEC]** `data_dir()` = `$SKILLS_MANAGER_DATA` -> `$XDG_DATA_HOME` -> `~/.local/share`, then appends `skills-manager`. The selected base and appended manager root are canonicalized and must be trusted writable directories; unsafe roots fail closed. Newly created manager components use owner-only permissions. Subdirs: `skills/`, `trash/`, `templates/`, `backups/`, `snapshots/`, and `evals/` (created lazily only when eval run results are recorded); `db_path()` = `data_dir()/skills-manager.db`.
+**[SPEC]** `data_dir()` = `$JACKFIELD_DATA` -> `$XDG_DATA_HOME` -> `~/.local/share`, then appends `jackfield`, or the pre-rename `skills-manager` when only that one exists (kept in place, never moved). `$SKILLS_MANAGER_DATA` is still read when `$JACKFIELD_DATA` is unset. The selected base and appended manager root are canonicalized and must be trusted writable directories; unsafe roots fail closed. Newly created manager components use owner-only permissions. Subdirs: `skills/`, `trash/`, `templates/`, `backups/`, `snapshots/`, and `evals/` (created lazily only when eval run results are recorded); `db_path()` = `data_dir()/skills-manager.db`.
 
 **[NOTE]** Eval run workspaces live at `evals/<name>-workspace/iteration-N/…`, deliberately outside `skills/`, so the skill scan, `doctor` orphan detection, archive export, and the SQLite index never treat run data as skill data. See @docs/ADR-003-registry-bridge-and-eval-harness.md.
 

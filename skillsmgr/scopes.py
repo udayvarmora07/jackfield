@@ -1,7 +1,7 @@
 """Skill scopes — global store plus per-agent filesystem roots.
 
 Each scope is an independent SKILL.md tree we can list/search and write
-into. Global scope is the skills-manager Store; every other scope is a
+into. Global scope is the Jackfield Store; every other scope is a
 plain filesystem dir scanned on demand (no DB). Discovery probes real
 paths at runtime; missing dirs show count 0.
 """
@@ -1721,7 +1721,7 @@ def _global_search_records(store: Store | None = None) -> list[dict]:
     The body **source is deliberately unchanged** -- still the index, exactly as
     ``Store.search()`` has always used it -- so the CLI and the web route keep
     agreeing on what a body match means.  Making this route filesystem-
-    authoritative instead would leave ``skills-mgr search`` disagreeing with it,
+    authoritative instead would leave ``jackfield search`` disagreeing with it,
     which is a worse defect than the staleness it removes.
 
     One ``_index_rows`` call rather than a new public ``Store`` method: the read

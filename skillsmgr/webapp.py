@@ -1,4 +1,4 @@
-"""Local web UI backend for skills-mgr (stdlib only).
+"""Local web UI backend for Jackfield (stdlib only).
 
 Serves a single-page frontend (``webui/``) plus a JSON REST API over the
 Store public API. Binds to 127.0.0.1 only — this is local desktop
@@ -1913,7 +1913,7 @@ def run(
         store = Store()
     server = WebAppServer(store, host, port)
     url = server.url
-    print(f"Skills Manager web UI running at {url}")
+    print(f"Jackfield web UI running at {url}")
     print("Press Ctrl+C to stop.")
     if open_browser:
         threading.Timer(0.4, _open_browser, args=(url,)).start()

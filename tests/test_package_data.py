@@ -118,7 +118,7 @@ class PackageDataArchiveTests(unittest.TestCase):
 
     # -- packaged example skills (audit A8) ---------------------------------
     #
-    # `examples/skills-manager-management/SKILL.md` is the only artifact that
+    # `examples/jackfield-management/SKILL.md` is the only artifact that
     # lets an AI agent drive this tool safely.  Before this contract existed the
     # gate was green on artifacts that silently dropped it, so an installed
     # distribution had no agent entry point at all.
@@ -127,7 +127,7 @@ class PackageDataArchiveTests(unittest.TestCase):
         members = check_package_data.expected_example_members()
         self.assertEqual(members, tuple(sorted(members)))
         self.assertTrue(members, "the gate needs at least one packaged example to assert")
-        self.assertIn("skillsmgr/examples/skills-manager-management/SKILL.md", members)
+        self.assertIn("skillsmgr/examples/jackfield-management/SKILL.md", members)
 
     def test_wheel_and_sdist_carry_the_exact_example_member_set_offline(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -158,7 +158,7 @@ class PackageDataArchiveTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             members = self._wheel_members()
-            name = "skillsmgr/examples/skills-manager-management/SKILL.md"
+            name = "skillsmgr/examples/jackfield-management/SKILL.md"
             original = members[name]
             self.assertIn(b"Manual opt-in installation", original)
             members[name] = original.replace(b"Manual opt-in installation", b"Tampered")
@@ -167,10 +167,10 @@ class PackageDataArchiveTests(unittest.TestCase):
                 check_package_data.inspect_archive(wheel)
 
     def test_example_document_must_be_a_loadable_skill_named_after_its_directory(self):
-        shipped = self._example_members()["skillsmgr/examples/skills-manager-management/SKILL.md"]
+        shipped = self._example_members()["skillsmgr/examples/jackfield-management/SKILL.md"]
         self.assertIsNone(
             check_package_data.example_document_error(
-                "skillsmgr/examples/skills-manager-management/SKILL.md", shipped
+                "skillsmgr/examples/jackfield-management/SKILL.md", shipped
             )
         )
         with self.subTest("not utf-8"):
@@ -195,7 +195,7 @@ class PackageDataArchiveTests(unittest.TestCase):
         # install proves an installed distribution actually exposes them. The
         # probe path is package-relative, because `skillsmgr.__file__` already
         # resolves to the installed package directory.
-        self.assertIn("examples/skills-manager-management/SKILL.md", check_package_data.INSTALL_PROBE)
+        self.assertIn("examples/jackfield-management/SKILL.md", check_package_data.INSTALL_PROBE)
         self.assertIn("webui/static/vendor/vue.global.prod.js", check_package_data.INSTALL_PROBE)
 
     def test_forbidden_members_are_still_rejected(self):

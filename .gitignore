@@ -10,7 +10,7 @@ venv/
 .pytest_cache/
 
 # Data dirs created at runtime (never commit user skills)
-# $SKILLS_MANAGER_DATA / ~/.local/share/skills-manager
+# $JACKFIELD_DATA / ~/.local/share/jackfield
 
 # Local configuration, databases, credentials, and private keys
 .env

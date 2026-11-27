@@ -11,7 +11,7 @@ replacing the dependency-free browser path".
 This is that script, and nothing more:
 
 * it does **not** ship in the wheel (``pyproject.toml`` packages only
-  ``skillsmgr*``), so ``skills-mgr webui`` stays the only supported entry point;
+  ``skillsmgr*``), so ``jackfield webui`` stays the only supported entry point;
 * it adds **no** runtime dependency: it drives a Chromium-family browser the user
   already has via ``--app=<url>``, which renders the page in a chromeless window
   that behaves like a desktop app;
@@ -126,8 +126,8 @@ def open_target(url: str, *, browser: str | None, plain: bool,
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="desktop_launcher.py",
-        description="Open the Skills Manager web UI in a chromeless desktop window "
-                    "(optional and unbundled; `skills-mgr webui` remains canonical).",
+        description="Open the Jackfield web UI in a chromeless desktop window "
+                    "(optional and unbundled; `jackfield webui` remains canonical).",
     )
     parser.add_argument("--host", default="127.0.0.1",
                         help="loopback host (default 127.0.0.1)")

@@ -1,10 +1,10 @@
-# CLI Surface — Skills Manager
+# CLI Surface — Jackfield
 
 **Version 0.6.0**
 
-**AI manifest**: Authoritative inventory of every command, alias, flag, and exit code of the `skills-mgr` CLI. Facts verified against the parser/handler modules (`cli_parser.py`, `cli_handlers.py`, `cli_output.py` behind the stable `cli.py` adapter) plus live invocations on 2026-09-22. Usage consent, archive lifecycle and reviewed project changes are CLI-only. See @docs/08-web-ui.md for the shared web surface. Do not add commands or flags without updating this doc and @docs/02-modules.md.
+**AI manifest**: Authoritative inventory of every command, alias, flag, and exit code of the `jackfield` CLI. Facts verified against the parser/handler modules (`cli_parser.py`, `cli_handlers.py`, `cli_output.py` behind the stable `cli.py` adapter) plus live invocations on 2026-09-22. Usage consent, archive lifecycle and reviewed project changes are CLI-only. See @docs/08-web-ui.md for the shared web surface. Do not add commands or flags without updating this doc and @docs/02-modules.md.
 
-**[SPEC]** Invocation: `python3 -m skillsmgr` (or `skills-mgr` once installed). argparse `prog="skills-mgr"`. Command count: **33 top-level commands + 28 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 64 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
+**[SPEC]** Invocation: `python3 -m skillsmgr` (or `jackfield` once installed). argparse `prog="jackfield"`. Command count: **33 top-level commands + 28 subcommands + 3 aliases (`ls`, `rm`, `gui`) = 64 invocable names**. The `gui` alias is a pure alias of `webui` (the GTK GUI is gone).
 
 ## Usage, lifecycle and project controls
 
@@ -323,7 +323,7 @@ Search with scoring (see @docs/02-modules.md); `--limit` caps results. `--scope 
 Import a `.tar.gz`/`.tgz`/`.tar` or `.zip` archive of skills into the global
 store. Content is sniffed rather than trusted from the filename. Tar and ZIP
 imports enforce resource budgets, reject traversal/Windows/special members, and
-use a strict versioned `skills-mgr` manifest contract; `--force` overwrites
+use a strict versioned `jackfield` manifest contract; `--force` overwrites
 existing names with staged per-skill recovery.
 `--full` restores trash, templates and catalog metadata from a full export.
 It checks any recorded skill checksums before changing the library or its
@@ -477,7 +477,7 @@ readable skills that exist in `~/.agents/skills` but have no copy or link in
 `~/.agents/skills` (@docs/34-agent-skill-loading-research-2026-11-07.md), so it
 does not load them. The section carries the cited source, up to 50 names with
 home-redacted paths plus `missing_total`/`omitted`, and two remedies. One is
-the existing `skills-mgr sync <name> --from agents --to claude-code` copy. The
+the existing `jackfield sync <name> --from agents --to claude-code` copy. The
 other is a manual link, with the caveat that anthropics/claude-code #14836
 reports symlinked skill folders as unreliable. It needs `--scope all`; any
 other scope reports `state: unavailable`, and a scan that hit the instance limit
@@ -546,7 +546,7 @@ remain public, and this client depends only on those:
 `--search` normalizes the public envelope into the same listing shape every
 caller reads, applies the requested `limit` itself, and reports `truncated`
 when the route returned more than asked for. `--browse`/`--curated` still work
-with `SKILLS_MANAGER_REGISTRY_TOKEN` or `VERCEL_OIDC_TOKEN` (never persisted);
+with `JACKFIELD_REGISTRY_TOKEN` or `VERCEL_OIDC_TOKEN` (never persisted);
 without one they fail with a message naming the token **and** the public
 alternative, rather than an opaque `HTTP 401`.
 

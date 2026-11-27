@@ -882,7 +882,7 @@ def scan_dir(
             # SCOPE-2: a skill directory that is a symlink out of the root is
             # invisible to every read view, yet every name-addressed operation
             # refuses it -- so the tool cannot list, view or repair skills its
-            # own documented install workflow creates (``skills-mgr install``
+            # own documented install workflow creates (``jackfield install``
             # symlinks unless ``--copy`` is given).  Report it as drift rather
             # than dropping it silently: the filesystem is the source of truth.
             #

@@ -151,7 +151,7 @@ def _cli(python, root, env, *extra):
 
 def _run_artifact(python, root, server):
     home, base = _fixture(root, server.server_port)
-    env = {'HOME': str(home), 'SKILLS_MANAGER_DATA': str(base), 'PATH': os.defpath,
+    env = {'HOME': str(home), 'JACKFIELD_DATA': str(base), 'SKILLS_MANAGER_DATA': str(base), 'PATH': os.defpath,
            'PYTHONDONTWRITEBYTECODE': '1', 'PIP_NO_INDEX': '1'}
     server.match, server.calls = True, 0
     code, estimate = _cli(python, root, env)

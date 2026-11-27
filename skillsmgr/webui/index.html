@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f2f3f1" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#101316" media="(prefers-color-scheme: dark)">
-  <title>Skills Manager</title>
+  <title>Jackfield</title>
   <meta name="description" content="Inspect detected AI tools, their skill copies and differences. Local only.">
   <script src="preferences.js"></script>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
@@ -16,7 +16,7 @@
 <div id="app" v-cloak>
   <a class="skip" href="#main" :inert="!!dialog" @click.prevent="skipToContent()">Skip to content</a>
   <header class="top" :inert="!!dialog">
-    <a class="brand" href="#/home" aria-label="Skills Manager home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path class="ql" d="M3 2H9A1 1 0 0 1 10 3V9A1 1 0 0 1 9 10H3A1 1 0 0 1 2 9V3A1 1 0 0 1 3 2Z M13 2H19A1 1 0 0 1 20 3V9A1 1 0 0 1 19 10H13A1 1 0 0 1 12 9V3A1 1 0 0 1 13 2Z M13 12H19A1 1 0 0 1 20 13V19A1 1 0 0 1 19 20H13A1 1 0 0 1 12 19V13A1 1 0 0 1 13 12Z"/><path class="cl" d="M23 12H29A1 1 0 0 1 30 13V19A1 1 0 0 1 29 20H23A1 1 0 0 1 22 19V13A1 1 0 0 1 23 12Z M3 12H9A1 1 0 0 1 10 13V19A1 1 0 0 1 9 20H3A1 1 0 0 1 2 19V13A1 1 0 0 1 3 12Z M13 22H19A1 1 0 0 1 20 23V29A1 1 0 0 1 19 30H13A1 1 0 0 1 12 29V23A1 1 0 0 1 13 22Z M3 22H9A1 1 0 0 1 10 23V29A1 1 0 0 1 9 30H7A5 5 0 0 1 2 25V23A1 1 0 0 1 3 22Z M23 22H29A1 1 0 0 1 30 23V25A5 5 0 0 1 25 30H23A1 1 0 0 1 22 29V23A1 1 0 0 1 23 22Z"/><path class="fl" d="M23 2H29A1 1 0 0 1 30 3V9A1 1 0 0 1 29 10H23A1 1 0 0 1 22 9V3A1 1 0 0 1 23 2Z"/></svg><span class="brand-t">Skills Manager</span></a>
+    <a class="brand" href="#/home" aria-label="Jackfield home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path class="ql" d="M3 2H9A1 1 0 0 1 10 3V9A1 1 0 0 1 9 10H3A1 1 0 0 1 2 9V3A1 1 0 0 1 3 2Z M13 2H19A1 1 0 0 1 20 3V9A1 1 0 0 1 19 10H13A1 1 0 0 1 12 9V3A1 1 0 0 1 13 2Z M13 12H19A1 1 0 0 1 20 13V19A1 1 0 0 1 19 20H13A1 1 0 0 1 12 19V13A1 1 0 0 1 13 12Z"/><path class="cl" d="M23 12H29A1 1 0 0 1 30 13V19A1 1 0 0 1 29 20H23A1 1 0 0 1 22 19V13A1 1 0 0 1 23 12Z M3 12H9A1 1 0 0 1 10 13V19A1 1 0 0 1 9 20H3A1 1 0 0 1 2 19V13A1 1 0 0 1 3 12Z M13 22H19A1 1 0 0 1 20 23V29A1 1 0 0 1 19 30H13A1 1 0 0 1 12 29V23A1 1 0 0 1 13 22Z M3 22H9A1 1 0 0 1 10 23V29A1 1 0 0 1 9 30H7A5 5 0 0 1 2 25V23A1 1 0 0 1 3 22Z M23 22H29A1 1 0 0 1 30 23V25A5 5 0 0 1 25 30H23A1 1 0 0 1 22 29V23A1 1 0 0 1 23 22Z"/><path class="fl" d="M23 2H29A1 1 0 0 1 30 3V9A1 1 0 0 1 29 10H23A1 1 0 0 1 22 9V3A1 1 0 0 1 23 2Z"/></svg><span class="brand-t">Jackfield</span></a>
     <nav class="tabs" ref="tabs" aria-label="Main" @scroll.passive="updateTabsClip">
       <a href="#/home" :aria-current="route.page === 'home' ? 'page' : null">Home</a>
       <a href="#/skills" :aria-current="route.page === 'skills' || route.page === 'skill' ? 'page' : null">Skills</a>

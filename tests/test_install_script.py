@@ -239,7 +239,7 @@ class InstallShTests(unittest.TestCase):
         (prefix / "pyvenv.cfg").write_text("home = unrelated\n", encoding="utf-8")
         (prefix / "keep.txt").write_text("keep me", encoding="utf-8")
         args = ("--method", "venv", "--prefix", str(prefix))
-        self.assertIn("does not belong to Skills Manager", self.run_sh(*args, expect=1).stderr)
+        self.assertIn("does not belong to Jackfield", self.run_sh(*args, expect=1).stderr)
         self.assertIn("leaving", self.run_sh(*args, "--uninstall").stdout)
         self.assertEqual(sorted(p.name for p in prefix.iterdir()), ["keep.txt", "pyvenv.cfg"])
         self.assertEqual(self.calls(), [])
@@ -398,7 +398,7 @@ class PowerShellInstallerRuntimeTests(unittest.TestCase):
         self.prefix.mkdir(parents=True)
         (self.prefix / "pyvenv.cfg").write_text("home = unrelated\n", encoding="utf-8")
         (self.prefix / "keep.txt").write_text("keep me", encoding="utf-8")
-        self.assertIn("does not belong to Skills Manager", self.run_ps(expect=1).stderr)
+        self.assertIn("does not belong to Jackfield", self.run_ps(expect=1).stderr)
         self.assertIn("leaving", self.run_ps("-Uninstall").stdout)
         self.assertEqual(sorted(path.name for path in self.prefix.iterdir()), ["keep.txt", "pyvenv.cfg"])
 

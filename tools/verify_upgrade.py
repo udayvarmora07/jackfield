@@ -20,6 +20,7 @@ from check_package_data import _create_install_venv
 from .verify_published import PROJECT, VerificationError, _NoRedirect, _read
 
 # Oldest tested upgrade baseline for the 1.1 series. PyPI 1.0.2, 2026-11-21.
+# It predates the Jackfield rename, so its library lives in ``<base>/skills-manager``.
 BASELINE_VERSION = "1.0.2"
 BASELINE_NAME = f"skill_control_plane-{BASELINE_VERSION}-py3-none-any.whl"
 BASELINE_URL = (
@@ -67,7 +68,7 @@ def _baseline_bytes(local_wheel: Path | None) -> bytes:
 def _candidate_wheel(dist_dir: Path) -> tuple[Path, str]:
     wheels = list(dist_dir.resolve().glob("*.whl"))
     if len(wheels) != 1 or not wheels[0].name.startswith("skill_control_plane-"):
-        raise VerificationError("expected exactly one Skills Manager wheel in the artifact directory")
+        raise VerificationError("expected exactly one Jackfield wheel in the artifact directory")
     version = wheels[0].name.split("-", 2)[1]
     if version == BASELINE_VERSION:
         raise VerificationError("the candidate wheel must differ from the baseline release")
@@ -102,7 +103,7 @@ def _seed(python: Path, root: Path, env: dict, data: Path, archive: Path) -> Non
     for name in (ACTIVE, DISABLED, TRASHED):
         _cli(python, root, env, data, "create", name, "-d", f"{name} description",
              "--body", f"{name} body")
-        asset = data / "skills-manager" / "skills" / name / "references" / "fixture.bin"
+        asset = _library(data) / "skills" / name / "references" / "fixture.bin"
         asset.parent.mkdir()
         asset.write_bytes(name.encode("ascii") + b"\x00\xff\r\n")
     _cli(python, root, env, data, "disable", DISABLED)
@@ -113,8 +114,14 @@ def _seed(python: Path, root: Path, env: dict, data: Path, archive: Path) -> Non
         raise VerificationError("the baseline export did not create an archive")
 
 
+def _library(data: Path) -> Path:
+    """The manager directory under ``data``: ``jackfield``, or the pre-rename one kept in place."""
+    current = data / "jackfield"
+    return current if current.exists() or not (data / "skills-manager").exists() else data / "skills-manager"
+
+
 def _contents(data: Path) -> dict[str, bytes]:
-    library = data / "skills-manager"
+    library = _library(data)
     return {item.relative_to(library).as_posix(): item.read_bytes()
             for folder in ("skills", "trash", "templates")
             for item in (library / folder).rglob("*") if item.is_file()}
@@ -154,6 +161,8 @@ def verify_upgrade(dist_dir: Path, local_wheel: Path | None = None) -> None:
             raise VerificationError("the baseline fixture is missing a document, supporting file, or template")
         _install(python, root, env, candidate, version)
         _check_library(python, root, env, data, expected)
+        if (data / "jackfield").exists():
+            raise VerificationError("the upgrade created a new library instead of keeping the existing one in place")
         _cli(python, root, env, restored, "import", str(archive), "--full")
         _check_library(python, root, env, restored, expected)
         print(f"PASS: {BASELINE_VERSION} to {version} preserved an existing library and restored its full backup")

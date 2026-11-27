@@ -14,8 +14,14 @@ records, not additional live work.
 - [x] Logo kit for the chosen mark (B7 Quiet soft J) in `branding/jackfield/kit/`.
 - [x] New mark wired into `skillsmgr/webui/logo.svg` (favicon, README) and the
   header mark in `index.html` / `styles.css`.
-- [ ] Rename Skills Manager to Jackfield across code, data paths, package,
-  GitHub repository and local folder: plan awaiting owner decisions.
+- [x] Rename user-facing names to Jackfield: `jackfield` CLI (alias
+  `skills-mgr`), web UI, docs, management skill, `JACKFIELD_*` variables with
+  legacy fallback, new installs in `~/.local/share/jackfield` (an existing
+  `skills-manager` library used in place).
+- [ ] Rename the GitHub repository and move the local folder (symlink kept).
+- [ ] At the next release: publish as `jackfield` on PyPI (trusted publisher for
+  the new project, installers' `DIST`/`COMMAND`, `tools/verify_published.py`,
+  README badge) and a final `skill-control-plane` that points to it.
 - [ ] Trademark (USPTO/EUIPO) and domain check for "Jackfield".
 
 ## Agent tracking (2026-11-26)

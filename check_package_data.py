@@ -58,7 +58,7 @@ root = Path(skillsmgr.__file__).parent
 assert root.is_relative_to(Path(sys.prefix)), root
 assert version('skill-control-plane') == skillsmgr.__version__
 vue = root / 'webui/static/vendor/vue.global.prod.js'
-skill = root / 'examples/skills-manager-management/SKILL.md'
+skill = root / 'examples/jackfield-management/SKILL.md'
 assert vue.is_file() and vue.stat().st_size > 0, vue
 assert skill.is_file() and skill.read_bytes().startswith(b'---'), skill
 completion = root / 'completions'

@@ -547,7 +547,7 @@ class EvalCliTests(unittest.TestCase):
 
     def _skill_with_evals(self, name="demo"):
         self.invoke(["create", name, "-d", "Use this when demoing"])
-        skill_dir = Path(self._tmp.name) / "skills-manager" / "skills" / name
+        skill_dir = Path(self._tmp.name) / "jackfield" / "skills" / name
         _write_evals(skill_dir, [
             {"id": 1, "prompt": "do the demo", "expected_output": "demo done",
              "assertions": [{"type": "contains", "value": "demo"}]},
@@ -584,7 +584,7 @@ class EvalCliTests(unittest.TestCase):
         self.assertEqual(code, cli.EXIT_OK)
         self.assertIn("with_skill 1/1 case(s)", out)
         self.assertIn("with_skill - without_skill = +1.0000", out)
-        benchmark = Path(self._tmp.name) / "skills-manager" / "evals" / "demo-workspace" / "iteration-3" / "benchmark.json"
+        benchmark = Path(self._tmp.name) / "jackfield" / "evals" / "demo-workspace" / "iteration-3" / "benchmark.json"
         self.assertTrue(benchmark.is_file())
         self.assertEqual(err, "")
         self.assertEqual((skill_dir / "SKILL.md").read_bytes(), before)
@@ -692,12 +692,12 @@ class EvalCliTests(unittest.TestCase):
     def test_eval2_path_symlink_alias_to_external_skill_keeps_workspace_outside_skills(self):
         external = Path(self._tmp.name) / "external" / "demo"
         external.mkdir(parents=True)
-        skills_root = Path(self._tmp.name) / "skills-manager" / "skills"
+        skills_root = Path(self._tmp.name) / "jackfield" / "skills"
         skills_root.mkdir(parents=True, exist_ok=True)
         alias = skills_root / "alias"
         alias.symlink_to(external, target_is_directory=True)
-        workspace = evals.workspace_for_dir(alias, Path(self._tmp.name) / "skills-manager", "demo")
-        self.assertEqual(workspace, Path(self._tmp.name) / "skills-manager" / "evals" / "demo-workspace")
+        workspace = evals.workspace_for_dir(alias, Path(self._tmp.name) / "jackfield", "demo")
+        self.assertEqual(workspace, Path(self._tmp.name) / "jackfield" / "evals" / "demo-workspace")
         cases = [{"id": 1, "prompt": "demo", "expected_output": "done"}]
         evals.record_runs(workspace, 1, cases, [{"case": 1, "output": "demo"}])
         self.assertTrue((workspace / "iteration-1" / "benchmark.json").is_file())
@@ -709,12 +709,12 @@ class EvalCliTests(unittest.TestCase):
         runs.write_text(json.dumps([{"case": 1, "output": "demo"}]), encoding="utf-8")
         code, out, err = self.invoke(["validate", "--path", str(skill_dir), "--evals-run", str(runs)])
         self.assertEqual(code, cli.EXIT_OK)
-        skills_root = Path(self._tmp.name) / "skills-manager" / "skills"
+        skills_root = Path(self._tmp.name) / "jackfield" / "skills"
         self.assertEqual(
             [path.name for path in skills_root.iterdir() if path.is_dir()], ["demo"]
         )
         self.assertTrue(
-            (Path(self._tmp.name) / "skills-manager" / "evals" / "demo-workspace" / "iteration-1" / "benchmark.json").is_file()
+            (Path(self._tmp.name) / "jackfield" / "evals" / "demo-workspace" / "iteration-1" / "benchmark.json").is_file()
         )
         self.assertIn("demo-workspace", out)
 

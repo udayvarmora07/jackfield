@@ -1,4 +1,4 @@
-# Pre-Merge Checklist — Skills Manager
+# Pre-Merge Checklist — Jackfield
 
 **Version 1.1.0**
 
@@ -14,7 +14,7 @@ changes. A change is not ready to merge merely because its branch tests pass.
       `approved-not-integrated`, or `speculative`.
 - [ ] Do not cherry-pick overlapping `store.py`, `webapp.py`, tests, or tracking
       docs without manual conflict review.
-- [ ] Confirm no candidate worktree or `/home/uday-varmora/skills-manager/.autogit`
+- [ ] Confirm no candidate worktree or `/home/uday-varmora/jackfield/.autogit`
       was modified unintentionally.
 
 ## Source and artifact integrity

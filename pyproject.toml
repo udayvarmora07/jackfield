@@ -17,14 +17,16 @@ target-version = "py311"
 select = ["F"]
 
 [project]
+# The distribution keeps its published name until the release that moves it to
+# `jackfield` on PyPI (installers, upgrade checks and trusted publishing switch together).
 name = "skill-control-plane"
 version = "1.1.0"
-description = "Local control plane for AI coding-agent skills: manage SKILL.md across agents from one CLI + web UI"
+description = "Jackfield: a local control plane for the skills AI coding agents load; manage SKILL.md across agents from one CLI + web UI"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "skills-manager contributors" }]
+authors = [{ name = "Jackfield contributors" }]
 keywords = ["ai-agents", "agent-skills", "skill-management", "cli", "claude-code", "cursor", "opencode"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -41,13 +43,15 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/udayvarmora07/skills-manager"
-Repository = "https://github.com/udayvarmora07/skills-manager"
-Issues = "https://github.com/udayvarmora07/skills-manager/issues"
-Documentation = "https://github.com/udayvarmora07/skills-manager#readme"
-Changelog = "https://github.com/udayvarmora07/skills-manager/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/udayvarmora07/jackfield"
+Repository = "https://github.com/udayvarmora07/jackfield"
+Issues = "https://github.com/udayvarmora07/jackfield/issues"
+Documentation = "https://github.com/udayvarmora07/jackfield#readme"
+Changelog = "https://github.com/udayvarmora07/jackfield/blob/main/CHANGELOG.md"
 
 [project.scripts]
+jackfield = "skillsmgr.cli:main"
+# Pre-rename command, kept as an alias so existing scripts and habits keep working.
 skills-mgr = "skillsmgr.cli:main"
 
 [tool.setuptools.packages.find]

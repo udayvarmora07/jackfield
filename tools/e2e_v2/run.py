@@ -26,7 +26,7 @@ def _fixture_environment(root, home, data):
         TMPDIR=str(temp), TMP=str(temp), TEMP=str(temp),
         XDG_CONFIG_HOME=str(home / '.config'), XDG_DATA_HOME=str(home / '.local/share'),
         XDG_CACHE_HOME=str(home / '.cache'), XDG_STATE_HOME=str(home / '.local/state'),
-        SKILLS_MANAGER_DATA=str(data), PYTHONDONTWRITEBYTECODE='1',
+        JACKFIELD_DATA=str(data), SKILLS_MANAGER_DATA=str(data), PYTHONDONTWRITEBYTECODE='1',
         CLAUDE_CONFIG_DIR=str(home / '.claude'), CODEX_HOME=str(home / '.codex'),
         GEMINI_CLI_SYSTEM_DEFAULTS_PATH=str(home / 'gemini-system-defaults.json'),
         GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(home / 'gemini-system-settings.json'),

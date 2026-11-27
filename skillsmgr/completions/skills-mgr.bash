@@ -101,4 +101,4 @@ _skills_mgr_complete() {
     COMPREPLY=()
     while IFS= read -r word; do COMPREPLY+=("$word"); done < <(compgen -W "$candidates" -- "$cur")
 }
-complete -F _skills_mgr_complete skills-mgr
+complete -F _skills_mgr_complete jackfield skills-mgr

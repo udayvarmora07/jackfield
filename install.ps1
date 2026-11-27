@@ -1,10 +1,10 @@
-# One-command installer for skills-manager (PyPI: skill-control-plane), Windows.
+# One-command installer for Jackfield, formerly Skills Manager (PyPI: skill-control-plane), Windows.
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/install.ps1 | iex"
+#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.ps1 | iex"
 #
 # With options:
 #
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/install.ps1))) -WithTiktoken
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.ps1))) -WithTiktoken
 #
 # Order of preference: `uv tool install` (uv also supplies Python), then
 # `pipx install`, then a private virtual environment under
@@ -31,7 +31,7 @@ Set-StrictMode -Version 3
 
 $Dist = 'skill-control-plane'
 $Command = 'skills-mgr'
-$SourceArchive = 'https://github.com/udayvarmora07/skills-manager/archive/refs/heads/main.tar.gz'
+$SourceArchive = 'https://github.com/udayvarmora07/jackfield/archive/refs/heads/main.tar.gz'
 $VenvOwner = "skill-control-plane venv 1`n"
 
 function Say([string]$Text) { Write-Host "skills-mgr install: $Text" }
@@ -186,7 +186,7 @@ function Remove-OwnedVenv {
 
 if ($Help) {
     @'
-Install skills-manager (the skills-mgr command) in one step.
+Install Jackfield (the skills-mgr command; jackfield from the next release) in one step.
 
   -Method M       uv, pipx or venv (default: the first one available)
   -Version V      install this PyPI release instead of the latest
@@ -277,7 +277,7 @@ switch ($Method) {
                     Fail "$Prefix is not an ordinary directory; choose another -Prefix"
                 }
                 if (-not (Test-MarkedVenv)) {
-                    if (-not (Test-LegacyVenv)) { Fail "$Prefix does not belong to Skills Manager; choose another -Prefix" }
+                    if (-not (Test-LegacyVenv)) { Fail "$Prefix does not belong to Jackfield; choose another -Prefix" }
                     Write-VenvOwner
                 }
             } else {
@@ -328,5 +328,5 @@ Next steps:
   skills-mgr doctor        # health check, changes nothing
   skills-mgr webui         # open the local web UI on 127.0.0.1
 
-Docs: https://github.com/udayvarmora07/skills-manager#readme
+Docs: https://github.com/udayvarmora07/jackfield#readme
 '@ | Write-Host

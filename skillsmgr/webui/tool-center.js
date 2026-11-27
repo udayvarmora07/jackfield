@@ -450,7 +450,7 @@
       </template>
       <template v-else-if="page==='tools'">
         <h1 class="h1" id="h1" tabindex="-1">Tools</h1>
-        <p class="lede">Install skills, check your library, and configure Skills Manager.</p>
+        <p class="lede">Install skills, check your library, and configure Jackfield.</p>
         <p v-if="allGroupsOff" class="tp-fine">Tool groups are switched off. Turn them on in <a href="#/settings/tracking">What to track</a>.</p>
         <div class="tp-directory-search" role="search" aria-label="Tool directory">
           <div class="tp-directory-field">
@@ -930,7 +930,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
           <div class="tp-set">
             <div class="tp-set-row"><label for="tp-scan"><b>Scan during reviews</b><small v-if="externalScan==='off'">Off. Nothing extra runs.</small><small v-else-if="externalScan==='static'">Pattern checks on this machine. Dependency names the skill declares may be sent to api.osv.dev.</small><small v-else>Adds SkillSpector's LLM review with your own key. Skill file contents are sent to that provider.</small></label><select id="tp-scan" class="field" aria-label="Scan during reviews" v-model="externalScan" @change="preference('skillsmgr-external-scan',externalScan)"><option value="off">Off</option><option value="static">Static checks</option><option value="llm">Static + your LLM key</option></select></div>
           </div>
-          <p v-if="externalScan==='llm'" class="tp-fine">Bring your own key: set <code>SKILLSPECTOR_PROVIDER</code> and that provider's key (for example <code>ANTHROPIC_API_KEY</code>) in the terminal before starting <code>skills-mgr webui</code>. The key is passed only to SkillSpector, only for scans you ask for, and is never stored or shown here.</p>
+          <p v-if="externalScan==='llm'" class="tp-fine">Bring your own key: set <code>SKILLSPECTOR_PROVIDER</code> and that provider's key (for example <code>ANTHROPIC_API_KEY</code>) in the terminal before starting <code>jackfield webui</code>. The key is passed only to SkillSpector, only for scans you ask for, and is never stored or shown here.</p>
         </section>
         <section class="card tp-panel" aria-labelledby="tp-ix-h">
           <h2 id="tp-ix-h">Index maintenance</h2>

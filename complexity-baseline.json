@@ -3161,7 +3161,7 @@
       "lineno": 684
     },
     "skillsmgr/registry.py::RegistryClient._credential": {
-      "complexity": 9,
+      "complexity": 8,
       "end_lineno": 652,
       "lineno": 642
     },

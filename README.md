@@ -1,31 +1,31 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/skillsmgr/webui/logo.svg" width="72" height="72" alt="">
+<img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/skillsmgr/webui/logo.svg" width="72" height="72" alt="">
 
-# skills-manager
+# Jackfield
 
 **One place to inspect, sync and back up `SKILL.md` skills across your coding agents.**
 
 A local CLI and web UI for Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Command Code and anything that reads `~/.agents/skills`.
 No account, no telemetry, no runtime dependencies.
 
-<img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/claude-code.svg" width="28" height="28" alt="Claude Code" title="Claude Code"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/codex.svg" width="28" height="28" alt="Codex" title="Codex"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/cursor.svg" width="28" height="28" alt="Cursor" title="Cursor"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/opencode.svg" width="28" height="28" alt="OpenCode" title="OpenCode"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/gemini.svg" width="28" height="28" alt="Gemini CLI" title="Gemini CLI"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/commandcode.svg" width="28" height="28" alt="Command Code" title="Command Code"> <img src="https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/agents/agents.svg" width="28" height="28" alt="Agent Skills (~/.agents/skills)" title="Agent Skills (~/.agents/skills)">
+<img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/agents/claude-code.svg" width="28" height="28" alt="Claude Code" title="Claude Code"> <img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/agents/codex.svg" width="28" height="28" alt="Codex" title="Codex"> <img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/agents/cursor.svg" width="28" height="28" alt="Cursor" title="Cursor"> <img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/agents/opencode.svg" width="28" height="28" alt="OpenCode" title="OpenCode"> <img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/agents/gemini.svg" width="28" height="28" alt="Gemini CLI" title="Gemini CLI"> <img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/agents/commandcode.svg" width="28" height="28" alt="Command Code" title="Command Code"> <img src="https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/agents/agents.svg" width="28" height="28" alt="Agent Skills (~/.agents/skills)" title="Agent Skills (~/.agents/skills)">
 
-[![CI](https://github.com/udayvarmora07/skills-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/udayvarmora07/skills-manager/actions/workflows/ci.yml)
+[![CI](https://github.com/udayvarmora07/jackfield/actions/workflows/ci.yml/badge.svg)](https://github.com/udayvarmora07/jackfield/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/skill-control-plane.svg)](https://pypi.org/project/skill-control-plane/)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](https://github.com/udayvarmora07/skills-manager/blob/main/pyproject.toml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/udayvarmora07/skills-manager/blob/main/LICENSE)
-[![Dependencies: none](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](https://github.com/udayvarmora07/skills-manager/blob/main/pyproject.toml)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](https://github.com/udayvarmora07/jackfield/blob/main/pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/udayvarmora07/jackfield/blob/main/LICENSE)
+[![Dependencies: none](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](https://github.com/udayvarmora07/jackfield/blob/main/pyproject.toml)
 
 [Install](#install) · [Quickstart](#quickstart) · [Web UI](#the-web-ui) · [Recipes](#recipes) · [Privacy](#what-it-will-not-do-and-what-leaves-your-machine) · [Docs](#documentation-map) · [Contributing](#contributing)
 
-![The skills-manager web UI: the Tools page with install, profiles, templates, quality and settings](https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/docs/images/v2-tools-2026-11-06.png)
+![The Jackfield web UI: the Tools page with install, profiles, templates, quality and settings](https://raw.githubusercontent.com/udayvarmora07/jackfield/main/docs/images/v2-tools-2026-11-06.png)
 
 <sub>The web UI at 1280 × 900, captured with synthetic fixtures. No personal skills are shown.</sub>
 
 </div>
 
-> **Names at a glance.** GitHub repository: `udayvarmora07/skills-manager`. The `skill-control-plane` distribution is available on PyPI. The Python import package remains `skillsmgr`, and the command you run is `skills-mgr`.
+> **Names at a glance.** Jackfield was called Skills Manager until November 2026. GitHub repository: `udayvarmora07/jackfield` (old `skills-manager` links redirect). The command is `jackfield`; `skills-mgr` still works as an alias. The `skill-control-plane` distribution is available on PyPI (1.0.2); that release installs only the `skills-mgr` command, so use `skills-mgr` in the commands below until the next release ships as `jackfield`. The Python import package remains `skillsmgr`. An existing library in `~/.local/share/skills-manager` keeps working where it is.
 
 ---
 
@@ -59,9 +59,9 @@ No account, no telemetry, no runtime dependencies.
 - **Skills fail silently.** A byte-order mark, an unquoted `:` in the frontmatter or a listing over the agent's budget can make an agent skip or truncate a skill. Nothing tells you.
 - **Mistakes are hard to undo.** A bad edit or a deleted folder has no history and no trash.
 
-`skills-manager` inventories copies in supported skill folders. It shows where they differ and flags what an agent may skip. Edits keep snapshots, and ordinary removals go to trash for recovery.
+Jackfield inventories copies in supported skill folders. It shows where they differ and flags what an agent may skip. Edits keep snapshots, and ordinary removals go to trash for recovery.
 
-**How it relates to other tools.** [Vercel's `skills` CLI](https://github.com/vercel-labs/skills) installs and updates skills from a source into many agents. This project manages the copies you already have: it inspects them, compares them, keeps them in sync and recovers them. The two work together, and `skills-mgr install` can call the `skills` CLI for you.
+**How it relates to other tools.** [Vercel's `skills` CLI](https://github.com/vercel-labs/skills) installs and updates skills from a source into many agents. This project manages the copies you already have: it inspects them, compares them, keeps them in sync and recovers them. The two work together, and `jackfield install` can call the `skills` CLI for you.
 
 ## Features
 
@@ -80,28 +80,28 @@ No account, no telemetry, no runtime dependencies.
 
 ## Install
 
-PyPI installs the latest published version. Run `skills-mgr --version` and
+PyPI installs the latest published version. Run `jackfield --version` and
 choose the matching GitHub tag for version-specific documentation. This guide
 also covers features in development on `main`.
-[Release history](https://github.com/udayvarmora07/skills-manager/releases)
+[Release history](https://github.com/udayvarmora07/jackfield/releases)
 
 ### One command
 
 Linux and macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.sh | sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.ps1 | iex"
 ```
 
-The installer uses `uv tool install` if you have [uv](https://docs.astral.sh/uv/), otherwise `pipx install`, otherwise a private virtual environment with a `skills-mgr` link in `~/.local/bin` (Windows: `%LOCALAPPDATA%\skill-control-plane\venv`). With uv you do not need Python already installed; otherwise you need **Python ≥ 3.11**. It does not edit your shell start-up files or PATH; it prints the line to add if `skills-mgr` is not found yet. It never touches your skills.
+The installer uses `uv tool install` if you have [uv](https://docs.astral.sh/uv/), otherwise `pipx install`, otherwise a private virtual environment with a `skills-mgr` link in `~/.local/bin` (Windows: `%LOCALAPPDATA%\skill-control-plane\venv`). With uv you do not need Python already installed; otherwise you need **Python ≥ 3.11**. It does not edit your shell start-up files or PATH; it prints the line to add if `jackfield` is not found yet. It never touches your skills.
 
-Prefer to read it first? Download [`install.sh`](https://github.com/udayvarmora07/skills-manager/blob/main/install.sh) or [`install.ps1`](https://github.com/udayvarmora07/skills-manager/blob/main/install.ps1), look at it, then run it.
+Prefer to read it first? Download [`install.sh`](https://github.com/udayvarmora07/jackfield/blob/main/install.sh) or [`install.ps1`](https://github.com/udayvarmora07/jackfield/blob/main/install.ps1), look at it, then run it.
 
 | Option (`install.sh` / `install.ps1`) | What it does |
 |---|---|
@@ -116,11 +116,11 @@ Prefer to read it first? Download [`install.sh`](https://github.com/udayvarmora0
 Pass options to the piped form like this:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/install.sh | sh -s -- --with-tiktoken
+curl -fsSL https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.sh | sh -s -- --with-tiktoken
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/install.ps1))) -WithTiktoken
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.ps1))) -WithTiktoken
 ```
 
 ### With pipx or pip
@@ -134,30 +134,30 @@ pip install skill-control-plane
 Check it works:
 
 ```bash
-skills-mgr --version
+jackfield --version
 ```
 
 <details>
 <summary><b>Run from source instead</b></summary>
 
 ```bash
-git clone https://github.com/udayvarmora07/skills-manager
-cd skills-manager
+git clone https://github.com/udayvarmora07/jackfield
+cd jackfield
 python3 -m skillsmgr --help   # nothing to install; stdlib only
 ```
 
-Anywhere this README says `skills-mgr`, you can use `python3 -m skillsmgr`.
+Anywhere this README says `jackfield`, you can use `python3 -m skillsmgr`.
 
 </details>
 
 ## Quickstart
 
-Start by inventorying the folders and copies Skills Manager can see. These
+Start by inventorying the folders and copies Jackfield can see. These
 commands leave your skill files untouched.
 
 ```bash
-skills-mgr scopes
-skills-mgr list --scope all
+jackfield scopes
+jackfield list --scope all
 ```
 
 ### Try recovery with a sample skill
@@ -170,10 +170,10 @@ Linux and macOS:
 
 ```bash
 demo=$(mktemp -d)
-skills-mgr --data-dir "$demo" create demo-review -d "Reviews a sample change. Use when trying Skills Manager." --body "Check the sample diff before approval."
-skills-mgr --data-dir "$demo" remove demo-review --trash
-skills-mgr --data-dir "$demo" restore demo-review
-skills-mgr --data-dir "$demo" view demo-review --raw
+jackfield --data-dir "$demo" create demo-review -d "Reviews a sample change. Use when trying Jackfield." --body "Check the sample diff before approval."
+jackfield --data-dir "$demo" remove demo-review --trash
+jackfield --data-dir "$demo" restore demo-review
+jackfield --data-dir "$demo" view demo-review --raw
 ```
 
 Windows (PowerShell):
@@ -181,10 +181,10 @@ Windows (PowerShell):
 ```powershell
 $demo = Join-Path ([System.IO.Path]::GetTempPath()) ('skillsmgr-demo-' + [guid]::NewGuid())
 [void] [System.IO.Directory]::CreateDirectory($demo)
-skills-mgr --data-dir "$demo" create demo-review -d "Reviews a sample change. Use when trying Skills Manager." --body "Check the sample diff before approval."
-skills-mgr --data-dir "$demo" remove demo-review --trash
-skills-mgr --data-dir "$demo" restore demo-review
-skills-mgr --data-dir "$demo" view demo-review --raw
+jackfield --data-dir "$demo" create demo-review -d "Reviews a sample change. Use when trying Jackfield." --body "Check the sample diff before approval."
+jackfield --data-dir "$demo" remove demo-review --trash
+jackfield --data-dir "$demo" restore demo-review
+jackfield --data-dir "$demo" view demo-review --raw
 ```
 
 `--data-dir` selects the manager library for a command. Agent scopes still
@@ -195,7 +195,7 @@ To inspect your real skills in the browser, use the [web UI](#the-web-ui).
 
 ## Core ideas in 60 seconds
 
-1. **The filesystem is the truth.** A skill is a folder holding `SKILL.md`. The manager's library lives at `~/.local/share/skills-manager/skills/` by default. A SQLite file next to it is only a search index, and `skills-mgr db rebuild` regenerates it at any time.
+1. **The filesystem is the truth.** A skill is a folder holding `SKILL.md`. The manager's library lives at `~/.local/share/jackfield/skills/` by default. A SQLite file next to it is only a search index, and `jackfield db rebuild` regenerates it at any time.
 2. **Scopes are places.** `global` is the manager's own library. Every other scope is an agent's own skill folder, and the tool reads and writes it directly. See [Agent scopes](#agent-scopes).
 3. **Disabled means renamed.** Disabling turns `SKILL.md` into `SKILL.md.disabled` in place, so agents stop loading the skill and nothing is lost.
 4. **Nothing disappears.** `remove` moves a skill to trash, and `restore` brings it back. `--purge` is the only permanent delete.
@@ -206,7 +206,7 @@ To inspect your real skills in the browser, use the [web UI](#the-web-ui).
 
 | Scope id | Folder | Read by |
 |---|---|---|
-| `global` (default) | `~/.local/share/skills-manager/skills/` | the manager's own library |
+| `global` (default) | `~/.local/share/jackfield/skills/` | the manager's own library |
 | `claude-code` | `~/.claude/skills` | Claude Code |
 | `codex` | `~/.codex/skills` | Codex |
 | `cursor` | `~/.cursor/skills` | Cursor |
@@ -216,16 +216,16 @@ To inspect your real skills in the browser, use the [web UI](#the-web-ui).
 | `agents` | `~/.agents/skills` | Codex, Command Code, OpenCode and other tools that read the shared folder |
 | `all` | every scope above, merged | read-only combined view |
 
-Project-local folders (for example `<project>/.claude/skills`) appear as extra scopes when present. `skills-mgr scopes` lists what exists on your machine.
+Project-local folders (for example `<project>/.claude/skills`) appear as extra scopes when present. `jackfield scopes` lists what exists on your machine.
 
-`list`, `view`, `search`, `doctor` and `stats` take `--scope`. `sync` copies between scopes, and `tokens` and `install` have their own `--scope` meanings. Details: [CLI reference](https://github.com/udayvarmora07/skills-manager/blob/main/docs/03-cli-surface.md).
+`list`, `view`, `search`, `doctor` and `stats` take `--scope`. `sync` copies between scopes, and `tokens` and `install` have their own `--scope` meanings. Details: [CLI reference](https://github.com/udayvarmora07/jackfield/blob/main/docs/03-cli-surface.md).
 
 ## The web UI
 
 ```bash
-skills-mgr webui                 # http://127.0.0.1:8765 and opens your browser
-skills-mgr webui --no-browser    # server only
-skills-mgr webui --port 9000     # another port
+jackfield webui                 # http://127.0.0.1:8765 and opens your browser
+jackfield webui --no-browser    # server only
+jackfield webui --port 9000     # another port
 ```
 
 | Page | What you do there |
@@ -239,7 +239,7 @@ skills-mgr webui --port 9000     # another port
 
 Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> for the command palette and <kbd>?</kbd> for shortcuts.
 
-> ⚠️ **The web UI has no login.** It binds to `127.0.0.1`, and that binding is its only security boundary. Any program on your machine can reach it. Never forward, tunnel or publish the port. See the [threat model](https://github.com/udayvarmora07/skills-manager/blob/main/skills-manager-threat-model.md).
+> ⚠️ **The web UI has no login.** It binds to `127.0.0.1`, and that binding is its only security boundary. Any program on your machine can reach it. Never forward, tunnel or publish the port. See the [threat model](https://github.com/udayvarmora07/jackfield/blob/main/skills-manager-threat-model.md).
 
 <details>
 <summary><b>Open it as a desktop window</b></summary>
@@ -255,7 +255,7 @@ python3 desktop_launcher.py
 <details>
 <summary><b>Build on top of it (REST API)</b></summary>
 
-The same server is a JSON REST API for local scripts and editor extensions. Call it at `127.0.0.1` or `localhost` (same port) from a host process, not from a web page. Contract: [docs/08-web-ui.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/08-web-ui.md#local-client-integration-contract-non-browser-clients--issue-8).
+The same server is a JSON REST API for local scripts and editor extensions. Call it at `127.0.0.1` or `localhost` (same port) from a host process, not from a web page. Contract: [docs/08-web-ui.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/08-web-ui.md#local-client-integration-contract-non-browser-clients--issue-8).
 
 </details>
 
@@ -265,10 +265,10 @@ The same server is a JSON REST API for local scripts and editor extensions. Call
 <summary><b>Find and fix copies that drifted apart</b></summary>
 
 ```bash
-skills-mgr doctor --scope all                     # same-name skills in several places; flags differing descriptions
-skills-mgr doctor --hygiene --scope all           # also flags copies whose bodies differ (divergent-name)
-skills-mgr view deploy-staging --scope claude-code
-skills-mgr sync deploy-staging --from claude-code --to agents --force   # old copy is snapshotted first
+jackfield doctor --scope all                     # same-name skills in several places; flags differing descriptions
+jackfield doctor --hygiene --scope all           # also flags copies whose bodies differ (divergent-name)
+jackfield view deploy-staging --scope claude-code
+jackfield sync deploy-staging --from claude-code --to agents --force   # old copy is snapshotted first
 ```
 
 In the web UI, **Sync map** and **Inbox** do the same thing visually.
@@ -279,9 +279,9 @@ In the web UI, **Sync map** and **Inbox** do the same thing visually.
 <summary><b>Find out why an agent ignores a skill</b></summary>
 
 ```bash
-skills-mgr validate --all
-skills-mgr doctor --hygiene --scope all
-skills-mgr doctor --explain claude-code --project . --skill deploy-staging
+jackfield validate --all
+jackfield doctor --hygiene --scope all
+jackfield doctor --explain claude-code --project . --skill deploy-staging
 ```
 
 The hygiene report covers frontmatter that agents' parsers silently drop, an estimate of the Claude Code and Codex skill listings against their budgets, files OpenCode would truncate, and `~/.agents/skills` entries Claude Code cannot see.
@@ -292,8 +292,8 @@ The hygiene report covers frontmatter that agents' parsers silently drop, an est
 <summary><b>Turn a skill off without deleting it</b></summary>
 
 ```bash
-skills-mgr disable deploy-staging     # SKILL.md -> SKILL.md.disabled
-skills-mgr enable  deploy-staging
+jackfield disable deploy-staging     # SKILL.md -> SKILL.md.disabled
+jackfield enable  deploy-staging
 ```
 
 On the command line `disable`/`enable` act on the manager library; turn a copy in an agent folder on or off from the web UI's Skills page.
@@ -304,12 +304,12 @@ On the command line `disable`/`enable` act on the manager library; turn a copy i
 <summary><b>Undo a removal or a bad edit</b></summary>
 
 ```bash
-skills-mgr remove deploy-staging      # goes to trash
-skills-mgr trash list
-skills-mgr restore deploy-staging
+jackfield remove deploy-staging      # goes to trash
+jackfield trash list
+jackfield restore deploy-staging
 
-skills-mgr history deploy-staging     # lists retained snapshot ids
-skills-mgr restore deploy-staging --snapshot <ID>
+jackfield history deploy-staging     # lists retained snapshot ids
+jackfield restore deploy-staging --snapshot <ID>
 ```
 
 </details>
@@ -318,8 +318,8 @@ skills-mgr restore deploy-staging --snapshot <ID>
 <summary><b>Back up and move to another machine</b></summary>
 
 ```bash
-skills-mgr export --full --dest skills-backup.tar.gz   # skills + trash + templates
-skills-mgr import skills-backup.tar.gz --full          # on the other machine
+jackfield export --full --dest skills-backup.tar.gz   # skills + trash + templates
+jackfield import skills-backup.tar.gz --full          # on the other machine
 ```
 
 Archives are checked before anything is written: size limits, path traversal, links and a versioned manifest.
@@ -330,9 +330,9 @@ Archives are checked before anything is written: size limits, path traversal, li
 <summary><b>Update a skill safely from a folder</b></summary>
 
 ```bash
-skills-mgr update preview deploy-staging --from ./deploy-staging-v2   # diff + validation + risk, writes nothing
-skills-mgr update apply   deploy-staging <REVIEW_ID> --yes            # snapshot, then atomic swap
-skills-mgr update snapshots deploy-staging                            # rollback points
+jackfield update preview deploy-staging --from ./deploy-staging-v2   # diff + validation + risk, writes nothing
+jackfield update apply   deploy-staging <REVIEW_ID> --yes            # snapshot, then atomic swap
+jackfield update snapshots deploy-staging                            # rollback points
 ```
 
 </details>
@@ -341,25 +341,25 @@ skills-mgr update snapshots deploy-staging                            # rollback
 <summary><b>Install from the skills.sh registry with a review step</b></summary>
 
 ```bash
-skills-mgr install --search "react native"
-skills-mgr install --fetch vercel-labs/skills/find-skills --json        # download + review, nothing installed
-skills-mgr install --fetch --review <REVIEW_ID> --trust-confirmed       # commit exactly what you reviewed
+jackfield install --search "react native"
+jackfield install --fetch vercel-labs/skills/find-skills --json        # download + review, nothing installed
+jackfield install --fetch --review <REVIEW_ID> --trust-confirmed       # commit exactly what you reviewed
 ```
 
 Or hand off to the `skills` CLI, previewing first:
 
 ```bash
-skills-mgr install vercel-labs/agent-skills --dry-run
+jackfield install vercel-labs/agent-skills --dry-run
 ```
 
-Background and limits: [ADR-005](https://github.com/udayvarmora07/skills-manager/blob/main/docs/ADR-005-registry-network-and-provenance.md).
+Background and limits: [ADR-005](https://github.com/udayvarmora07/jackfield/blob/main/docs/ADR-005-registry-network-and-provenance.md).
 
 </details>
 
 <details>
 <summary><b>Lint skills in CI</b></summary>
 
-A copy-paste pull-request check built on `skills-mgr validate --path`: [docs/36-skill-ci-recipe-2026-11-08.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/36-skill-ci-recipe-2026-11-08.md).
+A copy-paste pull-request check built on `jackfield validate --path`: [docs/36-skill-ci-recipe-2026-11-08.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/36-skill-ci-recipe-2026-11-08.md).
 
 </details>
 
@@ -369,11 +369,11 @@ A copy-paste pull-request check built on `skills-mgr validate --path`: [docs/36-
 Put an [`evals/evals.json`](https://agentskills.io/skill-creation/evaluating-skills) inside the skill, then:
 
 ```bash
-skills-mgr validate deploy-staging --evals
-skills-mgr validate deploy-staging --evals-run runs.json   # grades with/without-skill outputs
+jackfield validate deploy-staging --evals
+jackfield validate deploy-staging --evals-run runs.json   # grades with/without-skill outputs
 ```
 
-Scores are written as files under the data directory. They are advisory and never block an install or edit. See [ADR-003](https://github.com/udayvarmora07/skills-manager/blob/main/docs/ADR-003-registry-bridge-and-eval-harness.md).
+Scores are written as files under the data directory. They are advisory and never block an install or edit. See [ADR-003](https://github.com/udayvarmora07/jackfield/blob/main/docs/ADR-003-registry-bridge-and-eval-harness.md).
 
 </details>
 
@@ -390,10 +390,10 @@ Guard rails: environment-variable keys take precedence, and a stored key is neve
 From the CLI or CI (estimate by default; `--run` sends):
 
 ```bash
-skills-mgr ai trigger-test --scope claude-code --saved --json
+jackfield ai trigger-test --scope claude-code --saved --json
 ```
 
-Details: [AI CLI/CI contract](https://github.com/udayvarmora07/skills-manager/blob/main/docs/42-ai-cli-ci-2026-11-09.md) and [AI features research](https://github.com/udayvarmora07/skills-manager/blob/main/docs/39-ai-features-research-and-catalogue-2026-11-09.md).
+Details: [AI CLI/CI contract](https://github.com/udayvarmora07/jackfield/blob/main/docs/42-ai-cli-ci-2026-11-09.md) and [AI features research](https://github.com/udayvarmora07/jackfield/blob/main/docs/39-ai-features-research-and-catalogue-2026-11-09.md).
 
 ## What it will not do, and what leaves your machine
 
@@ -412,7 +412,7 @@ Network traffic happens **only** in these cases:
 
 | When | Where it goes | What is sent |
 |---|---|---|
-| You browse, search or fetch from the registry | `https://skills.sh` only; other hosts and redirects are refused | The query or skill id, plus `SKILLS_MANAGER_REGISTRY_TOKEN` / `VERCEL_OIDC_TOKEN` if you set one |
+| You browse, search or fetch from the registry | `https://skills.sh` only; other hosts and redirects are refused | The query or skill id, plus `JACKFIELD_REGISTRY_TOKEN` / `VERCEL_OIDC_TOKEN` if you set one |
 | You run a package install (`install SOURCE` without `--dry-run`/`--preview`) | Whatever `npx`/`pnpm`/`yarn`/`bunx skills add` contacts | Decided by that tool, not by this one |
 | You turn on AI assist and run a check | The provider and endpoint you configured | The prompts, skill names and descriptions (and, for some checks, skill bodies) that the check shows you in estimate mode |
 | You opt into the SkillSpector scan (`--external-scan`) | `api.osv.dev`, from SkillSpector | Declared dependency names |
@@ -424,7 +424,7 @@ Network traffic happens **only** in these cases:
 ## How it works
 
 ```text
- skills-mgr (CLI)        web UI (Vue, vendored)
+ jackfield (CLI)        web UI (Vue, vendored)
         │                       │  JSON over 127.0.0.1
         └───────────┬───────────┘
                     ▼
@@ -438,18 +438,18 @@ Network traffic happens **only** in these cases:
    SQLite index (rebuildable cache, never authoritative)
 ```
 
-- **Data directory:** `$SKILLS_MANAGER_DATA` → `$XDG_DATA_HOME` → `~/.local/share`, then `/skills-manager`. It holds `skills/`, `trash/`, `backups/`, `templates/`, `snapshots/` and the index. Unsafe roots (shared or world-writable) are refused. `--data-dir PATH` overrides the location for one command.
+- **Data directory:** `$JACKFIELD_DATA` → `$XDG_DATA_HOME` → `~/.local/share`, then `/jackfield` (a pre-rename `/skills-manager` is used in place; `$SKILLS_MANAGER_DATA` is still read). It holds `skills/`, `trash/`, `backups/`, `templates/`, `snapshots/` and the index. Unsafe roots (shared or world-writable) are refused. `--data-dir PATH` overrides the location for one command.
 - **Locking:** a CLI process and a web UI process on the same data directory exclude each other through advisory file locks.
 - **Safety:** every skill name is validated before it becomes a path, and every path is checked to stay inside its root. Uploads and archives are size-bounded. Skill text is escaped everywhere it is displayed.
 
-Deeper reading: [architecture](https://github.com/udayvarmora07/skills-manager/blob/main/docs/01-architecture.md) · [modules](https://github.com/udayvarmora07/skills-manager/blob/main/docs/02-modules.md) · [Store API and schema](https://github.com/udayvarmora07/skills-manager/blob/main/docs/04-store-api.md).
+Deeper reading: [architecture](https://github.com/udayvarmora07/jackfield/blob/main/docs/01-architecture.md) · [modules](https://github.com/udayvarmora07/jackfield/blob/main/docs/02-modules.md) · [Store API and schema](https://github.com/udayvarmora07/jackfield/blob/main/docs/04-store-api.md).
 
 ## Troubleshooting and FAQ
 
 <details>
 <summary><b>"unsafe data root: … is writable by another user"</b></summary>
 
-The data root (the base folder: `$SKILLS_MANAGER_DATA`, or `~/.local/share`
+The data root (the base folder: `$JACKFIELD_DATA`, or `~/.local/share`
 by default) must not be writable by other users. Run the exact command the
 message prints, for example:
 
@@ -465,7 +465,7 @@ chmod 700 ~/.local/share
 The SQLite index is a cache. Rebuild it from the files:
 
 ```bash
-skills-mgr db resync     # or: skills-mgr db rebuild
+jackfield db resync     # or: jackfield db rebuild
 ```
 
 </details>
@@ -481,7 +481,7 @@ Use `http://127.0.0.1:<port>` or `http://localhost:<port>` with the port the ser
 <summary><b>Port 8765 is already in use</b></summary>
 
 ```bash
-skills-mgr webui --port 9000
+jackfield webui --port 9000
 ```
 
 </details>
@@ -503,7 +503,7 @@ No, unless you use one of the opt-in features listed in [what leaves your machin
 <details>
 <summary><b>Exit codes and machine-readable output</b></summary>
 
-`0` ok · `1` error · `2` usage · `130` interrupted. Most commands accept `--json`. See the full [CLI reference](https://github.com/udayvarmora07/skills-manager/blob/main/docs/03-cli-surface.md).
+`0` ok · `1` error · `2` usage · `130` interrupted. Most commands accept `--json`. See the full [CLI reference](https://github.com/udayvarmora07/jackfield/blob/main/docs/03-cli-surface.md).
 
 </details>
 
@@ -511,22 +511,22 @@ No, unless you use one of the opt-in features listed in [what leaves your machin
 
 | If you want to… | Read |
 |---|---|
-| Learn every command and flag | [docs/03-cli-surface.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/03-cli-surface.md) |
-| Understand the design | [docs/01-architecture.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/01-architecture.md) |
-| Use the REST API or web UI internals | [docs/08-web-ui.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/08-web-ui.md) |
-| Migrate hand-managed skill folders safely | [docs/17-adoption-and-distribution.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/17-adoption-and-distribution.md) |
-| See why decisions were made | the `docs/ADR-*.md` files, starting at [docs/README.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/README.md) |
-| Know what changed in each release | [CHANGELOG.md](https://github.com/udayvarmora07/skills-manager/blob/main/CHANGELOG.md) |
-| Work on the code with an AI agent | [AGENTS.md](https://github.com/udayvarmora07/skills-manager/blob/main/AGENTS.md) and [docs/SESSION-CONTEXT.md](https://github.com/udayvarmora07/skills-manager/blob/main/docs/SESSION-CONTEXT.md) |
+| Learn every command and flag | [docs/03-cli-surface.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/03-cli-surface.md) |
+| Understand the design | [docs/01-architecture.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/01-architecture.md) |
+| Use the REST API or web UI internals | [docs/08-web-ui.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/08-web-ui.md) |
+| Migrate hand-managed skill folders safely | [docs/17-adoption-and-distribution.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/17-adoption-and-distribution.md) |
+| See why decisions were made | the `docs/ADR-*.md` files, starting at [docs/README.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/README.md) |
+| Know what changed in each release | [CHANGELOG.md](https://github.com/udayvarmora07/jackfield/blob/main/CHANGELOG.md) |
+| Work on the code with an AI agent | [AGENTS.md](https://github.com/udayvarmora07/jackfield/blob/main/AGENTS.md) and [docs/SESSION-CONTEXT.md](https://github.com/udayvarmora07/jackfield/blob/main/docs/SESSION-CONTEXT.md) |
 
-An agent-facing management skill ships inside the package at `skillsmgr/examples/skills-manager-management/`. Copy it into your agent's skills folder to let the agent drive this tool with preview-first, approval-gated steps.
+An agent-facing management skill ships inside the package at `skillsmgr/examples/jackfield-management/`. Copy it into your agent's skills folder to let the agent drive this tool with preview-first, approval-gated steps.
 
 ## Contributing
 
-Contributions are welcome. Bug reports, new agent scopes, validation rules, UI polish and tests are especially useful. Start with [CONTRIBUTING.md](https://github.com/udayvarmora07/skills-manager/blob/main/CONTRIBUTING.md), which covers setup and every check CI runs.
+Contributions are welcome. Bug reports, new agent scopes, validation rules, UI polish and tests are especially useful. Start with [CONTRIBUTING.md](https://github.com/udayvarmora07/jackfield/blob/main/CONTRIBUTING.md), which covers setup and every check CI runs.
 
 ```bash
-git clone https://github.com/udayvarmora07/skills-manager && cd skills-manager
+git clone https://github.com/udayvarmora07/jackfield && cd jackfield
 python3 -m unittest discover -s tests   # stdlib only, no network
 python3 smoke_store.py && python3 smoke_web.py
 python3 check_docs.py && python3 check_complexity.py
@@ -538,16 +538,16 @@ The project holds a few deliberate constraints, and changes to them need maintai
 2. The SQLite schema stays unchanged.
 3. The CLI stays stdlib-only.
 4. The web UI keeps a stdlib backend, no build step, no new runtime dependencies and a loopback bind.
-5. No new CLI commands or Store methods without approval. Propose them in an [issue](https://github.com/udayvarmora07/skills-manager/issues) or a draft PR first.
+5. No new CLI commands or Store methods without approval. Propose them in an [issue](https://github.com/udayvarmora07/jackfield/issues) or a draft PR first.
 
 ## Security
 
-Please report vulnerabilities privately, as described in [SECURITY.md](https://github.com/udayvarmora07/skills-manager/blob/main/SECURITY.md). Design notes: [threat model](https://github.com/udayvarmora07/skills-manager/blob/main/skills-manager-threat-model.md) · [security review](https://github.com/udayvarmora07/skills-manager/blob/main/security_best_practices_report.md) · [static analysis policy](https://github.com/udayvarmora07/skills-manager/blob/main/docs/STATIC-ANALYSIS.md). Release artifacts are built with a hash-pinned toolchain and carry build provenance attestations.
+Please report vulnerabilities privately, as described in [SECURITY.md](https://github.com/udayvarmora07/jackfield/blob/main/SECURITY.md). Design notes: [threat model](https://github.com/udayvarmora07/jackfield/blob/main/skills-manager-threat-model.md) · [security review](https://github.com/udayvarmora07/jackfield/blob/main/security_best_practices_report.md) · [static analysis policy](https://github.com/udayvarmora07/jackfield/blob/main/docs/STATIC-ANALYSIS.md). Release artifacts are built with a hash-pinned toolchain and carry build provenance attestations.
 
 ## Roadmap
 
-See [ROADMAP.md](https://github.com/udayvarmora07/skills-manager/blob/main/ROADMAP.md) for what is shipped, what is next and what is still a proposal.
+See [ROADMAP.md](https://github.com/udayvarmora07/jackfield/blob/main/ROADMAP.md) for what is shipped, what is next and what is still a proposal.
 
 ## License
 
-[MIT](https://github.com/udayvarmora07/skills-manager/blob/main/LICENSE). Built on the open [Agent Skills](https://agentskills.io) format. Thanks to everyone who files issues and shares skills.
+[MIT](https://github.com/udayvarmora07/jackfield/blob/main/LICENSE). Built on the open [Agent Skills](https://agentskills.io) format. Thanks to everyone who files issues and shares skills.

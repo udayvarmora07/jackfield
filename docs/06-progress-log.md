@@ -7,6 +7,38 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-27 — Skills Manager renamed to Jackfield
+
+**[SPEC]** The owner approved renaming everything user-facing (2026-11-26):
+the CLI is `jackfield` with `skills-mgr` kept as an alias (both are console
+scripts for `skillsmgr.cli:main`); the web UI title, header, library mark,
+messages, README, current reference docs, installers' text and the shipped
+skill (`skillsmgr/examples/jackfield-management/`) use the new name.
+
+**[SPEC]** Data is never moved. `paths.data_dir()` appends `jackfield` for a new
+install and uses an existing `<base>/skills-manager` in place when no
+`<base>/jackfield` exists. `JACKFIELD_DATA`, `JACKFIELD_REGISTRY_TOKEN` and
+`JACKFIELD_AI_ENV_KEY_ENDPOINT` win; the `SKILLS_MANAGER_*` names are still read
+when the new one is unset (an explicitly blank AI endpoint variable stays off).
+
+**[SPEC]** Kept on purpose: the internal module `skillsmgr`, the backup format id
+`"app": "skills-mgr"` (old backups restore), the index file `skills-manager.db`,
+the API `consumer` value `skills-manager`, install markers and temp prefixes,
+and every dated or archived document. The PyPI distribution stays
+`skill-control-plane` until the release that publishes `jackfield`; installers,
+`tools/verify_published.py` and trusted publishing switch with that release.
+
+**[NOTE] Defects found while renaming.** (1) In-process `--data-dir` set the data
+variable for the rest of the process; with a new higher-precedence name the leak
+pointed 478 tests at deleted temp roots. `cli.main` now scopes the override to
+one command (`_scoped_data_env`). (2) The suite clears an inherited
+`JACKFIELD_DATA` (`tests/test_00_portable_environment.py`) and the harnesses set
+both names, so a developer's own setting cannot aim tests at their library.
+(3) The unsafe-root hint first suggested a base that resolved back to the same
+unsafe legacy folder; it again names a fresh private subtree.
+`tests/test_jackfield_rename.py` pins the fallback, precedence, symlink handling,
+the no-leak rule and both legacy variables.
+
 ## 2026-11-26 — Jackfield name study and brand mark
 
 **[NOTE] Name.** "Skills Manager" stops fitting once MCP servers arrive. A naming

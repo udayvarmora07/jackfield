@@ -1,4 +1,4 @@
-# Contributing to skills-manager
+# Contributing to Jackfield
 
 Thanks for considering a contribution. This project is intentionally small and dependency-free — please read this before opening a PR.
 
@@ -21,22 +21,22 @@ Thanks for considering a contribution. This project is intentionally small and d
 ## Development setup
 
 ```bash
-git clone https://github.com/udayvarmora07/skills-manager
-cd skills-manager
+git clone https://github.com/udayvarmora07/jackfield
+cd jackfield
 python3 -m unittest discover -s tests   # no extra deps needed
 ```
 
 Isolated throwaway runs (never touch your real skills):
 
 ```bash
-export SKILLS_MANAGER_DATA=$(mktemp -d)
+export JACKFIELD_DATA=$(mktemp -d)
 python3 -m skillsmgr init
 python3 -m skillsmgr create demo -d "Demo skill"
 python3 -m skillsmgr webui --no-browser
 ```
 
 The manager validates environment-selected roots before use. Keep
-`SKILLS_MANAGER_DATA`/`XDG_DATA_HOME` on a private, user-owned directory (the
+`JACKFIELD_DATA`/`XDG_DATA_HOME` on a private, user-owned directory (the
 `mktemp -d` example is appropriate); shared or group/world-writable roots are
 rejected.
 
@@ -103,7 +103,7 @@ do not weaken the trust checks to accommodate a local PATH layout.
 
 ## PR process
 
-1. For anything beyond a trivial fix, discuss the scope in an [issue](https://github.com/udayvarmora07/skills-manager/issues) first. If you cannot create an issue, open a draft PR with the proposal; wait for maintainer approval before changing a locked constraint.
+1. For anything beyond a trivial fix, discuss the scope in an [issue](https://github.com/udayvarmora07/jackfield/issues) first. If you cannot create an issue, open a draft PR with the proposal; wait for maintainer approval before changing a locked constraint.
 2. Keep PRs focused; include the verification output (compile + unittest + smokes).
 3. Update `CHANGELOG.md` under `Unreleased`.
 

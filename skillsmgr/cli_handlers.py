@@ -220,7 +220,7 @@ def _is_read_only(args) -> bool:
 def _ensure_index_for(store: Store, args) -> None:
     """Bootstrap the index for commands that need it.
 
-    A read command must not bootstrap: `skills-mgr doctor` recreating the index
+    A read command must not bootstrap: `jackfield doctor` recreating the index
     before it audits is how a lost index could never be reported -- the exact
     "a read that repairs the disk on its way to answering" defect docs/24 §D3-4
     closed on the web side.  Reads handle an absent index themselves
@@ -233,7 +233,7 @@ def _ensure_index_for(store: Store, args) -> None:
 def make_store(args) -> Store:
     """Build a Store for parsed CLI args, honoring ``--data-dir``/color flags."""
     if args.data_dir:
-        os.environ["SKILLS_MANAGER_DATA"] = str(Path(args.data_dir).expanduser())
+        os.environ["JACKFIELD_DATA"] = str(Path(args.data_dir).expanduser())
     if args.color == "always":
         colors.COLORS.enabled = True
     elif args.color == "never":
@@ -296,11 +296,11 @@ def _empty_global_hint(args, scope: str) -> None:
     try:
         populated = [s for s in scopes.list_scopes() if s["id"] != "global" and s["count"]]
     except (OSError, StoreError, ValueError):
-        print("hint: agent folders could not be checked; use `skills-mgr scopes` for details")
+        print("hint: agent folders could not be checked; use `jackfield scopes` for details")
         return
     if populated:
         counts = ", ".join(f"{s['id']}: {s['count']}" for s in populated)
-        print(f"hint: agent folders contain skills ({_display(counts)}); use `skills-mgr list --scope all`")
+        print(f"hint: agent folders contain skills ({_display(counts)}); use `jackfield list --scope all`")
 
 
 def cmd_create(args, store: Store) -> int:
@@ -427,7 +427,7 @@ def cmd_remove(args, store: Store) -> int:
     elif result["action"] == "purged":
         print(f"purged {args.name}")
     else:
-        print(f"trashed {args.name} (restore with 'skills-mgr restore {args.name}')")
+        print(f"trashed {args.name} (restore with 'jackfield restore {args.name}')")
     return EXIT_OK
 
 
@@ -1121,7 +1121,7 @@ def cmd_templates_list(args, store: Store) -> int:
         _print_json(names)
         return EXIT_OK
     if not names:
-        print("no templates; create one with 'skills-mgr templates new NAME'")
+        print("no templates; create one with 'jackfield templates new NAME'")
         return EXIT_OK
     for name in names:
         print(name)
@@ -1463,7 +1463,7 @@ def _update_preview_text(result: dict) -> None:
     print(f"snapshot required: {'yes' if result.get('snapshot_required_before_commit') else 'no'}")
     print(f"commit allowed: {'yes' if result.get('commit_allowed') else 'no'}")
     if result.get("review_id"):
-        print(f"apply with: skills-mgr update apply {_display(str(target.get('name', 'NAME')))} {result['review_id']} --scope {_display(str(target.get('scope', 'global')))} --yes")
+        print(f"apply with: jackfield update apply {_display(str(target.get('name', 'NAME')))} {result['review_id']} --scope {_display(str(target.get('scope', 'global')))} --yes")
 
 
 def _external_scan_flag(args) -> dict | None:

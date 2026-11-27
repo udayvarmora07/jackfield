@@ -98,7 +98,7 @@ def build(root: Path, skills: int) -> None:
 def _environ(root: Path) -> None:
     """Point every path this process resolves at the fixture, before imports."""
     os.environ["HOME"] = str(root / "home")
-    os.environ["SKILLS_MANAGER_DATA"] = str(root / "data")
+    os.environ["JACKFIELD_DATA"] = os.environ["SKILLS_MANAGER_DATA"] = str(root / "data")
     os.environ["XDG_DATA_HOME"] = str(root / "xdg")
     os.environ["XDG_CONFIG_HOME"] = str(root / "xdg-config")
     os.environ["CODEX_HOME"] = str(root / "home" / ".codex")

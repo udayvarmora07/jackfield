@@ -720,7 +720,7 @@ def _agent_folder_problems(path: Path, document: dict, view: TrackingView, ignor
         return problems
     real = _real(path)
     if real == _real(library):
-        return [_problem("library", "That's Skills Manager's own library. Pick an agent's folder.")]
+        return [_problem("library", "That's Jackfield's own library. Pick an agent's folder.")]
     owner = _owner_of(real, document, ignore_id)
     if owner is not None:
         sid, label = owner

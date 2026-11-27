@@ -63,7 +63,7 @@ REGISTRY_REVIEW_DIRNAME = "registry-reviews"
 #: which is what made this outage invisible to a reader of the CLI output.
 AUTH_REQUIRED_NOTE = (
     "this registry route now requires a skills.sh project token "
-    "(SKILLS_MANAGER_REGISTRY_TOKEN or VERCEL_OIDC_TOKEN); a binary cannot "
+    "(JACKFIELD_REGISTRY_TOKEN or VERCEL_OIDC_TOKEN); a binary cannot "
     "mint one. The public catalog is still available -- use 'search' or "
     "'fetch', which need no token."
 )
@@ -625,6 +625,19 @@ def _reference(spec: str) -> dict:
         raise RegistryError(str(exc)) from exc
 
 
+# The first set variable wins; SKILLS_MANAGER_REGISTRY_TOKEN is the pre-rename name.
+_TOKEN_VARIABLES = ("JACKFIELD_REGISTRY_TOKEN", "SKILLS_MANAGER_REGISTRY_TOKEN", "VERCEL_OIDC_TOKEN")
+
+
+def _env_token() -> str | None:
+    """The registry token from the environment, or ``None`` when none is set."""
+    for name in _TOKEN_VARIABLES:
+        value = os.environ.get(name)
+        if value is not None:
+            return value
+    return None
+
+
 class RegistryClient:
     """Access the authenticated skills.sh API with bounded local caching."""
 
@@ -643,9 +656,7 @@ class RegistryClient:
     def _credential(self) -> str | None:
         value = self._token
         if value is None:
-            value = os.environ.get("SKILLS_MANAGER_REGISTRY_TOKEN")
-        if value is None:
-            value = os.environ.get("VERCEL_OIDC_TOKEN")
+            value = _env_token()
         if value is not None and (not isinstance(value, str) or not value.strip()):
             raise RegistryError("registry token is empty")
         if value is not None and len(value) > 8192:
@@ -762,7 +773,7 @@ class RegistryClient:
             expires = cached.get("expires_epoch")
             if isinstance(expires, (int, float)) and expires > now:
                 return cached["payload"], {"cache_state": "fresh", "stale": False, "url": url}
-        headers = {"Accept": "application/json", "User-Agent": "skills-manager/registry"}
+        headers = {"Accept": "application/json", "User-Agent": "jackfield/registry"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
         request = Request(url, headers=headers, method="GET")

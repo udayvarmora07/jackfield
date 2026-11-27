@@ -43,7 +43,7 @@ class TrustRootSelectionTests(unittest.TestCase):
         os.environ["SKILLS_MANAGER_DATA"] = str(selected)
         os.environ["XDG_DATA_HOME"] = str(self.base / "ignored-xdg")
 
-        self.assertEqual(paths.data_dir(), target.resolve() / "skills-manager")
+        self.assertEqual(paths.data_dir(), target.resolve() / "jackfield")
 
     def test_rejects_the_filesystem_root_as_an_environment_data_root(self):
         os.environ["SKILLS_MANAGER_DATA"] = "/"
@@ -58,7 +58,7 @@ class TrustRootSelectionTests(unittest.TestCase):
         os.environ["SKILLS_MANAGER_DATA"] = "  "
         os.environ["XDG_DATA_HOME"] = str(selected)
 
-        self.assertEqual(paths.data_dir(), selected / "skills-manager")
+        self.assertEqual(paths.data_dir(), selected / "jackfield")
 
     @unittest.skipUnless(os.name == "posix", "POSIX permission contract")
     def test_rejects_a_group_or_world_writable_selected_root(self):
@@ -117,7 +117,7 @@ class TrustRootSelectionTests(unittest.TestCase):
         message = str(ctx.exception)
         # The refusal must say how to fix it, not only what is wrong.
         self.assertIn(f"chmod 700 {manager}", message)
-        self.assertIn("SKILLS_MANAGER_DATA", message)
+        self.assertIn("JACKFIELD_DATA", message)
         self.assertEqual(
             stat.S_IMODE(manager.stat().st_mode),
             stat.S_IRWXU | stat.S_IWGRP | stat.S_IXGRP,
@@ -185,7 +185,7 @@ class TrustRootSelectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unsafe data root"):
                 paths.data_dir()
         else:
-            self.assertEqual(paths.data_dir(), unsafe / "skills-manager")
+            self.assertEqual(paths.data_dir(), unsafe / "jackfield")
 
     def test_relative_root_remains_absolute_and_safe(self):
         old_cwd = Path.cwd()
@@ -195,7 +195,7 @@ class TrustRootSelectionTests(unittest.TestCase):
 
         resolved = paths.data_dir()
 
-        self.assertEqual(resolved, (self.base / "relative-data" / "skills-manager").resolve())
+        self.assertEqual(resolved, (self.base / "relative-data" / "jackfield").resolve())
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Hurl HTTP contracts against an isolated, disposable Skills Manager."""
+"""Run Hurl HTTP contracts against an isolated, disposable Jackfield."""
 
 from __future__ import annotations
 

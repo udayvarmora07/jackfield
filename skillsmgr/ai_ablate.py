@@ -189,9 +189,9 @@ def _ladder(name: str) -> list:
          'action': 'Edit the skill and add "disable-model-invocation: true" to its frontmatter.',
          'applies_to': 'Claude Code documents this field; other agents may ignore it.'},
         {'step': 'disable', 'effect': 'Kept in the library but loaded by no agent.',
-         'action': f'skills-mgr disable {name}', 'applies_to': 'every agent this library feeds'},
+         'action': f'jackfield disable {name}', 'applies_to': 'every agent this library feeds'},
         {'step': 'archive', 'effect': 'Moved out of the library; restorable from Archive.',
-         'action': f'skills-mgr archive apply {name}', 'applies_to': 'every agent this library feeds'},
+         'action': f'jackfield archive apply {name}', 'applies_to': 'every agent this library feeds'},
     ]
 
 

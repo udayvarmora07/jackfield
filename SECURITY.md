@@ -10,7 +10,7 @@
 ## Reporting a vulnerability
 
 **Do not open a public issue for security reports.** Use
-[private vulnerability reporting](https://github.com/udayvarmora07/skills-manager/security/advisories/new)
+[private vulnerability reporting](https://github.com/udayvarmora07/jackfield/security/advisories/new)
 (or email the maintainer) with:
 
 - What you found and where (file + line if possible).
@@ -77,9 +77,9 @@ boundary; it does not protect files already tracked by Git.
 
 ## Data-root trust boundary
 
-`SKILLS_MANAGER_DATA` and `XDG_DATA_HOME` are operator-controlled overrides,
+`JACKFIELD_DATA` and `XDG_DATA_HOME` are operator-controlled overrides,
 not a sandbox boundary. `paths.data_dir()` resolves the selected base and the
-manager-owned `skills-manager` directory, rejects filesystem roots, regular
+manager-owned `jackfield` directory (or a pre-rename `skills-manager` one, used in place), rejects filesystem roots, regular
 files, non-writable roots, roots owned by another user, and non-sticky
 group/other-writable directories, and fails closed instead of falling back to
 another environment value. New manager-owned directory components are created

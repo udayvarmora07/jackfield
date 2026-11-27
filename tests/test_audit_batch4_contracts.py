@@ -274,7 +274,7 @@ class HomeAndRelativeRootTests(BatchFourCase):
         self.assertTrue(resolved.is_absolute(), resolved)
         self.assertEqual(
             resolved,
-            self.base / "relative-data" / "skills-manager",
+            self.base / "relative-data" / "jackfield",
         )
 
 

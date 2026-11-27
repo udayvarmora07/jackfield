@@ -1,6 +1,6 @@
 ---
 version: beta
-name: Skills Manager
+name: Jackfield
 description: >-
   A local authority over the skill files that coding agents actually load. For a
   developer whose agents disagree and who has no way to see why. It should feel

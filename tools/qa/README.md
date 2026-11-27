@@ -53,6 +53,6 @@ by Keploy uses an account and uploads reports and mocks.
 Snyk Agent Scan is relevant for reviewing skills and MCP configurations.
 Its scan sends skill content and component metadata to its analysis service,
 and the project describes the CLI output schema as experimental. The default
-QA checks keep content local. Skills Manager's existing local risk patterns
+QA checks keep content local. Jackfield's existing local risk patterns
 and optional SkillSpector integration remain the skill review entry points.
 [Agent Scan data handling](https://github.com/snyk/agent-scan#analysis-and-validation)

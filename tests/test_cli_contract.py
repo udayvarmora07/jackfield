@@ -121,7 +121,7 @@ class CliContractTests(unittest.TestCase):
         self.assertEqual(code, cli.EXIT_ERROR)
         self.assertIn("invalid skill name", err)
         # the invalid name must be rejected before any data-dir mutation
-        self.assertFalse((Path(self.tmp.name) / "skills-manager" / "skills-manager.db").exists())
+        self.assertFalse((Path(self.tmp.name) / "jackfield" / "skills-manager.db").exists())
 
     def test_info1_editor_metacharacters_stay_inert_argv(self):
         # INFO-1: cmd_open passes shlex-split editor words to subprocess.call
@@ -163,7 +163,7 @@ class CliContractTests(unittest.TestCase):
         self.assertIn("control character", err)
         self.assertNotIn("unexpected error", err)
         self.assertFalse(
-            (Path(self.tmp.name) / "skills-manager" / "skills" / "meta").exists()
+            (Path(self.tmp.name) / "jackfield" / "skills" / "meta").exists()
         )
 
     def test_edit_fails_closed_on_a_malformed_document(self):
@@ -174,7 +174,7 @@ class CliContractTests(unittest.TestCase):
             self.invoke(["create", "mal", "-d", "Use this when testing."])[0],
             cli.EXIT_OK,
         )
-        document = Path(self.tmp.name) / "skills-manager" / "skills" / "mal" / "SKILL.md"
+        document = Path(self.tmp.name) / "jackfield" / "skills" / "mal" / "SKILL.md"
         broken = "---\ndescription: broken\nmalformed here\n---\nbody\n"
         document.write_text(broken, encoding="utf-8")
 
@@ -213,7 +213,7 @@ class CliContractTests(unittest.TestCase):
         code, out, err = self.invoke(["list"])
         self.assertEqual(code, cli.EXIT_OK)
         self.assertIn("fresh-skill", out)
-        self.assertTrue((Path(self.tmp.name) / "skills-manager" / "skills-manager.db").is_file())
+        self.assertTrue((Path(self.tmp.name) / "jackfield" / "skills-manager.db").is_file())
 
 
 class Cli10FlagCombinationTests(unittest.TestCase):
@@ -249,7 +249,7 @@ class Cli10FlagCombinationTests(unittest.TestCase):
                 self.assertEqual(out, "")
                 self.assertIn(message, err)
                 self.assertNotIn("Traceback", err)
-                self.assertFalse(Path(self.tmp.name, "skills-manager").exists())
+                self.assertFalse(Path(self.tmp.name, "jackfield").exists())
 
     def test_validate_workspace_requires_evals_without_mutation(self):
         workspace = Path(self.tmp.name) / "eval-workspace"
@@ -258,7 +258,7 @@ class Cli10FlagCombinationTests(unittest.TestCase):
         self.assertEqual(out, "")
         self.assertIn("--workspace requires --evals or --evals-run", err)
         self.assertNotIn("Traceback", err)
-        self.assertFalse(Path(self.tmp.name, "skills-manager").exists())
+        self.assertFalse(Path(self.tmp.name, "jackfield").exists())
 
     def test_validate_with_evals_accepts_workspace_override(self):
         self.assertEqual(
@@ -280,7 +280,7 @@ class Cli10FlagCombinationTests(unittest.TestCase):
         self.assertEqual(out, "")
         self.assertIn("NAME cannot be combined with --text", err)
         self.assertNotIn("Traceback", err)
-        self.assertFalse(Path(self.tmp.name, "skills-manager").exists())
+        self.assertFalse(Path(self.tmp.name, "jackfield").exists())
 
     def test_install_trust_flags_require_preview_without_mutation(self):
         for flag in ("--trust-confirmed", "--registry-hash"):
@@ -294,7 +294,7 @@ class Cli10FlagCombinationTests(unittest.TestCase):
                 self.assertEqual(out, "")
                 self.assertIn("requires --preview", err)
                 self.assertNotIn("Traceback", err)
-                self.assertFalse(Path(self.tmp.name, "skills-manager").exists())
+                self.assertFalse(Path(self.tmp.name, "jackfield").exists())
 
     def test_valid_selector_and_preview_combinations_remain_supported(self):
         self.assertEqual(

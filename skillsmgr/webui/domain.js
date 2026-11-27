@@ -1,4 +1,4 @@
-/* Skills Manager frontend domain utilities (no build step). */
+/* Jackfield frontend domain utilities (no build step). */
 "use strict";
 
 (function () {
@@ -185,7 +185,7 @@ const OBSERVED_STATE_LABELS = Object.freeze({
  *
  * A symlinked skill directory whose target sits outside its managed root is the
  * common case: the tool deliberately refuses to follow it (SCOPE-2 in
- * loader.py, because `skills-mgr install` symlinks by default and a followed
+ * loader.py, because `jackfield install` symlinks by default and a followed
  * link would let a write land outside the root). The document is not corrupt —
  * it is unreachable on purpose, and the reader's next step is completely
  * different from "repair the frontmatter". */

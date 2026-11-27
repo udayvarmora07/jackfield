@@ -4,6 +4,19 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
 
 ## [Unreleased]
 
+### Changed
+
+- **Skills Manager is now Jackfield.** The command is `jackfield`; `skills-mgr`
+  stays as an alias. The web UI, docs and the shipped management skill
+  (`jackfield-management`) use the new name, and the logo is the Jackfield
+  field mark. New installs keep their library in `~/.local/share/jackfield`;
+  an existing `~/.local/share/skills-manager` library is used where it is and
+  never moved. `JACKFIELD_DATA`, `JACKFIELD_REGISTRY_TOKEN` and
+  `JACKFIELD_AI_ENV_KEY_ENDPOINT` replace the `SKILLS_MANAGER_*` variables,
+  which are still read when the new ones are unset. The PyPI distribution
+  stays `skill-control-plane` until the release that publishes `jackfield`.
+  Backup archives keep their `skills-mgr` format id, so old backups restore.
+
 ### Added
 
 - CLI-only transcript usage consent and cached activity reports, archive

@@ -171,7 +171,7 @@ class _SuggestingParser(argparse.ArgumentParser):
         """Before Python 3.14, add the closest choice to an invalid-choice error.
 
         3.14's ``suggest_on_error`` does this itself; older interpreters
-        printed every command and no hint, so ``skills-mgr lst`` gave nothing.
+        printed every command and no hint, so ``jackfield lst`` gave nothing.
         """
         try:
             super()._check_value(action, value)
@@ -186,14 +186,14 @@ class _SuggestingParser(argparse.ArgumentParser):
 
 
 def build_parser(commands) -> argparse.ArgumentParser:
-    """Build the ``skills-mgr`` parser, wiring ``commands`` handlers.
+    """Build the ``jackfield`` parser, wiring ``commands`` handlers.
 
     ``commands`` maps command/registration helper names to callables so the
     handler module stays the single owner of command behavior. Only the
     registration names used below are required.
     """
     parser = _SuggestingParser(
-        prog="skills-mgr",
+        prog="jackfield",
         description="Manage agentic AI skills (SKILL.md) from the command line.",
     )
     parser.add_argument(
@@ -202,7 +202,7 @@ def build_parser(commands) -> argparse.ArgumentParser:
     parser.add_argument(
         "--data-dir",
         metavar="PATH",
-        help="override the data directory (default: $SKILLS_MANAGER_DATA or ~/.local/share/skills-manager)",
+        help="override the data directory (default: $JACKFIELD_DATA or ~/.local/share/jackfield; an existing ~/.local/share/skills-manager is used in place)",
     )
     color_group = parser.add_mutually_exclusive_group()
     color_group.add_argument(

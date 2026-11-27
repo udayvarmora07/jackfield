@@ -580,7 +580,7 @@ def _duplicate_findings(records: list[dict]) -> list[dict]:
                     "effective_load": "not inferred",
                 },
                 "Compare the exact copies in the web UI Sync map, or run "
-                "`skills-mgr update preview NAME --scope SCOPE --from DIR` "
+                "`jackfield update preview NAME --scope SCOPE --from DIR` "
                 "with one copy as the candidate. Review before applying or syncing.",
             ))
     by_hash = _groups(records, "content_hash")
@@ -1392,7 +1392,7 @@ def _claude_listing_section(prepared: list[dict], *, home, project_root, window:
 
 
 _BRIDGE_SOURCE_SCOPE = "agents"
-_BRIDGE_COPY_COMMAND = "skills-mgr sync <name> --from agents --to claude-code"
+_BRIDGE_COPY_COMMAND = "jackfield sync <name> --from agents --to claude-code"
 _BRIDGE_EXPLANATION = (
     "Claude Code documents ~/.claude/skills, project .claude/skills, managed and "
     "plugin skills, but not ~/.agents/skills, so a skill that exists only there "

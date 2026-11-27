@@ -24,7 +24,7 @@ MAX_TREE_BYTES = 256 * 1024 * 1024
 MAX_RECEIPT_BYTES = 4096
 RECEIPT = "ARCHIVE.json"
 TREE = "skill"
-INDEX_WARNING = "The move completed on disk. Run skills-mgr db resync to repair the index."
+INDEX_WARNING = "The move completed on disk. Run jackfield db resync to repair the index."
 
 
 def _encode(value):

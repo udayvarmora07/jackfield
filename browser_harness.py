@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dev-only Chromium smoke harness for the local Skills Manager UI.
+"""Dev-only Chromium smoke harness for the local Jackfield UI.
 
 This intentionally uses the system Chrome DevTools Protocol instead of adding
 runtime or test dependencies. It starts a hermetic web server, launches
@@ -424,7 +424,7 @@ def run() -> int:
         home.mkdir(parents=True, exist_ok=True)
         os.environ["HOME"] = str(home)
         os.environ["XDG_DATA_HOME"] = str(home / ".local" / "share")
-        os.environ["SKILLS_MANAGER_DATA"] = str(data_dir)
+        os.environ["JACKFIELD_DATA"] = os.environ["SKILLS_MANAGER_DATA"] = str(data_dir)
         store = Store(data_dir)
         store.init_db()
         store.create("browser-probe", "A browser harness fixture skill", body="# Browser probe\n\nA healthy active fixture.\n")
@@ -483,7 +483,7 @@ def run() -> int:
             empty_home.mkdir(parents=True, exist_ok=True)
             os.environ["HOME"] = str(empty_home)
             os.environ["XDG_DATA_HOME"] = str(empty_home / ".local" / "share")
-            os.environ["SKILLS_MANAGER_DATA"] = str(empty_data)
+            os.environ["JACKFIELD_DATA"] = os.environ["SKILLS_MANAGER_DATA"] = str(empty_data)
             empty_store = Store(empty_data)
             empty_store.init_db()
             empty_server = WebAppServer(empty_store, port=0)

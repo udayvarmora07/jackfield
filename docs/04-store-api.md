@@ -1,4 +1,4 @@
-# Store API — Skills Manager
+# Store API — Jackfield
 
 **Version 0.2.1**
 
@@ -38,7 +38,7 @@
 
 ## Constructor
 
-`Store(data_dir: Path | None = None)` — resolves `<data>/skills-manager` (see @docs/01-architecture.md) and assigns the layout paths.  **It does not create the layout or initialise the DB** (STORE-14).  Call `init_db()` explicitly when an empty data directory must exist before the first call.
+`Store(data_dir: Path | None = None)` — resolves `<data>/jackfield`, or a pre-rename `<data>/skills-manager` kept in place (see @docs/01-architecture.md) and assigns the layout paths.  **It does not create the layout or initialise the DB** (STORE-14).  Call `init_db()` explicitly when an empty data directory must exist before the first call.
 
 **[SPEC] Reads create nothing (docs/24 §D3-4).** The **write** entry points
 (`create`, `edit`, `remove`, `add`, `import_`, `resync`, `db_rebuild`,
@@ -49,7 +49,7 @@ deliberately do not: they open the index without creating the data layout, the
 database file, or the schema, and a store with no index reads exactly like a
 store with no skills.  `doctor()` is where a missing index is *reported*
 (`db_integrity: "unindexed"`, `ok: false`, and a `repair` line naming
-`skills-mgr db rebuild`) rather than quietly repaired when skill/trash data
+`jackfield db rebuild`) rather than quietly repaired when skill/trash data
 survives or an existing index is unusable. An empty tree with no index is a
 healthy first run (`db_integrity: "unindexed"`, `ok: true`, `repair: []`);
 other filesystem problems still make the report unhealthy. A damaged layout raises `StoreLayoutError` from both read and

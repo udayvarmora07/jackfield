@@ -177,7 +177,7 @@ def _open_lock_file(path: Path):
 def _lock_timeout_error(path: Path, waited: float):
     return LockTimeoutError(
         f"timed out after {waited:g}s waiting for another process to release the "
-        f"lock on {path}; retry, or stop the other skills-mgr process"
+        f"lock on {path}; retry, or stop the other jackfield process"
     )
 
 

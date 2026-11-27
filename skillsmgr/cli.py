@@ -1,4 +1,4 @@
-"""Command-line entry point for skills-mgr.
+"""Command-line entry point for Jackfield (``jackfield``, alias ``skills-mgr``).
 
 Exit codes: 0 on success, 1 on operational errors, 2 on usage errors,
 130 on interrupt.  The parser lives in :mod:`skillsmgr.cli_parser` and the
@@ -6,6 +6,9 @@ command behavior in :mod:`skillsmgr.cli_handlers`.
 """
 
 from __future__ import annotations
+
+import contextlib
+import os
 
 import difflib
 import re
@@ -148,6 +151,29 @@ def _run(args) -> int:
         return _call_with_hint(args, store)
 
 
+@contextlib.contextmanager
+def _scoped_data_env():
+    """Restore ``JACKFIELD_DATA`` after one command.
+
+    ``--data-dir`` reaches the Store through that variable (see
+    ``cli_handlers.make_store``); an in-process caller's later commands and
+    Stores must resolve their own root again, not this command's.
+    """
+    saved = os.environ.get("JACKFIELD_DATA")
+    try:
+        yield
+    finally:
+        if saved is None:
+            os.environ.pop("JACKFIELD_DATA", None)
+        else:
+            os.environ["JACKFIELD_DATA"] = saved
+
+
+def _run_scoped(args) -> int:
+    with _scoped_data_env():
+        return _run(args)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -156,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return EXIT_USAGE
     try:
-        return _run(args)
+        return _run_scoped(args)
     except (StoreError, ValueError, OSError) as exc:
         _err(str(exc))
         return EXIT_ERROR
@@ -166,3 +192,4 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:
         _err(f"unexpected error: {exc}")
         return EXIT_ERROR
+

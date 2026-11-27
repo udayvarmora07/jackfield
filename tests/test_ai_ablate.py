@@ -145,7 +145,7 @@ class AblateTests(unittest.TestCase):
         self.assertEqual((result['target'], result['decision']), ('skill', 'remove'))
         self.assertEqual([step['step'] for step in result['proposal']['ladder']],
                          ['slash-only', 'disable', 'archive'])
-        self.assertIn('skills-mgr disable magic', [s['action'] for s in result['proposal']['ladder']])
+        self.assertIn('jackfield disable magic', [s['action'] for s in result['proposal']['ladder']])
         self.assertNotIn('review', result['proposal'])
         self.assertTrue(any(system == ai_ablate._system('') for system in self.sent))
 
@@ -332,7 +332,7 @@ class AblateCliTests(unittest.TestCase):
         code, out, _ = self.invoke('--section', '2', '--trials', '1', '--run')
         self.assertEqual(code, 0)
         self.assertIn('Decision: remove', out)
-        self.assertIn('skills-mgr update apply magic ', out)
+        self.assertIn('jackfield update apply magic ', out)
         code, out, _ = self.invoke('--trials', '1', '--run', '--json')
         report = json.loads(out)
         self.assertEqual((report['command'], report['result']['decision']), ('ai ablate', 'keep'))

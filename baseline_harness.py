@@ -334,10 +334,11 @@ def _peak_rss_bytes() -> int | None:
 
 def _run_inventory_size(size: int, samples: int, timeout_s: int, deadline: float) -> dict:
     workspace = Path(tempfile.mkdtemp(prefix=f"skillsmgr-inventory-{size}-"))
-    original_environment = {key: os.environ.get(key) for key in ("HOME", "XDG_DATA_HOME", "SKILLS_MANAGER_DATA")}
+    original_environment = {key: os.environ.get(key) for key in ("HOME", "XDG_DATA_HOME", "JACKFIELD_DATA", "SKILLS_MANAGER_DATA")}
     try:
         os.environ["HOME"] = str(workspace / "home")
         os.environ["XDG_DATA_HOME"] = str(workspace / "xdg")
+        os.environ.pop("JACKFIELD_DATA", None)
         os.environ.pop("SKILLS_MANAGER_DATA", None)
         store, fixture = _build_inventory_fixture(size, workspace)
         cold, warm = _sample_inventory_routes(store.data_dir, size, samples, timeout_s, deadline)

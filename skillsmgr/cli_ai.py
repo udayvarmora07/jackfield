@@ -200,7 +200,7 @@ def _human_ablate_proposal(result):
     if proposal.get("kind") == "remove-section":
         review_id = sanitize_text(proposal["review"]["review_id"])
         print(f"Staged removal for review: {review_id}")
-        print(f"  review the diff in the web UI, or apply: skills-mgr update apply "
+        print(f"  review the diff in the web UI, or apply: jackfield update apply "
               f"{sanitize_text(result['name'])} {review_id} --yes")
     for step in proposal.get("ladder", []):
         print(f"  {step['step']}: {sanitize_text(step['action'])}")

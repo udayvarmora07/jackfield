@@ -1,6 +1,6 @@
 # Roadmap
 
-Public direction for `skills-manager`. Items move from Proposed → Accepted → Building → Shipped. Anything touching the [locked constraints](README.md#contributing) needs maintainer approval first. The dated competitive/product/business rationale and implementation-ready proposal live in [docs/14-competitive-product-business-strategy-2026-09-15.md](docs/14-competitive-product-business-strategy-2026-09-15.md) and [docs/15-product-ux-delivery-plan-2026-09-15.md](docs/15-product-ux-delivery-plan-2026-09-15.md); neither marks a proposal shipped.
+Public direction for Jackfield (formerly Skills Manager). Items move from Proposed → Accepted → Building → Shipped. Anything touching the [locked constraints](README.md#contributing) needs maintainer approval first. The dated competitive/product/business rationale and implementation-ready proposal live in [docs/14-competitive-product-business-strategy-2026-09-15.md](docs/14-competitive-product-business-strategy-2026-09-15.md) and [docs/15-product-ux-delivery-plan-2026-09-15.md](docs/15-product-ux-delivery-plan-2026-09-15.md); neither marks a proposal shipped.
 
 ## Next (v1.1)
 
@@ -65,7 +65,7 @@ shipped; the remaining lines below are future or rejected directions:
   and recovery improvements. Publishing still runs through the release
   workflow after a matching version tag.
   [PyPI files and provenance](https://pypi.org/project/skill-control-plane/1.0.2/#files)
-  [GitHub release](https://github.com/udayvarmora07/skills-manager/releases/tag/v1.0.2)
+  [GitHub release](https://github.com/udayvarmora07/jackfield/releases/tag/v1.0.2)
 
 - **`v1.0.1` published successfully (2026-09-10).** The existing release
   workflow built and verified the exact `skill_control_plane-1.0.1` wheel and

@@ -1,4 +1,4 @@
-/* Skills Manager — Vue 3 application (no build step).
+/* Jackfield — Vue 3 application (no build step).
  * Every read and write goes through the documented REST API; the observed-state
  * vocabulary comes from domain.js, shared with the model layer. */
 "use strict";
@@ -9,7 +9,7 @@ if (!Domain || !Model) {
   const failure = document.createElement("div");
   failure.setAttribute("role", "alert");
   failure.style.cssText = "margin:2rem;padding:1rem;border:1px solid #b42318;border-radius:8px;font:15px/1.5 system-ui,sans-serif;color:#b42318;background:#fff;";
-  failure.textContent = "Skills Manager could not start: a script did not load. Reload the page; if it persists, the installed files are incomplete.";
+  failure.textContent = "Jackfield could not start: a script did not load. Reload the page; if it persists, the installed files are incomplete.";
   document.body.appendChild(failure);
   throw new Error("v2 scripts missing");
 }
@@ -980,7 +980,7 @@ const app = createApp({
     /* ----- toasts & dialogs ----- */
     friendly(msg) {
       let s = String(msg || "Something went wrong.");
-      if (/invalid archive|not a gzip|ReadError|zipfile/i.test(s)) return "That file is not a backup archive. Choose a .tar.gz, .tar or .zip file made by Skills Manager.";
+      if (/invalid archive|not a gzip|ReadError|zipfile/i.test(s)) return "That file is not a backup archive. Choose a .tar.gz, .tar or .zip file made by Jackfield.";
       if (/not valid UTF-8/i.test(s)) return "One of the copies is not saved as UTF-8 text. Keep a copy of the original file, then open it in a text editor and save it as UTF-8 before editing it here.";
       if (/traceback|(?:UnicodeDecode|Recursion|Permission|FileNotFound|Operational)Error|\[Errno \d+\]/i.test(s)) return "The operation could not be completed. Refresh and try again; check that the skill files are readable and writable.";
       return s.replace(/(?:\/[^\s'":]+)+\/([^\s'":/]+)/g, "$1").replace(/\s*\(byte 0x[0-9a-f]+ at offset \d+\)/i, "");
@@ -1731,7 +1731,7 @@ const app = createApp({
       this.loadSkillHistory();
       this.primeBodies();
       if (next.page === "recovery") this.loadAgentTrash();
-      document.title = (next.page === "skill" ? next.name : TITLES[next.page]) + " · Skills Manager";
+      document.title = (next.page === "skill" ? next.name : TITLES[next.page]) + " · Jackfield";
       window.scrollTo(0, 0); this.focusH1();
     });
     window.addEventListener("beforeunload", (e) => { if (this.editDirty) { e.preventDefault(); e.returnValue = ""; } });
@@ -1753,7 +1753,7 @@ const app = createApp({
         }
       }
     });
-    document.title = (this.route.page === "skill" ? this.route.name : TITLES[this.route.page]) + " · Skills Manager";
+    document.title = (this.route.page === "skill" ? this.route.name : TITLES[this.route.page]) + " · Jackfield";
     this.watchTrackMenus();
     window.addEventListener("storage",event=>{if(["skillsmgr-theme","skillsmgr-text-size","skillsmgr-locale"].includes(event.key))this.preferencesChanged();});
     this.loadSkillHistory();

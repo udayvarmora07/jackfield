@@ -84,7 +84,7 @@ class AgentsBridgeTests(unittest.TestCase):
         section = self._report()["agents_bridge"]
         kinds = {item["kind"]: item for item in section["remedies"]}
         self.assertEqual(
-            kinds["copy"]["command"], "skills-mgr sync <name> --from agents --to claude-code"
+            kinds["copy"]["command"], "jackfield sync <name> --from agents --to claude-code"
         )
         self.assertIn("14836", kinds["link"]["note"])
         self.assertTrue(section["writes_nothing"])
@@ -136,7 +136,7 @@ class AgentsBridgeTests(unittest.TestCase):
         self.assertEqual(
             buffer.getvalue().strip(),
             "Claude Code cannot see 1 skill that is only in ~/.agents/skills "
-            "(copy it with: skills-mgr sync <name> --from agents --to claude-code)",
+            "(copy it with: jackfield sync <name> --from agents --to claude-code)",
         )
 
 

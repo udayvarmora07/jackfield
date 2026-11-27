@@ -1,4 +1,4 @@
-# Docs Index — Skills Manager
+# Docs Index — Jackfield
 
 **Version 0.4.9**
 

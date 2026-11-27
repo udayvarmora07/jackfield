@@ -1,8 +1,8 @@
-# Web UI — Skills Manager
+# Web UI — Jackfield
 
 **Version 0.12.1**
 
-**AI manifest**: The GUI of skills-manager is a **local web UI** (browser frontend + Python stdlib backend). It replaces the former GTK4 GUI. This doc is the single source of truth for the web UI: how it runs, what endpoints exist, and how the frontend is structured. Do not re-read source to answer questions this doc already answers.
+**AI manifest**: The GUI of Jackfield is a **local web UI** (browser frontend + Python stdlib backend). It replaces the former GTK4 GUI. This doc is the single source of truth for the web UI: how it runs, what endpoints exist, and how the frontend is structured. Do not re-read source to answer questions this doc already answers.
 
 ## 2026-11-17 compatibility follow-ups
 
@@ -312,7 +312,7 @@ python3 desktop_launcher.py --plain         # force the default browser
 python3 desktop_launcher.py --print-only    # show what would happen, exit
 ```
 
-It refuses any non-loopback `--host`, and `skills-mgr webui` stays the supported
+It refuses any non-loopback `--host`, and `jackfield webui` stays the supported
 entry point; the launcher never replaces it. Both it and the harness resolve
 Chromium through `launcher_security.trusted_executable()`, so an unsafe PATH
 match is skipped rather than executed. The harness leaves Chrome's renderer

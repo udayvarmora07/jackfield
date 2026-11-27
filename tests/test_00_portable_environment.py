@@ -28,6 +28,11 @@ module directly bypasses it; on macOS or Windows run through discovery.
    44680042298, three tests, only Windows / Python 3.11). Cleanup now retries
    for up to 2 s; a handle the product genuinely leaks stays open longer than
    that and still fails the test.
+
+4. **No inherited data override.**  ``JACKFIELD_DATA`` takes precedence over
+   the pre-rename ``SKILLS_MANAGER_DATA`` that the suite sets to isolate each
+   test, so a developer's own ``JACKFIELD_DATA`` would point tests at their real
+   library.  It is cleared for the whole run; a test that needs it sets it.
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ import unittest
 from pathlib import Path
 
 tempfile.tempdir = os.path.realpath(tempfile.gettempdir())
+os.environ.pop("JACKFIELD_DATA", None)
 
 if os.name == "nt":
     _original_write_text = Path.write_text

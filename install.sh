@@ -1,7 +1,7 @@
 #!/bin/sh
-# One-command installer for skills-manager (PyPI: skill-control-plane).
+# One-command installer for Jackfield, formerly Skills Manager (PyPI: skill-control-plane).
 #
-#   curl -fsSL https://raw.githubusercontent.com/udayvarmora07/skills-manager/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.sh | sh
 #
 # Pass options after `sh -s --`, for example:
 #
@@ -16,7 +16,8 @@
 #
 # What it never does: run as root on purpose, edit your shell start-up files,
 # download another installer, or touch your skills or the manager's data
-# directory (~/.local/share/skills-manager). Uninstall leaves that data in place.
+# directory (~/.local/share/jackfield, or an existing ~/.local/share/skills-manager).
+# Uninstall leaves that data in place.
 #
 # The whole script is a function called on the last line, so a download cut
 # short cannot run half of it.
@@ -25,12 +26,12 @@ set -eu
 
 DIST="skill-control-plane"
 COMMAND="skills-mgr"
-SOURCE_ARCHIVE="https://github.com/udayvarmora07/skills-manager/archive/refs/heads/main.tar.gz"
+SOURCE_ARCHIVE="https://github.com/udayvarmora07/jackfield/archive/refs/heads/main.tar.gz"
 VENV_OWNER="skill-control-plane venv 1"
 
 usage() {
     cat <<'EOF'
-Install skills-manager (the `skills-mgr` command) in one step.
+Install Jackfield (the `skills-mgr` command; `jackfield` from the next release) in one step.
 
 Usage: install.sh [options]
 
@@ -184,7 +185,7 @@ install_venv() {
             if [ ! -d "$PREFIX" ] || ! venv_config; then
                 die "$PREFIX exists and is not a virtual environment; refusing to touch it"
             fi
-            legacy_venv || die "$PREFIX does not belong to Skills Manager; choose a different --prefix"
+            legacy_venv || die "$PREFIX does not belong to Jackfield; choose a different --prefix"
             mark_venv
         fi
     else
@@ -291,7 +292,7 @@ Next steps:
   skills-mgr doctor        # health check, changes nothing
   skills-mgr webui         # open the local web UI on 127.0.0.1
 
-Docs: https://github.com/udayvarmora07/skills-manager#readme
+Docs: https://github.com/udayvarmora07/jackfield#readme
 EOF
 }
 

@@ -100,4 +100,4 @@ _skills_mgr_complete() {
     values=(${=candidates})
     compadd -- "$values[@]"
 }
-compdef _skills_mgr_complete skills-mgr
+compdef _skills_mgr_complete jackfield skills-mgr

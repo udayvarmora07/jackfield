@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something broken in skills-manager
+about: Something broken in Jackfield
 labels: bug
 ---
 
@@ -10,7 +10,7 @@ labels: bug
 
 ```bash
 # commands run, starting with:
-export SKILLS_MANAGER_DATA=$(mktemp -d)
+export JACKFIELD_DATA=$(mktemp -d)
 python3 -m skillsmgr init
 # ...
 ```
@@ -20,5 +20,5 @@ python3 -m skillsmgr init
 ## Environment
 
 - `python3 --version`:
-- `skills-mgr` version (`python3 -m skillsmgr --version` or commit):
+- `jackfield` version (`python3 -m skillsmgr --version` or commit):
 - OS:

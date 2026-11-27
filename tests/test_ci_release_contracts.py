@@ -493,7 +493,7 @@ class ReleaseClaimContractTests(unittest.TestCase):
         self.assertTrue((ROOT / "LICENSE").read_text(encoding="utf-8"))
         self.assertIn("skills-mgr =", pyproject)
         self.assertIn('include = ["skillsmgr*"]', pyproject)
-        self.assertIn('authors = [{ name = "skills-manager contributors" }]', pyproject)
+        self.assertIn('authors = [{ name = "Jackfield contributors" }]', pyproject)
         self.assertNotIn('name = "skills-manager"', pyproject.split("[project.urls]", 1)[0])
 
         wheel_name = f"{normalized_stem}-py3-none-any.whl"
@@ -526,10 +526,19 @@ class ReleaseClaimContractTests(unittest.TestCase):
             self.assertEqual(sdist_metadata["License-Expression"], "MIT")
 
     def test_historical_and_internal_skills_manager_names_are_not_mass_replaced(self):
+        # The Jackfield rename (2026-11-26) changed the public names only.  The
+        # pre-rename library folder, the backup format id, the index filename and
+        # the threat-model document keep their names, so existing data, backups
+        # and links keep working.
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("udayvarmora07/skills-manager", readme)
-        self.assertIn("~/.local/share/skills-manager/skills/", readme)
+        self.assertIn("udayvarmora07/jackfield", readme)
+        self.assertIn("~/.local/share/skills-manager", readme)
         self.assertIn("skills-manager-threat-model.md", readme)
+        store = (ROOT / "skillsmgr" / "store.py").read_text(encoding="utf-8")
+        self.assertIn('"app": "skills-mgr"', store)
+        self.assertIn('"skills-manager.db"', store)
+        self.assertIn('LEGACY_MANAGER_DIR = "skills-manager"',
+                      (ROOT / "skillsmgr" / "paths.py").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# AGENTS.md — Skills Manager
+# AGENTS.md — Jackfield
 
 **Version 0.4.0**
 
@@ -6,9 +6,9 @@
 
 ## What this is
 
-- `skills-mgr`: a Python CLI plus a **local web UI** for managing AI coding-agent skills: list, create, view, edit, search, validate, enable/disable, trash/restore, import/export, backup/restore, templates, history, db rebuild/resync. Tracks skills across **agent scopes** (claude-code, codex, cursor, opencode, gemini, commandcode, agents, project-local) — see `@docs/08-web-ui.md`.
+- `jackfield`: a Python CLI plus a **local web UI** for managing AI coding-agent skills: list, create, view, edit, search, validate, enable/disable, trash/restore, import/export, backup/restore, templates, history, db rebuild/resync. Tracks skills across **agent scopes** (claude-code, codex, cursor, opencode, gemini, commandcode, agents, project-local) — see `@docs/08-web-ui.md`.
 - **Data model**: filesystem is the source of truth; SQLite at `<data>/skills-manager.db` is a rebuildable index only (`SCHEMA_VERSION = "1"`). Never trust SQLite over the filesystem; never hand-edit the DB.
-- Skills live at `<data>/skills/<name>/SKILL.md`; disabled skills are `SKILL.md.disabled`. The manager root `<data>` is the selected base (`$SKILLS_MANAGER_DATA` -> `$XDG_DATA_HOME` -> `~/.local/share`) plus `/skills-manager`.
+- Skills live at `<data>/skills/<name>/SKILL.md`; disabled skills are `SKILL.md.disabled`. The manager root `<data>` is the selected base (`$JACKFIELD_DATA` -> `$XDG_DATA_HOME` -> `~/.local/share`) plus `/jackfield`; a pre-rename `/skills-manager` root is used in place when no `/jackfield` exists, and `$SKILLS_MANAGER_DATA` is still read when `$JACKFIELD_DATA` is unset.
 - Agent scopes (e.g. `agents` = `~/.agents/skills`, the Command Code skills dir) are read/written directly on disk — no DB. `--scope agents` lists/creates/edits/removes/toggles the exact skills the `commandcode` CLI loads.
 
 ## Toolchain
@@ -16,7 +16,7 @@
 - CLI: `python3 -m skillsmgr` (stdlib only). Parser/handlers are split behind the stable `skillsmgr.cli` adapter (`cli_parser.py`, `cli_handlers.py`). Web UI: `python3 -m skillsmgr webui` (alias `gui`) — stdlib backend, Vue 3 frontend (vendored, no build step); `domain.js` loads before `app.js`.
 - Test suite: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests` (stdlib-only regression/contract tests); CI runs it on ubuntu, macOS and Windows, and a separate `e2e` job runs `tools/e2e_v2` in headless Chrome (`@docs/08-web-ui.md`). Run through discovery: `tests/test_00_portable_environment.py` normalises the temp root and newlines for the whole run. Smoke tests `python3 smoke_store.py` (Store API) and `python3 smoke_web.py` (web REST API) remain executable end-to-end checks.
 - Docs format: HADS (see `@docs/README.md`). Markers: `[SPEC]` authoritative, `[NOTE]` context, `[?]` uncertainty.
-- Packaging: build only with the pinned, hash-verified toolchain — `python3 -m pip install --require-hashes -r requirements-build.txt` then `python3 -m build --no-isolation --wheel --sdist --outdir dist` (SEC-8). `check_package_data.py` asserts the vendored Vue sha256 (SEC-9) and rejects an artifact shipping `tests/`, `docs/`, `.env`, a database or bytecode (SEC-13); `MANIFEST.in` prunes the suite from the sdist. `skillsmgr/examples/skills-manager-management/` is the agent-facing management skill, shipped as **package data** so it reaches every install (a repository-only `examples/` directory did not, in either the wheel or the sdist); `check_package_data.py` proves it is present and readable.
+- Packaging: build only with the pinned, hash-verified toolchain — `python3 -m pip install --require-hashes -r requirements-build.txt` then `python3 -m build --no-isolation --wheel --sdist --outdir dist` (SEC-8). `check_package_data.py` asserts the vendored Vue sha256 (SEC-9) and rejects an artifact shipping `tests/`, `docs/`, `.env`, a database or bytecode (SEC-13); `MANIFEST.in` prunes the suite from the sdist. `skillsmgr/examples/jackfield-management/` is the agent-facing management skill, shipped as **package data** so it reaches every install (a repository-only `examples/` directory did not, in either the wheel or the sdist); `check_package_data.py` proves it is present and readable.
 
 ## Research, tools, and setup authorization
 

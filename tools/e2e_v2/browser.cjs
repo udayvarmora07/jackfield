@@ -265,7 +265,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await page.setViewportSize({width:1280,height:900});
     }
   });
-  await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Skills Manager home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
+  await test('Accessible names: brand at phone width, differing copy on its switch, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Jackfield home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');const names=await page.locator('.use .switch .sr-only').allInnerTexts();assert(names.some(n=>/Codex.*differs from most places/.test(n)),names.join(' | '));await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
   await test('Repeated Reader Sync clicks issue one request', async () => {
     await go('skill/majority-minor');
@@ -388,10 +388,10 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Native setting evidence is partial and file switch Undo preserves files',async()=>{await go('skill/same-everywhere');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/partial/i);assert.match(t,/loading is unknown/i);assert.match(t,/Declared setting: off/);assert.match(t,/Declared setting: deny/);const f=file('.codex');await page.locator('.use').filter({hasText:'Codex'}).locator('label.switch').click();await page.waitForTimeout(500);assert(fs.existsSync(f+'.disabled'));await page.locator('.toast button').filter({hasText:'Undo'}).last().click();await page.waitForTimeout(600);assert(fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));});
   await test('Native invalid and unavailable settings render without exposing values',async()=>{let config=path.join(home,'.config/opencode/opencode.json'),saved=fs.readFileSync(config),claude=path.join(home,'.claude/settings.json'),oldClaude=fs.readFileSync(claude);fs.writeFileSync(config,'{"private":"fixture-secret",');fs.writeFileSync(claude,JSON.stringify({skillOverrides:{'majority-minor':'invalid-fixture-value'}}));try{await go('skill/majority-minor');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/invalid/);assert.match(t,/unavailable/);assert.doesNotMatch(t,/fixture-secret|invalid-fixture-value/);}finally{fs.writeFileSync(config,saved);fs.writeFileSync(claude,oldClaude);}});
   await test('Discard navigation, dialog focus trap and cancellation',async()=>{await go('skill/same-everywhere');await page.locator('.acts button').filter({hasText:'Edit'}).click();assert(await page.locator('#ed-desc').evaluate(e=>e===document.activeElement));await page.locator('.ed-area').fill('Unsaved browser fixture');await page.locator('.tabs a').filter({hasText:'Home'}).click();await page.locator('.dlg').waitFor();for(let i=0;i<10;i++){await page.keyboard.press('Tab');assert(await page.evaluate(()=>document.querySelector('.dlg').contains(document.activeElement)));}await page.getByRole('button',{name:'Keep editing'}).click();assert(await page.locator('.ed-area').isVisible());await page.locator('.tabs a').filter({hasText:'Home'}).click();await page.getByRole('button',{name:'Discard changes'}).click();await page.waitForTimeout(300);assert(page.url().endsWith('#/home'));});
-  await test('Global Recovery restores a trashed fixture',async()=>{await go('skill/library-fixture');await page.getByRole('button',{name:'Move to trash',exact:true}).click();assert.equal(await page.locator('.pick input:checked').count(),1);await page.locator('.dlg-f .btn-danger').click();await page.waitForTimeout(700);let f=path.join(root,'data/skills-manager/skills/library-fixture/SKILL.md');assert(!fs.existsSync(f));await go('recovery');assert.match(await page.locator('.rec-list').innerText(),/last changed/);await page.locator('.rec-list button').filter({hasText:'Restore'}).click();await page.waitForTimeout(700);assert(fs.existsSync(f));});
+  await test('Global Recovery restores a trashed fixture',async()=>{await go('skill/library-fixture');await page.getByRole('button',{name:'Move to trash',exact:true}).click();assert.equal(await page.locator('.pick input:checked').count(),1);await page.locator('.dlg-f .btn-danger').click();await page.waitForTimeout(700);let f=path.join(root,'data/jackfield/skills/library-fixture/SKILL.md');assert(!fs.existsSync(f));await go('recovery');assert.match(await page.locator('.rec-list').innerText(),/last changed/);await page.locator('.rec-list button').filter({hasText:'Restore'}).click();await page.waitForTimeout(700);assert(fs.existsSync(f));});
   await test('Global Recovery restores the selected copy of a skill named purge', async () => {
     const trashed = [];
-    const installed = path.join(root, 'data', 'skills-manager', 'skills', 'purge');
+    const installed = path.join(root, 'data', 'jackfield', 'skills', 'purge');
     try {
       for (const [i, body] of ['Older content.', 'Newer content.'].entries()) {
         const created = await page.request.post(base+'/api/skills', {data:{name:'purge', description:'Recovery test fixture.', body}});
@@ -911,7 +911,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await create.getByLabel('Category',{exact:true}).fill('quality');
     await create.getByRole('button',{name:'Create skill',exact:true}).click();
     await page.waitForResponse(r=>r.url().includes('/api/skills?scope=all')).catch(()=>{});
-    const doc=path.join(root,'data/skills-manager/skills/v2-browser-created/SKILL.md');
+    const doc=path.join(root,'data/jackfield/skills/v2-browser-created/SKILL.md');
     assert(fs.existsSync(doc));assert.match(fs.readFileSync(doc,'utf8'),/Browser template/);assert.match(fs.readFileSync(doc,'utf8'),/category: quality/);
   });
   await test('V2 Profiles stores metadata and executes an exact enable-only plan',async()=>{
@@ -936,7 +936,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const response=page.waitForResponse(r=>r.url().endsWith('/api/batch/execute'));
     await page.getByRole('button',{name:'Execute reviewed plan',exact:true}).click();
     assert.equal((await response).status(),200);
-    assert(fs.existsSync(path.join(root,'data/skills-manager/skills/v2-browser-created/SKILL.md')));
+    assert(fs.existsSync(path.join(root,'data/jackfield/skills/v2-browser-created/SKILL.md')));
     assert(fs.existsSync(file('.codex','same-everywhere')));
     assert(!fs.existsSync(path.join(home,'.claude/settings.local.json')));
   });
@@ -1071,7 +1071,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.getByRole('button',{name:'Retry profiles',exact:true}).click();await page.getByText('v2-browser-profile',{exact:true}).waitFor();
   });
   await test('V2 Quality labels APM evidence for the selected project',async()=>{
-    const project=path.join(root,'data','skills-manager','apm-fixture');
+    const project=path.join(root,'data','jackfield','apm-fixture');
     fs.mkdirSync(project);
     fs.writeFileSync(path.join(project,'apm.yml'),'name: browser-fixture\nversion: 1.0.0\n');
     await go('tools/quality');

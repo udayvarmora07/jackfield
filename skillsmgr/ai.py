@@ -214,21 +214,24 @@ def _cap(value, default: int, name: str) -> int:
 
 #: Operator opt-in: the one custom endpoint an environment key may be sent to.
 #: It lives in the server's own environment, which no API caller can change.
-ENV_KEY_ENDPOINT_VAR = "SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT"
+ENV_KEY_ENDPOINT_VAR = "JACKFIELD_AI_ENV_KEY_ENDPOINT"
+LEGACY_ENV_KEY_ENDPOINT_VAR = "SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT"  # pre-rename name
 
 
 def _env_key_allowed(spec: dict, stored: dict) -> bool:
     """May an environment key go to the configured endpoint?
 
     Only to the provider's own default endpoint, or to the single endpoint the
-    operator named in ``SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT``. Otherwise any
+    operator named in ``JACKFIELD_AI_ENV_KEY_ENDPOINT`` (or its pre-rename name
+    ``SKILLS_MANAGER_AI_ENV_KEY_ENDPOINT`` when the new one is unset). Otherwise any
     caller of the settings API could point ``base_url`` at itself and receive
     ``OPENAI_API_KEY`` and friends on the next call.
     """
     endpoint = (stored.get("base_url") or spec.get("base_url") or "").rstrip("/")
     if endpoint == (spec.get("base_url") or "").rstrip("/"):
         return True
-    opted_in = os.environ.get(ENV_KEY_ENDPOINT_VAR, "").strip().rstrip("/")
+    name = ENV_KEY_ENDPOINT_VAR if ENV_KEY_ENDPOINT_VAR in os.environ else LEGACY_ENV_KEY_ENDPOINT_VAR
+    opted_in = os.environ.get(name, "").strip().rstrip("/")
     return bool(opted_in) and opted_in == endpoint
 
 
@@ -713,7 +716,7 @@ def _post_once(url: str, headers: dict, body: dict, timeout: float) -> dict:
     data = json.dumps(body).encode("utf-8")
     request = urllib.request.Request(url, data=data, method="POST",
                                      headers={**headers, "Content-Type": "application/json",
-                                              "User-Agent": "skills-manager-ai/1"})
+                                              "User-Agent": "jackfield-ai/1"})
     try:
         with _OPENER.open(request, timeout=timeout) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)

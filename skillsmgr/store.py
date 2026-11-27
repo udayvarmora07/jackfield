@@ -915,7 +915,7 @@ class Store:
         return StoreLayoutError(
             f"data layout is unusable: {path} exists but is not {expected}; "
             f"move it aside with `mv {path} {path}.broken` and reload, or "
-            "point SKILLS_MANAGER_DATA at another root"
+            "point JACKFIELD_DATA at another root"
         )
 
     def _managed_layout_dirs(self) -> tuple[Path, ...]:
@@ -975,7 +975,7 @@ class Store:
             _diagnose("skill index read failed", exc)
             raise StoreError(
                 f"the skill index {self.db_path} cannot answer this read; "
-                "rebuild it with `skills-mgr db rebuild`"
+                "rebuild it with `jackfield db rebuild`"
             ) from exc
         finally:
             conn.close()
@@ -2456,7 +2456,7 @@ class Store:
         if index_missing:
             repair.append(
                 f"the skill index {self.db_path} is missing or unusable; "
-                "rebuild it with `skills-mgr db rebuild` (the skills "
+                "rebuild it with `jackfield db rebuild` (the skills "
                 "themselves are still on disk)"
             )
         return {

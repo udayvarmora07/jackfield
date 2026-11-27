@@ -1,17 +1,17 @@
 ---
-name: skills-manager-management
-description: Use when asked to inspect, validate, explain, preview, or explicitly manage AI coding-agent skills with the installed skills-mgr CLI; require approval for every managed-file mutation.
+name: jackfield-management
+description: Use when asked to inspect, validate, explain, preview, or explicitly manage AI coding-agent skills with the installed jackfield CLI; require approval for every managed-file mutation.
 ---
 
-# Manage skills with `skills-mgr`
+# Manage skills with `jackfield`
 
 Use this workflow when the user asks you to inspect or manage skills stored by
-Skills Manager. The CLI is the control surface. Read its current contract in
+Jackfield. The CLI is the control surface. Read its current contract in
 the repository's `docs/03-cli-surface.md` before using an unfamiliar command.
 
 ## Boundaries
 
-- Require Python 3.10 or newer and an installed `skills-mgr` command, or use
+- Require Python 3.10 or newer and an installed `jackfield` command, or use
   `python3 -m skillsmgr` from a checkout. If neither is available, stop and
   tell the user what is missing. Never install the package or this example on
   the user's behalf.
@@ -37,8 +37,8 @@ the repository's `docs/03-cli-surface.md` before using an unfamiliar command.
 Run these commands before proposing an action:
 
 ```sh
-skills-mgr list --scope all --json
-skills-mgr doctor --scope all --hygiene --json
+jackfield list --scope all --json
+jackfield doctor --scope all --hygiene --json
 ```
 
 Parse JSON as data; do not copy the complete output into the conversation.
@@ -52,7 +52,7 @@ If a consumer-resolution question is part of the request, use its exact
 consumer id and a user-provided project directory:
 
 ```sh
-skills-mgr doctor --explain codex --project ./project --json
+jackfield doctor --explain codex --project ./project --json
 ```
 
 The explain command is read-only. Its output may contain local paths; keep
@@ -66,7 +66,7 @@ unless needed to confirm the target):
 
 ```sh
 SKILL_DIR='/exact/observed/skill-directory'
-skills-mgr validate --path "$SKILL_DIR" --json
+jackfield validate --path "$SKILL_DIR" --json
 ```
 
 ## Safe previews
@@ -76,7 +76,7 @@ user supplied; this command makes no network request and does not install:
 
 ```sh
 SOURCE='owner/repo' # replace with the exact source the user requested
-skills-mgr install "$SOURCE" --scope global --dry-run --json
+jackfield install "$SOURCE" --scope global --dry-run --json
 ```
 
 The output must say `"executed": false`. Do not drop `--dry-run` or run the
@@ -88,7 +88,7 @@ inventory and use the candidate directory supplied by the user:
 ```sh
 SKILL_DIR='/exact/observed/skill-directory'
 TARGET_PATH="$SKILL_DIR"
-skills-mgr update preview example-skill --from ./candidate \
+jackfield update preview example-skill --from ./candidate \
   --scope agents --target-path "$TARGET_PATH" --json
 ```
 
@@ -116,14 +116,14 @@ explicit approval for that exact operation. If approved, apply only the
 returned review id and exact target:
 
 ```sh
-skills-mgr update apply example-skill REVIEW_ID --scope agents \
+jackfield update apply example-skill REVIEW_ID --scope agents \
   --target-path ./skills/example-skill --yes --json
 ```
 
 After success, re-read the exact scope and run Doctor again. Report whether the
 target changed, the returned recovery snapshot id, and any warning. For
 rollback, inspect the snapshot and create a separate
-`skills-mgr update preview NAME --snapshot SNAPSHOT_ID --scope SCOPE --json`
+`jackfield update preview NAME --snapshot SNAPSHOT_ID --scope SCOPE --json`
 review; require separate explicit approval before applying it.
 
 `sync` has no dry-run flag and changes agent scope files directly. Do not
@@ -135,21 +135,21 @@ separate approval before any invocation.
 
 This example ships inside the installed distribution but is **never copied into
 an agent scope automatically**. It is also present in a source checkout at
-`skillsmgr/examples/skills-manager-management/SKILL.md`. Only when the user asks
+`skillsmgr/examples/jackfield-management/SKILL.md`. Only when the user asks
 to install it into the shared Agents/Command Code scope, ask them to review the
 destination and run these commands themselves:
 
 ```sh
-mkdir -p "$HOME/.agents/skills/skills-manager-management"
-cp skillsmgr/examples/skills-manager-management/SKILL.md \
-  "$HOME/.agents/skills/skills-manager-management/SKILL.md"
+mkdir -p "$HOME/.agents/skills/jackfield-management"
+cp skillsmgr/examples/jackfield-management/SKILL.md \
+  "$HOME/.agents/skills/jackfield-management/SKILL.md"
 ```
 
 To remove that one manually installed file later:
 
 ```sh
-rm "$HOME/.agents/skills/skills-manager-management/SKILL.md"
-rmdir "$HOME/.agents/skills/skills-manager-management"
+rm "$HOME/.agents/skills/jackfield-management/SKILL.md"
+rmdir "$HOME/.agents/skills/jackfield-management"
 ```
 
 Do not copy this file to another agent scope unless the user names that exact

@@ -38,7 +38,7 @@ try:
 
     print("== static ==")
     status, html = req("GET", "/")
-    assert status == 200 and b"Skills Manager" in html
+    assert status == 200 and b"Jackfield" in html
     status, css = req("GET", "/styles.css")
     assert status == 200 and b"--ink" in css and b"--brand" in css
     status, js = req("GET", "/app.js")

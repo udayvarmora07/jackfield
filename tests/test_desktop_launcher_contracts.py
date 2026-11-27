@@ -221,10 +221,12 @@ class UnbundledBoundaryTests(unittest.TestCase):
 
     def test_no_new_console_script_is_added(self):
         scripts = [line for line in self.section("project.scripts") if "=" in line]
+        # `jackfield` is the renamed command (owner-approved, 2026-11-26) and
+        # `skills-mgr` its pre-rename alias; both are the same CLI entry point.
         self.assertEqual(
             scripts,
-            ['skills-mgr = "skillsmgr.cli:main"'],
-            "no new console entry point: `skills-mgr webui` remains canonical",
+            ['jackfield = "skillsmgr.cli:main"', 'skills-mgr = "skillsmgr.cli:main"'],
+            "no new console entry point: `jackfield webui` remains canonical",
         )
 
     def test_project_declares_no_runtime_dependencies(self):
