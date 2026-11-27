@@ -57,6 +57,7 @@ TARGET_FILES = (
     "skillsmgr/key_support.py",
     "skillsmgr/install.py",
     "skillsmgr/documents.py",
+    "skillsmgr/editor_copy.py",
     "skillsmgr/doctor.py",
     "skillsmgr/batch.py",
     "skillsmgr/atomic_io.py",

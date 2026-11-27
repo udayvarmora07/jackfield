@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import ctypes
 import errno
 import hashlib
 import os
 import shutil
 import stat
+import sys
 import tempfile
 import threading
 import time
@@ -506,6 +508,29 @@ def stage_sibling(dest: Path) -> Path:
         candidate = Path(f"{base}.{counter}")
         counter += 1
     return candidate
+
+
+EDIT_STAGE_PREFIX = ".jackfield-edit.skillsmgr-stage."
+
+
+def rename_new_directory(source: Path, destination: Path) -> None:
+    """Publish a staged directory without replacing any destination entry."""
+    if os.name == "nt":
+        os.rename(source, destination)
+        return
+    libc = ctypes.CDLL(None, use_errno=True)
+    paths = (os.fsencode(source), os.fsencode(destination))
+    if sys.platform.startswith("linux") and hasattr(libc, "renameat2"):
+        at_fdcwd, rename_noreplace = -100, 1
+        result = libc.renameat2(at_fdcwd, paths[0], at_fdcwd, paths[1], rename_noreplace)
+    elif sys.platform == "darwin" and hasattr(libc, "renamex_np"):
+        rename_excl = 4
+        result = libc.renamex_np(*paths, rename_excl)
+    else:
+        raise OSError(errno.ENOTSUP, "Exclusive folder publication is unavailable on this system.")
+    if result != 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error), destination)
 
 
 def move_trash_tree(source: Path, destination: Path) -> None:

@@ -7,6 +7,22 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Editor approved for Phase 3 integration
+
+**[NOTE]** The maintainer approved the Editor checkpoint. A failed staging
+cleanup after publication now leaves confirmed saves and their Undo receipts
+in the response. Jackfield records the leftover staging path for diagnosis.
+
+## 2026-11-28 — Editor saves to missing places
+
+**[NOTE]** The Editor now lists missing writable places unchecked. Save
+publishes the edited document with the source’s supporting files. The
+server verifies the exact source document and each observed destination
+root. It refuses occupied destinations and returns a tree receipt for
+every confirmed addition. Undo restores existing snapshots and moves an
+added folder to Trash while its tree still matches the receipt. A failed
+index update after a successful move returns the actual Trash path.
+
 ## 2026-11-28 — Paper review and Phase 3 integration
 
 **[NOTE]** The integration includes the four-artifact review corrections and

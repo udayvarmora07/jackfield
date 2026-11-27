@@ -36,7 +36,8 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 are included with the Phase 3 work to date.
 
 Phase 3 now has implementations of the Skill page, Editor, New skill
-and “Why isn’t it running?” The Skill page reads the exact current copy.
-Saving to missing places remains open in the Editor. [Build progress](build-progress.md)
+and “Why isn’t it running?” The maintainer approved the Editor with Save to
+missing places and Undo. Phase 3 integration and hosted CI come next.
+[Build progress](build-progress.md)
 [Build plan](docs/redesign-build/07-build-plan.md#phase-3--everyday-jobs) ·
 [Status board](project-status.html)

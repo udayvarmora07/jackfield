@@ -860,6 +860,11 @@
       "end_lineno": 117,
       "lineno": 112
     },
+    "skillsmgr/atomic_io.py::rename_new_directory": {
+      "complexity": 7,
+      "end_lineno": 533,
+      "lineno": 516
+    },
     "skillsmgr/atomic_io.py::tree_content_hash": {
       "complexity": 2,
       "end_lineno": 442,
@@ -1071,8 +1076,13 @@
       "lineno": 101
     },
     "skillsmgr/batch.py::_batch_tree_hash": {
-      "complexity": 11,
-      "end_lineno": 91,
+      "complexity": 10,
+      "end_lineno": 99,
+      "lineno": 65
+    },
+    "skillsmgr/batch.py::_batch_tree_mode": {
+      "complexity": 3,
+      "end_lineno": 63,
       "lineno": 58
     },
     "skillsmgr/batch.py::_operation": {
@@ -1559,6 +1569,51 @@
       "complexity": 8,
       "end_lineno": 141,
       "lineno": 119
+    },
+    "skillsmgr/editor_copy.py::_active_source": {
+      "complexity": 3,
+      "end_lineno": 39,
+      "lineno": 33
+    },
+    "skillsmgr/editor_copy.py::_install": {
+      "complexity": 7,
+      "end_lineno": 96,
+      "lineno": 75
+    },
+    "skillsmgr/editor_copy.py::_missing_destination": {
+      "complexity": 5,
+      "end_lineno": 65,
+      "lineno": 60
+    },
+    "skillsmgr/editor_copy.py::_mutation_lock": {
+      "complexity": 2,
+      "end_lineno": 30,
+      "lineno": 27
+    },
+    "skillsmgr/editor_copy.py::_prepare_source": {
+      "complexity": 5,
+      "end_lineno": 57,
+      "lineno": 42
+    },
+    "skillsmgr/editor_copy.py::_scope": {
+      "complexity": 2,
+      "end_lineno": 24,
+      "lineno": 20
+    },
+    "skillsmgr/editor_copy.py::_validate_library_fields": {
+      "complexity": 3,
+      "end_lineno": 72,
+      "lineno": 68
+    },
+    "skillsmgr/editor_copy.py::save_copies": {
+      "complexity": 9,
+      "end_lineno": 124,
+      "lineno": 99
+    },
+    "skillsmgr/editor_copy.py::undo_copy": {
+      "complexity": 7,
+      "end_lineno": 142,
+      "lineno": 127
     },
     "skillsmgr/effective.py::_allowed_roots": {
       "complexity": 5,
@@ -3915,6 +3970,11 @@
       "end_lineno": 292,
       "lineno": 291
     },
+    "skillsmgr/scopes.py::_update_edit_category": {
+      "complexity": 3,
+      "end_lineno": 1109,
+      "lineno": 1103
+    },
     "skillsmgr/scopes.py::_validated_scope_trash_entry": {
       "complexity": 10,
       "end_lineno": 1134,
@@ -3926,9 +3986,14 @@
       "lineno": 881
     },
     "skillsmgr/scopes.py::edit_skill": {
-      "complexity": 28,
-      "end_lineno": 916,
-      "lineno": 828
+      "complexity": 9,
+      "end_lineno": 1044,
+      "lineno": 993
+    },
+    "skillsmgr/scopes.py::edited_skill_text": {
+      "complexity": 15,
+      "end_lineno": 1100,
+      "lineno": 1047
     },
     "skillsmgr/scopes.py::find_duplicates": {
       "complexity": 8,
@@ -4870,6 +4935,11 @@
       "end_lineno": 654,
       "lineno": 633
     },
+    "skillsmgr/store.py::_record_trashed_skill": {
+      "complexity": 3,
+      "end_lineno": 148,
+      "lineno": 135
+    },
     "skillsmgr/store.py::_resync_row_changed": {
       "complexity": 7,
       "end_lineno": 274,
@@ -5095,6 +5165,11 @@
       "end_lineno": 1638,
       "lineno": 1630
     },
+    "skillsmgr/webapp.py::WebAppHandler._delete_skill": {
+      "complexity": 7,
+      "end_lineno": 1809,
+      "lineno": 1799
+    },
     "skillsmgr/webapp.py::WebAppHandler._handle_exception": {
       "complexity": 4,
       "end_lineno": 810,
@@ -5266,9 +5341,9 @@
       "lineno": 1118
     },
     "skillsmgr/webapp.py::WebAppHandler._route_sync_post": {
-      "complexity": 7,
-      "end_lineno": 1348,
-      "lineno": 1328
+      "complexity": 2,
+      "end_lineno": 1443,
+      "lineno": 1434
     },
     "skillsmgr/webapp.py::WebAppHandler._route_tail_get": {
       "complexity": 2,
@@ -5359,6 +5434,16 @@
       "complexity": 5,
       "end_lineno": 626,
       "lineno": 610
+    },
+    "skillsmgr/webapp.py::WebAppHandler._sync_edited_copies": {
+      "complexity": 8,
+      "end_lineno": 1473,
+      "lineno": 1462
+    },
+    "skillsmgr/webapp.py::WebAppHandler._sync_result": {
+      "complexity": 7,
+      "end_lineno": 1459,
+      "lineno": 1446
     },
     "skillsmgr/webapp.py::WebAppHandler._validate_request": {
       "complexity": 1,
@@ -5499,6 +5584,11 @@
       "complexity": 4,
       "end_lineno": 356,
       "lineno": 336
+    },
+    "skillsmgr/webapp.py::_expected_folder": {
+      "complexity": 4,
+      "end_lineno": 634,
+      "lineno": 631
     },
     "skillsmgr/webapp.py::_flag": {
       "complexity": 2,
@@ -5655,6 +5745,7 @@
     "skillsmgr/key_support.py",
     "skillsmgr/install.py",
     "skillsmgr/documents.py",
+    "skillsmgr/editor_copy.py",
     "skillsmgr/doctor.py",
     "skillsmgr/batch.py",
     "skillsmgr/atomic_io.py",

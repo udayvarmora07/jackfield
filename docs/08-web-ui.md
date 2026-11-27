@@ -594,8 +594,10 @@ stated beside the setting and in every result.
 | POST | `/api/validate` | body `{name}` → `{valid, issues: [{level, key, message}]}`; `{evals: true}` adds the advisory eval report for `evals/evals.json` (read-only); `{runs: [...], iteration?}` scores and records results inside the store's `evals/` workspace |
 | POST | `/api/rebuild` | Store.db_rebuild |
 | POST | `/api/resync` | Store.resync |
-| GET | `/api/scopes` | `list_scopes()`: id/label/path/kind/writable/availability/recursive/supported/consumer/exists/count/tokens |
+| GET | `/api/scopes` | `list_scopes()`: id/label/path/physical_root/kind/writable/availability/recursive/supported/consumer/exists/count/tokens |
 | POST | `/api/sync` | body `{name, from_scope, to_scopes[], force}` → `{synced[], skipped[]}` and optional scope-to-path maps `replaced_to_trash` and `retained_backup` |
+| POST | `/api/sync` | Editor variant adds `edit` with PATCH fields, `expected: {path, content_hash}` for the source, and `destinations` mapping each selected scope to its observed root. Publishes into empty destinations only. Returns `synced`, `skipped` and `installed` receipts by scope, with `path` and `tree_hash` |
+| DELETE | `/api/skills/<name>?scope=` | Editor Undo sends `{expected: {path, tree_hash}}` to move a matching installed tree to Trash. Returns its `trash_path`. A library index error after the move returns a warning with that path |
 | GET | `/api/catalog` | manager-owned tags and saved profiles from the filesystem sidecar |
 | POST | `/api/catalog/tags` | body `{names[], operation: add\|remove\|replace, tags[]}` → normalized catalog |
 | POST | `/api/catalog/profiles` | body `{name, description?, skills[], targets[], native?: {off[]}}` → normalized catalog. The off list is metadata for CLI previews. Browser profile application still uses the enable-only batch plan |

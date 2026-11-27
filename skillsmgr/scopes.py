@@ -475,6 +475,7 @@ def list_scopes(
                 "id": s.id,
                 "label": s.label,
                 "path": str(s.base),
+                "physical_root": str(_resolved_scope_root(s)),
                 "kind": s.kind,
                 "writable": s.writable,
                 "availability": availability,
@@ -1030,61 +1031,83 @@ def edit_skill(
             raise SkillNotFound(f"skill '{name}' has no SKILL.md in scope '{scope_id}'")
         text = read_skill_text_strict(md, subject=f"skill '{name}'")
         check_edit_target(md, text, expected)
-        try:
-            data, orig_body = parse_frontmatter(text)
-        except FrontmatterError as exc:
-            # SCOPE-12: treating an unparseable document as "no frontmatter" made
-            # the rewrite re-emit the corrupt document as the *body* and dump a
-            # fresh block above it -- four '---' fences, no 'name', and no error.
-            # Fail closed, mirroring the undecodable-document policy above.
-            raise StoreError(
-                f"cannot safely edit skill '{name}' in scope '{scope_id}': its "
-                f"frontmatter is malformed ({exc}); repair it by hand first"
-            ) from exc
-        orig_keys = list(data.keys())
-        changed = False
-        if description is not None:
-            description = description.strip()
-            if not description:
-                raise StoreError("description cannot be empty")
-            if data.get("description") != description:
-                data["description"] = description
-                changed = True
-        if license is not None and data.get("license") != license:
-            data["license"] = license
-            changed = True
-        if compatibility is not None and data.get("compatibility") != compatibility:
-            data["compatibility"] = compatibility
-            changed = True
-        if version is not None and data.get("version") != version:
-            data["version"] = version
-            changed = True
-        if allowed_tools is not None and data.get("allowed-tools") != allowed_tools.strip():
-            data["allowed-tools"] = allowed_tools.strip()
-            changed = True
-        if category is not None:
-            if not isinstance(data.get("metadata"), dict):
-                data["metadata"] = {}
-            if data["metadata"].get("category") != category:
-                data["metadata"]["category"] = category
-                changed = True
-        if body is not None:
-            if not body.endswith("\n"):
-                body += "\n"
-            if body != orig_body:
-                orig_body = body
-                changed = True
+        content, changed = edited_skill_text(
+            text, name, scope_id, description=description, license=license, category=category,
+            compatibility=compatibility, version=version, allowed_tools=allowed_tools, body=body,
+        )
         snapshot = None
-        content = text
         if changed:
             snapshot = write_snapshot(_global_store().data_dir, scope_id, name, text)
-            order = orig_keys + [k for k in data if k not in orig_keys]
-            content = dump_frontmatter(data, key_order=order) + orig_body
             try:
                 atomic_write_text(md, content)
             except OSError as exc:
                 raise StoreError(f"could not edit skill '{name}' safely: {exc}") from exc
         return {"name": name, "changed": changed, "scope": scope_id, **edit_receipt(expected, snapshot, content)}
+
+
+def edited_skill_text(
+    text: str,
+    name: str,
+    scope_id: str,
+    *,
+    description: str | None = None,
+    license: str | None = None,
+    category: str | None = None,
+    compatibility: str | None = None,
+    version: str | None = None,
+    allowed_tools: str | None = None,
+    body: str | None = None,
+) -> tuple[str, bool]:
+    """Apply editor fields without replacing unrelated frontmatter or files."""
+    try:
+        data, orig_body = parse_frontmatter(text)
+    except FrontmatterError as exc:
+        # SCOPE-12: treating an unparseable document as "no frontmatter" made
+        # the rewrite re-emit the corrupt document as the *body* and dump a
+        # fresh block above it -- four '---' fences, no 'name', and no error.
+        # Fail closed, mirroring the undecodable-document policy above.
+        raise StoreError(
+            f"cannot safely edit skill '{name}' in scope '{scope_id}': its "
+            f"frontmatter is malformed ({exc}); repair it by hand first"
+        ) from exc
+    orig_keys = list(data.keys())
+    changed = False
+    if description is not None:
+        description = description.strip()
+        if not description:
+            raise StoreError("description cannot be empty")
+    updates = {
+        "description": description,
+        "license": license,
+        "compatibility": compatibility,
+        "version": version,
+        "allowed-tools": allowed_tools.strip() if allowed_tools is not None else None,
+    }
+    for key, value in updates.items():
+        if value is not None and data.get(key) != value:
+            data[key] = value
+            changed = True
+    if category is not None and _update_edit_category(data, category):
+        changed = True
+    if body is not None:
+        if not body.endswith("\n"):
+            body += "\n"
+        if body != orig_body:
+            orig_body = body
+            changed = True
+    if not changed:
+        return text, False
+    order = orig_keys + [key for key in data if key not in orig_keys]
+    return dump_frontmatter(data, key_order=order) + orig_body, True
+
+
+def _update_edit_category(data: dict, category: str) -> bool:
+    if not isinstance(data.get("metadata"), dict):
+        data["metadata"] = {}
+    if data["metadata"].get("category") == category:
+        return False
+    data["metadata"]["category"] = category
+    return True
 
 
 def remove_skill(scope_id: str, name: str, *, purge: bool = False) -> dict:

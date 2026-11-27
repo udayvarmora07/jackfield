@@ -123,6 +123,73 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       fs.writeFileSync(claude, originalClaude);
     }
   });
+  for (const changeAfterSave of [false, true]) {
+    const outcome = changeAfterSave ? 'Undo preserves a changed supporting file' : 'Undo restores the source and removes the added copy';
+    await test('Editor adds a missing copy and ' + outcome, async () => {
+      const name = changeAfterSave ? 'phase-three-editor-guard' : 'phase-three-editor-add';
+      const source = file('.claude', name), target = file('.codex', name);
+      const companion = 'references/café.txt';
+      const sourceCompanion = path.join(path.dirname(source), companion);
+      const targetCompanion = path.join(path.dirname(target), companion);
+      const original = Buffer.from(`---\nname: ${name}\ndescription: Original description.\n---\n# Original instructions\n`);
+      const notes = Buffer.from('Original companion notes\r\n');
+      const newDescription = 'Use this skill to review an edited draft.';
+      const newBody = '# Revised instructions\n\nReview the draft before publishing.\n';
+      assert(!fs.existsSync(path.dirname(source)) && !fs.existsSync(path.dirname(target)));
+      try {
+        fs.mkdirSync(path.dirname(sourceCompanion), {recursive:true});
+        fs.writeFileSync(source, original);
+        fs.writeFileSync(sourceCompanion, notes);
+        await go('skill/' + name);
+        await page.getByRole('button', {name:'Edit', exact:true}).click();
+        const places = page.getByRole('complementary', {name:'Save to'});
+        const codex = places.getByRole('checkbox', {name:/Codex/});
+        assert(await places.getByRole('checkbox', {name:/Claude Code/}).isChecked());
+        assert.equal(await codex.isChecked(), false);
+        await codex.locator('..').getByText('Not here', {exact:true}).waitFor();
+        await codex.locator('..').getByText(/No copy here/).waitFor();
+        const editor = page.locator('.jf-editor');
+        await editor.getByLabel('Description', {exact:true}).fill(newDescription);
+        await editor.getByLabel('Instructions', {exact:true}).fill(newBody);
+        await editor.getByRole('button', {name:'Save to 1 place', exact:true}).waitFor();
+        await codex.check();
+        await codex.locator('..').getByText('A new copy will be added here.', {exact:true}).waitFor();
+        assert(!fs.existsSync(path.dirname(target)), 'selecting a place should not create the copy');
+        await editor.getByRole('button', {name:'Save to 2 places', exact:true}).click();
+        const notice = page.locator('.toast').filter({hasText:`${name} saved to 2 places.`});
+        const undo = notice.getByRole('button', {name:'Undo', exact:true});
+        await undo.waitFor();
+        const saved = fs.readFileSync(source);
+        assert(saved.includes(newDescription) && saved.includes(newBody.trim()));
+        assert.deepEqual(fs.readFileSync(target), saved);
+        assert.deepEqual(fs.readFileSync(sourceCompanion), notes);
+        assert.deepEqual(fs.readFileSync(targetCompanion), notes);
+        assert(!fs.existsSync(file('.config/opencode', name)), 'unselected place should remain empty');
+
+        const changedNotes = Buffer.from('Edited outside Jackfield after Save.\n');
+        if (changeAfterSave) fs.writeFileSync(targetCompanion, changedNotes);
+        await undo.click();
+        if (changeAfterSave) {
+          await page.locator('.toast').getByText(/couldn.t undo/i).waitFor();
+          assert.deepEqual(fs.readFileSync(target), saved);
+          assert.deepEqual(fs.readFileSync(targetCompanion), changedNotes);
+        } else {
+          await page.locator('.toast').getByText('Undone', {exact:true}).waitFor();
+          assert(!fs.existsSync(path.dirname(target)), 'Undo should remove the added folder from the place');
+          const trash = await page.request.get(base + '/api/trash?scope=codex');
+          assert(trash.ok());
+          const moved = (await trash.json()).find(entry => entry.name === name)?.trash_path;
+          assert(moved, 'Undo should move the added folder to Trash');
+          assert.deepEqual(fs.readFileSync(path.join(moved, companion)), notes);
+        }
+        assert.deepEqual(fs.readFileSync(source), original);
+        assert.deepEqual(fs.readFileSync(sourceCompanion), notes);
+      } finally {
+        fs.rmSync(path.dirname(source), {recursive:true, force:true});
+        fs.rmSync(path.dirname(target), {recursive:true, force:true});
+      }
+    });
+  }
   await test('New skill draft survives Back, Keep editing and explicit Cancel', async () => {
     await go('skills');
     await page.evaluate(() => { location.hash = '#/new'; });
@@ -1360,7 +1427,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await copyPicker.selectOption({label:'Shared skills folder'});
     await page.getByRole('button',{name:'Edit',exact:true}).click();
     const targets=page.getByRole('complementary',{name:'Save to'});
-    assert.equal(await targets.getByRole('checkbox').count(),1);
+    assert.equal(await targets.getByRole('checkbox',{name:/Claude Code/}).count(),0);
+    assert.equal(await targets.locator('input:checked').count(),1);
     assert(await targets.getByRole('checkbox',{name:/Shared skills folder/}).isChecked());
     await page.locator('#ed-body').fill('# Updated by the owner UI\n');
     await page.locator('.savebar button').filter({hasText:'Save'}).click();

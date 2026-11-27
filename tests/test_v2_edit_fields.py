@@ -1,13 +1,15 @@
 """Real PATCH roundtrips for fields exposed by the v2 editor."""
 
 import json
+import sqlite3
 import threading
 import urllib.error
 import urllib.request
 from hashlib import sha256
 from pathlib import Path
+from unittest.mock import patch
 
-from skillsmgr import scopes
+from skillsmgr import editor_copy, scopes
 from skillsmgr.frontmatter import dump_frontmatter, parse_frontmatter
 from skillsmgr.webapp import WebAppServer
 from tests.test_web_scopes import ScopedHomeTestCase
@@ -50,6 +52,102 @@ class EditFieldsTests(ScopedHomeTestCase):
             return self.store.skills_dir / "editable" / "SKILL.md"
         scopes.create_skill(scope, "editable", "Keep description", **fields)
         return Path(self._tmp.name) / ".codex" / "skills" / "editable" / "SKILL.md"
+
+    def copy_edit(self, scope, document, destinations, **fields):
+        expected = {"path": str(document.parent.resolve()), "content_hash": sha256(document.read_bytes()).hexdigest()}
+        roots = {sid: str(root.resolve()) for sid, root in destinations.items()}
+        return self.request("POST", "/api/sync", {
+            "name": "editable", "from_scope": scope, "to_scopes": list(destinations),
+            "edit": {**fields, "expected": expected, "destinations": roots},
+        })
+
+    def test_edited_copy_preserves_source_and_indexes_the_library(self):
+        source = self.seed("codex")
+        original = source.read_bytes()
+        (source.parent / "guide.md").write_bytes(b"Supporting text\n")
+        status, data = self.copy_edit("codex", source, {"global": self.store.skills_dir}, body="# Edited")
+        self.assertEqual(status, 200)
+        self.assertEqual(data["synced"], ["global"])
+        self.assertEqual(source.read_bytes(), original)
+        self.assertEqual(self.store.get("editable")["body"].strip(), "# Edited")
+        receipt = data["installed"]["global"]
+        installed = Path(receipt["path"])
+        self.assertEqual((installed / "guide.md").read_bytes(), b"Supporting text\n")
+        route = "/api/skills/editable?scope=global"
+        self.assertEqual(self.request("DELETE", route, {})[0], 400)
+        self.assertTrue(installed.is_dir())
+        (installed / "guide.md").write_bytes(b"Later change\n")
+        self.assertEqual(self.request("DELETE", route, {"expected": receipt})[0], 400)
+        self.assertTrue(installed.exists())
+        (installed / "guide.md").write_bytes(b"Supporting text\n")
+        status, result = self.request("DELETE", route, {"expected": receipt})
+        self.assertEqual(status, 200)
+        self.assertEqual((Path(result["trash_path"]) / "guide.md").read_bytes(), b"Supporting text\n")
+        self.assertFalse(installed.exists())
+
+    def test_edited_copy_refuses_a_retargeted_scope_and_keeps_other_results(self):
+        source = self.seed("global")
+        home = Path(self._tmp.name)
+        codex_root = home / ".codex" / "skills"
+        claude_root = home / ".claude" / "skills"
+        codex_root.mkdir(parents=True)
+        claude_root.mkdir(parents=True)
+        _, observed = self.request("GET", "/api/scopes", {})
+        self.assertEqual(
+            next(place["physical_root"] for place in observed if place["id"] == "codex"),
+            str(codex_root.resolve()),
+        )
+        status, result = self.copy_edit(
+            "global", source, {"codex": home / "old-root", "claude-code": claude_root}, body="# Moved",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(result["synced"], ["claude-code"])
+        self.assertEqual([item["scope"] for item in result["skipped"]], ["codex"])
+        self.assertFalse((codex_root / "editable").exists())
+        self.assertTrue((claude_root / "editable" / "SKILL.md").is_file())
+
+    def test_edited_copy_leaves_an_empty_folder_that_appears_at_publication(self):
+        source = self.seed("global")
+        codex_root = Path(self._tmp.name) / ".codex" / "skills"
+        codex_root.mkdir(parents=True)
+        publish = editor_copy.rename_new_directory
+
+        def occupied_at_publish(stage, target):
+            target.mkdir()
+            publish(stage, target)
+
+        with patch("skillsmgr.editor_copy.rename_new_directory", side_effect=occupied_at_publish):
+            status, result = self.copy_edit("global", source, {"codex": codex_root}, body="# Edited")
+        self.assertEqual(status, 200)
+        self.assertEqual(result["synced"], [])
+        self.assertEqual(result["skipped"][0]["scope"], "codex")
+        self.assertEqual(list(codex_root.iterdir()), [codex_root.resolve() / "editable"])
+        self.assertEqual(list((codex_root / "editable").iterdir()), [])
+
+    def test_edited_copy_undo_reports_trash_path_if_index_update_fails(self):
+        source = self.seed("codex")
+        status, data = self.copy_edit("codex", source, {"global": self.store.skills_dir}, body="# Edited")
+        self.assertEqual(status, 200)
+        receipt = data["installed"]["global"]
+        with patch.object(scopes.Store, "_history", side_effect=sqlite3.OperationalError("fixture failure")):
+            status, result = self.request("DELETE", "/api/skills/editable?scope=global", {"expected": receipt})
+        self.assertEqual(status, 200)
+        self.assertIn("moved to Trash", result["warning"])
+        self.assertTrue((Path(result["trash_path"]) / "SKILL.md").is_file())
+        self.assertFalse(Path(receipt["path"]).exists())
+
+    def test_edited_copy_keeps_undo_receipt_if_staging_cleanup_fails(self):
+        source = self.seed("codex")
+        with patch("shutil.rmtree", side_effect=PermissionError("fixture cleanup failure")):
+            status, data = self.copy_edit("codex", source, {"global": self.store.skills_dir}, body="# Edited")
+        self.assertEqual(status, 200)
+        self.assertEqual(data["synced"], ["global"])
+        self.assertEqual(data["skipped"], [])
+        receipt = data["installed"]["global"]
+        self.assertTrue(Path(receipt["path"]).is_dir())
+        status, _ = self.request("DELETE", "/api/skills/editable?scope=global", {"expected": receipt})
+        self.assertEqual(status, 200)
+        self.assertFalse(Path(receipt["path"]).exists())
 
     def test_explicit_empty_optional_fields_and_body_are_persisted(self):
         for scope in ("global", "codex"):

@@ -15,6 +15,7 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 
+from .atomic_io import EDIT_STAGE_PREFIX
 from .frontmatter import FrontmatterError, parse_frontmatter
 from .observations import document_observations
 from . import documents, path_safety
@@ -871,6 +872,8 @@ def scan_dir(
             except (ValueError, OSError):
                 _scan_degraded(collector, "candidate path could not be inspected")
                 continue
+        if relative_parts[0].startswith(EDIT_STAGE_PREFIX):
+            continue
         try:
             # The scan enumerated this entry itself, so a non-canonical name is
             # not an escape: load it and let the row be marked unaddressable

@@ -132,6 +132,22 @@ def _with_index_lock(skills_dir: Path, func, *args, **kwargs):
         lock.release()
 
 
+def _record_trashed_skill(store: Store, conn: sqlite3.Connection, name: str, result: dict,
+                          report_index_failure: bool) -> None:
+    try:
+        conn.execute(
+            "UPDATE skills SET status = 'trashed', updated_at = ? WHERE name = ?",
+            (now_iso(), name),
+        )
+        store._history(conn, name, "trash")
+        conn.commit()
+    except sqlite3.Error as exc:
+        if not report_index_failure:
+            raise
+        _diagnose("could not index a skill moved to Trash", exc)
+        result["warning"] = "The copy moved to Trash. Rebuild the library index from Advanced."
+
+
 @contextmanager
 def _skill_and_index_locks(skills_dir: Path, skill_dir: Path):
     """Hold the shared index lock and one skill's lock together.
@@ -1787,7 +1803,7 @@ class Store:
             self.skills_dir, self._remove_unlocked, name, purge=purge
         )
 
-    def _remove_unlocked(self, name: str, purge: bool = False) -> dict:
+    def _remove_unlocked(self, name: str, purge: bool = False, *, report_index_failure: bool = False) -> dict:
         """Move a skill to the trash, or permanently delete it with ``purge``."""
         skill_dir = _safe_skill_path(self.skills_dir, name)
         if not skill_dir.is_dir():
@@ -1801,19 +1817,14 @@ class Store:
                 self._purge_skill(skill_dir, name)
                 conn.execute("DELETE FROM skills WHERE name = ?", (name,))
                 self._history(conn, name, "purge")
+                conn.commit()
                 result = {"name": name, "action": "purged"}
             else:
                 self.trash_dir.mkdir(parents=True, exist_ok=True)
                 target = path_safety.new_trash_path(self.trash_dir, name)
                 shutil.move(str(skill_dir), str(target))
-                conn.execute(
-                    "UPDATE skills SET status = 'trashed', updated_at = ? "
-                    "WHERE name = ?",
-                    (now_iso(), name),
-                )
-                self._history(conn, name, "trash")
                 result = {"name": name, "action": "trashed", "trash_path": str(target)}
-            conn.commit()
+                _record_trashed_skill(self, conn, name, result, report_index_failure)
             return result
         finally:
             conn.close()

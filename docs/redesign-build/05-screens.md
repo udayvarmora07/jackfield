@@ -141,17 +141,19 @@ estimate, library events and available file snapshots.
 - **States:** unsaved; invalid (why, Save disabled with the reason); saving;
   saved + Undo; changed on disk ("This skill was changed outside the app. Compare
   before saving?"); phone sticky Save.
-- **API:** `PATCH /api/skills/<n>?scope=` per ticked place; places that need the
-  new copy and do not hold it → `POST /api/sync`. Undo: restore each place's
-  previous snapshot (`POST /api/trash/<n>?snapshot=&scope=`), as today.
+- **API:** `PATCH /api/skills/<n>?scope=` per ticked existing place. Ticked
+  places marked Not here receive the edited source tree through `POST /api/sync`.
+  Undo restores the exact snapshots for existing places and moves each new
+  copy to Trash while its installed tree still matches.
 - **Acceptance:** F5; reload keeps the editor; nothing outside the ticked places
   changes; Ctrl/Cmd+S saves only when valid.
 
-**[NOTE]** The current editor saves to existing unambiguous writable copies.
-Changed destinations are refused using the expected path and hash under the
-write lock. Saving directly to a missing place remains open. Use the Skill
-page to add the copy before editing it. Different copies keep their own extra
-frontmatter fields and supporting files, as ordinary PATCH does.
+**[NOTE]** A writable place with no copy starts unchecked. Saving there
+preserves supporting files and unrelated frontmatter from the selected
+source. A changed source, moved destination or newly occupied folder is
+refused. Different existing copies keep their own extra frontmatter and
+supporting files, as ordinary PATCH does. A partial save keeps the draft
+open and offers Undo for the confirmed writes.
 
 ## S5 · New skill
 

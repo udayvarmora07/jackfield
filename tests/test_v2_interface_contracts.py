@@ -520,7 +520,7 @@ class BodyLazyLoadTests(unittest.TestCase):
         return _node(
             "let calls=[];"
             "ctx.window.SkillManagerDomain={...ctx.window.SkillManagerDomain,"
-            "api:async(url)=>{calls.push(url);" + api_js + "}};"
+            "api:async(url,options)=>{calls.push(url);" + api_js + "}};"
             "ctx.Vue={createApp(options){ctx.options=options;return {component(){},mount(){}};},markRaw:x=>x};"
             f"loadJackfield(ctx, {self.APP});"
             + BODY_CONTEXT_JS +
@@ -533,7 +533,8 @@ class BodyLazyLoadTests(unittest.TestCase):
         const copy=Object.assign(strip({name:'a',scope:'codex',description:'d',content_hash:'h1',tokens:5,
           record:{category:'c',version:'',license:'',compatibility:'',allowed_tools:''}}),{body:'# Body\\n',bodyLoaded:false});
         const skill={name:'a',copies:[copy]};
-        const context=bodyContext(M,{skill,refCopy:copy,route:{page:'skill'},edit:null,readCopyPath:'',editTargets:[copy],
+        const editPlaces=new Map([['codex',{scope:'codex',copy,evidence:'original'}]]);
+        const context=bodyContext(M,{skill,refCopy:copy,route:{page:'skill'},edit:null,readCopyPath:'',editPlaces,
           toast(){},$nextTick(){},
           ensureBodies:async function(cs){cs[0].body='# Body\\n';cs[0].bodyLoaded=true;this.bodies[this.bodyKey(cs[0])]='# Body\\n';}});
         await M.startEdit.call(context);
@@ -546,7 +547,7 @@ class BodyLazyLoadTests(unittest.TestCase):
         const M=ctx.options.methods;
         const copy={name:'a',scope:'codex',hash:'h1',body:'',bodyLoaded:false,description:'d',record:{}};
         const skill={name:'a',copies:[copy]};
-        const context=bodyContext(M,{skill,refCopy:copy,route:{page:'skill'},edit:null,readCopyPath:'',editTargets:[copy],
+        const context=bodyContext(M,{skill,refCopy:copy,route:{page:'skill'},edit:null,readCopyPath:'',
           toast(){},$nextTick(){},
           ensureBodies:async function(){this.skill={name:'b',copies:[]};this.route={page:'skills'};}});
         await M.startEdit.call(context);
@@ -559,13 +560,49 @@ class BodyLazyLoadTests(unittest.TestCase):
         const copy={name:'a',scope:'codex',hash:'h1',body:'',bodyLoaded:false,description:'d',record:{}};
         const skill={name:'a',copies:[copy]};
         let toastText='';
-        const context=bodyContext(M,{skill,refCopy:copy,route:{page:'skill'},edit:null,readCopyPath:'',editTargets:[copy],
+        const context=bodyContext(M,{skill,refCopy:copy,route:{page:'skill'},edit:null,readCopyPath:'',
           toast(t){toastText=t;},$nextTick(){},
           ensureBodies:async function(){this.bodyErrors[this.bodyKey(copy)]='The document could not be read.';}});
         await M.startEdit.call(context);
         return {edit:context.edit,toast:toastText};""")
         self.assertIsNone(out["edit"])
         self.assertIn("could not be read", out["toast"])
+
+    def test_partial_editor_additions_leave_the_source_available_for_retry(self):
+        out = self._app_with_stub(
+            "if(url==='/api/sync'){const request=JSON.parse(options.body);"
+            "if(request.from_scope!=='claude-code'||request.edit.expected.content_hash!=='h1'||"
+            "request.edit.destinations.codex!=='/physical/codex'||"
+            "request.edit.destinations.opencode!=='/h/.config/opencode/skills'||"
+            "request.edit.body!=='Edited'||request.to_scopes.join()!=='codex,opencode')throw Error('wrong sync');"
+            "return {synced:['codex'],skipped:[{scope:'opencode',reason:'occupied'}],"
+            "installed:{codex:{path:'/p/codex/a',tree_hash:'whole-folder'}}};}"
+            "if(url==='/api/skills/a?scope=codex'&&options?.method==='DELETE'&&"
+            "JSON.parse(options.body).expected.tree_hash==='whole-folder')return {};"
+            "throw Error('unexpected request '+url);", HELPERS + """
+        const methods=ctx.options.methods, observed=scopes.map(scope=>({...scope,availability:'writable'}));
+        observed[1].physical_root='/physical/codex';
+        const model=M.build([rec('a','claude-code')],observed), skill=model.skills[0], copy=skill.copies[0];
+        let undo, message;
+        const context=bodyContext(methods,{m:model,skill,scopes:observed,editTargets:[copy],shortPath:path=>path,
+          editError:'',editDirty:true,agentOf:id=>model.agent(id),busy:false,refresh:async()=>{},
+          checkEditTarget:async()=>{},toast(text,options){message=text;undo=options.undo;}});
+        for(const name of ['editPlaceChanged','editFields','saveNewEditCopies','reportEditResult'])context[name]=methods[name];
+        context.editPlaces=ctx.options.computed.editPlaces.call(context);
+        const places=[...context.editPlaces.values()];
+        const draft={name:'a',copy,desc:'d',baseDesc:'d',body:'Edited',baseBody:'b',metadata:{},baseMetadata:{},places,
+          targets:places.map(({scope})=>scope),initialTargets:Object.fromEntries(places.map(({scope,evidence})=>[scope,evidence]))};
+        context.edit=draft;
+        context.editTargetChanged=ctx.options.computed.editTargetChanged.call(context);
+        await methods.saveEdit.call(context);
+        await undo();
+        return {calls,targets:draft.targets,body:context.edit.body,message,busy:context.busy};""")
+        self.assertEqual(out["calls"], ["/api/sync", "/api/skills/a?scope=codex"])
+        self.assertEqual(out["targets"], ["claude-code", "opencode"])
+        self.assertEqual(out["body"], "Edited")
+        self.assertIn("saved to 1 place", out["message"])
+        self.assertIn("OpenCode", out["message"])
+        self.assertFalse(out["busy"])
 
     def test_a_linked_copy_is_explained_instead_of_loading_forever(self):
         # A copy this tool refuses to follow is never requested, so waiting for
@@ -680,7 +717,7 @@ class BodyLazyLoadTests(unittest.TestCase):
         const run=async(nextSkill)=>{
           const copy={name:'a',scope:'codex',hash:'h1',body:'',bodyLoaded:false,description:'d',record:{}};
           const context=bodyContext(M,{skill:{name:'a',copies:[copy]},refCopy:copy,route:{page:'skill'},edit:null,
-            readCopyPath:'',editTargets:[copy],toast(){},$nextTick(){},
+            readCopyPath:'',editPlaces:new Map([['codex',{scope:'codex',copy,evidence:'original'}]]),toast(){},$nextTick(){},
             ensureBodies:async function(cs){cs[0].body='# Body\\n';cs[0].bodyLoaded=true;this.skill=nextSkill();}});
           await M.startEdit.call(context);
           return {name:context.edit&&context.edit.name,body:context.edit&&context.edit.body};

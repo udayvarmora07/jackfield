@@ -328,7 +328,7 @@
 
     <!-- ========== SKILL (notebook) ========== -->
     <div v-else-if="route.page === 'skill'">
-      <jf-not-found v-if="!skill" :route="route" :places="m.infos.length" :suggestion="missingSuggestion"></jf-not-found>
+      <jf-not-found v-if="!skill && !edit" :route="route" :places="m.infos.length" :suggestion="missingSuggestion"></jf-not-found>
       <jf-why-screen v-else-if="route.screen === 'why'" :key="skill.name" :name="skill.name" :scopes="scopes"
         :records="records" :busy="loading" :error="loadError" :project="tracking?.showing || ''"
         :reader-href="readerHref()" @refresh="refresh()"></jf-why-screen>
@@ -507,14 +507,18 @@
           </article>
           <aside class="jf-reader-details jf-editor-places" aria-labelledby="jf-editor-places-title">
             <div><h2 id="jf-editor-places-title">Save to</h2>
-              <p class="sm-hint">The selected copies receive the edited content. Supporting files stay in their folders.</p>
+              <p class="sm-hint">Selected places receive the edited content. New copies include the supporting files from the copy you’re editing.</p>
             </div>
-            <label v-for="copy in editTargets" :key="copy.scope" class="jf-editor-place">
-              <input type="checkbox" class="sm-check" :value="copy.scope" v-model="edit.targets" :disabled="busy || bodyKey(copy) !== edit.initialTargets[copy.scope]">
+            <label v-for="place in edit.places" :key="place.scope" class="jf-editor-place">
+              <input type="checkbox" class="sm-check" :value="place.scope" v-model="edit.targets" :disabled="busy || (editPlaceChanged(place.scope) && !edit.targets.includes(place.scope))">
               <span>
-                <jf-agent :agent="{ ...agentOf(copy.scope), path: shortPath(copy.path) }"></jf-agent>
-                <small v-if="bodyKey(copy) !== edit.initialTargets[copy.scope]">This copy changed on disk.</small>
-                <small v-else-if="copy.hash !== edit.copy.hash">Different copy. Selecting it replaces its description, instructions and editable metadata.</small>
+                <jf-agent :agent="place.agent"></jf-agent>
+                <small v-if="editPlaceChanged(place.scope)">This place changed on disk.</small>
+                <template v-else-if="!place.copy">
+                  <jf-status status="missing"></jf-status><br>
+                  <span class="sm-hint">{{ edit.targets.includes(place.scope) ? 'A new copy will be added here.' : 'No copy here. Tick to add one.' }}</span>
+                </template>
+                <small v-else-if="editPlaces.get(place.scope).copy.hash !== edit.copy.hash">Different copy. Selecting it replaces its description, instructions and editable metadata.</small>
               </span>
             </label>
             <p id="jf-editor-save-note" class="sm-hint">{{ editError || (edit.targets.length ? plural(edit.targets.length, 'place') + ' selected.' : 'Choose where to save.') }}</p>

@@ -421,6 +421,7 @@ class ToolBehaviorTests(unittest.TestCase):
           const h={...component.methods,skill:{name:'divergent',description:'Primary description'},
             route:{page:'skill',name:'divergent',href:'#/skills/divergent?scope=codex&copy=%2Fcodex%2Fdivergent',copyScope:'codex',copyPath:refCopy.path},
             refCopy,editTargets:[refCopy,{scope:'claude-code',hash:'h1'}],$nextTick:()=>{},bodies:{},bodyErrors:{},ensureBodies:async()=>{},toast:()=>{}};
+          h.editPlaces=new Map(h.editTargets.map(copy=>[copy.scope,{scope:copy.scope,copy,evidence:h.bodyKey(copy)}]));
           h.updatePageTitle=()=>{};
           await component.methods.startEdit.call(h);return h.edit;
         """)
@@ -439,6 +440,7 @@ class ToolBehaviorTests(unittest.TestCase):
           handler=async(url,opts)=>opts.method==='PATCH'?{changed:true}:{path:copy.path,content_hash:copy.hash};
           const h={...component.methods,edit:{name:'one',desc:'Unchanged',baseDesc:'Unchanged',body:'# Changed',baseBody:'# Original',metadata,
             baseMetadata:{...metadata},targets:['global'],copy,initialTargets:{global:component.methods.bodyKey(copy)}},editTargets:[copy],
+            editPlaces:new Map([['global',{scope:'global',copy}]]),
             editError:'',busy:false,editDirty:true,refresh:async()=>{},showSkillView:()=>{},toast:()=>{}};
           await component.methods.saveEdit.call(h);return JSON.parse(calls.find(call=>call.opts.method==='PATCH').opts.body);
         """)

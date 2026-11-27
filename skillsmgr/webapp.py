@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from . import ai, ai_ablate, ai_ask, ai_budget, ai_concise, ai_conflicts, ai_draft, ai_edit, ai_evals, ai_explain, ai_overlap, ai_port, ai_profiles, ai_review, ai_skills, batch, doctor, effective, evals, install, scopes, tracking
 from .documents import document_text
+from .editor_copy import save_copies, undo_copy
 from .context import set_active_store, set_scope_overlay
 from .store import Store, StoreError, SkillNotFound
 from .loader import scan_dir
@@ -627,18 +628,23 @@ def _validated_skill_fields(data: dict, *, keep_empty: bool = False) -> dict:
     return fields
 
 
-def _expected_skill_edit(data: dict) -> dict:
+def _expected_folder(value: object, field: str) -> Path:
+    if not isinstance(value, str) or not Path(value).is_absolute() or "\x00" in value:
+        raise StoreError(f"{field} must be an absolute folder path")
+    return Path(value)
+
+
+def _expected_skill_edit(data: dict, hash_field: str = "content_hash") -> dict:
     if "expected" not in data:
         return {}
     value = data["expected"]
     if not isinstance(value, dict):
         raise StoreError("expected must be an object")
-    folder, digest = value.get("path"), value.get("content_hash")
-    if not isinstance(folder, str) or not Path(folder).is_absolute() or "\x00" in folder:
-        raise StoreError("expected.path must be an absolute folder path")
+    folder = _expected_folder(value.get("path"), "expected.path")
+    digest = value.get(hash_field)
     if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
-        raise StoreError("expected.content_hash must be a SHA-256 hash")
-    return {"expected": (folder, digest)}
+        raise StoreError(f"expected.{hash_field} must be a SHA-256 hash")
+    return {"expected": (str(folder), digest)}
 
 
 def _head_safe_body(command: str, body: bytes) -> bytes:
@@ -1433,7 +1439,11 @@ class WebAppHandler(BaseHTTPRequestHandler):
         """
         if parts != ["api", "sync"]:
             return False
-        data = self._body_json()
+        self._send_json(self._sync_result(self._body_json()))
+        return True
+
+    @staticmethod
+    def _sync_result(data: dict) -> dict:
         raw_name = data.get("name")
         if not isinstance(raw_name, str) or not raw_name.strip():
             raise StoreError("name must be a string")
@@ -1444,8 +1454,23 @@ class WebAppHandler(BaseHTTPRequestHandler):
         from_scope = raw_from_scope.strip() or "global"
         to_scopes = batch.requested_scopes(data)
         force = bool(data.get("force"))
-        self._send_json(scopes.sync_skill(name, from_scope, to_scopes, force=force))
-        return True
+        if "edit" in data:
+            return WebAppHandler._sync_edited_copies(data["edit"], name, from_scope, to_scopes, force)
+        return scopes.sync_skill(name, from_scope, to_scopes, force=force)
+
+    @staticmethod
+    def _sync_edited_copies(edit, name, from_scope, to_scopes, force) -> dict:
+        if force or not isinstance(edit, dict):
+            raise StoreError("An edited copy requires edit fields and an empty destination.")
+        expected = _expected_skill_edit(edit)
+        fields = _validated_skill_fields(edit, keep_empty=True)
+        if not expected or not fields:
+            raise StoreError("An edited copy requires the observed source and the edited fields.")
+        destinations = edit.get("destinations")
+        if not isinstance(destinations, dict) or set(destinations) != set(to_scopes):
+            raise StoreError("Each edited copy requires its observed destination folder.")
+        roots = {scope: _expected_folder(destinations[scope], "edit.destinations") for scope in to_scopes}
+        return save_copies(name, from_scope, roots, fields=fields, **expected)
 
     def _route_install_post(self, parts: list[str]) -> bool:
         """Serve ``POST /api/install`` -- registry reads and runner install.
@@ -1765,13 +1790,23 @@ class WebAppHandler(BaseHTTPRequestHandler):
 
     def _delete_route(self, parts: list[str], qs: dict[str, list[str]]) -> None:
         if len(parts) == 3 and parts[:2] == ["api", "skills"]:
-            purge = _flag(qs, "purge")
-            scope = _scope_param(qs)
-            self._send_json(scopes.remove_skill(scope, parts[2], purge=purge))
+            self._send_json(self._delete_skill(parts[2], qs))
         elif len(parts) == 4 and parts[:3] == ["api", "catalog", "profiles"]:
             self._send_json(delete_profile(self.store.data_dir, parts[3]))
         else:
             self._send_error(404, "unknown endpoint", code="unknown_endpoint")
+
+    def _delete_skill(self, name: str, qs: dict[str, list[str]]) -> dict:
+        purge = _flag(qs, "purge")
+        scope = _scope_param(qs)
+        body = self._body_json()
+        length = int(self.headers.get("Content-Length") or "0")
+        if not body and not length and not self.headers.get("Transfer-Encoding"):
+            return scopes.remove_skill(scope, name, purge=purge)
+        expected = _expected_skill_edit(body, "tree_hash")
+        if not expected or purge:
+            raise StoreError("Undo requires the added copy's receipt and moves it to Trash.")
+        return undo_copy(scope, name, **expected)
 
     def _route_delete(self):
         parts = self._parts()

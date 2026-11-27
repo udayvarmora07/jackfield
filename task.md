@@ -40,8 +40,10 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
   focus, Undo timing, the small favicon and acceptance coverage.
 - [/] Phase 3 · Everyday jobs. The Skill page, Editor, New skill and diagnosis
   screens are implemented. The Skill page now reads the selected
-  folder’s live document and shows file and listing estimates. The Editor’s
-  remaining work is saving to missing places. See @build-progress.md.
+  folder’s live document and shows file and listing estimates. The Editor
+  now saves to empty writable places with guarded Undo. The maintainer
+  approved the Editor. Phase integration and hosted CI are pending.
+  See @build-progress.md.
 - [ ] Phase 4 · Upkeep: S7 Needs attention, S8 Trash & backups.
 - [ ] Phase 5 · Advanced S9, tool template S10 for all 21 tools, Settings S11,
   What to track S14–S19 restyled.

@@ -55,16 +55,23 @@ def _batch_file_digest(entry: Path, total: int) -> tuple[bytes, int]:
             file_hash.update(chunk)
         return file_hash.digest(), total
 
+def _batch_tree_mode(info: os.stat_result) -> int:
+    # Windows junctions and other reparse points can look like ordinary
+    # directories to a walk with followlinks=False.
+    if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+        raise StoreError("batch skill tree contains a symlink or reparse point")
+    return info.st_mode
+
 def _batch_tree_hash(path: object) -> str:
     """Hash at most 256 entries, depth 16, 4 MiB per file and 16 MiB total."""
     root = Path(str(path or ""))
     digest = hashlib.sha256()
     count = total = 0
     try:
-        root_info = root.lstat()
-        if not stat.S_ISDIR(root_info.st_mode):
+        root_mode = _batch_tree_mode(root.lstat())
+        if not stat.S_ISDIR(root_mode):
             raise StoreError("batch skill tree is unavailable or a symlink")
-        digest.update(stat.S_IMODE(root_info.st_mode).to_bytes(2, "big"))
+        digest.update(stat.S_IMODE(root_mode).to_bytes(2, "big"))
         for base, dirs, files in os.walk(root, followlinks=False, onerror=lambda exc: (_ for _ in ()).throw(exc)):
             dirs.sort()
             files.sort()
@@ -74,17 +81,15 @@ def _batch_tree_hash(path: object) -> str:
                 count += 1
                 if count > 256 or len(relative.parts) > 16:
                     raise StoreError("batch skill tree exceeds the entry or depth limit")
-                info = entry.lstat()
-                if stat.S_ISLNK(info.st_mode):
-                    raise StoreError("batch skill tree contains a symlink")
+                mode = _batch_tree_mode(entry.lstat())
                 encoded = str(relative).encode("utf-8")
                 digest.update(len(encoded).to_bytes(8, "big"))
                 digest.update(encoded)
-                digest.update(stat.S_IMODE(info.st_mode).to_bytes(2, "big"))
-                if stat.S_ISDIR(info.st_mode):
+                digest.update(stat.S_IMODE(mode).to_bytes(2, "big"))
+                if stat.S_ISDIR(mode):
                     digest.update(b"D")
                     continue
-                if not stat.S_ISREG(info.st_mode):
+                if not stat.S_ISREG(mode):
                     raise StoreError("batch skill tree contains a non-regular file")
                 digest.update(b"F")
                 file_digest, total = _batch_file_digest(entry, total)

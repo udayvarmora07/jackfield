@@ -46,7 +46,7 @@ Jackfield name and mark. Their project sources are in `branding/jackfield/`.
 | Screen | Behavior |
 | --- | --- |
 | Skill page | Uses the same squares and reviewed changes as the Skills table. File text retains the selected copy and checks its UTF-8 bytes against the observed hash. History identifies library events and separately reports saved snapshots for the selected place. |
-| Editor | Different copies start unticked. The server checks each selected folder and content hash under its write lock. Undo uses the exact snapshot returned by the write and checks the saved version before restoring. |
+| Editor | Different and missing copies start unticked. Save checks existing file hashes and stages edited trees for missing places. Undo uses checked snapshots for existing copies and checks the whole tree before moving a new copy to Trash. |
 | New skill | Shows three starting layouts and stored templates. The preview and real create serialize through the same code. A partial result keeps confirmed files and shows the uncertain destinations. Existing AI authoring and metadata are available from the form. |
 | Why isn’t it running? | Shows the first failed check in place order and distinguishes files, observed settings and runtime. Runtime loading remains Unknown. The original prompt and trace tools are under AI maintenance. |
 
@@ -56,11 +56,13 @@ copies with the same name. Details lists supporting files and counts lines
 in readable text within the scan limits. The Claude Code size estimate uses
 the selected personal copy and observed user settings.
 
-The Editor currently saves existing writable copies. Saving to a new place
-needs a staged copy that keeps supporting files and publishes the edited
-document together. The diagnostics page offers the confirmed Claude settings
-path for copying. It uses a recheck and a plain explanation when the exact
-settings path is unavailable.
+The Editor can now save to a missing writable place. It keeps the selected
+source’s supporting files and publishes the edited document with the folder.
+An occupied destination is refused even if it appears during publication.
+The verification uses the existing checked tree limits, including regular
+files only, up to 256 entries, 4 MiB per file and 16 MiB total. The diagnostics
+page offers the confirmed Claude settings path for copying. It uses a recheck
+and a plain explanation when the exact settings path is unavailable.
 
 Opened all four screens with synthetic data at 1440 and 390 pixels in light
 and dark themes. The browser checks cover search to File text, exact creation
@@ -74,6 +76,19 @@ The new reader and Claude listing contracts passed on Python 3.11–3.14.
 Store and web smoke tests, browser smoke, four HTTP contracts, and clean
 wheel and source distribution installs passed again.
 
+The updated Editor was compared with A05 and D05 at 390, 1280, 1440 and
+1920 px in both themes. Its missing-place choice and selection message
+follow the boards. The application includes the actual folder labels,
+formatter controls, metadata and AI editing. At phone width it uses the
+shared bottom navigation and sticky Save header.
+
+Chromium passed all 100 end-to-end checks, including saving to a missing
+place, preserving supporting files, and Undo after an independent edit.
+Python 3.11–3.14 each ran 2,544 tests successfully, with 12–13
+platform-dependent skips.
+Store and web smoke, HTTP contracts, browser smoke and clean package
+installs passed.
+
 Before the Skill page Details update, Python 3.11–3.14 each ran 2,531 tests
 with 12–13 platform-dependent skips. Chromium passed 96 end-to-end checks and
 a separate first-run creation case.
@@ -81,7 +96,11 @@ Store and web smoke tests, the browser smoke, four HTTP contracts, Ruff, the
 documentation and token checks, and clean wheel and source distribution
 installs passed. Bandit passed on the modified Python modules. The full scan
 reported a low-severity finding in the existing seeded bootstrap calculation.
-Hosted CI and a physical phone check are pending.
+The preceding Phase 3 commit `6ee6641` passed all 17
+[GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46051136005).
+The maintainer approved the updated Editor on 2026-11-28. Phase 3 is ready
+for integration after local verification. Hosted CI for this update and a
+physical phone check remain pending.
 
 ## Findings checked in Phase 0
 

@@ -47,6 +47,7 @@ and ask the maintainer before adding a route (AGENTS.md "ASK before"). Any
 | Make match / replace damaged / keep version N | Check the source and destinations, move the existing folders to Trash with a checked batch `remove`, then run a checked non-forced batch `sync` | Move the added copy to Trash and restore its exact previous `trash_path` |
 | Several rows at once | `POST /api/batch/preview`, `POST /api/batch/execute` for the relevant checked operations above | One Undo for confirmed results with verified recovery evidence |
 | Edit | `PATCH /api/skills/<name>?scope=` per place, with expected folder and content hash | `POST /api/trash/<name>?snapshot=<id>&scope=` with the returned hash and exact snapshot ID |
+| Save an edited copy to a missing place | `POST /api/sync` with edit fields, the observed source folder and document hash, and the observed destination roots | `DELETE /api/skills/<name>?scope=` with the returned folder and tree hash, moving the copy to Trash |
 | Create | `POST /api/skills?preview=1` returns the serialized file without writing; `POST /api/skills?scope=` writes per chosen place | Move to Trash |
 | Move to Trash | `DELETE /api/skills/<name>?scope=&purge=0` | `POST /api/trash/<name>?scope=` |
 | Delete forever | `DELETE /api/skills/<name>?scope=&purge=1` | None: say so first |
@@ -67,6 +68,13 @@ Use the batch plans to check the source and destination evidence before
 changing the folders. Compare the installed tree before offering a copy Undo.
 If the result cannot be verified, ask the user to refresh and check Trash.
 Independent filesystem writers can still change a folder between checks.
+
+**[SPEC]** For S4, edited Sync stages the source tree and its edited document
+before publishing it into an empty destination. The checked tree allows up
+to 256 entries, depth 16, 4 MiB per file and 16 MiB overall, and rejects
+links and special files. An occupied destination is refused, including one
+created during the save. The undo check covers the document, supporting
+files, directory entries and permissions under the destination write lock.
 
 ## What the client derives
 

@@ -1008,11 +1008,28 @@ const app = createApp({
     },
     editWhy() { const c = this.refCopy; if (c && c.readOnly) return this.readOnlyWhy(c); return this.docWhy ? `${this.docWhy.title}. ${this.docWhy.text}` : ""; },
     editTargets() { return this.readerTrashCopies.filter((copy) => copy.state === "on"); },
+    editPlaces() {
+      if (!this.skill) return new Map();
+      const occupied = new Set(this.skill.squareCopies.map((copy) => copy.scope));
+      const copies = new Map(this.editTargets.map((copy) => [copy.scope, copy]));
+      const places = new Map();
+      for (const { id: scope, path, physical_root, availability } of this.scopes) {
+        const copy = copies.get(scope);
+        const agent = this.m.agent(scope);
+        if (!agent || (!copy && (!agent.writable || availability !== "writable" || occupied.has(scope)))) continue;
+        const root = physical_root || path;
+        const evidence = copy ? this.bodyKey(copy) : JSON.stringify([scope, root]);
+        places.set(scope, { scope, copy, root, evidence, agent: { ...agent, path: this.shortPath(copy?.path || path) } });
+      }
+      return places;
+    },
     editTargetChanged() {
-      return this.edit?.targets.some((scope) => {
-        const copy = this.editTargets.find((target) => target.scope === scope);
-        return !copy || this.bodyKey(copy) !== this.edit.initialTargets[scope];
-      }) || false;
+      const draft = this.edit;
+      if (!draft) return false;
+      const source = this.editPlaces.get(draft.copy.scope)?.copy;
+      const sourceChanged = !source || source.path !== draft.copy.path || source.hash !== draft.copy.hash;
+      return draft.targets.some((scope) => this.editPlaceChanged(scope) ||
+        (sourceChanged && !this.editPlaces.get(scope)?.copy));
     },
     editError() {
       if (!this.edit) return "";
@@ -1217,7 +1234,7 @@ const app = createApp({
       return { view: file ? "file" : "", scope: copyScope, copy: copyPath };
     },
     readerWhyHref() { return Router.skillHref(this.skill.name, "why", this.readerRouteOptions()); },
-    readerHref() { return Router.skillHref(this.skill.name, "", this.readerRouteOptions()); },
+    readerHref() { return Router.skillHref(this.route.name, "", this.readerRouteOptions()); },
     chooseReaderCopy(value) {
       const chosen = this.skill.copies.find((copy) => this.readerCopyValue(copy) === value);
       if (!chosen) return;
@@ -1978,11 +1995,11 @@ const app = createApp({
       const body = stripFrontmatter(this.bodyOf(c).replace(/^\uFEFF/, ""));
       const metadata={category:c.record.category||"",version:c.record.version||"",license:c.record.license||"",compatibility:Domain.formatCompat(c.record.compatibility),allowed_tools:Domain.formatTools(c.record.allowed_tools)};
       const exact = this.route.copyPath || (this.readCopyName === s.name && this.readCopyPath);
-      const targets = this.editTargets;
+      const places = [...this.editPlaces.values()];
       this.edit = { name: s.name, desc: c.description, baseDesc: c.description, body, baseBody: body,
         metadata, baseMetadata: { ...metadata }, tab: "write", error: "",
-        targets: exact ? [c.scope] : targets.filter((copy) => copy.hash === c.hash).map((copy) => copy.scope),
-        initialTargets: Object.fromEntries(targets.map((copy) => [copy.scope, this.bodyKey(copy)])),
+        targets: exact ? [c.scope] : places.filter(({ copy }) => copy && copy.hash === c.hash).map(({ scope }) => scope),
+        places, initialTargets: Object.fromEntries(places.map(({ scope, evidence }) => [scope, evidence])),
         copy: { path: c.path, scope: c.scope, hash: c.hash } };
       this.showSkillView("edit");
       this.$nextTick(() => { this.growArea(); const d = document.getElementById("ed-desc"); if (d) d.focus(); });
@@ -2092,6 +2109,10 @@ const app = createApp({
       if (this.editDirty) return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true, onConfirm: () => { this.edit = null; this.showSkillView(); } });
       this.edit = null; this.showSkillView(); return null;
     },
+    editPlaceChanged(scope) {
+      const place = this.editPlaces.get(scope);
+      return !place || place.evidence !== this.edit.initialTargets[scope];
+    },
     async checkEditTarget(draft, scope) {
       const record = await api(`/api/skills/${encodeURIComponent(draft.name)}?scope=${encodeURIComponent(scope)}`);
       const path = record?.physical_path || record?.path;
@@ -2109,20 +2130,42 @@ const app = createApp({
       }
       return fields;
     },
+    async saveNewEditCopies(draft, places, { changed, saved, warnings }) {
+      const { path, hash } = draft.copy;
+      const destinations = Object.fromEntries(places.map(({ scope, root }) => [scope, root]));
+      const edit = { ...this.editFields(draft, false), expected: { path, content_hash: hash }, destinations };
+      const result = await api("/api/sync", { method: "POST", body: JSON.stringify({
+        name: draft.name, from_scope: draft.copy.scope, to_scopes: places.map(({ scope }) => scope), edit,
+      }) });
+      const synced = new Set(result.synced);
+      const failed = [];
+      for (const { scope, agent } of places) {
+        if (!synced.has(scope)) { failed.push(agent.name); continue; }
+        changed.push(scope);
+        const receipt = result.installed?.[scope];
+        if (receipt?.path && receipt.tree_hash) saved.push({ scope, path: receipt.path, treeHash: receipt.tree_hash });
+        if (receipt?.warning) warnings.push(this.friendly(receipt.warning));
+      }
+      if (failed.length) throw new Error(`Couldn’t add ${draft.name} in ${join(failed)}. Your draft is still open.`);
+    },
     async saveEdit() {
       /* Same guard as the Save button: Ctrl/Cmd+S must not save to zero
        * targets (which discarded the edit), save nothing, or save twice. */
       const e = this.edit;
       if (!e || this.editError || this.busy || !e.targets.length || !this.editDirty || this.editTargetChanged) return;
-      const targets = this.editTargets.filter((copy) => e.targets.includes(copy.scope));
-      if (targets.length !== e.targets.length) return;
+      const additions = [...this.editPlaces.values()].filter(({ scope, copy }) => !copy && e.targets.includes(scope));
+      const targets = this.editTargets.filter(({ scope }) => e.targets.includes(scope));
+      if (additions.length + targets.length !== e.targets.length) return;
       const writes = targets.map((copy) => ({ scope: copy.scope, path: copy.path, hash: copy.hash,
         fields: this.editFields(e, copy.hash !== e.copy.hash) }));
       this.busy = true;
       e.error = "";
-      const saved = [], changed = [];
+      const outcome = { saved: [], changed: [], warnings: [] };
+      const { saved, changed } = outcome;
       try {
         await Promise.all(writes.map(({scope}) => this.checkEditTarget(e, scope)));
+        // Keep the original source available for retry if an addition fails.
+        if (additions.length) await this.saveNewEditCopies(e, additions, outcome);
         for (const { scope, path, hash, fields } of writes) {
           const url = `/api/skills/${encodeURIComponent(e.name)}?scope=${encodeURIComponent(scope)}`;
           const result = await api(url, { method: "PATCH", body: JSON.stringify({ ...fields, expected: { path, content_hash: hash } }) });
@@ -2135,28 +2178,39 @@ const app = createApp({
         }
         this.edit = null;
         this.showSkillView();
-        this.reportEditResult(e, changed, saved);
+        this.reportEditResult(e, outcome);
       } catch (error) {
         e.targets = e.targets.filter((scope) => !changed.includes(scope));
         e.error = this.friendly(error.message);
-        this.reportEditResult(e, changed, saved, e.error);
+        this.reportEditResult(e, outcome, e.error);
       } finally {
         await this.refresh();
         this.busy = false;
       }
     },
-    reportEditResult(draft, changed, saved, error = "") {
+    reportEditResult(draft, { changed, saved, warnings }, error = "") {
       const initialTargets = Object.fromEntries(saved.map(({ scope, evidence }) => [scope, evidence]));
       const undo = saved.length ? async () => {
-        await Promise.all(saved.map(({scope}) => this.checkEditTarget({ name: draft.name, initialTargets }, scope)));
-        for (const { scope, snapshot, path, hash } of saved) {
-          await api(`/api/trash/${encodeURIComponent(draft.name)}?snapshot=${encodeURIComponent(snapshot)}&scope=${encodeURIComponent(scope)}`,
-            { method: "POST", body: JSON.stringify({ expected: { path, content_hash: hash } }) });
-        }
+        const outcomes = await Promise.allSettled(saved.map(async ({ scope, snapshot, path, hash, treeHash }) => {
+          const name = encodeURIComponent(draft.name), destination = encodeURIComponent(scope);
+          if (treeHash) {
+            const result = await api(`/api/skills/${name}?scope=${destination}`,
+              { method: "DELETE", body: JSON.stringify({ expected: { path, tree_hash: treeHash } }) });
+            return result?.warning;
+          } else {
+            await this.checkEditTarget({ name: draft.name, initialTargets }, scope);
+            await api(`/api/trash/${name}?snapshot=${encodeURIComponent(snapshot)}&scope=${destination}`,
+              { method: "POST", body: JSON.stringify({ expected: { path, content_hash: hash } }) });
+          }
+        }));
+        const failed = saved.filter((_, index) => outcomes[index].status === "rejected");
+        const warnings = outcomes.filter(({ status, value }) => status === "fulfilled" && value).map(({ value }) => value);
+        if (failed.length) warnings.push(`Check ${join(failed.map(({ scope }) => this.agentOf(scope).name))} for changes.`);
+        if (warnings.length) throw new Error(warnings.join(" "));
       } : null;
       const message = changed.length ? `${draft.name} saved to ${plural(changed.length, "place")}.` : error ? "" : "No file changed.";
-      const recovery = changed.length !== saved.length ? " Check Recovery for other saved copies." : "";
-      this.toast([message + recovery, error].filter(Boolean).join(" "), { undo, err: !!error });
+      const recovery = changed.length !== saved.length ? " Undo is unavailable for some saved copies." : "";
+      this.toast([message + recovery, ...warnings, error].filter(Boolean).join(" "), { undo, err: !!error });
     },
     growArea() { const a = this.$refs.edbody; if (a) { a.style.height = "auto"; a.style.height = Math.max(420, a.scrollHeight + 4) + "px"; } },
     insertText(prefix) {
