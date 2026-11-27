@@ -166,8 +166,8 @@ class FrontendSourceContractTests(unittest.TestCase):
         # The probe drives the interface served at /, never a retired address.
         self.assertNotIn("classic/", source)
         self.assertIn("#command-q", source)
-        self.assertIn(".gq-pop", source)
-        self.assertIn("#/tools/quality", source)
+        self.assertIn("#command-list", source)
+        self.assertIn("#/advanced/quality", source)
 
 
     def test_domain_format_compat_handles_arrays_before_objects(self):

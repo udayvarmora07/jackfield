@@ -72,6 +72,10 @@ tokens = (root / 'webui/tokens.css').read_text(encoding='utf-8')
 assert all('static/fonts/' + face.name in tokens for face in faces), 'tokens.css must load all vendored faces'
 assert tokens.count('unicode-range:') >= len(faces), 'fonts must declare their Unicode ranges'
 assert all((root / 'webui' / name).is_file() for name in ('system.css', 'layout.css')), 'Paper styles are missing'
+shell = ('state.js', 'router.js', 'ui-core.js', 'screen-not-found.js', 'palette.js')
+html = (root / 'webui/index.html').read_text(encoding='utf-8')
+assert all((root / 'webui' / name).is_file() and f'src="{name}"' in html
+           for name in shell), 'Paper shell scripts are missing or are not loaded'
 
 with tempfile.TemporaryDirectory(dir=Path.cwd()) as data:
     def cli(*args):

@@ -5,7 +5,8 @@
 
 const Domain = window.SkillManagerDomain;
 const Model = window.SkillsV2Model;
-if (!Domain || !Model) {
+const Jack = window.Jackfield;
+if (!Domain || !Model || !Jack?.router) {
   const failure = document.createElement("div");
   failure.setAttribute("role", "alert");
   failure.style.cssText = "margin:2rem;padding:1rem;border:1px solid #b42318;border-radius:8px;font:15px/1.5 system-ui,sans-serif;color:#b42318;background:#fff;";
@@ -16,8 +17,8 @@ if (!Domain || !Model) {
 
 const { api } = Domain;
 const { createApp, markRaw } = Vue;
-const { plural, join, words, titleCase, shortPath, BROKEN_WHY, documentPreview, renderDoc, stripFrontmatter, validName, toolIds, toolItems } = Model;
-const matchesSkillQuery = (skill, query) => `${skill.name} ${skill.description} ${skill.category}`.toLowerCase().includes(query);
+const Router = Jack.router;
+const { plural, join, words, titleCase, shortPath, BROKEN_WHY, documentPreview, renderDoc, stripFrontmatter, validName, toolItems } = Model;
 
 /* ---------- Icons (constant, trusted markup) ---------- */
 const PATHS = {
@@ -58,19 +59,6 @@ const MAP_STATES = {
   missing: { icon: "dash", label: "No copy listed" },
 };
 
-function parseRoute() {
-  const h = location.hash.replace(/^#\/?/, "");
-  const [p, ...rest] = h.split("/");
-  if (p === "skill" && rest.length) { try { return { page: "skill", name: decodeURIComponent(rest.join("/")) }; } catch (e) { return { page: "skills" }; } }
-  if (p === "tools") return { page: "tools", tool: toolIds.includes(rest[0]) ? rest[0] : "tools" };
-  /* What to track and its two forms: #/settings/tracking[/add-agent|/add-project|/agent/<id>]. */
-  if (p === "settings" && rest[0] === "tracking") {
-    const sub = rest[1] === "add-agent" || rest[1] === "add-project" ? rest[1] : rest[1] === "agent" && /^custom-[a-z0-9-]+$/.test(rest[2] || "") ? "agent:" + rest[2] : "";
-    return { page: "tracking", name: sub };
-  }
-  return ["skills", "map", "inbox", "recovery"].includes(p) ? { page: p } : { page: "home" };
-}
-const TITLES = { home: "Home", skills: "Skills", map: "Sync map", inbox: "Inbox", recovery: "Recovery", tools: "Tools", tracking: "What to track" };
 const THEMES = ["system", "light", "dark"];
 function savedPreference(key, choices, fallback) {try{const value=localStorage.getItem(key);return choices.includes(value)?value:fallback;}catch(e){return fallback;}}
 
@@ -216,11 +204,11 @@ const trackingMixin = {
       if (this.agentFilter !== "all" && !this.agentInfos.some((i) => i.id === this.agentFilter)) this.agentFilter = "all";
       /* Undo puts a whole earlier document back, so only the latest change may
        * offer it: an older Undo would also revert every change made since. */
-      this.toasts = this.toasts.filter((t) => !t.trackingUndo);
-      if (message) this.toast(message, undo ? { undoText: undoText || "Undone.", undo: async () => {
+      this.toasts.filter((note) => note.trackingUndo).forEach((note) => this.dismissToast(note));
+      if (message) this.toast(message, undo ? { undoText: undoText || "Undone.", trackingUndo: true,
+        undoAt: rowId === "_form" ? "#/settings/tracking" : null, undo: async () => {
         await this.putTracking({ ...before, revision: this.tracking.revision });
       } } : {});
-      if (message && undo) this.toasts[this.toasts.length - 1].trackingUndo = true;
       return true;
     },
     trackStatus(a) {
@@ -316,7 +304,7 @@ const trackingMixin = {
         doc.projects = { folders: t.projects.map((p) => p.path), showing: t.showing };
       }, { message: "Tracking everything found. The unreadable file was kept as a copy beside it.", undo: false });
     },
-    trackDetails(id) { this.mapMenu = ""; this.trackOpen = id; location.hash = "#/settings/tracking"; },
+    trackDetails(id) { this.mapMenu = ""; this.trackOpen = id; Router.go("#/settings/tracking"); },
     /* ----- Sync map column menu and its panel confirm ----- */
     /* The table scrolls inside its own box, so the menu is placed on the
      * viewport (fixed) from its button, kept inside the window, and closed
@@ -393,11 +381,11 @@ const trackingMixin = {
       } finally { if (seq === this.trackCheckSeq && this.trackForm === f) f.checking = false; }
     },
     trackFormCancel() {
-      if (!this.trackFormDirty) { location.hash = "#/settings/tracking"; return; }
+      if (!this.trackFormDirty) { Router.go("#/settings/tracking"); return; }
       const agent = this.trackForm.kind === "agent";
       this.openDialog({ title: agent ? (this.trackForm.id ? "Discard your changes?" : "Discard this agent?") : "Discard this folder?",
         lines: ["What you typed here won't be saved."], cancel: "Keep editing", confirm: "Discard",
-        onConfirm: () => { this.trackForm = null; location.hash = "#/settings/tracking"; } });
+        onConfirm: () => { this.trackForm = null; Router.go("#/settings/tracking"); } });
     },
     async trackFormSave() {
       const f = this.trackForm;
@@ -428,7 +416,7 @@ const trackingMixin = {
       }
       if (this.trackForm !== f) return;
       f.saving = false;
-      if (ok) { this.trackForm = null; location.hash = "#/settings/tracking"; }
+      if (ok) { this.trackForm = null; Router.go("#/settings/tracking"); }
       else f.error = this.trackingNotes._form || "Couldn't save. Try again.";
     },
   },
@@ -436,10 +424,9 @@ const trackingMixin = {
 
 const app = createApp({
   data() {
-    return { ...trackingMixin.data(), refreshGen: 0, historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
-      route: parseRoute(), m: null, loading: true, loadError: "", history: [], busy: false,
-      records: [], scopes: [], catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
-      historyError: "", skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0, gq: "", gqOpen: false, gqActive: -1,
+    return { ...Jack.createState(), ...trackingMixin.data(), historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
+      route: Router.current(), routeAction: "", catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
+      skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0,
       exportPending: false, exportError: "",
       query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name",
       front: null, skipped: [], dismissed: [], done: 0, srcChoice: "", inboxComparisonScope: "",
@@ -449,23 +436,24 @@ const app = createApp({
       mapQuery: "", mapReviewOnly: false, mapPage: 0, mapSkillName: "", mapOrigin: null,
       trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", importError: "", dropDepth: 0, importForce: false,
       theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
-      dialog: null, toasts: [], live: "", toastSeq: 0, skillHistory: [], opener: null,
+      dialog: null, skillHistory: [], opener: null,
     };
   },
   computed: {
     ...trackingMixin.computed,
     inboxCount() { return this.m ? this.queue.length : 0; },
-    inboxLabel() { return this.inboxCount ? "Inbox, " + plural(this.inboxCount, "item") : "Inbox"; },
+    activePlace() {
+      return { inbox: "#/attention", recovery: "#/trash", tools: "#/advanced", tracking: "#/advanced" }[this.route.page]
+        || (this.route.page === "missing" ? "" : "#/skills");
+    },
+    missingSuggestion() {
+      return this.route.page === "skill" && !this.skill ? Jack.palette.closeName(this.route.name, this.shelfSkills) : null;
+    },
+    paletteSuggestion() {
+      return this.commandGroups.length ? null : Jack.palette.closeName(this.commandQuery, this.shelfSkills);
+    },
     agentInfos() { return this.m ? this.m.infos.filter((i) => !i.agent.library) : []; },
     shelfSkills() { return this.m?.skills.filter((s) => s.status.key !== "note") || []; },
-    gqMatches() {
-      const q = this.gq.trim().toLowerCase();
-      if (!q) return [];
-      const starts = [], has = [];
-      for (const s of this.shelfSkills) { const n = s.name.toLowerCase(); if (n.startsWith(q)) starts.push(s); else if (n.includes(q)) has.push(s); if (starts.length >= 6) break; }
-      return [...starts, ...has].slice(0, 6);
-    },
-    gqTotal() { const q = this.gq.trim().toLowerCase(); return q ? this.shelfSkills.filter((s) => matchesSkillQuery(s, q)).length : 0; },
     sharedSkills() { return this.shelfSkills.filter((s) => s.tools.length > 1).sort((a, b) => b.tools.length - a.tools.length || a.name.localeCompare(b.name)).slice(0, 3); },
     /* Categories only help when the skills actually carry them; otherwise the
      * shelf falls back to an alphabet, which is what people can scan. */
@@ -482,24 +470,14 @@ const app = createApp({
     careCount() { return this.m ? this.m.skills.filter((s) => s.status.key === "warn" || s.status.key === "bad").length : 0; },
     catalogTags() { return [...new Set(Object.values(this.catalog.tags || {}).flat())].sort(); },
     visibleNames() { return this.visible.map(s => s.name); },
-    /* The palette finds every destination: the six pages first, then actions,
-     * then tools. Each row matches its label, plus synonyms for pages and the
-     * tool's own name and description, so "sync", "trash" or "backup" work. */
-    commandChoices() {
-      const nav=[{label:"Home",path:"#/home",keys:"agents overview start"},{label:"Skills",path:"#/skills",keys:"library shelf list instances"},{label:"Sync map",path:"#/map",keys:"sync compare copies map differ"},{label:"Inbox",path:"#/inbox",keys:"problems fix review queue"},{label:"Recovery and history",path:"#/recovery",keys:"trash restore backup export import history undo"},{label:"All tools",path:"#/tools",keys:"tools settings"},{label:"What to track",path:"#/settings/tracking",keys:"track tracking agents agent project folder folders tool groups manage"},{label:"Add other agent",path:"#/settings/tracking/add-agent",keys:"track custom agent new"},{label:"Add project folder",path:"#/settings/tracking/add-project",keys:"track project folder repo"}];
-      const items=[...nav,{label:"New skill",action:"create",keys:"create add write"},{label:"Refresh files",action:"refresh",keys:"reload rescan reread"},...toolItems.filter((item)=>item.commandLabel&&toolEnabled(this.toolGroupsOn,item.id)).map((item)=>({label:item.commandLabel,path:"#/tools/"+item.id}))];
-      const q=this.commandQuery.toLowerCase().trim();
-      if(!q)return items;
-      const toolText=(item)=>{const tool=item.path&&toolItems.find(t=>"#/tools/"+t.id===item.path);return tool?tool.name+" "+tool.text:"";};
-      const hits=items.filter(item=>(item.label+" "+(item.keys||"")+" "+toolText(item)).toLowerCase().split(/\s+/).some(w=>w.startsWith(q))||item.label.toLowerCase().includes(q));
-      /* Labels that start with the text first, then labels containing a word
-       * that starts with it, then synonym and description matches; groups keep
-       * their order inside each tier. */
-      const tier=(item)=>{const l=item.label.toLowerCase();return l.startsWith(q)?0:l.split(/\s+/).some(w=>w.startsWith(q))?1:2;};
-      return hits.map((item,i)=>({item,i})).sort((a,b)=>tier(a.item)-tier(b.item)||a.i-b.i).map(x=>x.item);
+    commandGroups() {
+      if (!this.dialog?.commands) return [];
+      return Jack.palette.search(this.commandQuery, this.shelfSkills,
+        (scope) => this.agentOf(scope).name, toolItems, (id) => toolEnabled(this.toolGroupsOn, id));
     },
+    commandChoices() { return this.commandGroups.flatMap((group) => group.items); },
     visible() {
-      const q = this.query.trim().toLowerCase();
+      const words = Jack.palette.wordsOf(this.query);
       return this.shelfSkills.filter((s) => {
         const k = s.status.key;
         if (this.filter === "care" && k !== "warn" && k !== "bad") return false;
@@ -508,7 +486,7 @@ const app = createApp({
         const tags = (this.catalog.tags || {})[s.name] || [];
         if (this.tagFilter === "__untagged" && tags.length) return false;
         if (this.tagFilter && this.tagFilter !== "__untagged" && !tags.includes(this.tagFilter)) return false;
-        return !q || matchesSkillQuery(s, q);
+        return !words.length || Jack.palette.matchesSkill(s, words, (scope) => this.agentOf(scope).name);
       });
     },
     groups() {
@@ -722,6 +700,7 @@ const app = createApp({
     mapReviewOnly() { this.resetMapPage(); },
   },
   methods: {
+    ...Jack.stateActions,
     ...trackingMixin.methods,
     enc: encodeURIComponent, agentMark: Model.agentMark, plural, join, words, titleCase, shortPath, renderDoc,
     fmt(n) {return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale).format(Number(n));},
@@ -733,52 +712,41 @@ const app = createApp({
     fmtDate(value, timeStyle = "short") {const date=new Date(value);return Number.isNaN(date.getTime())?String(value||"Date unavailable"):Domain.dateFormatter(this.formatLocale==="system"?undefined:this.formatLocale,{dateStyle:"medium",timeStyle}).format(date);},
     preferencesChanged() {this.theme=savedPreference("skillsmgr-theme",THEMES,"system");this.formatLocale=savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system");document.documentElement.dataset.textSize=savedPreference("skillsmgr-text-size",["standard","large"],"standard");this.applyTheme(); },
     skillTags(name) {return (this.catalog.tags || {})[name] || [];},
-    openSource(record) { this.toolTarget=markRaw(record);location.hash="#/tools/source-update"; },
-    openSkillTool(tool) { if (this.refCopy) { this.toolTarget = markRaw(this.refCopy.record); location.hash = "#/tools/" + tool; } },
-    openConciseReview(handoff) { if(!handoff||!handoff.target||!handoff.reviewId)return;this.toolTarget=markRaw(handoff.target);this.sourceReviewHandoff={...handoff,target:this.toolTarget};location.hash="#/tools/source-update"; },
+    openSource(record) { this.toolTarget=markRaw(record);Router.go(Router.toolHref("source-update")); },
+    openSkillTool(tool) { if (this.refCopy) { this.toolTarget = markRaw(this.refCopy.record); Router.go(Router.toolHref(tool)); } },
+    openConciseReview(handoff) { if(!handoff||!handoff.target||!handoff.reviewId)return;this.toolTarget=markRaw(handoff.target);this.sourceReviewHandoff={...handoff,target:this.toolTarget};Router.go(Router.toolHref("source-update")); },
     sourceReviewConsumed(reviewId) { if(this.sourceReviewHandoff&&this.sourceReviewHandoff.reviewId===reviewId)this.sourceReviewHandoff=null; },
-    inspectRecord(record) { this.query=record.name;this.filter="all";this.tagFilter="";this.agentFilter=record.scope||"all";this.libraryView="instances";location.hash="#/skills"; },
-    openRecord(record) {this.toolTarget=markRaw(record);this.readCopyPath=record.physical_path||record.path||"";this.readCopyScope=record.scope||"";this.readCopyName=record.name||"";location.hash="#/skill/"+encodeURIComponent(record.name);},
-    openCommands() {this.commandQuery="";this.commandActive=0;this.openDialog({title:"Go to a page, tool or action",commands:true,cancel:"Close"}); },
-    commandGroup(item) {return item.action?"Actions":!item.path.startsWith("#/tools/")?"Go to":item.path.startsWith("#/tools/ai-")?"AI assist":"Tools";},
-    commandKey(e) {const n=this.commandChoices.length;if(!n)return;if(e.key==="ArrowDown"){e.preventDefault();this.commandActive=(this.commandActive+1)%n;}else if(e.key==="ArrowUp"){e.preventDefault();this.commandActive=(this.commandActive-1+n)%n;}else if(e.key==="Enter"){e.preventDefault();this.commandGo(this.commandChoices[Math.min(this.commandActive,n-1)]);}
-      this.$nextTick(()=>{const row=document.getElementById("cmd-"+this.commandActive);if(row)row.scrollIntoView({block:"nearest"});});},
-    commandGo(item) {if(this.busy)return;const opener=this.opener;this.closeDialog();if(item.action==="create"){this.openCreate();this.opener=opener;}else if(item.action==="refresh")this.refresh();else location.hash=item.path;},
+    inspectRecord(record) { this.query=record.name;this.filter="all";this.tagFilter="";this.agentFilter=record.scope||"all";this.libraryView="instances";Router.go("#/skills"); },
+    openRecord(record) {this.toolTarget=markRaw(record);this.readCopyPath=record.physical_path||record.path||"";this.readCopyScope=record.scope||"";this.readCopyName=record.name||"";Router.go(Router.skillHref(record.name));},
+    goTo(href) { Router.go(href); },
+    openCommands() {
+      if (this.dialog || this.busy) return;
+      this.commandQuery = ""; this.commandActive = 0;
+      this.openDialog({ title: "Search skills, actions and pages", commands: true, cancel: "Close" });
+    },
+    commandInput(value) { this.commandQuery = value; this.commandActive = 0; },
+    commandKey(e) {
+      const choices = this.commandChoices, length = choices.length;
+      if (!length || e.isComposing) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        this.commandActive = (this.commandActive + (e.key === "ArrowDown" ? 1 : -1) + length) % length;
+        this.$nextTick(() => document.getElementById("cmd-" + this.commandActive)?.scrollIntoView({ block: "nearest" }));
+      } else if (e.key === "Enter") {
+        e.preventDefault(); this.commandGo(choices[Math.min(this.commandActive, length - 1)]);
+      }
+    },
+    commandGo(item) {
+      if (!item || this.busy) return;
+      this.closeDialog();
+      if (item.action === "refresh") this.refresh();
+      else if (item.action === "backup") this.exportBackup(false);
+      else if (item.action === "theme") this.cycleTheme();
+      else Router.go(item.path);
+    },
     agentOf(id) { return (this.m && this.m.agent(id)) || { ...FALLBACK_AGENT, name: id || "Unknown" }; },
 
     /* ----- loading ----- */
-    async refresh() {
-      /* Overlapping refreshes (Refresh files, tab focus, Undo, tool changes)
-       * must not let an older, slower response overwrite a newer one. */
-      const gen = ++this.refreshGen;
-      this.loading = true; this.loadError = "";
-      try {
-        const [scopes, records, history] = await Promise.all([
-          api("/api/scopes"), api("/api/skills?scope=all&body=0"),
-          api("/api/history?limit=8").then(rows => ({rows, error: ""}),
-            e => ({rows: [], error: this.friendly(e.message)})),
-        ]);
-        if (gen !== this.refreshGen) return;
-        this.scopes=markRaw(scopes);this.records=markRaw(records);
-        this.m = markRaw(Model.build(records, scopes, { suggested: 100 }));
-        /* What to track only decorates the pages (the server already filters).
-         * Its report counts every agent folder, so it starts after the skills
-         * have arrived instead of competing with them, and nothing waits on it. */
-        this.loadTracking();
-        /* A reload produces fresh copies, so nothing is carried over from the
-         * previous list: a body is re-read only where a view needs one. */
-        this.bodies = {}; this.bodyInflight = {}; this.bodyErrors = {};
-        this.history = Array.isArray(history.rows) ? history.rows : history.rows?.history || [];
-        this.historyError = history.error;
-        this.loadTrash();
-        if (this.route.page === "recovery") this.loadAgentTrash();
-        this.loadCatalog();
-        this.primeBodies();
-        this.loadSkillHistory();
-      } catch (e) {
-        if (gen === this.refreshGen) this.loadError = this.friendly(e.message || "The skills could not be read.");
-      } finally { if (gen === this.refreshGen) this.loading = false; }
-    },
     async loadSkillHistory() {
       const gen = ++this.historyGen;
       this.skillHistory = [];this.skillHistoryError="";
@@ -935,45 +903,19 @@ const app = createApp({
     async retryDocument() {
       const copy = this.refCopy;
       await this.ensureBodies(copy);
-      if (this.refCopy === copy && this.bodyReady(copy)) this.$refs.readerIdentity?.focus();
+      if (this.refCopy !== copy || !this.bodyReady(copy)) return;
+      if (this.route.screen === "edit" && !this.edit) this.showRouteScreen();
+      else this.$refs.readerIdentity?.focus();
     },
 
     /* ----- search / filter ----- */
     /* The Skills page filter: typing filters the shelf in place. */
     searchInput(v) { this.query = v; this.extra = {}; },
-    /* The header search never navigates while you type. It lists up to six
-     * name matches under the field; Enter opens the highlighted match, or the
-     * Skills page filtered by the text when nothing is highlighted. */
-    headerInput(v) { this.gq = v; this.gqOpen = !!v.trim(); this.gqActive = -1; },
-    headerKey(e) {
-      const n = this.gqMatches.length;
-      if (n && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-        e.preventDefault();
-        this.gqOpen = true;
-        if (e.key === "ArrowDown") this.gqActive = (this.gqActive + 1) % n;
-        else this.gqActive = this.gqActive <= 0 ? n - 1 : this.gqActive - 1;
-        this.$nextTick(() => document.getElementById("gq-" + this.gqActive)?.scrollIntoView({block:"nearest"}));
-      }
-      else if (e.key === "Escape" && this.gqOpen) { e.preventDefault(); e.stopPropagation(); this.gqOpen = false; this.gqActive = -1; }
-      else if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); this.searchSubmit(); }
-    },
-    headerOpen(name) { this.gqOpen = false; this.gq = ""; location.hash = "#/skill/" + encodeURIComponent(name); },
-    searchSubmit() {
-      if (this.gqOpen && this.gqActive >= 0 && this.gqMatches[this.gqActive]) { this.headerOpen(this.gqMatches[this.gqActive].name); return; }
-      this.headerShowAll();
-    },
-    headerShowAll() {
-      this.pickAgent("all", this.gq);
-      this.headerInput("");
-      if (this.route.page !== "skills") location.hash = "#/skills";
-      else this.$nextTick(() => document.getElementById("q")?.focus());
-    },
-    headerBlur() { setTimeout(() => { if (!this.$refs.gsearchForm || !this.$refs.gsearchForm.contains(document.activeElement)) this.gqOpen = false; }, 120); },
     capReset() { this.extra = {}; },
     showMore(id) { this.extra = { ...this.extra, [id]: (this.extra[id] || 0) + 96 }; },
     clearFilters() { this.query = ""; this.filter = "all"; this.agentFilter = "all"; this.tagFilter="";this.extra = {}; this.$nextTick(() => { const q = document.getElementById("q"); if (q) q.focus(); }); },
     pickAgent(id, query = "") { this.agentFilter = id; this.filter = "all"; this.tagFilter = ""; this.query = query; this.extra = {}; },
-    findInMap() { this.mapQuery = this.query.trim(); location.hash = "#/map"; },
+    findInMap() { Router.go(Router.routeHref("skills", { view: "map", q: this.query.trim() })); },
     skipToContent() { const h = document.getElementById("h1") || this.$refs.main; if (h) h.focus(); },
     focusH1() { this.$nextTick(() => { const h = document.getElementById("h1"); if (h) h.focus({ preventScroll: true }); }); },
 
@@ -985,36 +927,44 @@ const app = createApp({
       if (/traceback|(?:UnicodeDecode|Recursion|Permission|FileNotFound|Operational)Error|\[Errno \d+\]/i.test(s)) return "The operation could not be completed. Refresh and try again; check that the skill files are readable and writable.";
       return s.replace(/(?:\/[^\s'":]+)+\/([^\s'":/]+)/g, "$1").replace(/\s*\(byte 0x[0-9a-f]+ at offset \d+\)/i, "");
     },
-    toast(text, opts = {}) {
-      if (opts.err) text = this.friendly(text);
-      const t = { id: ++this.toastSeq, text, err: !!opts.err, undo: opts.undo || null, onUndo: opts.onUndo || null, undoText: opts.undoText || "Undone" };
-      this.toasts.push(t); this.live = text + (t.undo ? " Undo is available." : "");
-      this.armToast(t, t.undo ? 20000 : (t.err ? 7000 : 4000));
-    },
-    /* WCAG 2.2.1: a toast with an action never times out while the reader is
-     * on it; it waits until focus and pointer leave, then gets its time again. */
-    armToast(t, ms) {
-      clearTimeout(t.timer);
-      t.ms = ms;
-      t.timer = setTimeout(() => { if (!t.held) this.toasts = this.toasts.filter((x) => x.id !== t.id); }, ms);
-    },
-    holdToast(t, held) {
-      t.held = held;
-      if (!held) this.armToast(t, Math.max(t.ms || 4000, 6000));
-    },
-    async runUndo(t) {
-      if (this.busy) return;
-      this.toasts = this.toasts.filter((x) => x.id !== t.id);
-      this.busy = true;
-      try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast(t.undoText); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
-    },
-    openDialog(d) { this.opener = document.activeElement; this.dialog = { cancel: "Cancel", ...d }; this.$nextTick(() => { const d = this.$refs.dlg; const b = d && (d.querySelector("input:not(.sr-only), select, textarea") || d.querySelector("button:not(.sr-only)")); if (b) b.focus(); }); },
+    openDialog(d) { this.opener = document.activeElement; this.dialog = { cancel: "Cancel", ...d }; this.$nextTick(() => { const d = (this.$refs.dlg?.$el || this.$refs.dlg); const b = d && (d.querySelector("input:not(.sr-only), select, textarea") || d.querySelector("button:not(.sr-only)")); if (b) b.focus(); }); },
     closeDialog(restoreFocus = true) {
       if (this.busy || !this.dialog) return;
+      if (restoreFocus && this.dialog.createDiscard) return this.keepCreateDraft();
+      if (restoreFocus && this.createDraftDirty()) return this.reviewCreateDiscard();
+      this.dismissDialog(restoreFocus);
+    },
+    dismissDialog(restoreFocus) {
       const opener = this.opener, aiEdit = this.dialog.aiEdit;
+      const returnRoute = restoreFocus && (this.dialog.routedNew || this.dialog.routedDiagnosis);
       this.dialog = null;
+      if (returnRoute) {
+        const href = this.route.screen === "new" ? "#/skills" : Router.skillHref(this.route.name);
+        this.changeRoute(Router.parseRoute(href));
+      }
       if (aiEdit) this.retireAiEdit(aiEdit.result);
       if (restoreFocus) this.$nextTick(() => { if (!this.dialog && opener?.isConnected) opener.focus(); });
+    },
+    createDraftDirty() {
+      const d = this.dialog;
+      if (!d?.formBaseline) return false;
+      return !!(d.author.brief || d.author.context || d.author.revision ||
+        Object.keys(d.form).some((key) => d.form[key] !== d.formBaseline[key]));
+    },
+    reviewCreateDiscard(href = "") {
+      const prior = this.dialog.createDiscard;
+      this.dialog.createDiscard = { href, focus: prior?.focus || document.activeElement?.id };
+      this.$nextTick(() => this.$refs.keepCreateDraft?.focus());
+    },
+    keepCreateDraft() {
+      const { focus } = this.dialog.createDiscard;
+      this.dialog.createDiscard = null;
+      this.$nextTick(() => (document.getElementById(focus) || document.getElementById("nf-name"))?.focus());
+    },
+    discardCreateDraft() {
+      const { href } = this.dialog.createDiscard;
+      this.dismissDialog(!href);
+      if (href) Router.go(href);
     },
     async confirmDialog() {
       if(this.busy || this.dialog?.templateLoading)return;
@@ -1032,7 +982,7 @@ const app = createApp({
     dialogKeys(e) {
       if (e.key === "Escape") { e.stopPropagation(); this.closeDialog(); return; }
       if (e.key !== "Tab") return;
-      const f = [...this.$refs.dlg.querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], summary")].filter(el=>el.tabIndex!==-1&&el.offsetParent!==null);
+      const f = [...(this.$refs.dlg?.$el || this.$refs.dlg).querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], summary")].filter(el=>el.tabIndex!==-1&&el.offsetParent!==null);
       if (!f.length) return;
       const first = f[0], last = f[f.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -1190,13 +1140,15 @@ const app = createApp({
             }
             await this.refresh();
             const undo = trashed.length ? async () => { for (const t of trashed) await this.restoreTrashed(s.name, t.scope, t.trash_path); } : null;
-            this.toast(`${s.name} moved to the trash in ${join(d.chosen.map((id) => this.agentOf(id).name))}.`, { undo });
-            if (!this.m.byName.get(s.name)) location.hash = "#/skills";
+            const undoAt = this.route.page === "skill" && this.route.name === s.name &&
+              !this.m.byName.get(s.name) ? "#/skills" : null;
+            this.toast(`${s.name} moved to the trash in ${join(d.chosen.map((id) => this.agentOf(id).name))}.`, { undo, undoAt });
+            if (undoAt) Router.go(undoAt);
           } catch (e) { this.toast(e.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
         },
       });
     },
-    openPermanentDelete() {const skill=this.skill;if(!skill)return;this.openDialog({title:`Permanently delete “${skill.name}”?`,danger:true,confirm:"Delete permanently",lines:["This removes the selected copies without moving them to trash. There is no Undo or trash restore for this action."],picks:skill.copies.filter(c=>!c.readOnly&&c.record.addressable!==false&&c.state!=="link"&&this.agentOf(c.scope).writable).map(c=>({id:c.scope,label:this.agentOf(c.scope).name,path:shortPath(c.path)})),chosen:[],onConfirm:async d=>{this.busy=true;try{for(const scope of d.chosen)await api(`/api/skills/${encodeURIComponent(skill.name)}?scope=${encodeURIComponent(scope)}&purge=1`,{method:"DELETE"});await this.refresh();this.toast("Selected copies permanently deleted.");if(!this.m.byName.get(skill.name))location.hash="#/skills";}catch(e){await this.refresh();this.toast(e.message,{err:true});}finally{this.busy=false;}}});},
+    openPermanentDelete() {const skill=this.skill;if(!skill)return;this.openDialog({title:`Permanently delete “${skill.name}”?`,danger:true,confirm:"Delete permanently",lines:["This removes the selected copies without moving them to trash. There is no Undo or trash restore for this action."],picks:skill.copies.filter(c=>!c.readOnly&&c.record.addressable!==false&&c.state!=="link"&&this.agentOf(c.scope).writable).map(c=>({id:c.scope,label:this.agentOf(c.scope).name,path:shortPath(c.path)})),chosen:[],onConfirm:async d=>{this.busy=true;try{for(const scope of d.chosen)await api(`/api/skills/${encodeURIComponent(skill.name)}?scope=${encodeURIComponent(scope)}&purge=1`,{method:"DELETE"});await this.refresh();this.toast("Selected copies permanently deleted.");if(!this.m.byName.get(skill.name))Router.go("#/skills");}catch(e){await this.refresh();this.toast(e.message,{err:true});}finally{this.busy=false;}}});},
 
     /* ----- create, recovery, theme, help ----- */
     authorInput(estimate) {
@@ -1253,12 +1205,22 @@ const app = createApp({
             await this.saveAuthorCases(d, f.name.trim());
             await this.refresh();
             this.toast(`${f.name.trim()} created in ${this.agentOf(f.scope).name}.`);
-            location.hash = "#/skill/" + encodeURIComponent(f.name.trim());
+            Router.go(Router.skillHref(f.name.trim()));
           } catch (e) { d.error=this.friendly(e.message);this.live=d.error; } finally { this.busy = false; }
         },
       });
-      const dialog=this.dialog;
-      api("/api/templates").then(r=>{if(this.dialog===dialog)this.createTemplates=r.templates||[];}).catch(e=>{if(this.dialog===dialog)dialog.error="Templates unavailable: "+this.friendly(e.message);});
+      const dialog = this.dialog;
+      dialog.formBaseline = { ...dialog.form };
+      api("/api/templates").then((result) => {
+        if (this.dialog !== dialog) return;
+        this.createTemplates = result.templates || [];
+        if (prefill.template && this.createTemplates.includes(prefill.template) &&
+            !dialog.form.template && dialog.form.body === dialog.formBaseline.body) {
+          dialog.form.template = prefill.template;
+          dialog.formBaseline.template = prefill.template;
+          this.loadCreateTemplate(true);
+        }
+      }).catch((error) => { if (this.dialog === dialog) dialog.error = "Templates unavailable: " + this.friendly(error.message); });
     },
     useDraft(draft) {
       if (!draft || typeof draft !== "object") return;
@@ -1268,7 +1230,26 @@ const app = createApp({
         compatibility: draft.compatibility, allowed_tools: draft.allowed_tools,
       });
     },
-    async loadCreateTemplate() {const d=this.dialog;if(!d?.form?.template)return;const name=d.form.template;d.templateLoading=true;try{const t=await api("/api/templates/"+encodeURIComponent(name));if(this.dialog===d&&d.form.template===name)d.form.body=stripFrontmatter(t.body||"");}catch(e){if(this.dialog===d)d.error=this.friendly(e.message);}finally{if(this.dialog===d)d.templateLoading=false;}},
+    async loadCreateTemplate(initial = false) {
+      const d = this.dialog;
+      if (!d?.form) return;
+      const { template: name, body } = d.form;
+      const request = d.templateRead = (d.templateRead || 0) + 1;
+      d.templateLoading = !!name;
+      if (!name) return;
+      const current = () => this.dialog === d && d.templateRead === request;
+      try {
+        const template = await api("/api/templates/" + encodeURIComponent(name));
+        if (current() && d.form.body === body) {
+          d.form.body = stripFrontmatter(template.body || "");
+          if (initial) d.formBaseline.body = d.form.body;
+        }
+      } catch (error) {
+        if (current()) d.error = this.friendly(error.message);
+      } finally {
+        if (current()) d.templateLoading = false;
+      }
+    },
     async loadTrash() {
       const gen = ++this.trashGen;
       this.trashLoading = true;
@@ -1411,30 +1392,40 @@ const app = createApp({
     },
     openHelp() {
       this.openDialog({ title: "Keyboard shortcuts", cancel: "Close", keys: [
-        [["/"], "Find a skill"], [["?"], "Show this list"], [["Esc"], "Close a dialog"],
-        [["Ctrl/Cmd", "K"], "Find tools and actions"],
-        [["Ctrl", "S"], "Save while editing"], [["Enter"], "Fix the item in the Inbox"], [["S"], "Skip it for now"],
+        [["/"], "Search skills, actions and pages"], [["?"], "Show this list"], [["Esc"], "Close a dialog"],
+        [["Ctrl/Cmd", "K"], "Open search"],
+        [["Ctrl", "S"], "Save while editing"], [["Enter"], "Fix the item that needs attention"], [["S"], "Skip it for now"],
       ] });
     },
 
     /* ----- editing ----- */
     async startEdit() {
-      const s = this.skill, c = this.refCopy;
+      const s = this.skill, c = this.refCopy, href = this.route.href;
       if (!s || !c || !this.bodyFetchable(c)) return;
       /* The editor must never open on a body that has not loaded: read it
        * first, and abandon silently if the reader navigated away meanwhile.
        * A periodic re-read replaces `skill` with an equal-named object, so the
        * identity that matters is the name and the route, not the object. */
       await this.ensureBodies([c]);
-      if (!this.skill || this.skill.name !== s.name || this.route.page !== "skill") return;
+      if (this.route.href !== href || !this.skill || this.skill.name !== s.name || this.route.page !== "skill") return;
       if (!this.bodyReady(c)) { this.toast(this.bodyErrorOf(c) || "The document could not be read. Try again.", { err: true }); return; }
       const body = stripFrontmatter(this.bodyOf(c).replace(/^\uFEFF/, ""));
       const metadata={category:c.record.category||"",version:c.record.version||"",license:c.record.license||"",compatibility:Domain.formatCompat(c.record.compatibility),allowed_tools:Domain.formatTools(c.record.allowed_tools)};
       this.edit = { name: s.name, desc: c.description, baseDesc: c.description, body, baseBody: body, metadata,baseMetadata:{...metadata},tab: "write", targets: this.readCopyPath ? [c.scope] : this.editTargets.map((x) => x.scope), copy: { path: c.path, scope: c.scope, hash: c.hash } };
+      this.showSkillView("edit");
       this.$nextTick(() => { this.growArea(); const d = document.getElementById("ed-desc"); if (d) d.focus(); });
     },
     openAiDiagnosis() {
-      if (this.refCopy) this.openDialog({ title: "Why didn’t this skill run?", diagnosis: this.refCopy });
+      if (!this.refCopy) return;
+      this.showSkillView("why");
+      this.openDialog({ title: "Why didn’t this skill run?", diagnosis: this.refCopy, routedDiagnosis: true });
+    },
+    showSkillView(screen = "") {
+      const href = Router.skillHref(this.route.name, screen);
+      this.route = Router.parseRoute(href);
+      this.routeAction = href;
+      Router.replace(href);
+      this.updatePageTitle();
     },
     async repairAiDiagnosis(prompt) {
       const dialog = this.dialog;
@@ -1525,8 +1516,8 @@ const app = createApp({
       finally { this.busy = false; }
     },
     async cancelEdit() {
-      if (this.editDirty) return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true, onConfirm: () => { this.edit = null; } });
-      this.edit = null; return null;
+      if (this.editDirty) return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true, onConfirm: () => { this.edit = null; this.showSkillView(); } });
+      this.edit = null; this.showSkillView(); return null;
     },
     async saveEdit() {
       /* Same guard as the Save button: Ctrl/Cmd+S must not save to zero
@@ -1546,6 +1537,7 @@ const app = createApp({
           if (fresh) saved.push([sc, fresh]);
         }
         this.edit = null;
+        this.showSkillView();
         await this.refresh();
         const undo = saved.length ? async () => { for (const [sc, snap] of saved) await api(`/api/trash/${encodeURIComponent(e.name)}?snapshot=${encodeURIComponent(snap)}&scope=${encodeURIComponent(sc)}`, { method: "POST" }); } : null;
         this.toast(`${e.name} saved to ${plural(e.targets.length, "place")}.`, { undo });
@@ -1674,7 +1666,7 @@ const app = createApp({
     openInboxFor(skillName) {
       const issue = this.queue.find((p) => p.skill === skillName && p.key === "warn");
       if (issue) this.front = issue.id;
-      location.hash = "#/inbox";
+      Router.go("#/attention");
     },
     async fixCurrent() {
       const p = this.cur; if (!p || this.busy) return null;
@@ -1696,52 +1688,102 @@ const app = createApp({
       if (ok) { this.dismissed.push(p.id); this.skipped = this.skipped.filter((id) => id !== p.id); if (this.front === p.id) this.front = null; this.done++; }
       return null;
     },
-    updateTabsClip() {
-      const el = this.$refs.tabs; if (!el) return;
-      el.classList.toggle("is-clipped", el.scrollWidth - el.clientWidth - el.scrollLeft > 1);
+    applyRouteOptions(route, previous) {
+      if (route.page === "skills") {
+        const hasFilters = (r) => r?.page === "skills" && [r.search, r.agent, r.only].some((value) => value != null);
+        if (hasFilters(route) || hasFilters(previous)) {
+          this.pickAgent(route.agent || "all", route.search || "");
+          if (route.only === "problems") this.filter = "care";
+        }
+      } else if (route.page === "map" && route.search != null) {
+        this.mapQuery = route.search;
+      } else if (route.page === "inbox" && route.item) {
+        this.front = route.item;
+      }
+    },
+    showRouteScreen() {
+      const next = this.route;
+      this.updatePageTitle();
+      if (!this.m || this.routeAction === next.href) return;
+      this.routeAction = next.href;
+      if (next.screen === "new") {
+        this.openCreate({ template: next.template });
+        this.dialog.routedNew = true;
+      } else if (next.screen === "edit" && this.canEdit && !this.edit) {
+        this.openRouteEditor(next.href);
+      } else if (next.screen === "why" && this.refCopy) {
+        this.openAiDiagnosis();
+      }
+    },
+    async openRouteEditor(href) {
+      try {
+        await this.startEdit();
+      } finally {
+        if (this.route.href === href && this.routeAction === href && !this.edit) this.routeAction = "";
+      }
+    },
+    updatePageTitle() {
+      const missing = this.m && this.route.page === "skill" && !this.skill;
+      document.title = (missing ? "Page not found" : Router.title(this.route)) + " · Jackfield";
+    },
+    needsRouteConfirmation(next) {
+      if (this.editDirty && !(next.page === "skill" && next.name === this.edit.name && next.screen === "edit")) {
+        return { title: "Discard your changes?", lines: ["You have unsaved changes to “" + this.edit.name + "”."],
+          cancel: "Keep editing", confirm: "Discard changes", onConfirm: () => { this.edit = null; Router.go(next.href); } };
+      }
+      if (this.route.page === "tracking" && this.route.name && this.trackFormDirty &&
+          !(next.page === "tracking" && next.name === this.route.name)) {
+        return { title: "Discard what you typed?", lines: ["What you typed here won't be saved."],
+          cancel: "Keep editing", confirm: "Discard", onConfirm: () => { this.trackForm = null; Router.go(next.href); } };
+      }
+      return null;
+    },
+    changeRoute(next) {
+      if (next.href === this.route.href) { Router.replace(next.href); return; }
+      if (this.dialog?.form && (this.busy || this.createDraftDirty())) {
+        Router.replace(this.route.href);
+        if (!this.busy) this.reviewCreateDiscard(next.href);
+        return;
+      }
+      const guard = this.needsRouteConfirmation(next);
+      if (guard) { Router.replace(this.route.href); this.openDialog(guard); return; }
+      Router.replace(next.href);
+      this.closeDialog(false);
+      if (next.screen !== "edit" || next.name !== this.route.name) this.edit = null;
+      if (next.page !== this.route.page || next.name !== this.route.name) {
+        this.leaveUndo(next.href);
+      }
+      this.mapMenu = ""; this.projectMenu = false;
+      if (next.page !== "map") this.mapConfirm = "";
+      const previous = this.route;
+      if (next.page === "tracking" && (previous.page !== next.page || previous.name !== next.name)) {
+        this.openTrackForm(next.name);
+      }
+      this.route = next;
+      this.applyRouteOptions(next, previous);
+      this.loadSkillHistory();
+      this.primeBodies();
+      if (next.page === "recovery") this.loadAgentTrash();
+      window.scrollTo(0, 0); this.focusH1();
+      this.showRouteScreen();
     },
     skipCurrent() { if (!this.cur) return; const id = this.cur.id; this.skipped = [...this.skipped.filter((x) => x !== id), id]; this.front = null; this.focusH1(); },
   },
   mounted() {
     this.refresh();
-    if (window.ResizeObserver && this.$refs.tabs) {
-      this.tabsObserver = new ResizeObserver(() => this.updateTabsClip());
-      this.tabsObserver.observe(this.$refs.tabs);
-    }
-    this.updateTabsClip();
-    window.addEventListener("hashchange", () => {
-      const next = parseRoute();
-      if (this.edit && this.editDirty && !(next.page === "skill" && next.name === this.edit.name)) {
-        const target = location.hash;
-        location.hash = "#/skill/" + encodeURIComponent(this.edit.name);
-        return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true,
-          onConfirm: () => { this.edit = null; location.hash = target; } });
-      }
-      if (this.route.page === "tracking" && this.route.name && this.trackFormDirty && !(next.page === "tracking" && next.name === this.route.name)) {
-        const target = location.hash, here = this.route.name;
-        location.hash = "#/settings/tracking/" + (here.startsWith("agent:") ? "agent/" + here.slice(6) : here);
-        return this.openDialog({ title: "Discard what you typed?", lines: ["What you typed here won't be saved."], cancel: "Keep editing", confirm: "Discard",
-          onConfirm: () => { this.trackForm = null; location.hash = target; } });
-      }
-      this.headerInput("");
-      this.mapMenu = ""; this.projectMenu = false; if (next.page !== "map") this.mapConfirm = "";
-      if (next.page === "tracking" && (next.name !== this.route.name || this.route.page !== "tracking")) this.openTrackForm(next.name);
-      if (next.page !== this.route.page || next.name !== this.route.name || next.tool !== this.route.tool) this.closeDialog(false);
-      this.route = next; if (next.page !== "skill") this.edit = null;
-      this.loadSkillHistory();
-      this.primeBodies();
-      if (next.page === "recovery") this.loadAgentTrash();
-      document.title = (next.page === "skill" ? next.name : TITLES[next.page]) + " · Jackfield";
-      window.scrollTo(0, 0); this.focusH1();
+    Router.replace(this.route.href);
+    this.applyRouteOptions(this.route);
+    Router.onChange((next) => this.changeRoute(next));
+    window.addEventListener("beforeunload", (e) => {
+      if (this.editDirty || this.trackFormDirty || this.createDraftDirty()) { e.preventDefault(); e.returnValue = ""; }
     });
-    window.addEventListener("beforeunload", (e) => { if (this.editDirty) { e.preventDefault(); e.returnValue = ""; } });
     document.addEventListener("keydown", (e) => {
       const t = e.target, typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
       const onControl = t && t.closest && t.closest("a, button, input, select, textarea, summary, [role=button], [contenteditable]");
       if(document.querySelector("dialog[open]"))return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==="k" && !this.dialog && !document.querySelector("dialog[open]")) {e.preventDefault();this.openCommands();}
       if (e.key === "?" && !typing && !onControl && !this.dialog) { e.preventDefault(); this.openHelp(); }
-      if (e.key === "/" && !typing && !onControl && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.$refs.gsearch.focus(); }
+      if (e.key === "/" && !typing && !onControl && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.openCommands(); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && this.edit) { e.preventDefault(); if (!this.dialog) this.saveEdit(); }
       if (this.route.page === "inbox" && this.cur && !typing && !this.dialog && !e.ctrlKey && !e.metaKey && !e.altKey) {
         /* Shortcuts never fire from a link, button or field: Enter on "Open
@@ -1753,7 +1795,7 @@ const app = createApp({
         }
       }
     });
-    document.title = (this.route.page === "skill" ? this.route.name : TITLES[this.route.page]) + " · Jackfield";
+    this.updatePageTitle();
     this.watchTrackMenus();
     window.addEventListener("storage",event=>{if(["skillsmgr-theme","skillsmgr-text-size","skillsmgr-locale"].includes(event.key))this.preferencesChanged();});
     this.loadSkillHistory();
@@ -1854,7 +1896,7 @@ app.component("listing-budgets", {
           <ul><li v-for="n in section.thin.slice(0, 20)" :key="n"><span class="mono">{{ n }}</span></li></ul></details>
       </div>
       <p class="sub" v-if="!sections.length">No Claude Code or Codex listing instances observed.</p>
-      <a class="see-all" href="#/tools/quality">Review listing evidence <ic name="arrow" cls="i-s"></ic></a>
+      <a class="see-all" href="#/advanced/quality">Review listing evidence <ic name="arrow" cls="i-s"></ic></a>
     </template>
   </section>`,
 });
@@ -1949,4 +1991,5 @@ app.component("trial-stats", window.SkillsV2TrialStats);
 app.component("ai-copy-brief", window.SkillsV2AiCopyBrief);
 app.component("ai-diagnostic", window.SkillsV2AiDiagnostic);
 
+Jack.install(app);
 app.mount("#app");

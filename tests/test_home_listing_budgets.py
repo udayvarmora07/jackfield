@@ -16,7 +16,7 @@ class HomeListingBudgetTests(unittest.TestCase):
         const requests=[];
         ctx.window.SkillManagerDomain={...ctx.window.SkillManagerDomain,
           api:url=>new Promise((resolve,reject)=>requests.push({url,resolve,reject}))};
-        """ + f"vm.runInContext(fs.readFileSync({json.dumps(str(V2 / 'app.js'))},'utf8'),ctx);" + """
+        """ + f"loadJackfield(ctx, {json.dumps(str(V2 / 'app.js'))});" + """
         const C=ctx.components['listing-budgets'];
         if(!C)return {missing:true};
         const c={...C.data(),...C.methods};

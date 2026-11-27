@@ -429,12 +429,12 @@
     <section :class="['v2-tools', page==='recovery-extra'?'':'page']" :aria-busy="busy">
       <div :class="['v2-tool-layout', {'v2-tool-layout-solo': page==='recovery-extra'||page==='tools'}]">
         <nav v-if="page!=='recovery-extra'&&page!=='tools'" ref="toolNav" class="v2-tool-nav" aria-label="Tools navigation">
-          <a class="v2-tool-nav-home" href="#/tools"><span aria-hidden="true">←</span> All tools</a>
+          <a class="v2-tool-nav-home" href="#/advanced"><span aria-hidden="true">←</span> All tools</a>
           <div class="v2-tool-nav-scroll">
           <template v-for="g in toolGroups" :key="g.label">
             <details class="v2-tool-nav-group" :open="g.key!=='ai' || page.startsWith('ai-')">
               <summary class="v2-tool-nav-label">{{g.label}}</summary>
-              <a v-for="item in g.items" :key="item.id" :href="'#/tools/'+item.id" :aria-current="page===item.id?'page':null">{{item.name}}</a>
+              <a v-for="item in g.items" :key="item.id" :href="item.id === 'settings' ? '#/settings' : '#/advanced/' + item.id" :aria-current="page===item.id?'page':null">{{item.name}}</a>
             </details>
           </template>
           </div>
@@ -464,7 +464,7 @@
           <section v-for="g in matchingToolGroups" :key="g.key" :class="{'tp-index-ai':g.key==='ai'}" :aria-labelledby="'tg-'+g.key">
             <h2 class="tp-eyebrow" :id="'tg-'+g.key">{{g.label}}</h2>
             <div class="v2-tool-links">
-              <a v-for="item in g.items" :key="item.id" :href="'#/tools/'+item.id">
+              <a v-for="item in g.items" :key="item.id" :href="item.id === 'settings' ? '#/settings' : '#/advanced/' + item.id">
                 <span><strong>{{item.name}}</strong><small>{{item.text}}</small></span>
                 <ic name="arrow" cls="i-s"></ic>
               </a>
@@ -851,7 +851,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
               <h3>{{human(key)}} <span class="tp-count">{{Array.isArray(value)?value.length:''}}</span></h3>
               <p v-for="(row,i) in value" :key="i" class="tp-mono tp-fine">{{typeof row==='object'?pretty(row):row}}</p>
             </div>
-            <p class="tp-fine"><a href="#/tools/settings">Index maintenance</a> rebuilds the index from the files.</p>
+            <p class="tp-fine"><a href="#/settings">Index maintenance</a> rebuilds the index from the files.</p>
           </div>
           <details class="tp-more"><summary>Report details</summary><pre>{{pretty(report)}}</pre></details>
         </section>
@@ -995,7 +995,7 @@ ${scanPanel('sourceReview.external_scan')}
       </template>
 
       <template v-else-if="page==='recovery-extra'">
-        <div class="tp-sec-h tp-gap tp-history-head"><h2 id="rec-history" tabindex="-1">History and text snapshots</h2><a class="tp-link" href="#/tools/source-update">Whole-folder snapshots →</a></div>
+        <div class="tp-sec-h tp-gap tp-history-head"><h2 id="rec-history" tabindex="-1">History and text snapshots</h2><a class="tp-link" href="#/advanced/source-update">Whole-folder snapshots →</a></div>
         <p class="tp-fine">Text rollback restores an older skill document only; supporting files and the on/off state are not restored.</p>
         <form class="tp-inline" @submit.prevent="loadHistory">
           <label class="tp-field">Skill name <input class="field" v-model="historyName" placeholder="All skills" list="tp-names"></label>

@@ -18,83 +18,21 @@
 <body>
 <div id="app" class="sm-root" v-cloak>
   <a class="skip" href="#main" :inert="!!dialog" @click.prevent="skipToContent()">Skip to content</a>
-  <header class="top" :inert="!!dialog">
-    <a class="brand" href="#/home" aria-label="Jackfield home">
-      <svg class="brand-lockup jf-l" viewBox="0 0 1070 256" aria-hidden="true">
-        <g>
-          <path fill="#DDDDD8" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
-          <path fill="#191917" d="M184 96H232A8 8 0 0 1 240 104V152A8 8 0 0 1 232 160H184A8 8 0 0 1 176 152V104A8 8 0 0 1 184 96Z M24 96H72A8 8 0 0 1 80 104V152A8 8 0 0 1 72 160H24A8 8 0 0 1 16 152V104A8 8 0 0 1 24 96Z M104 176H152A8 8 0 0 1 160 184V232A8 8 0 0 1 152 240H104A8 8 0 0 1 96 232V184A8 8 0 0 1 104 176Z M24 176H72A8 8 0 0 1 80 184V232A8 8 0 0 1 72 240H56A40 40 0 0 1 16 200V184A8 8 0 0 1 24 176Z M184 176H232A8 8 0 0 1 240 184V200A40 40 0 0 1 200 240H184A8 8 0 0 1 176 232V184A8 8 0 0 1 184 176Z"/>
-          <path fill="#2D58D0" d="M184 16H232A8 8 0 0 1 240 24V72A8 8 0 0 1 232 80H184A8 8 0 0 1 176 72V24A8 8 0 0 1 184 16Z"/>
-        </g>
-        <g transform="translate(306.35 166.70)">
-          <path fill="#191917" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/>
-          <path fill="#2D58D0" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/>
-        </g>
-      </svg>
-      <svg class="brand-lockup jf-d" viewBox="0 0 1070 256" aria-hidden="true">
-        <g>
-          <path fill="#2C2C2A" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
-          <path fill="#EDEDEA" d="M185 97H231A8 8 0 0 1 239 105V151A8 8 0 0 1 231 159H185A8 8 0 0 1 177 151V105A8 8 0 0 1 185 97Z M25 97H71A8 8 0 0 1 79 105V151A8 8 0 0 1 71 159H25A8 8 0 0 1 17 151V105A8 8 0 0 1 25 97Z M105 177H151A8 8 0 0 1 159 185V231A8 8 0 0 1 151 239H105A8 8 0 0 1 97 231V185A8 8 0 0 1 105 177Z M25 177H71A8 8 0 0 1 79 185V231A8 8 0 0 1 71 239H56A39 39 0 0 1 17 200V185A8 8 0 0 1 25 177Z M185 177H231A8 8 0 0 1 239 185V200A39 39 0 0 1 200 239H185A8 8 0 0 1 177 231V185A8 8 0 0 1 185 177Z"/>
-          <path fill="#8CAEFF" d="M185 17H231A8 8 0 0 1 239 25V71A8 8 0 0 1 231 79H185A8 8 0 0 1 177 71V25A8 8 0 0 1 185 17Z"/>
-        </g>
-        <g transform="translate(306.35 166.70)">
-          <path fill="#EDEDEA" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/>
-          <path fill="#8CAEFF" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/>
-        </g>
-      </svg>
-      <svg class="brand-symbol jf-l" viewBox="0 0 256 256" aria-hidden="true">
-        <g>
-          <path fill="#DDDDD8" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
-          <path fill="#191917" d="M184 96H232A8 8 0 0 1 240 104V152A8 8 0 0 1 232 160H184A8 8 0 0 1 176 152V104A8 8 0 0 1 184 96Z M24 96H72A8 8 0 0 1 80 104V152A8 8 0 0 1 72 160H24A8 8 0 0 1 16 152V104A8 8 0 0 1 24 96Z M104 176H152A8 8 0 0 1 160 184V232A8 8 0 0 1 152 240H104A8 8 0 0 1 96 232V184A8 8 0 0 1 104 176Z M24 176H72A8 8 0 0 1 80 184V232A8 8 0 0 1 72 240H56A40 40 0 0 1 16 200V184A8 8 0 0 1 24 176Z M184 176H232A8 8 0 0 1 240 184V200A40 40 0 0 1 200 240H184A8 8 0 0 1 176 232V184A8 8 0 0 1 184 176Z"/>
-          <path fill="#2D58D0" d="M184 16H232A8 8 0 0 1 240 24V72A8 8 0 0 1 232 80H184A8 8 0 0 1 176 72V24A8 8 0 0 1 184 16Z"/>
-        </g>
-      </svg>
-      <svg class="brand-symbol jf-d" viewBox="0 0 256 256" aria-hidden="true">
-        <g>
-          <path fill="#2C2C2A" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
-          <path fill="#EDEDEA" d="M185 97H231A8 8 0 0 1 239 105V151A8 8 0 0 1 231 159H185A8 8 0 0 1 177 151V105A8 8 0 0 1 185 97Z M25 97H71A8 8 0 0 1 79 105V151A8 8 0 0 1 71 159H25A8 8 0 0 1 17 151V105A8 8 0 0 1 25 97Z M105 177H151A8 8 0 0 1 159 185V231A8 8 0 0 1 151 239H105A8 8 0 0 1 97 231V185A8 8 0 0 1 105 177Z M25 177H71A8 8 0 0 1 79 185V231A8 8 0 0 1 71 239H56A39 39 0 0 1 17 200V185A8 8 0 0 1 25 177Z M185 177H231A8 8 0 0 1 239 185V200A39 39 0 0 1 200 239H185A8 8 0 0 1 177 231V185A8 8 0 0 1 185 177Z"/>
-          <path fill="#8CAEFF" d="M185 17H231A8 8 0 0 1 239 25V71A8 8 0 0 1 231 79H185A8 8 0 0 1 177 71V25A8 8 0 0 1 185 17Z"/>
-        </g>
-      </svg>
-    </a>
-    <nav class="tabs" ref="tabs" aria-label="Main" @scroll.passive="updateTabsClip">
-      <a href="#/home" :aria-current="route.page === 'home' ? 'page' : null">Home</a>
-      <a href="#/skills" :aria-current="route.page === 'skills' || route.page === 'skill' ? 'page' : null">Skills</a>
-      <a href="#/map" :aria-current="route.page === 'map' ? 'page' : null">Sync map</a>
-      <a href="#/inbox" :aria-current="route.page === 'inbox' ? 'page' : null" :aria-label="inboxLabel">Inbox <span class="badge" v-if="inboxCount" aria-hidden="true">{{ inboxCount > 99 ? '99+' : inboxCount }}</span></a>
-      <a href="#/recovery" :aria-current="route.page === 'recovery' ? 'page' : null">Recovery</a>
-      <a href="#/tools" :aria-current="route.page === 'tools' ? 'page' : null">Tools</a>
-    </nav>
-    <form class="gsearch" role="search" ref="gsearchForm" @submit.prevent="searchSubmit" @focusout="headerBlur">
-      <ic name="search"></ic>
-      <label class="sr-only" for="gq">Find a skill</label>
-      <input id="gq" ref="gsearch" type="search" placeholder="Find a skill…" autocomplete="off" :value="gq" @input="headerInput($event.target.value)" @keydown="headerKey" @focus="gqOpen = !!gq.trim()" role="combobox" aria-autocomplete="list" :aria-controls="gqOpen ? 'gq-list' : null" :aria-expanded="gqOpen ? 'true' : 'false'" :aria-activedescendant="gqOpen && gqMatches[gqActive] ? 'gq-' + gqActive : null">
-      <kbd aria-hidden="true">/</kbd>
-      <div class="gq-pop" v-if="gqOpen">
-        <div id="gq-list" role="listbox" aria-label="Matching skills">
-          <a v-for="(s, i) in gqMatches" :key="s.name" :id="'gq-' + i" role="option" tabindex="-1" :aria-selected="i === gqActive ? 'true' : 'false'" :href="'#/skill/' + enc(s.name)" @click.prevent="headerOpen(s.name)" @mousemove="gqActive = i"><b translate="no">{{ s.name }}</b><small>{{ s.tools.length ? 'In ' + plural(s.tools.length, 'agent') : 'Only in your library' }}</small></a>
-        </div>
-        <p v-if="!gqMatches.length" class="gq-none">No skill name contains “{{ gq.trim() }}”.</p>
-        <button type="button" class="gq-all" @click="headerShowAll()">{{ gqTotal === 1 ? 'Show 1 match in Skills' : gqTotal ? 'Show all ' + fmt(gqTotal) + ' matches in Skills' : 'Search names and descriptions in Skills' }}<kbd v-if="gqActive === -1" aria-hidden="true">Enter</kbd></button>
-      </div>
-    </form>
-    <button type="button" class="themebtn" @click="cycleTheme()" :aria-label="'Theme: ' + themeLabel + '. Activate to switch.'" :title="'Theme: ' + themeLabel">
-      <svg class="i" viewBox="0 0 24 24" aria-hidden="true" v-html="themeIcon"></svg></button>
-    <button type="button" class="themebtn launcher" @click="openCommands()" aria-label="Open command palette" aria-keyshortcuts="Control+K Meta+K" title="Command palette (Ctrl or Cmd K)"><ic name="terminal"></ic></button>
-    <button type="button" class="themebtn help" @click="openHelp()" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)"><span aria-hidden="true" style="font-weight:800">?</span></button>
-  </header>
+  <jf-nav :active-place="activePlace" :attention="inboxCount" :theme-label="themeLabel"
+    :theme-icon="themeIcon" :blocked="!!dialog" @search="openCommands()" @theme="cycleTheme()" @help="openHelp()"></jf-nav>
 
   <main id="main" ref="main" tabindex="-1" :inert="!!dialog">
     <!-- loading / failure -->
-    <tool-center v-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine" @tool-group="trackGroupByKey" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
+    <jf-not-found v-if="route.page === 'missing'" :route="route"></jf-not-found>
+    <tool-center v-else-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine" @tool-group="trackGroupByKey" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
     <div class="page" v-else-if="loading && !m">
       <h1 class="h1" id="h1" tabindex="-1">Looking at your agents…</h1>
       <p class="lede">Reading the skill folders on this computer.</p>
-      <div class="rooms" style="margin-top:28px" aria-hidden="true"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      <jf-placeholder></jf-placeholder>
     </div>
     <div class="page" v-else-if="loadError && !m">
       <h1 class="h1" id="h1" tabindex="-1">Couldn't read your skills</h1>
-      <p class="state-note err" role="alert">{{ loadError }}</p>
+      <jf-notice error>{{ loadError }}</jf-notice>
       <p style="margin-top:16px"><button type="button" class="btn btn-ink" @click="refresh()">Try again</button></p>
     </div>
 
@@ -114,7 +52,7 @@
           <div class="card room-empty" v-if="!agentInfos.length">
             <h2>No agent skill folders found</h2>
             <p>Browse your library, or add a skill from a local folder or the registry.</p>
-            <div class="instance-actions"><a class="btn btn-ink" href="#/skills">Browse skills</a><a class="btn btn-line" href="#/tools/install">Add from source</a></div>
+            <div class="instance-actions"><a class="btn btn-ink" href="#/skills">Browse skills</a><a class="btn btn-line" href="#/advanced/install">Add from source</a></div>
           </div>
           <a v-for="inf in agentInfos" :key="inf.id" class="card room" href="#/skills" @click="pickAgent(inf.id)" :aria-label="inf.agent.name + ': ' + plural(inf.mine.length, 'skill') + ', open its skills'">
             <div class="room-h"><logo :agent="inf.agent"></logo><div><div class="room-n">{{ inf.agent.name }}</div><div class="room-p" :title="inf.agent.path">{{ shortPath(inf.agent.path) }}</div></div><ic name="arrow" cls="i-s"></ic></div>
@@ -130,7 +68,7 @@
           <div class="home-extra">
           <div class="card" v-if="sharedSkills.length">
               <h2>Most shared skills</h2>
-              <a class="shared-row" v-for="s in sharedSkills" :key="s.name" :href="'#/skill/' + enc(s.name)"><span translate="no">{{ s.name }}</span><span class="faces"><logo v-for="c in s.tools.slice(0, 6)" :key="c.scope" :agent="agentOf(c.scope)" size="xs"></logo></span></a>
+              <a class="shared-row" v-for="s in sharedSkills" :key="s.name" :href="'#/skills/' + enc(s.name)"><span translate="no">{{ s.name }}</span><span class="faces"><logo v-for="c in s.tools.slice(0, 6)" :key="c.scope" :agent="agentOf(c.scope)" size="xs"></logo></span></a>
             </div>
             <div class="card" v-if="history.length || historyError">
               <h2>Recent changes</h2>
@@ -147,9 +85,9 @@
             <template v-if="queue.length">
               <div class="look" v-for="(p, i) in queue.slice(0, 3)" :key="p.id">
                 <span :class="['look-ic', p.key]"><ic :name="p.key === 'info' ? 'info' : p.key"></ic></span>
-                <div><b>{{ p.title }}</b><p>{{ p.text }}</p><a class="btn btn-line btn-sm" href="#/inbox" @click="front = p.id" :aria-label="'Review in Inbox: ' + p.title">Review</a></div>
+                <div><b>{{ p.title }}</b><p>{{ p.text }}</p><a class="btn btn-line btn-sm" href="#/attention" @click="front = p.id" :aria-label="'Review in Inbox: ' + p.title">Review</a></div>
               </div>
-              <a class="see-all" href="#/inbox" v-if="queue.length > 3">Open inbox ({{ queue.length }}) <ic name="arrow" cls="i-s"></ic></a>
+              <a class="see-all" href="#/attention" v-if="queue.length > 3">Open inbox ({{ queue.length }}) <ic name="arrow" cls="i-s"></ic></a>
             </template>
             <div class="look" v-else><span class="look-ic" style="background:var(--ok-bg);color:var(--ok)"><ic name="check"></ic></span><div><b>Inbox is clear</b><p>Skipped items return after reload.</p></div></div>
           </div>
@@ -160,7 +98,7 @@
 
     <!-- ========== WHAT TO TRACK (#/settings/tracking) ========== -->
     <div class="page trk" v-else-if="route.page === 'tracking'">
-      <p class="trk-back"><a class="link" :href="route.name ? '#/settings/tracking' : '#/tools/settings'"><span aria-hidden="true">←</span> {{ route.name ? 'What to track' : 'Settings' }}</a></p>
+      <p class="trk-back"><a class="link" :href="route.name ? '#/settings/tracking' : '#/settings'"><span aria-hidden="true">←</span> {{ route.name ? 'What to track' : 'Settings' }}</a></p>
       <p v-if="trackingError && !tracking" class="state-note err" role="alert">{{ trackingError }} <button type="button" class="btn btn-line btn-sm" @click="loadTracking()">Try again</button></p>
       <template v-else-if="!tracking"><h1 class="h1" id="h1" tabindex="-1">What to track</h1><div class="rooms" aria-hidden="true"><div class="skeleton"></div><div class="skeleton"></div></div></template>
 
@@ -304,8 +242,12 @@
       <div class="shelf-head">
         <div><h1 class="h1" id="h1" tabindex="-1">Skills</h1>
           <p class="lede">{{ fmt(shelfTotal) }} {{ shelfTotal === 1 ? 'skill' : 'skills' }} across {{ plural(agentInfos.length, 'agent') }}, {{ grouping === 'category' ? 'grouped by category' : 'A to Z' }}. Open one to read, change or copy it.</p></div>
-        <div class="instance-actions"><a class="btn btn-line" href="#/tools/install">Add from source</a><button type="button" class="btn btn-ink" @click="openCreate()"><ic name="plus"></ic>New skill</button></div>
+        <div class="instance-actions"><a class="btn btn-line" href="#/advanced/install">Add from source</a><button type="button" class="btn btn-ink" @click="openCreate()"><ic name="plus"></ic>New skill</button></div>
       </div>
+      <jf-menu label="Skills views">
+        <a href="#/skills?view=agents">Agents overview</a>
+        <a href="#/skills?view=map">Sync map</a>
+      </jf-menu>
       <template v-if="tracking">
         <div v-if="trackNewlyFound" class="trk-strip" role="status"><span>Found {{ trackNewlyFound.name }}{{ trackNewlyFound.skill_count != null ? ' (' + plural(trackNewlyFound.skill_count, 'skill') + ')' : '' }}. Track it?</span>
           <button type="button" class="btn btn-ink btn-sm" :disabled="busy" @click="trackFoundTrack(trackNewlyFound)">Track</button><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="trackFoundLater(trackNewlyFound)">Not now</button></div>
@@ -339,15 +281,15 @@
         <label class="sr-only" for="tag-f">Tag</label>
         <select class="field" id="tag-f" v-model="tagFilter"><option value="">All tags</option><option value="__untagged">Untagged</option><option v-for="tag in catalogTags" :key="tag" :value="tag">{{tag}}</option></select>
       </div>
-      <div class="instance-filters"><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><div class="seg" role="group" aria-label="Card density" v-if="libraryView==='shelf'"><button type="button" :aria-pressed="density==='comfortable'" @click="density='comfortable'">Comfortable</button><button type="button" :aria-pressed="density==='compact'" @click="density='compact'">Compact</button></div><a v-if="query.trim()" class="link map-carry" href="#/map" @click.exact.left.prevent="findInMap()">Find name in Sync map</a><span class="count" aria-live="polite">{{ visible.length === shelfTotal ? fmt(shelfTotal) + (shelfTotal === 1 ? ' skill' : ' skills') : 'Showing ' + fmt(visible.length) + ' of ' + fmt(shelfTotal) }}</span><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading" title="Re-read every skill folder from disk">{{ loading ? 'Refreshing…' : 'Refresh files' }}</button></div>
+      <div class="instance-filters"><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><div class="seg" role="group" aria-label="Card density" v-if="libraryView==='shelf'"><button type="button" :aria-pressed="density==='comfortable'" @click="density='comfortable'">Comfortable</button><button type="button" :aria-pressed="density==='compact'" @click="density='compact'">Compact</button></div><a v-if="query.trim()" class="link map-carry" href="#/skills?view=map" @click.exact.left.prevent="findInMap()">Find name in Sync map</a><span class="count" aria-live="polite">{{ visible.length === shelfTotal ? fmt(shelfTotal) + (shelfTotal === 1 ? ' skill' : ' skills') : 'Showing ' + fmt(visible.length) + ' of ' + fmt(shelfTotal) }}</span><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading" title="Re-read every skill folder from disk">{{ loading ? 'Refreshing…' : 'Refresh files' }}</button></div>
       <p class="state-note err" role="alert" v-if="catalogError">Tags and profiles are unavailable: {{catalogError}} <button class="btn btn-line btn-sm" @click="loadCatalog()">Retry</button></p>
-      <div class="ribbon" v-if="careCount && filter !== 'care'"><ic name="warn"></ic><b>{{ plural(careCount, 'skill needs', 'skills need') }} review</b><div class="ribbon-actions"><button type="button" class="link" @click="filter = 'care'; capReset()">Show only these</button><a class="btn btn-line btn-sm" href="#/inbox">Review in Inbox</a></div></div>
+      <div class="ribbon" v-if="careCount && filter !== 'care'"><ic name="warn"></ic><b>{{ plural(careCount, 'skill needs', 'skills need') }} review</b><div class="ribbon-actions"><button type="button" class="link" @click="filter = 'care'; capReset()">Show only these</button><a class="btn btn-line btn-sm" href="#/attention">Review in Inbox</a></div></div>
       <library-tools v-if="libraryView==='instances'" :records="records" :scopes="scopes" :names="visibleNames" :agent-filter="agentFilter" :catalog="catalog" @changed="refresh()" @inspect="openRecord($event)" @source="openSource($event)" @removed="removedBatch($event)"></library-tools>
       <template v-else-if="groups.length">
         <section class="cat" v-for="g in groups" :key="g.id" role="group" :aria-label="grouping === 'letter' && sortBy === 'name' ? 'Skills starting with ' + g.id : g.id">
           <div class="cat-h"><h2 class="h2" :id="'cat-' + g.key">{{ g.id }}</h2><span>{{ plural(g.items.length, 'skill') }}</span></div>
           <div :class="['shelf', { compact: density === 'compact' }]">
-            <a v-for="s in g.shown" :key="s.name" :class="['card sk', 'st-' + s.status.key, { faded: s.status.key === 'off' }]" :href="'#/skill/' + enc(s.name)">
+            <a v-for="s in g.shown" :key="s.name" :class="['card sk', 'st-' + s.status.key, { faded: s.status.key === 'off' }]" :href="'#/skills/' + enc(s.name)">
               <div class="sk-b"><b translate="no">{{ s.name }}</b><p>{{ s.description || 'No description yet.' }}</p><span class="instance-tags"><span v-for="tag in skillTags(s.name)" :key="tag">{{tag}}</span></span>
                 <div class="sk-f"><span class="dots"><i v-for="c in s.tools" :key="c.scope" :class="{ 'is-off': c.state === 'off', 'is-bad': c.state === 'broken' }" :style="{ background: agentOf(c.scope).color }" :title="agentOf(c.scope).name"></i></span>
                   </div></div>
@@ -371,13 +313,11 @@
 
     <!-- ========== SKILL (notebook) ========== -->
     <div v-else-if="route.page === 'skill'">
-      <div class="page" v-if="!skill"><div class="card empty">
-        <span class="ic" style="background:var(--sunken);color:var(--ink-2)"><ic name="search"></ic></span>
-        <h1 class="h1" id="h1" tabindex="-1">Skill not found</h1><p>If you moved it to trash, look in Recovery.</p><div class="empty-acts"><a class="btn btn-ink" href="#/skills">Browse skills</a><a class="btn btn-line" href="#/recovery">Open Recovery</a></div></div></div>
+      <jf-not-found v-if="!skill" :route="route" :places="m.infos.length" :suggestion="missingSuggestion"></jf-not-found>
       <div class="nb" v-else>
         <nav class="tree" aria-label="All skills">
           <div class="tree-find"><label class="sr-only" for="tree-q">Filter skills</label><input id="tree-q" type="search" placeholder="Filter skills" autocomplete="off" v-model="treeQuery"></div>
-          <a v-for="x in treeList" :key="x.name" :href="'#/skill/' + enc(x.name)" :aria-current="x.name === skill.name ? 'page' : null"><span class="nm" translate="no">{{ x.name }}</span><i :class="['d', x.status.key]" role="img" :aria-label="x.status.label"></i></a>
+          <a v-for="x in treeList" :key="x.name" :href="'#/skills/' + enc(x.name)" :aria-current="x.name === skill.name ? 'page' : null"><span class="nm" translate="no">{{ x.name }}</span><i :class="['d', x.status.key]" role="img" :aria-label="x.status.label"></i></a>
           <p class="tree-more" v-if="treeHidden">{{ treeHidden }} more. Type to filter.</p>
         </nav>
         <div class="nb-main">
@@ -397,7 +337,7 @@
               <div class="inline-note bad" v-if="skill.status.key === 'bad'"><b>Problem:</b> {{ brokenText }}<br><button type="button" class="btn btn-ink btn-sm" @click="fixSkillBad()">{{ brokenAction }}</button></div>
               <section class="inline-note reader-comparison" aria-labelledby="reader-comparison-title" v-if="skill.status.key === 'warn' && cmp">
                 <h2 id="reader-comparison-title">Copies differ</h2>
-                <p v-if="skill.ref.ambiguous">The copies are split evenly. <a class="link" href="#/inbox" @click.exact.left.prevent="openInboxFor(skill.name)">Choose a reference in Inbox</a> to sync them.</p>
+                <p v-if="skill.ref.ambiguous">The copies are split evenly. <a class="link" href="#/attention" @click.exact.left.prevent="openInboxFor(skill.name)">Choose a reference in Inbox</a> to sync them.</p>
                 <p v-else>The document differs from {{ agentOf(cmp.scope).name }}’s copy. Sync also copies supporting files and the on/off state.</p>
                 <div class="reader-comparison-controls">
                   <label v-if="readerCompareCopies.length > 1">Compare with <select class="field reader-compare-select" :value="bodyKey(cmp)" @change="compareWith = $event.target.value"><option v-for="c in readerCompareCopies" :key="bodyKey(c)" :value="bodyKey(c)">{{ agentOf(c.scope).name }}<template v-if="readerCompareCopies.some(other => other !== c && other.scope === c.scope)"> — {{ c.path }}</template></option></select></label>
@@ -411,6 +351,7 @@
               <div class="reader-error" v-if="docError"><p class="state-note err" role="alert">{{ docError }}</p><button type="button" class="btn btn-line btn-sm" @click="retryDocument()">Retry document</button></div>
               <p class="state-note" role="status" v-else-if="docPending">Reading document…</p>
               <div class="state-note" v-else-if="docWhy"><b>{{ docWhy.title }}</b> {{ docWhy.text }} <button v-if="docWhy.missing" type="button" class="btn btn-line btn-sm" :disabled="loading" @click="refresh()">Refresh files</button></div>
+              <pre class="jf-file-text" v-else-if="route.file">{{ bodyOf(refCopy) }}</pre>
               <div class="doc" v-else v-html="docHtml"></div>
             </article>
             <aside class="margin" aria-label="About this skill">
@@ -434,7 +375,7 @@
               <div class="note" v-if="skill.ref.groups.length > 1"><b>Copies</b>
                 <ul class="hist"><li v-for="g in skill.ref.groups" :key="g[0].hash"><span class="ver-tag" :class="{ odd: g[0].hash !== skill.ref.hash }">Copy {{ g[0].version }}</span> {{ join(g.map((c) => agentOf(c.scope).name)) }}<small>{{ g[0].hash === skill.ref.hash && !skill.ref.ambiguous ? 'Held by the most places' : plural(g.length, 'place') }} · {{ fmt(words(g[0].tokens)) }} words</small></li></ul></div>
               <div class="note"><h2 class="note-h">Length</h2><p>About {{ fmt(words(skill.tokens)) }} words, {{ lengthPct }}% of a reading window</p></div>
-              <div class="note"><h2 class="note-h">History</h2><p class="state-note err" v-if="skillHistoryError">{{skillHistoryError}} <button class="btn btn-line btn-sm" @click="loadSkillHistory()">Retry</button></p><ul class="hist"><li v-for="(h, i) in skillHistory" :key="i">{{ h.action }}<small>{{ fmtDate(h.at) }}</small></li><li v-if="!skillHistory.length && !skillHistoryError">No recorded changes<small>Edits made here are listed</small></li></ul><a href="#/recovery">Open history and snapshots</a></div>
+              <div class="note"><h2 class="note-h">History</h2><p class="state-note err" v-if="skillHistoryError">{{skillHistoryError}} <button class="btn btn-line btn-sm" @click="loadSkillHistory()">Retry</button></p><ul class="hist"><li v-for="(h, i) in skillHistory" :key="i">{{ h.action }}<small>{{ fmtDate(h.at) }}</small></li><li v-if="!skillHistory.length && !skillHistoryError">No recorded changes<small>Edits made here are listed</small></li></ul><a href="#/trash">Open history and snapshots</a></div>
               <div class="note"><details class="paths folder-paths">
                 <summary>Folder locations and source updates</summary>
                 <div v-for="c in skill.copies" :key="c.scope + '/' + (c.record.path || c.path)">
@@ -444,7 +385,7 @@
                 </div>
               </details></div>
               <div class="note" v-if="refCopy"><details class="paths"><summary>AI maintenance</summary>
-                <div class="tp-acts"><button type="button" class="btn btn-line btn-sm" @click="openSkillTool('ai-ask')">Find related skills</button><button type="button" class="btn btn-line btn-sm" v-if="refCopy.state === 'on'" @click="openSkillTool('ai-port')">Check agent compatibility</button><a class="tp-link" href="#/tools/ai-overlap">Check collection overlap</a><a class="tp-link" href="#/tools/ai-profile">Suggest a project profile</a></div>
+                <div class="tp-acts"><button type="button" class="btn btn-line btn-sm" @click="openSkillTool('ai-ask')">Find related skills</button><button type="button" class="btn btn-line btn-sm" v-if="refCopy.state === 'on'" @click="openSkillTool('ai-port')">Check agent compatibility</button><a class="tp-link" href="#/advanced/ai-overlap">Check collection overlap</a><a class="tp-link" href="#/advanced/ai-profile">Suggest a project profile</a></div>
               </details></div>
               <div><button type="button" class="btn btn-danger btn-sm" @click="openTrash()"><ic name="trash" cls="i-s"></ic>Move to trash</button></div>
               <details><summary>Permanent removal</summary><p class="sub">Deletes selected copies without trash or Undo.</p><button type="button" class="btn btn-danger btn-sm" @click="openPermanentDelete()">Delete permanently</button></details>
@@ -529,7 +470,7 @@
             </thead>
             <tbody>
               <tr v-for="row in mapRows" :key="row.skill.name">
-                <th scope="row"><a :href="'#/skill/' + enc(row.skill.name)" translate="no">{{ row.skill.name }}</a></th>
+                <th scope="row"><a :href="'#/skills/' + enc(row.skill.name)" translate="no">{{ row.skill.name }}</a></th>
                 <td v-for="(cell, col) in row.cells" :key="agentInfos[col].id">
                   <button v-if="cell.state !== 'missing'" type="button" :class="['map-state', 'map-' + cell.state]"
                     :aria-label="row.skill.name + ', ' + agentInfos[col].agent.name + ': ' + cell.label"
@@ -543,7 +484,7 @@
           </table>
         </div>
         <div v-else-if="trackNoAgents" class="card empty trk-empty"><h2>No agents are tracked.</h2><p>Choose which coding agents' skills to show. Nothing on disk changes.</p><div class="empty-acts"><a class="btn btn-ink" href="#/settings/tracking">Choose agents</a></div></div>
-        <p v-else-if="!agentInfos.length" class="state-note">No agent skill folders found. <a class="link" href="#/tools/workspaces">See where agents look for skills</a></p>
+        <p v-else-if="!agentInfos.length" class="state-note">No agent skill folders found. <a class="link" href="#/advanced/workspaces">See where agents look for skills</a></p>
         <p v-else-if="mapReviewOnly" class="state-note" role="status">No skills match the review filter.</p>
         <p v-else-if="mapQuery.trim()" class="state-note" role="status">No skills match this search.</p>
         <p v-else class="state-note">Add a skill to compare its copies.</p>
@@ -573,8 +514,8 @@
           <h3 translate="no">{{ mapDetail.skill.name }}</h3>
           <p>{{ mapDetail.label }}</p>
           <code class="copy-path" v-if="mapDetail.copy?.path" translate="no">{{ mapDetail.copy.path }}</code>
-          <a v-if="mapDetail.copy" class="link" :href="'#/skill/' + enc(mapDetail.skill.name)" @click.exact.left.prevent="openRecord(mapDetail.copy.record)">Open this copy</a>
-          <a v-else class="link" :href="'#/skill/' + enc(mapDetail.skill.name)">See skill copies</a>
+          <a v-if="mapDetail.copy" class="link" :href="'#/skills/' + enc(mapDetail.skill.name)" @click.exact.left.prevent="openRecord(mapDetail.copy.record)">Open this copy</a>
+          <a v-else class="link" :href="'#/skills/' + enc(mapDetail.skill.name)">See skill copies</a>
         </section>
         <template v-if="mapSel.key === 'ok'">
           <p class="sub">{{ mapSel.mine.length ? 'No unreadable or differing copies flagged in this scope.' : 'No skill copies listed in this scope.' }}</p>
@@ -582,21 +523,21 @@
         </template>
         <template v-else>
           <p :class="['pill', mapSel.key]">{{ tagFor(mapSel) }}</p>
-          <div class="mlist" v-if="mapSel.broken.length"><div class="mrow" v-for="s in mapSel.broken.slice(0, 8)" :key="s.name"><span class="bad"><ic name="bad"></ic></span><span><b>{{ s.name }}</b><small>{{ brokenShort(s, mapSel.id) }}</small></span><a class="btn btn-soft btn-sm" :href="'#/skill/' + enc(s.name)">Open</a></div>
-            <div class="mrow" v-if="mapSel.broken.length > 8"><span></span><span><small>and {{ mapSel.broken.length - 8 }} more. See the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/inbox">Inbox</a></div></div>
+          <div class="mlist" v-if="mapSel.broken.length"><div class="mrow" v-for="s in mapSel.broken.slice(0, 8)" :key="s.name"><span class="bad"><ic name="bad"></ic></span><span><b>{{ s.name }}</b><small>{{ brokenShort(s, mapSel.id) }}</small></span><a class="btn btn-soft btn-sm" :href="'#/skills/' + enc(s.name)">Open</a></div>
+            <div class="mrow" v-if="mapSel.broken.length > 8"><span></span><span><small>and {{ mapSel.broken.length - 8 }} more. See the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/attention">Inbox</a></div></div>
           <div class="mlist" v-if="mapSel.differing.length">
             <template v-for="s in mapSel.differing.slice(0, 12)" :key="s.name">
               <div class="mrow"><input type="checkbox" :checked="mapPicked.includes(s.name)" :disabled="busy || !mapSyncable(s, mapSel.id)" :aria-label="'Make ' + s.name + ' match'" @change="togglePick(s.name)"><span><b>{{ s.name }}</b><small>{{ s.ref.ambiguous ? 'Choose a source in the Inbox' : !mapSyncable(s, mapSel.id) ? 'Review this copy in Skills' : 'Document differs from the reference' }}</small></span><button type="button" class="peek" :aria-expanded="peek === s.name" :aria-controls="peek === s.name ? 'map-comparison' : null" @click="togglePeek(s)" :aria-label="(peek === s.name ? 'Hide' : 'Show') + ' changes in ' + s.name">{{ peek === s.name ? 'Hide' : 'Compare' }}</button></div>
               <div v-if="peek === s.name" id="map-comparison" class="map-comparison">
                 <copy-comparison v-if="mapComparisonEvidence" :evidence="mapComparisonEvidence" from-label="Selected copy" to-label="Reference copy" :reload="() => ensureBodies(mapComparePair)"></copy-comparison>
-                <p v-else-if="s.ref.ambiguous" class="sub">Choose a source to compare these versions. <a class="link" href="#/inbox" @click.exact.left.prevent="openInboxFor(s.name)">Open in Inbox</a></p>
-                <p v-else class="sub">Choose an exact copy to inspect. <a class="link" :href="'#/skill/' + enc(s.name)">See skill copies</a></p>
+                <p v-else-if="s.ref.ambiguous" class="sub">Choose a source to compare these versions. <a class="link" href="#/attention" @click.exact.left.prevent="openInboxFor(s.name)">Open in Inbox</a></p>
+                <p v-else class="sub">Choose an exact copy to inspect. <a class="link" :href="'#/skills/' + enc(s.name)">See skill copies</a></p>
               </div>
             </template>
-            <div class="mrow" v-if="mapSel.differing.length > 12"><span></span><span><small>and {{ mapSel.differing.length - 12 }} more. Use the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/inbox">Inbox</a></div></div>
+            <div class="mrow" v-if="mapSel.differing.length > 12"><span></span><span><small>and {{ mapSel.differing.length - 12 }} more. Use the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/attention">Inbox</a></div></div>
           <p class="backup" v-if="mapSel.differing.length"><ic name="undo" cls="i-s"></ic>Sync copies the on/off state and supporting files too. Undo restores the text and on/off state. If supporting files change, find the previous folder in Recovery.</p>
           <div class="cta" v-if="mapSel.differing.slice(0, 12).some((s) => mapSyncable(s, mapSel.id))"><button type="button" class="btn btn-ink btn-lg" :disabled="!mapSelected.length || busy" @click="syncPicked()">{{ mapSelected.length ? 'Make ' + plural(mapSelected.length, 'skill') + ' match in ' + mapSel.agent.name : 'Select skills to sync' }}</button></div>
-          <div class="cta" v-else-if="mapSel.differing.length"><a class="btn btn-line btn-lg" href="#/inbox">Choose which copies to keep in the Inbox</a></div>
+          <div class="cta" v-else-if="mapSel.differing.length"><a class="btn btn-line btn-lg" href="#/attention">Choose which copies to keep in the Inbox</a></div>
         </template>
       </aside>
     </div>
@@ -674,7 +615,7 @@
       <div class="card empty" style="padding:72px 24px" v-if="!queue.length">
         <span class="ic"><ic name="check"></ic></span><h1 class="h1" id="h1" tabindex="-1">Inbox is clear</h1>
         <p>{{ done ? 'You fixed ' + plural(done, 'item') + '. ' : '' }}Skipped items return after reload.</p>
-        <div class="empty-acts"><a class="btn btn-ink" href="#/home">Go to Home</a><a class="btn btn-line" href="#/skills">Browse skills</a></div></div>
+        <div class="empty-acts"><a class="btn btn-ink" href="#/skills">Go to Skills</a><a class="btn btn-line" href="#/skills">Browse skills</a></div></div>
       <template v-else>
         <h1 class="h1" id="h1" tabindex="-1">Inbox</h1>
         <div class="prog"><span class="bars" aria-hidden="true"><i v-for="n in progressBars" :key="n" :class="n <= Math.min(done, progressBars) ? 'done' : n === Math.min(done, progressBars - 1) + 1 ? 'now' : ''"></i></span><span>{{ done }} fixed, {{ queue.length }} to go</span></div>
@@ -703,11 +644,11 @@
           </template>
           <div class="big-list" v-if="cur.space">
             <div class="big-row" v-for="s in curBig" :key="s.name"><span><b>{{ s.name }}</b><small>About {{ fmt(words(s.tokens)) }} words</small></span>
-              <a class="link" :href="'#/skill/' + enc(s.name)" :aria-label="'Open ' + s.name">Open</a><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="turnOffIn(s, cur.agent)">Turn off in {{ agentOf(cur.agent).name }}</button></div></div>
+              <a class="link" :href="'#/skills/' + enc(s.name)" :aria-label="'Open ' + s.name">Open</a><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="turnOffIn(s, cur.agent)">Turn off in {{ agentOf(cur.agent).name }}</button></div></div>
           <div class="f-acts">
             <button type="button" class="btn btn-ink btn-lg" data-primary :disabled="busy || (cur.key === 'warn' && !curSyncTargets.length)" @click="fixCurrent()">{{ cur.key === 'warn' ? curSyncLabel : cur.action }}</button>
             <button type="button" class="btn btn-soft btn-lg" @click="skipCurrent()">Skip for now</button>
-            <a class="link" v-if="cur.skill" :href="'#/skill/' + enc(cur.skill)">Open skill</a>
+            <a class="link" v-if="cur.skill" :href="'#/skills/' + enc(cur.skill)">Open skill</a>
             <span class="keys"><span><kbd>Enter</kbd> {{ cur.key === 'info' ? 'Done' : 'Fix' }}</span><span><kbd>S</kbd> Skip</span></span>
           </div>
         </article>
@@ -722,20 +663,12 @@
     </template>
   </main>
 
-  <nav class="bottomnav" aria-label="Main" :inert="!!dialog">
-    <a href="#/home" :aria-current="route.page === 'home' ? 'page' : null"><ic name="home"></ic>Home</a>
-    <a href="#/skills" :aria-current="route.page === 'skills' || route.page === 'skill' ? 'page' : null"><ic name="list"></ic>Skills</a>
-    <a href="#/map" :aria-current="route.page === 'map' ? 'page' : null"><ic name="map"></ic>Map</a>
-    <a href="#/inbox" :aria-current="route.page === 'inbox' ? 'page' : null" :aria-label="inboxLabel"><span class="bn-ic"><ic name="inbox"></ic><span class="badge" v-if="inboxCount" aria-hidden="true">{{ inboxCount > 99 ? '99+' : inboxCount }}</span></span>Inbox</a>
-    <a href="#/recovery" :aria-current="route.page === 'recovery' ? 'page' : null"><ic name="undo"></ic>Recovery</a>
-    <a href="#/tools" :aria-current="route.page === 'tools' ? 'page' : null"><ic name="tools"></ic>Tools</a>
-  </nav>
-
   <!-- dialog -->
-  <div class="scrim" v-if="dialog" @mousedown.self="closeDialog()" @keydown="dialogKeys($event)">
-    <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t" ref="dlg" tabindex="-1">
-      <div class="dlg-h"><h2 id="dlg-t">{{ dialog.title }}</h2></div>
-      <div class="dlg-b">
+  <div class="scrim" :class="{ 'jf-palette-backdrop': dialog && dialog.commands }" v-if="dialog" @mousedown.self="closeDialog()" @keydown="dialogKeys($event)">
+    <jf-sheet labelled-by="dlg-t" ref="dlg" :class="{ 'jf-palette-sheet': dialog.commands }">
+      <div class="dlg-h" :class="{ 'sr-only': dialog.commands }"><h2 id="dlg-t">{{ dialog.createDiscard ? 'Discard this skill draft?' : dialog.title }}</h2></div>
+      <div class="dlg-b" v-if="dialog.createDiscard"><p>Your draft will be lost.</p></div>
+      <div v-else class="dlg-b" :class="{ 'jf-palette-body': dialog.commands }">
         <p v-for="(line, i) in dialog.lines" :key="i">{{ line }}</p>
         <div class="trk-mini" v-if="dialog.columns && dialog.columns.length" role="group" :aria-label="'Table after the change: the ' + dialog.columnsAgent + ' column leaves'"><table class="trk-mini-t"><thead><tr><th v-for="c in dialog.columns" :key="c.id" scope="col" :class="{ leaving: c.leaving }">{{ c.name }}<span v-if="c.leaving" class="sr-only"> (leaves the table)</span></th></tr></thead><tbody><tr><td v-for="c in dialog.columns" :key="c.id" :class="['num', { leaving: c.leaving }]">{{ fmt(c.count) }}</td></tr></tbody></table></div>
         <p v-if="dialog.preview" class="trk-preview num">{{ dialog.preview }}</p>
@@ -835,23 +768,154 @@
           <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">Create</button>
         </form>
         <ul class="keylist" v-if="dialog.keys"><li v-for="k in dialog.keys" :key="k[1]"><span><kbd v-for="x in k[0]" :key="x">{{ x }}</kbd></span>{{ k[1] }}</li></ul>
-        <div v-if="dialog.commands" class="palette"><label class="sr-only" for="command-q">Search pages, tools and actions</label><div class="palette-q"><ic name="search"></ic><input class="field" id="command-q" type="search" v-model="commandQuery" @input="commandActive=0" @keydown="commandKey" placeholder="Go to a page, tool or action" autocomplete="off" role="combobox" aria-expanded="true" aria-controls="command-list" :aria-activedescendant="commandChoices.length ? 'cmd-' + Math.min(commandActive, commandChoices.length - 1) : null"></div>
-          <div class="command-list" id="command-list" role="listbox" aria-label="Pages, tools and actions"><template v-for="(item, i) in commandChoices" :key="item.label"><p class="command-group" v-if="i === 0 || commandGroup(commandChoices[i - 1]) !== commandGroup(item)" aria-hidden="true">{{ commandGroup(item) }}</p><button type="button" class="command-row" role="option" :id="'cmd-' + i" :aria-selected="i === commandActive ? 'true' : 'false'" tabindex="-1" @mousemove="commandActive = i" @click="commandGo(item)"><span>{{item.label}}</span><kbd v-if="i === commandActive" aria-hidden="true">Enter</kbd></button></template><p v-if="!commandChoices.length" class="command-empty">Nothing matches “{{ commandQuery }}”. Try a page name such as Sync map, or a word like trash, backup or AI.</p></div>
-          <p class="command-foot" aria-hidden="true"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></p></div>
+        <div v-if="dialog.commands" class="palette jf-palette">
+          <div class="jf-palette-field">
+            <ic name="search"></ic><label class="sr-only" for="command-q">Search skills, actions and pages</label>
+            <input id="command-q" type="search" role="combobox" aria-expanded="true" aria-controls="command-list"
+              aria-autocomplete="list" :aria-activedescendant="commandChoices.length ? 'cmd-' + commandActive : null"
+              :value="commandQuery" @input="commandInput($event.target.value)" @keydown="commandKey"
+              placeholder="Search skills and actions" autocomplete="off" spellcheck="false">
+            <button class="sm-btn sm-btn--quiet jf-palette-close" type="button" @click="closeDialog()" aria-label="Close search"><kbd class="sm-kbd">Esc</kbd></button>
+          </div>
+          <div id="command-list" class="jf-palette-results" role="listbox" aria-label="Results">
+            <div v-for="group in commandGroups" :key="group.title" role="group" :aria-label="group.title">
+              <p class="jf-palette-group" aria-hidden="true">{{ group.title }}</p>
+              <button v-for="item in group.items" :key="item.label" type="button" role="option" tabindex="-1"
+                class="jf-palette-option" :id="'cmd-' + commandChoices.indexOf(item)" :aria-selected="commandChoices[commandActive] === item"
+                @click="commandGo(item)">
+                <span class="jf-result-icon"><ic :name="item.icon"></ic></span>
+                <span class="jf-result-title"><strong>{{ item.label }}</strong><small v-if="item.text">{{ item.text }}</small></span>
+                <kbd class="sm-kbd" aria-hidden="true" v-if="commandChoices[commandActive] === item">Enter</kbd>
+              </button>
+            </div>
+          </div>
+          <jf-empty v-if="!commandChoices.length">
+            <p>Nothing matches “{{ commandQuery }}”.</p>
+            <p class="sm-hint">We searched skill names, descriptions, actions and pages.</p>
+            <p v-if="paletteSuggestion">Did you mean <button type="button" class="link" @click="commandInput(paletteSuggestion.name)">{{ paletteSuggestion.name }}</button>?</p>
+          </jf-empty>
+          <div class="jf-palette-keys" aria-hidden="true">
+            <span><kbd class="sm-kbd">↑</kbd> <kbd class="sm-kbd">↓</kbd> move</span>
+            <span><kbd class="sm-kbd">Enter</kbd> open</span><span><kbd class="sm-kbd">Esc</kbd> close</span>
+            <span>Open anywhere with <kbd class="sm-kbd">/</kbd> or <kbd class="sm-kbd">Ctrl K</kbd></span>
+          </div>
+        </div>
         <div class="pick-list" v-if="dialog.picks"><label class="pick" v-for="p in dialog.picks" :key="p.id"><input type="checkbox" :value="p.id" v-model="dialog.chosen"><logo :agent="agentOf(p.id)" size="xs"></logo><span>{{ p.label }}<small>{{ p.path }}</small></span></label></div>
       </div>
-      <div class="dlg-f"><button type="button" class="btn btn-line" @click="closeDialog()">{{ dialog.cancel || 'Cancel' }}</button>
+      <div class="dlg-f" v-if="dialog.createDiscard">
+        <button type="button" class="btn btn-line" ref="keepCreateDraft" @click="keepCreateDraft()">Keep editing</button>
+        <button type="button" class="btn btn-danger" @click="discardCreateDraft()">Discard draft</button>
+      </div>
+      <div class="dlg-f" v-else-if="!dialog.commands"><button type="button" class="btn btn-line" @click="closeDialog()">{{ dialog.cancel || 'Cancel' }}</button>
         <button type="button" :class="['btn', dialog.danger ? 'btn-danger' : 'btn-ink']" v-if="dialog.confirm" :disabled="busy || dialog.templateLoading || (dialog.picks && !dialog.chosen.length) || (dialog.form && !!formInvalid)" @click="confirmDialog()">{{ busy ? 'Working…' : dialog.confirm }}</button></div>
-    </div>
+    </jf-sheet>
   </div>
 
   <div class="sr-only" role="status" aria-live="polite">{{ live }}</div>
-  <div class="toasts" :inert="!!dialog"><div class="toast" :class="{ err: t.err }" role="status" v-for="t in toasts" :key="t.id" @focusin="holdToast(t, true)" @focusout="holdToast(t, false)" @mouseenter="holdToast(t, true)" @mouseleave="holdToast(t, false)"><ic :name="t.err ? 'bad' : 'ok'"></ic><span>{{ t.text }}</span><button type="button" v-if="t.undo" @click="runUndo(t)">Undo</button></div></div>
+  <jf-undo-bar :notes="toasts" :blocked="!!dialog" :busy="busy" @hold="holdToast" @undo="runUndo" @dismiss="dismissToast"></jf-undo-bar>
 </div>
+<template id="jf-nav-template">
+  <header class="top jf-top sm-nav" :inert="blocked">
+    <a class="brand" href="#/skills" aria-label="Jackfield home">
+      <svg class="brand-lockup jf-l" viewBox="0 0 1070 256" aria-hidden="true">
+        <g>
+          <path fill="#DDDDD8" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
+          <path fill="#191917" d="M184 96H232A8 8 0 0 1 240 104V152A8 8 0 0 1 232 160H184A8 8 0 0 1 176 152V104A8 8 0 0 1 184 96Z M24 96H72A8 8 0 0 1 80 104V152A8 8 0 0 1 72 160H24A8 8 0 0 1 16 152V104A8 8 0 0 1 24 96Z M104 176H152A8 8 0 0 1 160 184V232A8 8 0 0 1 152 240H104A8 8 0 0 1 96 232V184A8 8 0 0 1 104 176Z M24 176H72A8 8 0 0 1 80 184V232A8 8 0 0 1 72 240H56A40 40 0 0 1 16 200V184A8 8 0 0 1 24 176Z M184 176H232A8 8 0 0 1 240 184V200A40 40 0 0 1 200 240H184A8 8 0 0 1 176 232V184A8 8 0 0 1 184 176Z"/>
+          <path fill="#2D58D0" d="M184 16H232A8 8 0 0 1 240 24V72A8 8 0 0 1 232 80H184A8 8 0 0 1 176 72V24A8 8 0 0 1 184 16Z"/>
+        </g>
+        <g transform="translate(306.35 166.70)">
+          <path fill="#191917" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/>
+          <path fill="#2D58D0" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/>
+        </g>
+      </svg>
+      <svg class="brand-lockup jf-d" viewBox="0 0 1070 256" aria-hidden="true">
+        <g>
+          <path fill="#2C2C2A" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
+          <path fill="#EDEDEA" d="M185 97H231A8 8 0 0 1 239 105V151A8 8 0 0 1 231 159H185A8 8 0 0 1 177 151V105A8 8 0 0 1 185 97Z M25 97H71A8 8 0 0 1 79 105V151A8 8 0 0 1 71 159H25A8 8 0 0 1 17 151V105A8 8 0 0 1 25 97Z M105 177H151A8 8 0 0 1 159 185V231A8 8 0 0 1 151 239H105A8 8 0 0 1 97 231V185A8 8 0 0 1 105 177Z M25 177H71A8 8 0 0 1 79 185V231A8 8 0 0 1 71 239H56A39 39 0 0 1 17 200V185A8 8 0 0 1 25 177Z M185 177H231A8 8 0 0 1 239 185V200A39 39 0 0 1 200 239H185A8 8 0 0 1 177 231V185A8 8 0 0 1 185 177Z"/>
+          <path fill="#8CAEFF" d="M185 17H231A8 8 0 0 1 239 25V71A8 8 0 0 1 231 79H185A8 8 0 0 1 177 71V25A8 8 0 0 1 185 17Z"/>
+        </g>
+        <g transform="translate(306.35 166.70)">
+          <path fill="#EDEDEA" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/>
+          <path fill="#8CAEFF" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/>
+        </g>
+      </svg>
+      <svg class="brand-symbol jf-l" viewBox="0 0 256 256" aria-hidden="true">
+        <g>
+          <path fill="#DDDDD8" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
+          <path fill="#191917" d="M184 96H232A8 8 0 0 1 240 104V152A8 8 0 0 1 232 160H184A8 8 0 0 1 176 152V104A8 8 0 0 1 184 96Z M24 96H72A8 8 0 0 1 80 104V152A8 8 0 0 1 72 160H24A8 8 0 0 1 16 152V104A8 8 0 0 1 24 96Z M104 176H152A8 8 0 0 1 160 184V232A8 8 0 0 1 152 240H104A8 8 0 0 1 96 232V184A8 8 0 0 1 104 176Z M24 176H72A8 8 0 0 1 80 184V232A8 8 0 0 1 72 240H56A40 40 0 0 1 16 200V184A8 8 0 0 1 24 176Z M184 176H232A8 8 0 0 1 240 184V200A40 40 0 0 1 200 240H184A8 8 0 0 1 176 232V184A8 8 0 0 1 184 176Z"/>
+          <path fill="#2D58D0" d="M184 16H232A8 8 0 0 1 240 24V72A8 8 0 0 1 232 80H184A8 8 0 0 1 176 72V24A8 8 0 0 1 184 16Z"/>
+        </g>
+      </svg>
+      <svg class="brand-symbol jf-d" viewBox="0 0 256 256" aria-hidden="true">
+        <g>
+          <path fill="#2C2C2A" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/>
+          <path fill="#EDEDEA" d="M185 97H231A8 8 0 0 1 239 105V151A8 8 0 0 1 231 159H185A8 8 0 0 1 177 151V105A8 8 0 0 1 185 97Z M25 97H71A8 8 0 0 1 79 105V151A8 8 0 0 1 71 159H25A8 8 0 0 1 17 151V105A8 8 0 0 1 25 97Z M105 177H151A8 8 0 0 1 159 185V231A8 8 0 0 1 151 239H105A8 8 0 0 1 97 231V185A8 8 0 0 1 105 177Z M25 177H71A8 8 0 0 1 79 185V231A8 8 0 0 1 71 239H56A39 39 0 0 1 17 200V185A8 8 0 0 1 25 177Z M185 177H231A8 8 0 0 1 239 185V200A39 39 0 0 1 200 239H185A8 8 0 0 1 177 231V185A8 8 0 0 1 185 177Z"/>
+          <path fill="#8CAEFF" d="M185 17H231A8 8 0 0 1 239 25V71A8 8 0 0 1 231 79H185A8 8 0 0 1 177 71V25A8 8 0 0 1 185 17Z"/>
+        </g>
+      </svg>
+    </a>
+    <nav class="tabs jf-places" aria-label="Main">
+      <a v-for="place in places" class="sm-nav__link" :key="place.path" :href="place.path"
+        :aria-current="activePlace === place.path ? 'page' : null"
+        :aria-label="place.path === '#/attention' && attention ? 'Needs attention, ' + attention + (attention === 1 ? ' item' : ' items') : null">
+        {{ place.label }}<span class="sm-nav__count" aria-hidden="true" v-if="place.path === '#/attention' && attention">{{ attention > 99 ? '99+' : attention }}</span>
+      </a>
+    </nav>
+    <button type="button" class="sm-search jf-open-search" @click="$emit('search')"
+      aria-label="Search skills, actions and pages" aria-keyshortcuts="/ Control+K Meta+K">
+      <ic name="search"></ic><span>Search skills and actions</span><kbd class="sm-kbd" aria-hidden="true">/</kbd>
+    </button>
+    <button type="button" class="themebtn sm-btn sm-btn--icon" @click="$emit('theme')" :aria-label="'Theme: ' + themeLabel + '. Activate to switch.'">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true" v-html="themeIcon"></svg>
+    </button>
+    <button type="button" class="themebtn help sm-btn sm-btn--icon" @click="$emit('help')" aria-label="Keyboard shortcuts"><ic name="info"></ic></button>
+  </header>
+  <nav class="bottomnav sm-tabs jf-phone" aria-label="Main" :inert="blocked">
+    <a v-for="place in places" class="sm-tab" :key="place.path" :href="place.path"
+      :aria-current="activePlace === place.path ? 'page' : null"
+      :aria-label="place.path === '#/attention' && attention ? 'Needs attention, ' + attention + (attention === 1 ? ' item' : ' items') : null">
+      <ic :name="place.icon"></ic><span>{{ place.label }}</span>
+      <span class="sm-nav__count" aria-hidden="true" v-if="place.path === '#/attention' && attention">{{ attention > 99 ? '99+' : attention }}</span>
+    </a>
+  </nav>
+</template>
+<template id="jf-undo-template">
+  <div class="toasts jf-toasts" :inert="blocked">
+    <div class="toast sm-undo" :class="{ err: note.err }" role="status" v-for="note in notes" :key="note.id"
+      @focusin="$emit('hold', note, true)" @focusout="!$event.currentTarget.contains($event.relatedTarget) && $emit('hold', note, false)"
+      @mouseenter="$emit('hold', note, true)" @mouseleave="!$event.currentTarget.contains($event.currentTarget.ownerDocument.activeElement) && $emit('hold', note, false)">
+      <span>{{ note.text }}</span>
+      <button v-if="note.undo" type="button" @click="$emit('undo', note)" :disabled="busy">Undo</button>
+      <button type="button" class="sm-undo__x" @click="$emit('dismiss', note)" aria-label="Dismiss message"><ic name="off"></ic></button>
+    </div>
+  </div>
+</template>
+<template id="jf-not-found-template">
+  <div class="jf-not-found">
+    <jf-title-row :title="title" :breadcrumb="skillName ? 'Page not found' : ''"></jf-title-row>
+    <p v-if="skillName">It may have been renamed, removed, or the link has a typo. We looked in {{ places }} {{ places === 1 ? 'place' : 'places' }}.</p>
+    <p v-else>The link may have changed or the address may have a typo.</p>
+    <p class="jf-address">{{ address }}</p>
+    <div v-if="suggestion" class="jf-suggestion">
+      <p class="sm-hint">Did you mean</p><a :href="guessHref">{{ suggestion.name }}</a>
+      <p class="sm-hint" v-if="suggestion.description">{{ suggestion.description }}</p>
+    </div>
+    <div class="jf-not-found-actions">
+      <a href="#/skills" class="sm-btn sm-btn--page sm-btn--accent">Go to Skills</a>
+      <a href="#/trash" class="sm-btn sm-btn--page">Look in Trash</a>
+    </div>
+    <p class="sm-hint">Removed skills stay in Trash until you empty it.</p>
+  </div>
+</template>
 <script src="static/vendor/vue.global.prod.js"></script>
 <script src="static/vendor/markdown-it.umd.min.js"></script>
 <script src="domain.js"></script>
 <script src="model.js"></script>
+<script src="state.js"></script>
+<script src="router.js"></script>
+<script src="ui-core.js"></script>
+<script src="screen-not-found.js"></script>
+<script src="palette.js"></script>
 <script src="library-tools.js"></script>
 <script src="ai-center.js"></script>
 <script src="ai-diagnostic.js"></script>

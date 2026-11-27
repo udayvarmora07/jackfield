@@ -199,7 +199,7 @@
       matchingCopies(match) {
         return this.records.filter(r => r.name === match.name && match.scopes.includes(r.scope) && !r.disabled).slice(0, 12);
       },
-      skillHref(name) { return "#/skill/" + encodeURIComponent(name); },
+      skillHref(name) { return window.Jackfield.router.skillHref(name); },
       librarySkills() { return [...new Set(this.records.filter((r) => r.scope === "global").map((r) => r.name))].sort(); },
       ablateInputKey() { return JSON.stringify([this.ablateName, this.ablateSection, this.ablateTrials, this.ablateMax, this.ablatePlacebo]); },
       ablateBody(extra) {
@@ -429,7 +429,7 @@
         if (!t && this.target && this.page === "ai-improve") t = { scope: this.target.scope, name: this.target.name };
         if (t && t.scope) { this.scope = t.scope; this.$nextTick(() => { if (t.name) this.improveName = t.name; }); }
       },
-      handoff(name) { try { sessionStorage.setItem(HANDOFF, JSON.stringify({ scope: this.scope, name })); } catch (e) { /* optional */ } location.hash = "#/tools/ai-improve"; },
+      handoff(name) { try { sessionStorage.setItem(HANDOFF, JSON.stringify({ scope: this.scope, name })); } catch (e) { /* optional */ } window.Jackfield.router.go("#/advanced/ai-improve"); },
       /* `busy` stays true until every overlapping request finishes: a single
        * boolean re-enabled the buttons (paid model calls) while another
        * request was still in flight. */
@@ -594,7 +594,7 @@
             <li><b>Check what would be sent</b><span>Every run first shows exactly what leaves this computer and its token estimate. Nothing is sent at this step.</span></li>
             <li><b>Send and review</b><span>Results are shown beside your own files; nothing is changed until you apply it.</span></li>
           </ol>
-          <div class="tp-acts"><a class="btn btn-ink" href="#/tools/ai-settings">Open AI settings</a></div></section>
+          <div class="tp-acts"><a class="btn btn-ink" href="#/advanced/ai-settings">Open AI settings</a></div></section>
       </template>
 
       <template v-else-if="page==='ai-trigger'">
@@ -776,7 +776,7 @@
             <small v-if="opinionFor(i)"><span :class="['pill', opinionLabel(opinionFor(i).opinion)[0]]">{{ opinionLabel(opinionFor(i).opinion)[1] }}</span> {{ opinionFor(i).why }}<template v-if="opinionFor(i).quote"> · quotes <span class="tp-mono">{{ opinionFor(i).file }}</span>: “{{ opinionFor(i).quote }}”</template></small></span></li></ul>
           <p v-if="explained.findings_total > explained.findings_shown" class="tp-fine">Showing the first {{ explained.findings_shown }} of {{ explained.findings_total }} findings.</p>
           <template v-if="!explained.clean && !explained.opinions">
-            <p v-if="!configured" class="tp-fine">For an optional second opinion, <a href="#/tools/ai-settings">connect a model</a>.</p>
+            <p v-if="!configured" class="tp-fine">For an optional second opinion, <a href="#/advanced/ai-settings">connect a model</a>.</p>
             <div v-else-if="!explainEstimate" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="explain('estimate')">Preview AI request</button></div>
             <template v-else><p v-for="(line,i) in (explainEstimate.egress||[])" :key="i" class="tp-fine">{{ line }} About {{ fmt(explainEstimate.run.estimated_input_tokens) }} tokens to {{ explainEstimate.run.model }} at <code>{{ explainEstimate.destination }}</code>.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="explain('send')">Send for a second opinion</button></div></template>
@@ -804,7 +804,7 @@
           <ul v-if="ported.facts.length" class="tp-rows"><li v-for="f in ported.facts" :key="f.id" class="v2-tool-row"><span class="tp-row-main"><strong>{{ f.kind==='frontmatter' ? 'Setting' : 'Text' }}: {{ f.detail }}</strong><small v-if="f.line" class="tp-mono">{{ f.line }}</small>
             <small v-for="n in (ported.notes||[]).filter(n => n.fact===f.id)" :key="n.fact + n.suggestion">{{ n.explanation }} <b>Suggestion:</b> {{ n.suggestion }}</small></span></li></ul>
           <template v-if="!ported.portable && !ported.notes">
-            <p v-if="!configured" class="tp-fine">For optional explanations, <a href="#/tools/ai-settings">connect a model</a>.</p>
+            <p v-if="!configured" class="tp-fine">For optional explanations, <a href="#/advanced/ai-settings">connect a model</a>.</p>
             <div v-else-if="!portEstimate" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="port('estimate')">Preview AI request</button></div>
             <template v-else><p v-for="(line,i) in (portEstimate.egress||[])" :key="i" class="tp-fine">{{ line }} About {{ fmt(portEstimate.run.estimated_input_tokens) }} tokens to {{ portEstimate.run.model }} at <code>{{ portEstimate.destination }}</code>.</p>
             <div class="tp-acts"><button class="btn btn-ink" :disabled="busy" @click="port('send')">Send and explain</button></div></template>
@@ -835,7 +835,7 @@
         <section v-if="asked && askKey === askInputKey()" class="card tp-panel" aria-labelledby="ai-ans-h" aria-live="polite">
           <header class="tp-panel-h"><div><h2 id="ai-ans-h">Answer</h2><p>Searched {{ asked.searched }} skills, sent {{ asked.sent }} · {{ asked.run.model }}</p></div></header>
           <p>{{ asked.answer }}</p>
-          <p v-if="!asked.matches.length" class="tp-empty">No match suggested from the shortlist. <a class="tp-link" href="#/tools/install">Browse the registry</a></p>
+          <p v-if="!asked.matches.length" class="tp-empty">No match suggested from the shortlist. <a class="tp-link" href="#/advanced/install">Browse the registry</a></p>
           <ul class="tp-rows"><li v-for="m in asked.matches" :key="m.name" class="v2-tool-row">
             <span class="tp-row-main"><strong class="tp-mono">{{ m.name }}</strong><small>{{ m.why }}</small>
               <button v-for="copy in matchingCopies(m)" :key="copy.scope + ':' + (copy.physical_path || copy.path)" type="button" class="btn btn-line btn-sm" @click="$emit('open-record', copy)" :title="copy.physical_path || copy.path">Open {{ copy.scope }} copy</button></span></li></ul>
@@ -990,7 +990,7 @@
             <div class="tp-set-row"><label for="ai-cfv"><b>Votes per pair</b><small>Each pair is always asked in both orders. A third vote catches answers that flip between runs; every vote must agree.</small></label><select id="ai-cfv" class="field" v-model.number="conflictsVotes" @change="conflictsEstimate=null"><option :value="2">2 (both orders)</option><option :value="3">3 (both orders and a repeat)</option></select></div>
           </div>
           <div v-if="configured && conflictsReport.candidates.length && !previewCurrent('conflictsEstimate', conflictEstimateBody())" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="estimateConflictJudge()">Ask your model to judge…</button></div>
-          <p v-else-if="!configured && conflictsReport.candidates.length" class="tp-fine">To have a model judge these pairs, <a href="#/tools/ai-settings">connect one in AI settings</a>.</p>
+          <p v-else-if="!configured && conflictsReport.candidates.length" class="tp-fine">To have a model judge these pairs, <a href="#/advanced/ai-settings">connect one in AI settings</a>.</p>
           <div v-if="previewCurrent('conflictsEstimate', conflictEstimateBody()) && conflictsEstimate.status==='estimate'" class="ai-confirm" role="region" aria-label="Before sending">
             <p v-for="(line,i) in conflictsEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
             <p class="tp-fine">At most about {{ fmt(conflictsEstimate.run.estimated_input_tokens) }} tokens to {{ conflictsEstimate.run.model }}.</p>
@@ -1317,7 +1317,7 @@
     template: `
     <section v-if="reviewId" class="ai-brief" aria-label="AI briefing">
       <div class="tp-panel-h"><h3>Explain with AI <small class="tp-count">your own key · advisory</small></h3>
-        <a v-if="configured===false" class="btn btn-line btn-sm" href="#/tools/ai-settings">Set up AI</a>
+        <a v-if="configured===false" class="btn btn-line btn-sm" href="#/advanced/ai-settings">Set up AI</a>
         <button v-else-if="!estimate && !brief" class="btn btn-line btn-sm" :disabled="busy || configured===null" @click="run(true)">Explain this change</button></div>
       <p v-if="error" class="v2-tool-error" role="alert">{{ error }}</p>
       <p v-if="busy" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Working…</p>

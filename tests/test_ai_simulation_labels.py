@@ -32,7 +32,7 @@ class SimulationLabelTests(unittest.TestCase):
     def test_home_keeps_known_codex_budget_separate_from_unknown_metadata_listing(self):
         result = run_node(r"""
           const components={};ctx.Vue={createApp(def){return {component(name,definition){components[name]=definition;return this},mount(){}}},markRaw:v=>v};
-          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
+          loadJackfield(ctx, V2+'/app.js');
           const component=components['listing-budgets'];
           const h=mount(component,{report:{codex_listing:{instances_observed:2,status:'unknown',confidence:'partial',
             listing_tokens_estimate:44,budget:{budget_tokens:8000,basis:'User cap'},unknown_metadata:{total:1}}}});

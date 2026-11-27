@@ -203,7 +203,7 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
       : `(() => { const original=window.fetch; window.fetch=function(input,init){ const target=typeof input==='string'?input:(input && input.url)||''; if(target.includes(${JSON.stringify(failedRoute)})) return Promise.reject(new Error('synthetic first-scan failure')); return original.call(this,input,init); }; })();`;
     await send('Page.addScriptToEvaluateOnNewDocument', {source:preload});
   }
-  await send('Page.navigate',{url});
+  await send('Page.navigate',{url: url + '/#/skills?view=agents'});
   const evalValue = async (expression) => { const r = await send('Runtime.evaluate', {expression, returnByValue:true}); return r.result && r.result.result && r.result.result.value; };
   const pause = (ms) => new Promise(r=>setTimeout(r,ms));
   // Ready = the app has mounted, the page heading is no longer the loading
@@ -264,35 +264,37 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
     await evalValue(`(() => { const input=document.querySelector('#command-q'); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(input,'trash'); input.dispatchEvent(new Event('input',{bubbles:true})); return true; })()`);
     await pause(80);
     const filtered = await evalValue(`(() => [...document.querySelectorAll('#command-list [role="option"]')].map(o => o.innerText.trim()))()`);
-    if (!filtered || !filtered.some(label => /Recovery/.test(label))) errors.push('Palette synonyms did not find Recovery for "trash": ' + JSON.stringify(filtered));
+    if (!filtered || !filtered.some(label => /Trash & backups/.test(label))) errors.push('Palette did not find Trash & backups for "trash": ' + JSON.stringify(filtered));
     await evalValue(`(() => { document.querySelector('#command-q').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`);
     let landed = null;
     // After a failed first scan every page states the failure instead of its own content.
     const expectedHeading = (scenario === 'scope-failure' || scenario === 'inventory-failure') ? /^(Recovery|Couldn.t read your skills)$/ : /^Recovery$/;
     for (let attempt = 0; attempt < 30; attempt += 1) {
       landed = await evalValue(`(() => ({hash:location.hash, heading:document.querySelector('#h1') ? document.querySelector('#h1').innerText.trim() : '', dialog:!!document.querySelector('.dlg .palette')}))()`);
-      if (landed && landed.hash === '#/recovery' && expectedHeading.test(landed.heading) && !landed.dialog) break;
+      if (landed && landed.hash === '#/trash' && expectedHeading.test(landed.heading) && !landed.dialog) break;
       await pause(50);
     }
-    if (!landed || landed.hash !== '#/recovery' || !expectedHeading.test(landed.heading) || landed.dialog) errors.push('Enter in the palette did not open Recovery and close the palette: ' + JSON.stringify(landed));
+    if (!landed || landed.hash !== '#/trash' || !expectedHeading.test(landed.heading) || landed.dialog) errors.push('Enter in the palette did not open Trash & backups and close the palette: ' + JSON.stringify(landed));
   }
 
-  // Header search never navigates while typing; it lists matches and Escape
-  // closes the list. (The empty fixture has no skills, so it lists none.)
-  const searchState = await evalValue(`(() => { const input=document.querySelector('#gq'); if (!input || input.offsetParent === null) return {visible:false}; const before=location.hash; input.focus(); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(input,'probe'); input.dispatchEvent(new Event('input',{bubbles:true})); return {visible:true, before}; })()`);
-  if (searchState && searchState.visible) {
+  // Search remains open and does not navigate while a user types.
+  const searchState = await evalValue(`(() => { const button=document.querySelector('.jf-open-search'); const before=location.hash; if(!button) return null; button.click(); return {before}; })()`);
+  await pause(80);
+  if (!searchState) errors.push('Search launcher is missing');
+  else {
+    await evalValue(`(() => { const input=document.querySelector('#command-q'); if(!input) return false; const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(input,'probe'); input.dispatchEvent(new Event('input',{bubbles:true})); return true; })()`);
     await pause(80);
-    const listed = await evalValue(`(() => ({hash:location.hash, open:!!document.querySelector('.gq-pop'), matches:document.querySelectorAll('.gq-pop [role="option"]').length}))()`);
-    if (!listed || listed.hash !== searchState.before || !listed.open) errors.push('Typing in the header search navigated or showed no result list: ' + JSON.stringify(listed));
-    if (scenario === 'populated' && listed && !listed.matches) errors.push('Header search listed no match for a fixture skill');
-    await evalValue(`(() => { document.querySelector('#gq').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true; })()`);
+    const listed = await evalValue(`(() => ({hash:location.hash, open:!!document.querySelector('.dlg .palette'), matches:document.querySelectorAll('#command-list [role="option"]').length}))()`);
+    if (!listed || listed.hash !== searchState.before || !listed.open) errors.push('Typing in search navigated or closed the results: ' + JSON.stringify(listed));
+    if (scenario === 'populated' && listed && !listed.matches) errors.push('Search listed no match for a fixture skill');
+    await evalValue(`(() => { document.querySelector('#command-q').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true; })()`);
     await pause(60);
-    const closed = await evalValue(`(() => !document.querySelector('.gq-pop'))()`);
-    if (!closed) errors.push('Escape did not close the header search results');
+    const closed = await evalValue(`(() => !document.querySelector('.dlg .palette'))()`);
+    if (!closed) errors.push('Escape did not close search');
   }
 
   // Quality renders bounded evidence (findings are paged) without overflow.
-  await evalValue(`(() => { location.hash = '#/tools/quality'; return true; })()`);
+  await evalValue(`(() => { location.hash = '#/advanced/quality'; return true; })()`);
   let qualityState = null, qualityReady = false;
   for (let attempt = 0; attempt < 60; attempt += 1) {
     qualityState = await evalValue(`(() => ({heading:document.querySelector('#h1') ? document.querySelector('#h1').innerText.trim() : '', findings:document.querySelectorAll('.tp-findings > li').length, settled:!!document.querySelector('#tp-findings, .tp-empty, [role="alert"]'), overflow:document.documentElement.scrollWidth>window.innerWidth}))()`);
@@ -301,7 +303,7 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
   }
   if (!qualityReady) errors.push('Quality did not render bounded evidence without overflow: ' + JSON.stringify(qualityState));
   if (qualityState && qualityState.findings > 50) errors.push('Quality rendered more than one page (50) of findings at once');
-  await evalValue(`(() => { location.hash = '#/home'; return true; })()`);
+  await evalValue(`(() => { location.hash = '#/skills?view=agents'; return true; })()`);
   await pause(150);
   if (screenshot) {
     const capture = await send('Page.captureScreenshot', {format:'png', captureBeyondViewport:true});
@@ -419,6 +421,8 @@ def run() -> int:
         os.chmod(screenshot_dir, 0o700)
     with _browser_workspace() as directory:
         root = Path(directory)
+        # Project-local scopes are discovered from cwd; isolate them too.
+        os.chdir(root)
         home = root / "home"
         data_dir = root / "data"
         home.mkdir(parents=True, exist_ok=True)

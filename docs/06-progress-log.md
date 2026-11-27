@@ -7,6 +7,26 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-27 — Paper redesign Phase 1 shell
+
+**[NOTE]** Added the four-place desktop and phone navigation, hash router and
+redirects, shared dialog and Undo components, search and command palette, and
+Not found screen. Existing Agents overview and Sync map workflows are
+available from Skills views during the transition. Browser regression checks
+cover search and navigation, including clearing URL filters on return to
+plain Skills. See @build-progress.md for local and integration status.
+
+**[NOTE]** The Python 3.11–3.14 suites and 74 Chromium scenarios passed
+locally, along with smoke, static, HTTP and packaging checks. Search and Not
+found were inspected in both themes at desktop and phone widths. The Phase 1
+changes are in the working tree.
+
+**[NOTE]** The integration review found draft loss on Back and Cancel, a
+late template response that could overwrite typed instructions, and a direct
+editor route that could not retry a failed read. Added browser regressions and
+fixed these cases. A tracking form also retains input when only the hash query
+changes.
+
 ## 2026-11-27 — Paper redesign Phase 0 foundations
 
 **[NOTE]** Imported the approved v13 design-system export into the current web
@@ -22,6 +42,11 @@ temporary home. The existing checkout's installed project skills were changing
 search matches and Add to agent targets. All 71 browser checks passed after
 isolation. The Python 3.11–3.14 suites, smoke checks, token and documentation
 checks, and pinned wheel and sdist clean installs also passed locally.
+
+**[NOTE]** Phase 0 reached `main` as `c3087ec` after the staged snapshot passed
+the local verification ladder. All 17 jobs passed on GitHub, including the
+Linux, macOS, and Windows suites.
+[GitHub CI run](https://github.com/udayvarmora07/jackfield/actions/runs/45982680566)
 
 ## 2026-11-27 — Redesign status board refreshed
 

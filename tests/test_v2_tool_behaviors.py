@@ -11,12 +11,13 @@ ROOT = Path(__file__).resolve().parent.parent
 V2 = ROOT / "skillsmgr" / "webui"
 HARNESS = r"""
 const fs=require('fs'),vm=require('vm');
+const loadJackfield=require('./tests/fixtures/load_jackfield.cjs');
 let calls=[],events=[],handler=async()=>({});
 const api=async(url,opts={})=>{calls.push({url,opts});return handler(url,opts)};
 class Form { constructor(){this.parts=[]} append(...part){this.parts.push(part)} }
 const ctx={window:{SkillManagerDomain:{api,esc:s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),observeRecord:()=>({linkEscape:false})}},console,
  localStorage:{getItem:()=>null,setItem:()=>{}},matchMedia:()=>({matches:false}),
- FormData:Form,confirm:()=>true,navigator:{clipboard:{writeText:async()=>{}},locks:{request:async(name,options,fn)=>fn()}},location:{hash:''},
+ URLSearchParams,FormData:Form,confirm:()=>true,navigator:{clipboard:{writeText:async()=>{}},locks:{request:async(name,options,fn)=>fn()}},location:{hash:''},
  Vue:{createApp(def){ctx.appDef=def;return {component(){return this},mount(){}}},markRaw:v=>v}};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(V2+'/model.js','utf8'),ctx);
@@ -43,7 +44,7 @@ def run_node(body):
 class ToolBehaviorTests(unittest.TestCase):
     def test_recovery_and_catalog_reads_discard_superseded_results(self):
         out = run_node(r"""
-          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
+          loadJackfield(ctx, V2+'/app.js');
           const h=mount(ctx.appDef,{m:{agents:[{id:'codex',name:'Codex',writable:true}]}});
           const reads=[];
           handler=url=>new Promise((resolve,reject)=>reads.push({url,resolve,reject}));
@@ -68,7 +69,7 @@ class ToolBehaviorTests(unittest.TestCase):
 
     def test_inventory_history_error_belongs_to_latest_refresh(self):
         out = run_node(r"""
-          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
+          loadJackfield(ctx, V2+'/app.js');
           const h=mount(ctx.appDef);
           const history=[];
           handler=async url=>url==='/api/history?limit=8'
@@ -228,22 +229,24 @@ class ToolBehaviorTests(unittest.TestCase):
     def test_tool_catalog_drives_routes_listing_and_command_choices(self):
         out = run_node(r"""
           ctx.Vue={createApp(def){ctx.appDef=def;return {component(){return this},mount(){}}},markRaw:v=>v};
-          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
+          loadJackfield(ctx, V2+'/app.js');
           const M=ctx.window.SkillsV2Model, route=()=>ctx.appDef.data().route;
           const routes=[];
           for(const id of M.toolIds){ctx.location.hash='#/tools/'+id;routes.push(route().tool)}
-          ctx.location.hash='#/tools/unknown';const unknown=route().tool;
+          ctx.location.hash='#/tools/unknown';const unknown=route().page;
           ctx.location.hash='#/tools';const base=route().tool;
-          const choices=ctx.appDef.computed.commandChoices.call({commandQuery:''});
+          const search=ctx.window.Jackfield.palette.search;
+          const choices=search('quality',[],()=>'',M.toolItems,id=>id!=='source-update').flatMap(g=>g.items);
           const groups=ctx.window.SkillsV2ToolCenter.computed.toolGroups.call({});
           return {routes,ids:M.toolIds,unknown,base,groups,choices};
         """)
         self.assertEqual(out["routes"], out["ids"])
-        self.assertEqual(out["unknown"], "tools")
+        self.assertEqual(out["unknown"], "missing")
         self.assertEqual(out["base"], "tools")
         self.assertEqual([item["id"] for group in out["groups"] for item in group["items"]], out["ids"])
-        self.assertNotIn("#/tools/source-update", [item.get("path") for item in out["choices"]])
-        self.assertIn({"label": "Quality and validation", "path": "#/tools/quality"}, out["choices"])
+        self.assertNotIn("#/advanced/source-update", [item.get("path") for item in out["choices"]])
+        self.assertIn(("Quality and validation", "#/advanced/quality"),
+                      [(item["label"], item.get("path")) for item in out["choices"]])
 
     def test_shared_name_guard_covers_lengths_and_malformed_library_records(self):
         out = run_node(r"""
@@ -411,10 +414,11 @@ class ToolBehaviorTests(unittest.TestCase):
         out = run_node(r"""
           let component;
           ctx.location={hash:''};ctx.Vue={createApp:c=>{component=c;return {component(){},mount(){}}},markRaw:v=>v};
-          ctx.window.SkillsV2Model={stripFrontmatter:v=>v};
+          ctx.window.SkillsV2Model={...ctx.window.SkillsV2Model,stripFrontmatter:v=>v};
           Object.assign(ctx.window.SkillManagerDomain,{formatCompat:v=>v||'',formatTools:v=>v||''});
-          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
-          const h={skill:{name:'divergent',description:'Primary description'},route:{page:'skill'},refCopy:{name:'divergent',scope:'codex',hash:'h1',description:'Selected copy description',body:'# Selected',bodyLoaded:true,record:{}},readCopyPath:'/codex/divergent',editTargets:[{scope:'codex'},{scope:'claude-code'}],$nextTick:()=>{},bodies:{},bodyErrors:{},ensureBodies:async()=>{},bodyKey:component.methods.bodyKey,bodyOf:component.methods.bodyOf,bodyReady:component.methods.bodyReady,bodyErrorOf:component.methods.bodyErrorOf,bodyFetchable:component.methods.bodyFetchable,toast:()=>{}};
+          loadJackfield(ctx, V2+'/app.js');
+          const h={skill:{name:'divergent',description:'Primary description'},route:{page:'skill',name:'divergent',href:'#/skills/divergent'},refCopy:{name:'divergent',scope:'codex',hash:'h1',description:'Selected copy description',body:'# Selected',bodyLoaded:true,record:{}},readCopyPath:'/codex/divergent',editTargets:[{scope:'codex'},{scope:'claude-code'}],$nextTick:()=>{},bodies:{},bodyErrors:{},ensureBodies:async()=>{},bodyKey:component.methods.bodyKey,bodyOf:component.methods.bodyOf,bodyReady:component.methods.bodyReady,bodyErrorOf:component.methods.bodyErrorOf,bodyFetchable:component.methods.bodyFetchable,showSkillView:component.methods.showSkillView,toast:()=>{}};
+          h.updatePageTitle=()=>{};
           await component.methods.startEdit.call(h);return h.edit;
         """)
         self.assertEqual(out["desc"], "Selected copy description")
@@ -426,7 +430,7 @@ class ToolBehaviorTests(unittest.TestCase):
           let component;
           ctx.location={hash:''};ctx.Vue={createApp:c=>{component=c;return {component(){},mount(){}}},markRaw:v=>v};
           ctx.window.SkillsV2Model={plural:(n,s)=>s};
-          vm.runInContext(fs.readFileSync(V2+'/app.js','utf8'),ctx);
+          loadJackfield(ctx, V2+'/app.js');
           const metadata={category:'',version:'',license:'',compatibility:'',allowed_tools:''};
           const h={edit:{name:'one',desc:'Unchanged',baseDesc:'Unchanged',body:'# Changed',baseBody:'# Original',metadata,baseMetadata:{...metadata},targets:['global']},editError:'',busy:false,editDirty:true,snapshotIds:async()=>[],refresh:async()=>{},toast:()=>{}};
           await component.methods.saveEdit.call(h);return JSON.parse(calls[0].opts.body);

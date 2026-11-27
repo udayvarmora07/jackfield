@@ -31,7 +31,8 @@ def _node(body: str):
     """Load domain.js and model.js into a Node vm and return ``body``'s JSON."""
     script = (
         "const vm=require('vm'),fs=require('fs');"
-        "const ctx={window:{},console,Blob,FormData};ctx.window.window=ctx.window;vm.createContext(ctx);"
+        "const loadJackfield=require('./tests/fixtures/load_jackfield.cjs');"
+        "const ctx={window:{},console,Blob,FormData,URLSearchParams,location:{hash:''},localStorage:{getItem(){return null;}}};ctx.window.window=ctx.window;vm.createContext(ctx);"
         "vm.runInContext(fs.readFileSync('skillsmgr/webui/static/vendor/markdown-it.umd.min.js','utf8'),ctx);"
         f"vm.runInContext(fs.readFileSync({json.dumps(str(DOMAIN_JS))},'utf8'),ctx);"
         f"vm.runInContext(fs.readFileSync({json.dumps(str(V2 / 'model.js'))},'utf8'),ctx);"
@@ -61,13 +62,15 @@ const rec=(name,scope,over)=>Object.assign({name,scope,scope_label:scope,descrip
 BODY_CONTEXT_JS = (
     "const BODY_METHODS=['bodyKey','bodyReady','bodyOf','bodyErrorOf','applyBody','bodyFetchable',"
     "'bodyPairKey','modelCopies','bodyPairs','bodyDuplicated','pairCopies','bodiesByPath','duplicateBodyMap',"
-    "'namedBody','ensureBodies'];"
+    "'namedBody','ensureBodies','showSkillView'];"
     "const bodyContext=(M,extra)=>{"
     "const context=Object.assign({},extra||{});"
     "if(!context.bodies)context.bodies={};"
     "if(!context.bodyInflight)context.bodyInflight={};"
     "if(!context.bodyErrors)context.bodyErrors={};"
     "if(!context.friendly)context.friendly=M.friendly;"
+    "if(!context.updatePageTitle)context.updatePageTitle=()=>{};"
+    "if(context.route?.page==='skill')Object.assign(context.route,{name:context.skill.name,href:'#/skills/'+context.skill.name});"
     "for(const key of BODY_METHODS)if(context[key]===undefined)context[key]=M[key];"
     "return context;};"
 )
@@ -362,7 +365,7 @@ class ErrorPresentationTests(unittest.TestCase):
         source = json.dumps(str(V2 / "app.js"))
         out = _node(f"""
         ctx.Vue={{createApp(options){{ctx.options=options;return {{component(){{}},mount(){{}}}};}},markRaw:x=>x}};
-        vm.runInContext(fs.readFileSync({source},'utf8'),ctx);
+        loadJackfield(ctx, {source});
         return ['Traceback /home/private/secret', 'PermissionError: [Errno 13] /home/private/file',
           'invalid archive: ReadError /tmp/private/upload', "skill '/home/private/demo' changed since review"]
           .map(message=>ctx.options.methods.friendly(message));""")
@@ -384,7 +387,7 @@ class SyncUndoTests(unittest.TestCase):
           return {{disabled:1,decode_error:mode==='binary'?'not valid UTF-8':''}};
         }}}};
         ctx.Vue={{createApp(options){{ctx.options=options;return {{component(){{}},mount(){{}}}};}},markRaw:x=>x}};
-        vm.runInContext(fs.readFileSync({source},'utf8'),ctx);
+        loadJackfield(ctx, {source});
         return (async()=>{{
           const results=[];
           for(mode of ['normal','new-target','missing-prior','post-failure','before-failure','stale','ambiguous','binary']){{
@@ -424,7 +427,7 @@ class SyncUndoTests(unittest.TestCase):
           return {{disabled}};
         }}}};
         ctx.Vue={{createApp(options){{ctx.options=options;return {{component(){{}},mount(){{}}}};}},markRaw:x=>x}};
-        vm.runInContext(fs.readFileSync({source},'utf8'),ctx);
+        loadJackfield(ctx, {source});
         return (async()=>{{
           let error='';
           try{{await ctx.options.methods.restoreSyncText('sample','codex','snapshot-1',{json.dumps(was_disabled)});}}
@@ -460,7 +463,7 @@ class BodyLazyLoadTests(unittest.TestCase):
     def _app(self, body: str):
         return _node(
             "ctx.Vue={createApp(options){ctx.options=options;return {component(){},mount(){}};},markRaw:x=>x};"
-            f"vm.runInContext(fs.readFileSync({self.APP},'utf8'),ctx);"
+            f"loadJackfield(ctx, {self.APP});"
             + BODY_CONTEXT_JS +
             f"return (async()=>{{{body}}})();")
 
@@ -505,7 +508,7 @@ class BodyLazyLoadTests(unittest.TestCase):
             "ctx.window.SkillManagerDomain={...ctx.window.SkillManagerDomain,"
             "api:async(url)=>{calls.push(url);return {name:'a',scope:'codex',body:'DOC '+(calls.length)};}};"
             "ctx.Vue={createApp(options){ctx.options=options;return {component(){},mount(){}};},markRaw:x=>x};"
-            f"vm.runInContext(fs.readFileSync({self.APP},'utf8'),ctx);"
+            f"loadJackfield(ctx, {self.APP});"
             + BODY_CONTEXT_JS +
             f"return (async()=>{{{body}}})();")
 
@@ -516,7 +519,7 @@ class BodyLazyLoadTests(unittest.TestCase):
             "ctx.window.SkillManagerDomain={...ctx.window.SkillManagerDomain,"
             "api:async(url)=>{calls.push(url);" + api_js + "}};"
             "ctx.Vue={createApp(options){ctx.options=options;return {component(){},mount(){}};},markRaw:x=>x};"
-            f"vm.runInContext(fs.readFileSync({self.APP},'utf8'),ctx);"
+            f"loadJackfield(ctx, {self.APP});"
             + BODY_CONTEXT_JS +
             f"return (async()=>{{{body}}})();")
 
@@ -778,8 +781,8 @@ class BodyLazyLoadTests(unittest.TestCase):
         self.assertLess(zone.index('id="imp-file" type="file"'), zone.index("</label>"))
 
     def test_startup_list_request_omits_document_bodies(self):
-        app = (V2 / "app.js").read_text(encoding="utf-8")
-        self.assertIn('api("/api/skills?scope=all&body=0")', app)
+        state = (V2 / "state.js").read_text(encoding="utf-8")
+        self.assertIn('api("/api/skills?scope=all&body=0")', state)
 
     def test_archive_receipt_keeps_server_details_and_blocks_file_changes_during_upload(self):
         out = self._app_with_stub("""
@@ -849,7 +852,7 @@ class InterfaceSourceTests(unittest.TestCase):
         self.assertEqual(sorted(set(sites)), ["docHtml", "path", "renderDoc(edit.body)", "themeIcon"])
 
     def test_every_asset_it_references_exists(self):
-        for src in re.findall(r'(?:src|href)="([^"#]+)"', self.html):
+        for src in re.findall(r'(?<!:)\b(?:src|href)="([^"#]+)"', self.html):
             if src.startswith(("/", "http", "#", "data:")):
                 continue
             self.assertTrue((V2 / src).resolve().exists(), f"missing {src}")
@@ -857,7 +860,8 @@ class InterfaceSourceTests(unittest.TestCase):
             self.assertTrue((V2 / rel).exists(), f"missing font {rel}")
 
     def test_tooling_uses_only_the_documented_api_families(self):
-        modules = self.app + (V2 / "library-tools.js").read_text(encoding="utf-8") + (V2 / "tool-center.js").read_text(encoding="utf-8")
+        modules = self.app + "".join((V2 / name).read_text(encoding="utf-8")
+                                     for name in ("state.js", "library-tools.js", "tool-center.js"))
         called = set(re.findall(r"[\"'`](/api/[a-z-]+)", modules))
         self.assertLessEqual(called, {"/api/scopes", "/api/skills", "/api/history", "/api/sync", "/api/trash", "/api/import", "/api/export", "/api/catalog", "/api/templates", "/api/batch", "/api/install", "/api/doctor", "/api/stats", "/api/tokens", "/api/workspaces", "/api/source-updates", "/api/validate", "/api/ai", "/api/tracking"})
         self.assertIn("/api/templates", called)
@@ -888,17 +892,25 @@ class InterfaceSourceTests(unittest.TestCase):
                                             minimum)
 
     def test_phone_navigation_reaches_every_page(self):
-        nav = self.html[self.html.index('class="bottomnav"'):]
+        nav = self.html[self.html.index('class="bottomnav sm-tabs jf-phone"'):]
         nav = nav[: nav.index("</nav>")]
-        for page in ("home", "skills", "map", "inbox", "recovery"):
-            self.assertIn(f'href="#/{page}"', nav)
+        self.assertIn('v-for="place in places"', nav)
+        self.assertIn(':href="place.path"', nav)
+        palette = (V2 / "palette.js").read_text(encoding="utf-8")
+        for page in ("skills", "attention", "trash", "advanced"):
+            self.assertIn(f'path: "#/{page}"', palette)
 
     def test_reduced_motion_is_honoured(self):
         self.assertIn("prefers-reduced-motion", self.css)
 
     def test_every_dialog_and_nav_target_is_reachable(self):
-        for page in ("home", "skills", "map", "inbox"):
-            self.assertIn(f'href="#/{page}"', self.html)
+        self.assertIn('v-for="place in places"', self.html)
+        self.assertIn(':href="place.path"', self.html)
+        self.assertIn('href="#/skills?view=agents"', self.html)
+        self.assertIn('href="#/skills?view=map"', self.html)
+        self.assertIn('<jf-sheet labelled-by="dlg-t"', self.html)
+        self.assertIn('role="dialog" aria-modal="true"', (V2 / "ui-core.js").read_text(encoding="utf-8"))
+
 
 
 class ServedTests(unittest.TestCase):
@@ -972,6 +984,9 @@ class ServedTests(unittest.TestCase):
 
     def test_the_interface_and_its_assets_are_served(self):
         for path, kind in (("/", "text/html"), ("/app.js", "javascript"), ("/model.js", "javascript"),
+                           ("/state.js", "javascript"), ("/router.js", "javascript"),
+                           ("/palette.js", "javascript"), ("/ui-core.js", "javascript"),
+                           ("/screen-not-found.js", "javascript"),
                            ("/styles.css", "text/css"), ("/tokens.css", "text/css"),
                            ("/system.css", "text/css"), ("/layout.css", "text/css"),
                            ("/library-tools.js", "javascript"),

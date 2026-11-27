@@ -94,6 +94,11 @@ not matter.
 | `#/tools/<id>` | `#/advanced/<id>` |
 | `#/skill/<name>` | `#/skills/<name>` |
 
+**[NOTE]** In phase 1, the Skills views menu links to `#/skills?view=agents`
+and `#/skills?view=map` so the existing Agents overview and Sync map remain
+available. Phase 2 replaces those workflows with the Skills table and its
+details panel.
+
 **[NOTE]** A skill can legally be named `new`, `edit` or `why`. `#/new` is
 top-level, and `#/skills/<name>/<sub>` only treats the **third** segment as a
 sub-page, so `#/skills/new` is the skill called "new".

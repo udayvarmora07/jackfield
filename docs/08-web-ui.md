@@ -800,25 +800,25 @@ The server binds to loopback by default; the localhost binding is the only
 security boundary for this unauthenticated service. Never forward, tunnel or
 publish its port.
 
-The look is specified in `DESIGN.md` (cool bone ground, IBM Plex Sans with
-Plex Mono identifiers, ink primary actions, one teal signal ink, a full cool
-dark palette) and is built desktop first: laptops (1280–1536px, often 768px
-tall) and monitors (1920–2560px), keyboard driven. Primary navigation is
-**Home**, **Skills**, **Sync map**, **Inbox**, **Recovery**, **Tools**; the
-current tab carries a 2px signal rule. Tools provides secondary navigation and
-contextual links from exact instances.
+The Paper design system is specified in `DESIGN.md`. The desktop header and
+phone tab bar both link to **Skills**, **Needs attention**, **Trash & backups**
+and **Advanced**. Advanced links to Settings and the existing tool pages. The
+Skills views menu still opens Agents overview and the Sync map during the
+transition to the Skills table.
 
-**[SPEC] Header search and command palette (2026-11-23).** Typing in the
-header search never changes the page: it lists up to six skills whose names
-match (names that start with the text first), with ArrowUp/ArrowDown to
-highlight and Enter to open the highlighted skill. Enter with nothing
-highlighted opens Skills filtered by the text (names and descriptions); Escape
-closes the list. `/` focuses it. Ctrl/Cmd K opens the command palette: one
-field over a grouped list (Go to: the six pages; Actions: New skill, Refresh
-files; Tools; AI assist). Rows match their label, synonyms for pages (for
-example "trash" and "backup" find Recovery) and a tool's name and
-description. Arrow keys move the highlighted row while focus stays in the
-field; Enter opens it.
+**[SPEC] Hash routes.** The router preserves old links by replacing their
+history entry. Empty, Home and Sync map hashes open Skills. Inbox and Recovery
+hashes open Needs attention and Trash & backups. Old tool and skill links open
+the corresponding Advanced or Skill page. Settings has its own URL. Unknown
+paths and missing skills display a Not found page. A close skill name can be
+offered as a link. See @docs/redesign-build/04-frontend-architecture.md.
+
+**[SPEC] Search and command palette.** The header search, `/` and Ctrl/Cmd+K
+open the same palette. Typing filters skills, actions and pages in place. Name
+prefix matches appear first for skills. A result can open a skill, navigate to a
+page, run an action or show all matching skills in the shelf. Tools in
+switched-off groups are omitted. Arrow keys move the highlight while focus
+stays in the field. Enter opens the selected result and Escape closes search.
 
 **[SPEC] Shelf density and Sync map.** The Skills shelf remembers Comfortable
 or Compact in the browser. The Sync map lists skills by agent scope, shows
@@ -985,7 +985,8 @@ source and measures contrast in both themes.
 `tests/test_css_token_references.py` checks the loaded stylesheets for
 undeclared custom properties and stray hex colours.
 
-- Toasts support an **Undo** action (used for sync, edit and on/off).
+- Undo stays with the changed page or the page shown after the operation
+  finishes. A newer undoable change replaces the previous Undo.
 
 ## Tests
 

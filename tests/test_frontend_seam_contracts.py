@@ -38,6 +38,17 @@ def _node(script: str) -> dict:
 class DomainSeamOwnershipTests(unittest.TestCase):
     """C2: transport and state policy belong to the domain seam, not the app."""
 
+    def test_shell_registration_and_transports_load_in_dependency_order(self):
+        webui = DOMAIN_JS.parent
+        scripts = re.findall(r'<script src="([^"]+)"', _read(webui / "index.html"))
+        seams = ("domain.js", "model.js", "state.js", "router.js", "ui-core.js",
+                 "screen-not-found.js", "palette.js", "app.js")
+        self.assertEqual([name for name in scripts if name in seams], list(seams))
+        for name in seams[2:]:
+            source = _read(webui / name)
+            self.assertNotRegex(source, r"\bfetch\s*\(", name)
+            if name != "router.js":
+                self.assertNotIn("location.hash", source, name)
 
     def test_domain_seam_exposes_the_transport_and_the_state_policy(self):
         exported = re.search(

@@ -31,7 +31,7 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 
 ## Last check
 
-2026-11-27 · Step 8, Build in progress. Phase 0 foundations passed local
-verification. Integration and CI are pending. The next implementation phase
-is the shell, navigation and search.
+2026-11-27 · Step 8, Build in progress. Phase 0 landed on `main` with 17
+passing CI jobs. Phase 1 implements the shell, navigation and search and has
+passed local verification. Phase 2 follows Phase 1 integration.
 See the [status board](project-status.html).

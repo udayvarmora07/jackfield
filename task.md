@@ -24,9 +24,12 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Phase 0 implementation and local checks · Foundations: tokens pipeline, `system.css`, fonts + OFL, logo,
   agent marks, rewritten token gate, `var()` reference test, `DESIGN.md`; the
   whole app changes look in one commit.
-- [ ] Integrate Phase 0 and verify CI before Phase 1. See @build-progress.md.
-- [ ] Phase 1 · Shell: router + legacy redirects, `state.js`, header and tab
+- [x] Integrate Phase 0 and verify CI before Phase 1. Commit `c3087ec` passed
+  all 17 GitHub CI jobs. See @build-progress.md.
+- [x] Phase 1 implementation · Shell: router + legacy redirects, `state.js`, header and tab
   bar, Undo bar, notices, search and palette (S12), Not found (S13).
+- [x] Verify Phase 1 locally on Python 3.11–3.14 and Chromium. See @build-progress.md.
+- [ ] Integrate Phase 1 and verify CI before starting Phase 2.
 - [ ] Phase 2 · Hero: Skills table S1 + side panel S2 with every square state,
   first launch, tracking doorways.
 - [ ] Phase 3 · Everyday jobs: S3 skill page, S4 editor, S5 new skill, S6 why.
