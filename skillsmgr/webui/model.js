@@ -242,7 +242,12 @@
     const native = (copy.record || {}).native_state;
     if (!native) return NO_SETTINGS_READER_IS_ON ? "on" : "unknown";
     const sources = Array.isArray(native.sources) ? native.sources : [];
-    if (native.observed_setting === "disabled" || sources.some((s) => s.declared === "disabled")) return "settings";
+    const disables = (value) => ["disabled", "off", "deny"].includes(value);
+    if (disables(native.observed_setting)) return "settings";
+    if (native.observed_setting == null && sources.some((s) => disables(s.declared))) {
+      if (native.consumer === "opencode" && sources.some((s) => ["allow", "ask"].includes(s.declared))) return "unknown";
+      return "settings";
+    }
     if (sources.some((s) => !["ok", "missing", "unobserved"].includes(s.status))) return "unknown";
     return "on";
   }

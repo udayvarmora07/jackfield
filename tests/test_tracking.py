@@ -18,6 +18,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 from skillsmgr import context, scopes, tracking
 
@@ -238,6 +239,54 @@ class TestRevisionAndFile(TrackingServerCase):
         copies = list(self.store.data_dir.glob("tracking.broken-*.json"))
         self.assertEqual(len(copies), 1)
         self.assertIn('"tracked": "cursor"', copies[0].read_text(encoding="utf-8"))
+        if os.name != "nt":
+            self.assertEqual(stat.S_IMODE(copies[0].stat().st_mode), 0o600)
+
+    def test_save_response_carries_its_own_committed_revision(self):
+        report, doc = self.settings()
+        doc["tool_groups"]["ai-assist"] = False
+        make_report = tracking.report
+        path = self.store.data_dir / "tracking.json"
+
+        def report_after_another_save(data_dir, store_skills_dir, **options):
+            later = json.loads(path.read_text(encoding="utf-8"))
+            later["revision"] += 1
+            later["tool_groups"]["add-skills"] = False
+            path.write_text(json.dumps(later), encoding="utf-8")
+            return make_report(data_dir, store_skills_dir, **options)
+
+        with mock.patch.object(tracking, "report", side_effect=report_after_another_save):
+            result = self.put(doc)
+        self.assertEqual(result["revision"], report["revision"] + 1)
+        self.assertTrue(result["settings"]["tool_groups"]["add-skills"])
+        current = self.get("/api/tracking")
+        self.assertEqual(current["revision"], result["revision"] + 1)
+        self.assertFalse(current["settings"]["tool_groups"]["add-skills"])
+
+    def test_journal_keeps_oversized_settings_when_replacement_write_fails(self):
+        path = self.store.data_dir / "tracking.json"
+        original = b"x" * (tracking.MAX_FILE_BYTES + 1)
+        path.write_bytes(original)
+        settings = tracking.default_document()
+        with mock.patch.object(tracking, "atomic_write_text", side_effect=OSError("disk full")):
+            with self.assertRaisesRegex(OSError, "disk full"):
+                tracking.save(self.store.data_dir, self.store.skills_dir, settings)
+        self.assertEqual(path.read_bytes(), original)
+        self.assertEqual(list(path.parent.glob("tracking.broken-*.json")), [])
+
+    def test_only_here_is_unknown_when_a_tracked_scan_is_partial(self):
+        scope_names = tracking._scope_names
+
+        def partial_scope_names(scope):
+            if scope.id == "claude-code":
+                return "ok", ["alpha"], False
+            return scope_names(scope)
+
+        with mock.patch.object(tracking, "_scope_names", side_effect=partial_scope_names):
+            report = self.get("/api/tracking")
+        cursor = next(agent for agent in report["agents"] if agent["id"] == "cursor")
+        self.assertEqual(cursor["skill_count"], 3)
+        self.assertIsNone(cursor["only_here"])
 
     def test_unknown_ids_are_refused_on_save(self):
         report, doc = self.settings()

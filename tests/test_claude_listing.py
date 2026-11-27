@@ -82,6 +82,35 @@ class ClaudeListingContracts(unittest.TestCase):
         return report, report["claude_listing"]
 
     # -- per-entry evidence -------------------------------------------------
+    def test_single_skill_estimate_uses_existing_cap_and_budget(self):
+        self.write_settings({"skillListingMaxDescChars": 4, "skillListingBudgetFraction": 0.02})
+        result = hygiene.claude_skill_listing(
+            "alpha", {"description": "abc", "when_to_use": "def"},
+            disabled=False, home=self.home,
+        )
+        self.assertEqual(result["entry_chars"], len("alpha: abcd"))
+        self.assertEqual(result["budget_chars"], 80000)
+        self.assertEqual(result["listing"], "full")
+        self.assertIn("project settings not observed", result["basis"].lower())
+
+    def test_single_skill_estimate_respects_overrides_and_hidden_states(self):
+        self.write_settings({"skillOverrides": {"alpha": "name-only", "beta": "off"}})
+        for name, frontmatter, disabled, listing, chars in (
+            ("alpha", {"description": "test"}, False, "name-only", 5),
+            ("beta", {}, False, "hidden", 0),
+            ("gamma", {"disable-model-invocation": True}, False, "hidden", 0),
+            ("delta", {}, True, "hidden", 0),
+        ):
+            with self.subTest(name=name):
+                result = hygiene.claude_skill_listing(name, frontmatter, disabled=disabled, home=self.home)
+                self.assertEqual((result["listing"], result["entry_chars"]), (listing, chars))
+
+    def test_single_skill_estimate_does_not_guess_from_unreadable_settings(self):
+        (self.home / ".claude" / "settings.json").write_text("{", encoding="utf-8")
+        result = hygiene.claude_skill_listing("alpha", {}, disabled=False, home=self.home)
+        self.assertEqual((result["listing"], result["entry_chars"], result["budget_chars"]),
+                         ("unknown", None, None))
+
     def test_a_name_only_override_counts_only_the_name(self):
         self.write_skill("alpha", "D" * 100)
         self.write_skill("beta", "B" * 10)

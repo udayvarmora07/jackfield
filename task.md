@@ -18,7 +18,8 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Blocking questions Q1, Q3, Q4 and Q8 decided (recommended answers,
   2026-11-27); design sources committed.
 - [x] Refresh `project-status.md` and `project-status.html` against the approved
-  design sources and build spec (2026-11-27).
+  design sources and build spec (2026-11-27). The latest board points to
+  Phase 3, starting with the Skill page.
 - [ ] Remaining open questions Q2, Q5–Q7, Q9–Q11 in
   @docs/redesign-build/09-open-questions-and-risks.md (Q2 blocks phase 5).
 - [x] Phase 0 implementation and local checks · Foundations: tokens pipeline, `system.css`, fonts + OFL, logo,
@@ -34,7 +35,13 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Phase 2 · Hero: Skills table S1 + side panel S2 with square states,
   first launch, tracking doorways and guarded Undo. Local review against the
   Claude canvas and design-system exports is recorded in @build-progress.md.
-- [ ] Phase 3 · Everyday jobs: S3 skill page, S4 editor, S5 new skill, S6 why.
+- [x] Apply the four-artifact review corrections to shipped behavior, including
+  status evidence, tracking revisions and recovery, copy previews, tablet
+  focus, Undo timing, the small favicon and acceptance coverage.
+- [/] Phase 3 · Everyday jobs. The Skill page, Editor, New skill and diagnosis
+  screens are implemented. The Skill page now reads the selected
+  folder’s live document and shows file and listing estimates. The Editor’s
+  remaining work is saving to missing places. See @build-progress.md.
 - [ ] Phase 4 · Upkeep: S7 Needs attention, S8 Trash & backups.
 - [ ] Phase 5 · Advanced S9, tool template S10 for all 21 tools, Settings S11,
   What to track S14–S19 restyled.

@@ -7,6 +7,54 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper review and Phase 3 integration
+
+**[NOTE]** The integration includes the four-artifact review corrections and
+the Skill page, Editor, New skill page and per-skill diagnosis completed so
+far. Saving an edited skill to a new location remains open in @build-progress.md.
+
+## 2026-11-27 — Exact Skill page documents and Details
+
+**[NOTE]** Read and File text use the same on-disk document from the selected
+folder. Details shows supporting-file line counts where available and the
+personal Claude Code skill listing estimate. The reader checks the selected
+folder and hash before showing the document. An out-of-date library index
+can no longer supply the Skill page’s rendered body.
+
+## 2026-11-27 — Paper everyday skill workflows
+
+**[NOTE]** The working tree has the Paper Skill page, Editor, New skill page
+and per-skill diagnosis. The reader reuses the Skills table’s checked changes.
+Editor writes and Undo verify an exact folder and document hash. The create
+preview uses the same serializer as the write, and the diagnosis distinguishes
+observed settings from unknown runtime behavior. The open acceptance items are
+recorded in @build-progress.md.
+
+## 2026-11-27 — Phase 3 status check
+
+**[NOTE]** Updated the project status board to show Phase 2 on `main`, the
+four-artifact corrections in the working tree, and the Skill page as the first
+Phase 3 task. The build plan lists the four browser flows required to close
+Phase 3. See @project-status.md.
+
+## 2026-11-27 — Paper and tracking corrections from the four-artifact review
+
+**[NOTE]** Skills now reports Claude Code's observed Off declaration and
+OpenCode's Deny rule. Replacement previews state how each affected skill file
+will be switched. The two-version panel reads both versions and marks their
+squares on hover and focus. Below 900 px the panel is a sheet and returns focus
+to its opener. The Skills table now hosts the stop-tracking confirmation and
+project-picker shortcuts. The navigation count uses the same evidence across
+routes, and Undo stays available while the user is on the page.
+
+**[NOTE]** Tracking Undo uses the revision of the save it reverses. The write
+response carries that operation's revision even if another writer advances it.
+Readable broken settings get a private backup. Links, non-regular entries
+and oversized files are moved aside intact. An incomplete folder scan
+withholds exact disappearance counts. The favicon uses the kit's small mark,
+the data-root example resolves correctly, and the tests check inline tokens,
+the replacement file state and the browser latency budgets.
+
 ## 2026-11-27 — Paper redesign Phase 2 Skills table
 
 **[NOTE]** The Skills route now opens the table and its selected-square

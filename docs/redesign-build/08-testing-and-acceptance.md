@@ -90,7 +90,9 @@ and 390 wide, keyboard-only where marked.
 
 1. Render the board offline: copy the board from `designs/final/<theme>/` next
    to `handoff/3-ui/prototype/support.js` (the canvas runtime, with local
-   fonts) in a private temp folder and open it in the runner's Chrome.
+   fonts) in a private temp folder and open it in the runner's Chrome. On a
+   clean checkout, get `support.js` from the approved Claude canvas export or
+   the maintainer's handoff. Keep the exported runtime outside version control.
 2. Open the same screen in the product with the matching fixture.
 3. Screenshot both at 1440 × 900 (also 1280, 1920 and 390) in light and dark,
    and review side by side: layout, hierarchy, spacing rhythm, copy, states.
@@ -120,10 +122,12 @@ render the same rows.
 
 ## Performance budgets
 
-**[SPEC]** Measured by the runner on CI hardware: table interactive ≤ 1.5 s at
-1,000 skills; square toggle round-trip ≤ 300 ms on the local server; palette
-results ≤ 100 ms after a keystroke at 1,000 skills; no layout shift when
-placeholders resolve.
+**[SPEC]** Measured by the runner on CI hardware. At 1,000 skills, the table
+becomes interactive within 1.5 s and the palette and filter update within
+100 ms after a keystroke. A local square toggle round-trip takes at most
+300 ms. Placeholders resolve without layout shift. The browser suite times the 1,000-record listing,
+filter and palette with a deterministic response, and the real toggle from
+the confirmation click through the refreshed square.
 
 ## Definition of done for one screen
 

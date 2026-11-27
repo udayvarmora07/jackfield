@@ -54,7 +54,8 @@
       const name = segment(parts[1]);
       const screen = parts[2] || "";
       if (name && (parts.length === 2 || (parts.length === 3 && ["edit", "why"].includes(screen)))) {
-        return { page: "skill", name, screen, file: query.get("view") === "file" };
+        return { page: "skill", name, screen, file: query.get("view") === "file",
+          copyScope: query.get("scope"), copyPath: query.get("copy"), selected: screen ? null : query.get("sel") };
       }
       return { page: "missing" };
     }
@@ -104,7 +105,7 @@
   function title(route) {
     if (route.page === "skill") {
       if (route.screen === "edit") return "Edit " + route.name;
-      if (route.screen === "why") return "Why didn’t " + route.name + " run?";
+      if (route.screen === "why") return "Why isn’t " + route.name + " running?";
       return route.name;
     }
     if (route.screen === "new") return "New skill";

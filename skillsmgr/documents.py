@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import time
+from hashlib import sha256
 
 from pathlib import Path
 
@@ -59,6 +60,20 @@ def read_skill_text_strict(path: Path, *, subject: str) -> str:
     if decode_error is not None:
         raise StoreError(f"cannot safely rewrite {subject}: {decode_error}")
     return text
+
+
+def check_edit_target(document: Path, text: str, expected: tuple[str, str] | None) -> None:
+    if expected is None:
+        return
+    folder, digest = expected
+    if document.is_symlink() or document.parent.resolve() != Path(folder) or sha256(text.encode("utf-8")).hexdigest() != digest:
+        raise StoreError("This skill changed on disk. Refresh files before saving.")
+
+
+def edit_receipt(expected: tuple[str, str] | None, snapshot: str | None, text: str) -> dict:
+    if expected is None or snapshot is None:
+        return {}
+    return {"snapshot": snapshot, "content_hash": sha256(text.encode("utf-8")).hexdigest()}
 
 
 def document_path(skill_dir: Path) -> Path | None:

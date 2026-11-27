@@ -417,7 +417,10 @@ class ToolBehaviorTests(unittest.TestCase):
           ctx.window.SkillsV2Model={...ctx.window.SkillsV2Model,stripFrontmatter:v=>v};
           Object.assign(ctx.window.SkillManagerDomain,{formatCompat:v=>v||'',formatTools:v=>v||''});
           loadJackfield(ctx, V2+'/app.js');
-          const h={skill:{name:'divergent',description:'Primary description'},route:{page:'skill',name:'divergent',href:'#/skills/divergent'},refCopy:{name:'divergent',scope:'codex',hash:'h1',description:'Selected copy description',body:'# Selected',bodyLoaded:true,record:{}},readCopyPath:'/codex/divergent',editTargets:[{scope:'codex'},{scope:'claude-code'}],$nextTick:()=>{},bodies:{},bodyErrors:{},ensureBodies:async()=>{},bodyKey:component.methods.bodyKey,bodyOf:component.methods.bodyOf,bodyReady:component.methods.bodyReady,bodyErrorOf:component.methods.bodyErrorOf,bodyFetchable:component.methods.bodyFetchable,showSkillView:component.methods.showSkillView,toast:()=>{}};
+          const refCopy={name:'divergent',scope:'codex',path:'/codex/divergent',hash:'h1',description:'Selected copy description',body:'# Selected',bodyLoaded:true,record:{}};
+          const h={...component.methods,skill:{name:'divergent',description:'Primary description'},
+            route:{page:'skill',name:'divergent',href:'#/skills/divergent?scope=codex&copy=%2Fcodex%2Fdivergent',copyScope:'codex',copyPath:refCopy.path},
+            refCopy,editTargets:[refCopy,{scope:'claude-code',hash:'h1'}],$nextTick:()=>{},bodies:{},bodyErrors:{},ensureBodies:async()=>{},toast:()=>{}};
           h.updatePageTitle=()=>{};
           await component.methods.startEdit.call(h);return h.edit;
         """)
@@ -432,10 +435,14 @@ class ToolBehaviorTests(unittest.TestCase):
           ctx.window.SkillsV2Model={plural:(n,s)=>s};
           loadJackfield(ctx, V2+'/app.js');
           const metadata={category:'',version:'',license:'',compatibility:'',allowed_tools:''};
-          const h={edit:{name:'one',desc:'Unchanged',baseDesc:'Unchanged',body:'# Changed',baseBody:'# Original',metadata,baseMetadata:{...metadata},targets:['global']},editError:'',busy:false,editDirty:true,snapshotIds:async()=>[],refresh:async()=>{},toast:()=>{}};
-          await component.methods.saveEdit.call(h);return JSON.parse(calls[0].opts.body);
+          const copy={scope:'global',name:'one',path:'/skills/one',hash:'a'.repeat(64)};
+          handler=async(url,opts)=>opts.method==='PATCH'?{changed:true}:{path:copy.path,content_hash:copy.hash};
+          const h={...component.methods,edit:{name:'one',desc:'Unchanged',baseDesc:'Unchanged',body:'# Changed',baseBody:'# Original',metadata,
+            baseMetadata:{...metadata},targets:['global'],copy,initialTargets:{global:component.methods.bodyKey(copy)}},editTargets:[copy],
+            editError:'',busy:false,editDirty:true,refresh:async()=>{},showSkillView:()=>{},toast:()=>{}};
+          await component.methods.saveEdit.call(h);return JSON.parse(calls.find(call=>call.opts.method==='PATCH').opts.body);
         """)
-        self.assertEqual(out, {"body": "# Changed"})
+        self.assertEqual(out, {"body": "# Changed", "expected": {"path": "/skills/one", "content_hash": "a" * 64}})
 
     def test_source_apply_requires_positive_validation_evidence(self):
         out = run_node(r"""

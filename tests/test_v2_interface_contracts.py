@@ -62,7 +62,7 @@ const rec=(name,scope,over)=>Object.assign({name,scope,scope_label:scope,descrip
 BODY_CONTEXT_JS = (
     "const BODY_METHODS=['bodyKey','bodyReady','bodyOf','bodyErrorOf','applyBody','bodyFetchable',"
     "'bodyPairKey','modelCopies','bodyPairs','bodyDuplicated','pairCopies','bodiesByPath','duplicateBodyMap',"
-    "'namedBody','ensureBodies','showSkillView'];"
+    "'namedBody','ensureBodies','readerRouteOptions','showSkillView'];"
     "const bodyContext=(M,extra)=>{"
     "const context=Object.assign({},extra||{});"
     "if(!context.bodies)context.bodies={};"
@@ -253,13 +253,16 @@ class AgentIconTests(unittest.TestCase):
 
 
 class BrandMarkTests(unittest.TestCase):
-    def test_logo_is_well_formed_and_is_the_favicon(self):
+    def test_logo_and_small_favicon_are_well_formed(self):
         # A malformed SVG (e.g. "--" inside an XML comment) decodes to a 0x0
         # image with no console error, so parse it as XML here.
         import xml.etree.ElementTree as ElementTree
         root = ElementTree.parse(V2 / "logo.svg").getroot()
         self.assertEqual(root.get("viewBox"), "0 0 32 32")
-        self.assertIn('<link rel="icon" href="logo.svg" type="image/svg+xml">',
+        favicon = ElementTree.parse(V2 / "favicon.svg").getroot()
+        self.assertEqual(favicon.get("viewBox"), "0 0 256 256")
+        self.assertEqual(len(favicon.findall(".//{*}path")), 4)
+        self.assertIn('<link rel="icon" href="favicon.svg" type="image/svg+xml">',
                       (V2 / "index.html").read_text(encoding="utf-8"))
 
 
@@ -852,7 +855,7 @@ class InterfaceSourceTests(unittest.TestCase):
         self.assertEqual(sorted(set(sites)), ["docHtml", "path", "renderDoc(edit.body)", "themeIcon"])
 
     def test_every_asset_it_references_exists(self):
-        for src in re.findall(r'(?<!:)\b(?:src|href)="([^"#]+)"', self.html):
+        for src in re.findall(r'\s(?:src|href)="([^"#]+)"', self.html):
             if src.startswith(("/", "http", "#", "data:")):
                 continue
             self.assertTrue((V2 / src).resolve().exists(), f"missing {src}")
@@ -993,7 +996,7 @@ class ServedTests(unittest.TestCase):
                            ("/tool-center.js", "javascript"), ("/ai-center.js", "javascript"),
                            ("/ai-diagnostic.js", "javascript"), ("/tools.css", "text/css"),
                            ("/domain.js", "javascript"), ("/preferences.js", "javascript"),
-                           ("/logo.svg", "image/svg+xml"),
+                           ("/logo.svg", "image/svg+xml"), ("/favicon.svg", "image/svg+xml"),
                            ("/static/fonts/IBMPlexSans-400-latin.woff2", "font/woff2"),
                            # Asset links saved while the interface lived at /v2/.
                            ("/v2/app.js", "javascript")):

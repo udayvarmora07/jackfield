@@ -28,9 +28,9 @@ window.Jackfield.register((app) => {
     template: `<div class="jf-pills"><span class="jf-pill"><jf-status :status="nowStatus" :label="failed ? 'Still ' + now : now"></jf-status></span><span class="jf-pills-arrow" :aria-label="working ? 'changing' : 'becomes'" role="img">{{ working ? '◌' : '→' }}</span><span v-if="after" class="jf-pill jf-pill-after" :class="{ 'is-working': working, 'is-failed': failed }"><jf-status :status="afterStatus" :label="after"></jf-status></span></div>`,
   });
   app.component("jf-attention-banner", {
-    props: ["count", "pressed"], emits: ["toggle"],
+    props: ["count", "detail", "pressed"], emits: ["toggle"],
     template: `<div v-if="count > 0" class="jf-attention-banner sm-banner">
-      <div><strong class="sm-banner__title"><ic name="warn"></ic>{{ count }} {{ count === 1 ? 'skill needs' : 'skills need' }} your attention</strong><p class="sm-banner__detail">Review copies that differ or can’t be read.</p></div>
+      <div><strong class="sm-banner__title"><ic name="warn"></ic>{{ count }} {{ count === 1 ? 'skill needs' : 'skills need' }} your attention</strong><p v-if="detail" class="sm-banner__detail">{{ detail }}</p></div>
       <button type="button" class="sm-btn" :aria-pressed="!!pressed" @click="$emit('toggle')">Show only these</button>
       <a class="sm-btn sm-btn--dark jf-attention-desktop" href="#/attention">Fix one by one</a>
       <a class="jf-attention-phone" href="#/attention">Review</a>

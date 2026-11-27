@@ -111,7 +111,7 @@ with its exact elements in @docs/redesign-build/05-screens.md.
 
 **[SPEC]** One inverted bar at the bottom centre (`toast`/`on-toast`,
 `shadow-toast`, `role="status"`): past-tense sentence naming skill and agent,
-Undo, dismiss. Stays on the page where the change happened, never follows
+Undo, dismiss. An available Undo has no time limit. Stays on the page where the change happened, never follows
 navigation; a newer change replaces it. If a change cannot be undone, say so
 **before** acting, never here.
 

@@ -106,8 +106,9 @@ class CoalescedReadCopyTests(ReadPathTestCase):
     def test_every_caller_still_receives_an_independent_copy(self):
         """The optimisation must not hand two callers the same dicts."""
         self.seed(2)
-        first = self.store.list()
-        second = self.store.list()
+        with mock.patch("skillsmgr.observations.now_iso", return_value="2026-11-27T00:00:00Z"):
+            first = self.store.list()
+            second = self.store.list()
         self.assertEqual(first, second)
         self.assertIsNot(first[0], second[0])
         self.assertIsNot(first[0]["provenance"], second[0]["provenance"])

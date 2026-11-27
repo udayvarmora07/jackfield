@@ -3921,9 +3921,9 @@
       "lineno": 1099
     },
     "skillsmgr/scopes.py::create_skill": {
-      "complexity": 21,
-      "end_lineno": 825,
-      "lineno": 746
+      "complexity": 7,
+      "end_lineno": 936,
+      "lineno": 881
     },
     "skillsmgr/scopes.py::edit_skill": {
       "complexity": 28,
@@ -4471,9 +4471,9 @@
       "lineno": 740
     },
     "skillsmgr/store.py::Store._create_unlocked": {
-      "complexity": 21,
-      "end_lineno": 1436,
-      "lineno": 1358
+      "complexity": 3,
+      "end_lineno": 1535,
+      "lineno": 1493
     },
     "skillsmgr/store.py::Store._db_is_current": {
       "complexity": 2,
@@ -5236,9 +5236,9 @@
       "lineno": 1404
     },
     "skillsmgr/webapp.py::WebAppHandler._route_skill_write_post": {
-      "complexity": 6,
-      "end_lineno": 1402,
-      "lineno": 1382
+      "complexity": 3,
+      "end_lineno": 1479,
+      "lineno": 1463
     },
     "skillsmgr/webapp.py::WebAppHandler._route_skills_get": {
       "complexity": 12,

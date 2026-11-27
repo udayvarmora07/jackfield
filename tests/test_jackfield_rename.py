@@ -87,8 +87,19 @@ class DataRootSelectionTests(_Env):
         os.environ["JACKFIELD_DATA"] = str(self.base)
         with self.assertRaises(ValueError) as ctx:
             paths.data_dir()
-        # Following the hint must not lead back to the same unsafe directory.
-        self.assertIn("export JACKFIELD_DATA=$HOME/.local/share/jackfield", str(ctx.exception))
+        prefix = "export JACKFIELD_DATA="
+        hint, = (line.strip()[len(prefix):] for line in str(ctx.exception).splitlines()
+                 if line.strip().startswith(prefix))
+        self.assertTrue(hint.startswith("$HOME/"))
+        home = self.base / "home"
+        home.mkdir(mode=0o700)
+        os.environ["HOME"] = str(home)
+        suggested_base = Path(os.path.expandvars(hint))
+        os.environ["JACKFIELD_DATA"] = str(suggested_base)
+        recovered = paths.data_dir()
+        self.assertEqual(recovered, suggested_base / "jackfield")
+        self.assertNotEqual(recovered.parent.name, "jackfield")
+        self.assertNotEqual(recovered, legacy)
 
 
 class CliDataDirScopeTests(_Env):

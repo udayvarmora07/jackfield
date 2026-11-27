@@ -91,6 +91,9 @@ the user to another page.
 - **Several rows at once (F3):** tick rows → "Make these match in Codex" →
   preview list → confirm → one Undo: `POST /api/batch/preview` then
   `POST /api/batch/execute`.
+- Replacement copies the source's file state. The preview names the target
+  copies whose files will be switched on or off. The batch list includes the
+  resulting file state for each addition or change.
 - **Acceptance:** no square changes before the disk does; a failure leaves the
   true word; focus moves to the panel heading when opened from the keyboard and
   back to the square on Esc; Evenly split preselects nothing and the confirm
@@ -111,10 +114,18 @@ the user to another page.
 - **States:** copies differ (choose which copy to read; default the majority);
   can't read (page opens, explains, offers the fix); switched off; not found
   (→ S13); loading.
-- **API:** `GET /api/skills/<n>?scope=`, `GET /api/history?name=&limit=20`,
+- **API:** `GET /api/skills/<n>?scope=&view=reader&target_path=`,
+  `GET /api/history?name=&limit=20`,
   `DELETE /api/skills/<n>?scope=&purge=0` (Move to Trash; Undo = restore).
 - **Acceptance:** F1 (search → Enter → this page); File text is byte-exact;
   Markdown raw HTML stays inert.
+
+**[NOTE]** Both views read the current on-disk document from the selected
+folder, including same-name copies in one recursive scope. Details reports
+the main document’s line count and counts for supporting files read during
+the bounded traversal. The personal Claude Code listing-space estimate uses
+observed user settings. It shares the Details panel with the whole-file token
+estimate, library events and available file snapshots.
 
 ## S4 · Editor
 
@@ -135,6 +146,12 @@ the user to another page.
   previous snapshot (`POST /api/trash/<n>?snapshot=&scope=`), as today.
 - **Acceptance:** F5; reload keeps the editor; nothing outside the ticked places
   changes; Ctrl/Cmd+S saves only when valid.
+
+**[NOTE]** The current editor saves to existing unambiguous writable copies.
+Changed destinations are refused using the expected path and hash under the
+write lock. Saving directly to a missing place remains open. Use the Skill
+page to add the copy before editing it. Different copies keep their own extra
+frontmatter fields and supporting files, as ordinary PATCH does.
 
 ## S5 · New skill
 
@@ -164,6 +181,9 @@ the user to another page.
   (exists in `ai-diagnostic.js`), plus the list data.
 - **Acceptance:** every Unknown is a real Unknown; the next step matches the
   first failing check.
+
+**[NOTE]** The browser can copy the confirmed Claude user settings path. For
+the other settings sources the screen offers a recheck and explains the block.
 
 ## S7 · Needs attention
 

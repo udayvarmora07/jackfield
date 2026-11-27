@@ -20,15 +20,17 @@ window.Jackfield.register((app) => {
       showing: { default: null },
       changedRows: { type: Array, default: () => [] },
       attentionCount: Number,
+      attentionDetail: String,
+      sheetViewport: Boolean,
       batchLimit: { type: Number, required: true },
     },
     emits: ["select", "primary", "open-skill", "close-panel", "manage-agents", "first-launch-done",
       "refresh", "view-change", "tracking-action", "choose-camp", "confirm", "look-again",
-      "open-folder", "why", "cancel-preview", "batch"],
+      "open-folder", "why", "cancel-preview", "batch", "compare-split", "confirm-stop"],
     data() {
       return { query: "", onlyAttention: false, limit: 50, place: "", sort: "name",
         focusRow: 0, focusCol: 0, menu: null, panelFocus: false, narrow: false,
-        phonePlace: "", phoneTools: false, checked: [], batchPlace: "" };
+        phonePlace: "", phoneTools: false, checked: [], batchPlace: "", campHover: "", campFocus: "" };
     },
     computed: {
       filtered() {
@@ -57,7 +59,7 @@ window.Jackfield.register((app) => {
       batchAgent() {
         return this.agents.find((agent) => agent.id === this.batchPlace) || this.currentAgent;
       },
-      sheet() { return this.narrow && !!this.panel; },
+      sheet() { return this.sheetViewport && !!this.panel; },
     },
     watch: {
       query() { this.resetGrid(); this.viewChange(); },
@@ -73,16 +75,23 @@ window.Jackfield.register((app) => {
       } },
       columns() { this.focusCol = Math.min(this.focusCol, this.columns.length); },
       visibleRows() { this.focusRow = Math.min(this.focusRow, Math.max(0, this.visibleRows.length - 1)); },
+      panel(next, previous) {
+        if (!next && previous?.state === "stop-tracking") this.focusCell();
+      },
       filtered(rows) {
         const shown = new Set(rows.map((row) => row.name));
         this.checked = this.checked.filter((name) => shown.has(name));
         if (this.selected && !shown.has(this.selected.name)) this.$emit("close-panel");
       },
       selected(next, previous) {
+        this.campHover = ""; this.campFocus = "";
         if (next) this.phonePlace = next.agent;
-        if (!next && previous && this.narrow) {
+        if (!next && previous && this.sheetViewport && this.panel?.state !== "stop-tracking") {
           const index = this.visibleRows.findIndex((row) => row.name === previous.name);
-          if (index >= 0) { this.focusRow = index; this.focusCol = 1; }
+          if (index >= 0) {
+            this.focusRow = index;
+            this.focusCol = this.columns.findIndex((column) => column.id === previous.agent) + 1;
+          }
           this.focusCell();
         }
       },
@@ -125,7 +134,7 @@ window.Jackfield.register((app) => {
       selectedCell(row, agent) { return this.selected?.name === row.name && this.selected?.agent === agent.id; },
       choose(row, agent, focusPanel = false, primary = false) {
         this.panelFocus = false;
-        if (focusPanel || this.narrow) this.$nextTick(() => { this.panelFocus = true; });
+        if (focusPanel || this.sheetViewport) this.$nextTick(() => { this.panelFocus = true; });
         this.$emit("select", { name: row.name, agent: agent.id, focusPanel, primary });
       },
       focusCell() {
@@ -180,7 +189,25 @@ window.Jackfield.register((app) => {
         this.menu = null;
         event.currentTarget.parentElement.querySelector("button")?.focus();
       },
-      trackingAction(action, id) { this.menu = null; this.$emit("tracking-action", { action, id }); },
+      trackingAction(action, id) {
+        this.menu = null;
+        if (action === "stop") {
+          this.focusRow = this.narrow ? 0 : -1;
+          this.focusCol = Math.max(0, this.columns.findIndex((column) => column.id === id) + 1);
+          this.panelFocus = true;
+        }
+        this.$emit("tracking-action", { action, id });
+      },
+      closeProjectPicker(returnFocus = false) {
+        const picker = this.$refs.projectPicker;
+        if (!picker) return;
+        picker.open = false;
+        if (returnFocus) picker.querySelector("summary").focus();
+      },
+      showProject(path) {
+        this.closeProjectPicker(true);
+        this.$emit("tracking-action", { action: "show-project", path });
+      },
       selectPlace(event) {
         this.place = event.target.value;
         if (this.selected && this.place && this.selected.agent !== this.place) this.$emit("close-panel");
@@ -222,7 +249,7 @@ window.Jackfield.register((app) => {
           <a v-if="rows.length" href="#/skills?view=instances">Show library skills</a>
         </section>
         <template v-else-if="loaded">
-          <jf-attention-banner :count="attentionCount" :pressed="onlyAttention" @toggle="onlyAttention = !onlyAttention"></jf-attention-banner>
+          <jf-attention-banner :count="attentionCount" :detail="attentionDetail" :pressed="onlyAttention" @toggle="onlyAttention = !onlyAttention"></jf-attention-banner>
           <div v-if="narrow" class="jf-skills-toolbar jf-skills-phone-tools">
             <label class="jf-skills-phone-agent">Showing
               <select class="sm-btn" aria-label="Showing agent" :value="currentAgent?.id" @change="selectPlace">
@@ -244,13 +271,18 @@ window.Jackfield.register((app) => {
             <label><span class="sr-only">Sort</span><select class="sm-btn" v-model="sort">
               <option value="name">A to Z</option><option value="size">Largest first</option><option value="places">In most places</option>
             </select></label>
-            <label v-if="projects.length"><span class="sr-only">Project folder</span>
-              <select class="sm-btn" :value="showing || ''"
-                @change="$emit('tracking-action', {action: 'show-project', path: $event.target.value})">
-                <option value="">Project: None</option><option v-for="project in projects" :key="project.path" :value="project.path"
-                  :disabled="project.status !== 'ok'">Project: {{ project.path.split('/').at(-1) }}</option>
-              </select>
-            </label>
+            <details v-if="projects.length" ref="projectPicker" class="jf-project-picker"
+              @keydown.esc.stop="closeProjectPicker(true)" @focusout="!$event.currentTarget.contains($event.relatedTarget) && closeProjectPicker()">
+              <summary class="sm-btn">Project: {{ showing ? showing.split('/').filter(Boolean).at(-1) : 'None' }}</summary>
+              <div class="jf-project-choices">
+                <button class="sm-btn" type="button" :disabled="busy" :aria-pressed="!showing" @click="showProject('')">None</button>
+                <button v-for="project in projects" :key="project.path" class="sm-btn" type="button"
+                  :disabled="busy || project.status !== 'ok'" :aria-pressed="showing === project.path"
+                  @click="showProject(project.path)">{{ project.path }}{{ project.status === 'ok' ? '' : ' (folder unavailable)' }}</button>
+                <a class="sm-btn" href="#/settings/tracking/add-project">Add project folder</a>
+                <a class="sm-btn" href="#/settings/tracking">Manage project folders</a>
+              </div>
+            </details>
             <span class="jf-grid-count" aria-live="polite">Showing {{ visibleRows.length }} of {{ filtered.length }}</span>
             <button type="button" class="sm-btn" :disabled="loading" @click="$emit('refresh')">{{ loading ? 'Refreshing…' : 'Refresh files' }}</button>
             <button v-if="narrow && attentionCount" type="button" class="sm-btn" :aria-pressed="onlyAttention" @click="onlyAttention = !onlyAttention">Show only these</button>
@@ -290,7 +322,7 @@ window.Jackfield.register((app) => {
                     @focusout="!$event.currentTarget.parentElement.contains($event.relatedTarget) && (menu = null)">
                     <p v-if="agent.kind === 'shared'">Shown while Claude Code and Codex read it. It has no switch of its own.</p>
                     <template v-else-if="agent.kind !== 'project'">
-                      <button type="button" :disabled="!agent.canStop" @click="trackingAction('stop', agent.id)">Stop tracking {{ agent.name }}…</button>
+                      <button type="button" :disabled="busy || !agent.canStop" @click="trackingAction('stop', agent.id)">Stop tracking {{ agent.name }}…</button>
                       <span v-if="!agent.canStop">At least one agent stays tracked.</span>
                       <button type="button" @click="trackingAction('details', agent.id)">{{ agent.name }} details</button>
                     </template>
@@ -310,6 +342,7 @@ window.Jackfield.register((app) => {
               </th>
               <td v-for="(agent, ai) in columns" :key="agent.id" class="jf-grid-phone-current">
                 <jf-square :status="cell(row, agent).status" :label="cell(row, agent).label"
+                  :class="{ 'is-camp': selected?.name === row.name && cell(row, agent).status === 'version-' + (campFocus || campHover) }"
                   :accessible-label="row.name + ' in ' + agent.name + ': ' + cell(row, agent).label" :selected="selectedCell(row, agent)"
                   :tabindex="focusRow === ri && focusCol === ai + 1 ? 0 : -1" :data-grid-row="ri" :data-grid-col="ai + 1"
                   @focus="focusRow = ri; focusCol = ai + 1" @keydown="keyGrid($event, row, agent, ri, ai + 1)"
@@ -325,6 +358,8 @@ window.Jackfield.register((app) => {
         <jf-side-panel v-if="panel" :panel="panel" :modal="sheet" :focus-heading="panelFocus" @close="closePanel"
           @primary="$emit('primary')" @open-skill="$emit('open-skill', panel.skill)" @choose-camp="$emit('choose-camp', $event)"
           @confirm="$emit('confirm')" @look-again="$emit('look-again')" @open-folder="$emit('open-folder')"
+          @compare-split="$emit('compare-split')" @confirm-stop="$emit('confirm-stop')"
+          @camp-hover="campHover = $event" @camp-focus="campFocus = $event"
           @why="$emit('why')" @cancel-preview="$emit('cancel-preview')"></jf-side-panel>
       </div>
     </section>`,

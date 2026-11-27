@@ -17,7 +17,18 @@ All notable changes to this project are recorded here. Format follows [Keep a Ch
   stays `skill-control-plane` until the release that publishes `jackfield`.
   Backup archives keep their `skills-mgr` format id, so old backups restore.
 
+- The Paper Skills table shows observed agent settings and previews copy
+  changes. Tracking and Undo preserve changes made in other windows.
+- The Paper Skill page reads the exact selected copy from disk and shows
+  supporting-file line counts, Claude listing estimates and snapshot history.
+  The editor checks each selected copy before saving and restoring it.
+
 ### Added
+
+- A New skill page with starting layouts, stored templates and an exact
+  preview of the file to be created in each selected place.
+- Per-skill diagnosis shows what was found on disk and in agent settings,
+  with a recheck after settings change.
 
 - CLI-only transcript usage consent and cached activity reports, archive
   candidate review and reversible pins.

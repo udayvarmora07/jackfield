@@ -4,14 +4,20 @@
 window.Jackfield.register((app) => {
   app.component("jf-side-panel", {
     props: ["panel", "focusHeading", "modal"],
-    emits: ["primary", "close", "choose-camp", "confirm", "look-again", "open-folder", "open-skill", "why", "cancel-preview"],
+    emits: ["primary", "close", "choose-camp", "confirm", "look-again", "open-folder", "open-skill", "why",
+      "cancel-preview", "compare-split", "camp-hover", "camp-focus", "confirm-stop"],
     mounted() { if (this.focusHeading || this.modal) this.focusTitle(); },
     watch: {
       focusHeading(value) { if (value) this.focusTitle(); },
       modal(value) { if (value) this.focusTitle(); },
+      "panel.state"(value) { if (value === "stop-tracking") this.focusTitle(); },
     },
     methods: {
       focusTitle() { this.$nextTick(() => this.$refs.heading?.focus()); },
+      compareSplit() {
+        this.$emit("compare-split");
+        this.$nextTick(() => this.$refs.comparison?.focus());
+      },
       panelKeys(event) {
         if (event.key === "Escape") {
           event.stopPropagation();
@@ -35,15 +41,51 @@ window.Jackfield.register((app) => {
         <button type="button" class="jf-panel-close" aria-label="Close panel" @click="$emit('close')">×</button>
       </div>
       <h2 id="jf-panel-title" ref="heading" class="jf-panel-title" tabindex="-1">{{ panel.skill }}</h2>
-      <p v-if="!modal" class="jf-panel-path" translate="no">{{ panel.path }}</p>
+      <p v-if="!modal && panel.path" class="jf-panel-path" translate="no">{{ panel.path }}</p>
       <p v-if="panel.line" class="jf-panel-line">{{ panel.line }}</p>
-      <template v-if="panel.state === 'split'">
+      <template v-if="panel.state === 'stop-tracking'">
+        <p v-for="line in panel.confirm.lines" :key="line">{{ line }}</p>
+        <div v-if="panel.confirm.columns.length" class="trk-mini">
+          <table class="trk-mini-t" :aria-label="'Table preview for ' + panel.agent">
+            <thead><tr><th v-for="column in panel.confirm.columns" :key="column.id" scope="col"
+              :class="{ leaving: column.leaving }">{{ column.name }}<span v-if="column.leaving" class="sr-only"> (leaves the table)</span></th></tr></thead>
+            <tbody><tr><td v-for="column in panel.confirm.columns" :key="column.id"
+              :class="{ leaving: column.leaving }">{{ column.count }}</td></tr></tbody>
+          </table>
+        </div>
+        <p v-if="panel.confirm.preview">{{ panel.confirm.preview }}</p>
+        <details v-if="panel.confirm.names.length" class="jf-panel-details">
+          <summary>See the skills that leave</summary>
+          <ul><li v-for="name in panel.confirm.names" :key="name">{{ name }}</li></ul>
+          <p v-if="panel.confirm.more">And {{ panel.confirm.more }} more.</p>
+        </details>
+        <p>{{ panel.confirm.safe }}</p>
+        <button type="button" class="jf-panel-primary" :disabled="panel.primaryDisabled"
+          @click="$emit('confirm-stop')">{{ panel.confirm.confirm }}</button>
+        <button type="button" class="jf-panel-secondary" @click="$emit('close')">Keep tracking</button>
+      </template>
+      <template v-else-if="panel.state === 'split'">
         <div class="jf-panel-camps">
-          <div v-for="camp in panel.camps" :key="camp.id" class="jf-panel-camp">
-            <strong>{{ camp.title }}</strong><p>{{ camp.detail }}</p>
-            <button type="button" :aria-pressed="panel.selectedCamp === camp.id" @click="$emit('choose-camp', camp.id)">{{ camp.action }}</button>
+          <div v-for="camp in panel.camps" :key="camp.id" class="jf-panel-camp"
+            @mouseenter="$emit('camp-hover', camp.id)" @mouseleave="$emit('camp-hover', '')">
+            <strong>{{ camp.title }}</strong><p>{{ camp.detail }} · {{ camp.facts }}</p>
+            <button type="button" :aria-pressed="panel.selectedCamp === camp.id"
+              @focus="$emit('camp-focus', camp.id)" @blur="$emit('camp-focus', '')"
+              @click="$emit('choose-camp', camp.id)">{{ camp.action }}</button>
           </div>
         </div>
+        <button type="button" class="jf-panel-secondary" v-if="!panel.comparison.length"
+          @click="compareSplit()">Compare the two versions</button>
+        <section v-else class="jf-split-comparison" aria-label="Compare the two versions">
+          <h3 ref="comparison" tabindex="-1">Compare the two versions</h3>
+          <div v-for="version in panel.comparison" :key="version.id">
+            <h4>{{ version.name }}</h4>
+            <pre v-if="version.ready" class="jf-panel-excerpt" tabindex="0" role="region"
+              :aria-label="version.name + ' instructions'">{{ version.text }}</pre>
+            <button v-else-if="version.failed" type="button" class="sm-btn" @click="compareSplit()">Try reading {{ version.name }} again</button>
+            <p v-else role="status">Reading {{ version.name }}…</p>
+          </div>
+        </section>
         <p v-if="panel.preview" class="jf-panel-preview">{{ panel.preview }}</p>
         <button type="button" class="jf-panel-primary" :disabled="panel.selectedCamp == null || panel.primaryDisabled"
           @click="$emit('confirm')">{{ panel.primary }}</button>
@@ -92,7 +134,7 @@ window.Jackfield.register((app) => {
           <jf-agent :agent="other"></jf-agent><jf-status :status="other.status" :label="other.label"></jf-status>
         </div>
       </div>
-      <div class="jf-panel-links">
+      <div v-if="panel.state !== 'stop-tracking'" class="jf-panel-links">
         <button type="button" @click="$emit('open-skill')">Open skill</button>
         <button type="button" @click="$emit('why')">Why isn’t it running?</button>
       </div>

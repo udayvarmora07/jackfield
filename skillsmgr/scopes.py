@@ -26,8 +26,10 @@ from .file_reads import read_regular_file
 from .documents import (
     ACTIVE_DOCUMENT,
     DOCUMENT_NAMES,
+    check_edit_target,
     document_path,
     document_text,
+    edit_receipt,
     has_document,
     read_skill_text,
     read_skill_text_strict,
@@ -48,7 +50,8 @@ from .native_state import observe_native_entries
 from .search import MAX_SEARCH_LENGTH, rank_results
 from .store import list_snapshots, read_snapshot, write_snapshot, write_snapshot_bytes
 from .tokens import aggregate, estimate
-from .validator import MAX_COMPATIBILITY, MAX_DESCRIPTION, validate_skill_name
+from .validator import validate_skill_name
+from .skill_create import new_skill_document, new_skill_fields
 from .clock import STAMP_FORMAT, iso
 
 _SCOPE_READ_FLIGHTS: dict = {}
@@ -824,6 +827,60 @@ def get_skill(scope_id: str, name: str) -> dict:
     return _annotate_native_entries([entry], scope)[0]
 
 
+def reader_directory(scope_id: str, name: str, target_path: str) -> Path:
+    """Resolve one named entry within the selected skill discovery scope."""
+    validate_skill_name(name)
+    scope = scope_by_id(scope_id)
+    if scope is None:
+        raise unknown_scope_error(scope_id)
+    try:
+        return _reader_directory(scope, name, Path(target_path))
+    except (OSError, RuntimeError, ValueError):
+        raise SkillNotFound("The selected skill folder is unavailable. Refresh files to find it.") from None
+
+
+def _reader_directory(scope: Scope, name: str, target: Path) -> Path:
+    root = _resolved_scope_root(scope)
+    base = scope.base.absolute()
+    if scope.id == "global":
+        folder = path_safety.safe_skill_path_under(root, name)
+        if folder == root or target not in (base / name, root / name, folder):
+            raise ValueError("invalid library skill folder")
+        return folder
+    relative = target.relative_to(base if target.is_relative_to(base) else root)
+    if relative.name != name or ".." in relative.parts:
+        raise ValueError("invalid skill folder")
+    if relative.parent != Path("."):
+        if not scope.recursive or not _reader_recursive_entry(root, relative, scope.consumer):
+            raise ValueError("outside skill discovery")
+        return path_safety.contained_path_under(root, *relative.parts)
+    return _reader_direct_entry(scope, root, name)
+
+
+def _reader_direct_entry(scope: Scope, root: Path, name: str) -> Path:
+    try:
+        folder = path_safety.safe_skill_path_under(root, name)
+    except ValueError:
+        link = _peer_link_info(scope, name)
+        if link is None:
+            raise
+        return Path(link["linked_to"])
+    if folder == root or (scope.recursive and scope.consumer != "commandcode" and (root / name).is_symlink()):
+        raise ValueError("outside skill discovery")
+    return folder
+
+
+def _reader_recursive_entry(root: Path, relative: Path, consumer: str | None) -> bool:
+    # Recursive discovery does not descend through directory links. Command
+    # Code also stops at the first skill it finds in each branch.
+    folder = root
+    for part in relative.parts[:-1]:
+        folder /= part
+        if folder.is_symlink() or (consumer == "commandcode" and has_document(folder)):
+            return False
+    return not (root / relative).is_symlink()
+
+
 def get_raw(scope_id: str, name: str) -> str:
     """Raw SKILL.md text for one skill in one scope."""
     if scope_id == "global":
@@ -902,17 +959,7 @@ def create_skill(
     scope = scope_by_id(scope_id)
     if scope is None:
         raise unknown_scope_error(scope_id)
-    try:
-        name = validate_skill_name(name.strip())
-    except ValueError as exc:
-        raise StoreError(str(exc)) from exc
-    if not description or not description.strip():
-        raise StoreError("description is required")
-    description = description.strip()
-    if len(description) > MAX_DESCRIPTION:
-        raise StoreError(f"description exceeds {MAX_DESCRIPTION} characters")
-    if compatibility and len(compatibility) > MAX_COMPATIBILITY:
-        raise StoreError(f"compatibility exceeds {MAX_COMPATIBILITY} characters")
+    name, description = new_skill_fields(name, description, compatibility)
     # Create always targets the flat public install address.  A recursive
     # resolver may return an existing nested instance for reads, but that must
     # not make an unrelated category prevent creating the flat skill.
@@ -932,22 +979,8 @@ def create_skill(
         # fresh create look like a duplicate of an unrelated category.
         if skill_dir.exists():
             raise StoreError(f"skill '{name}' already exists in scope '{scope_id}'")
-        data: dict = {"name": name, "description": description}
-        if license:
-            data["license"] = license
-        if compatibility:
-            data["compatibility"] = compatibility
-        if version:
-            data["version"] = version
-        if allowed_tools:
-            data["allowed-tools"] = allowed_tools.strip() if isinstance(allowed_tools, str) else allowed_tools
-        if category:
-            data["metadata"] = {"category": category}
-        if body is None:
-            body = f"# {name}\n"
-        if not body.endswith("\n"):
-            body += "\n"
-        content = dump_frontmatter(data, key_order=list(data.keys())) + body
+        content = new_skill_document(name, description, license=license, category=category,
+                                     compatibility=compatibility, version=version, allowed_tools=allowed_tools, body=body)
         try:
             skill_dir.mkdir(parents=True, exist_ok=True)
             atomic_write_text(skill_dir / "SKILL.md", content)
@@ -968,6 +1001,7 @@ def edit_skill(
     version: str | None = None,
     allowed_tools: str | None = None,
     body: str | None = None,
+    expected: tuple[str, str] | None = None,
 ) -> dict:
     if scope_id == "global":
         return _global_store().edit(
@@ -979,6 +1013,7 @@ def edit_skill(
             version=version,
             allowed_tools=allowed_tools,
             body=body,
+            expected=expected,
         )
     scope = scope_by_id(scope_id)
     if scope is None:
@@ -994,6 +1029,7 @@ def edit_skill(
                 raise StoreError(f"skill '{name}' is disabled in scope '{scope_id}'; enable it first")
             raise SkillNotFound(f"skill '{name}' has no SKILL.md in scope '{scope_id}'")
         text = read_skill_text_strict(md, subject=f"skill '{name}'")
+        check_edit_target(md, text, expected)
         try:
             data, orig_body = parse_frontmatter(text)
         except FrontmatterError as exc:
@@ -1038,14 +1074,17 @@ def edit_skill(
             if body != orig_body:
                 orig_body = body
                 changed = True
+        snapshot = None
+        content = text
         if changed:
-            write_snapshot(_global_store().data_dir, scope_id, name, text)
+            snapshot = write_snapshot(_global_store().data_dir, scope_id, name, text)
             order = orig_keys + [k for k in data if k not in orig_keys]
+            content = dump_frontmatter(data, key_order=order) + orig_body
             try:
-                atomic_write_text(md, dump_frontmatter(data, key_order=order) + orig_body)
+                atomic_write_text(md, content)
             except OSError as exc:
                 raise StoreError(f"could not edit skill '{name}' safely: {exc}") from exc
-        return {"name": name, "changed": changed, "scope": scope_id}
+        return {"name": name, "changed": changed, "scope": scope_id, **edit_receipt(expected, snapshot, content)}
 
 
 def remove_skill(scope_id: str, name: str, *, purge: bool = False) -> dict:
@@ -1690,9 +1729,9 @@ def list_snapshots_for(scope_id: str, name: str) -> list[str]:
     return list_snapshots(_global_store().data_dir, scope_id, name)
 
 
-def restore_snapshot(scope_id: str, name: str, snapshot: str) -> dict:
+def restore_snapshot(scope_id: str, name: str, snapshot: str, *, expected: tuple[str, str] | None = None) -> dict:
     if scope_id == "global":
-        return _global_store().restore(name, snapshot=snapshot)
+        return _global_store().restore(name, snapshot=snapshot, expected=expected)
     scope = scope_by_id(scope_id)
     if scope is None:
         raise unknown_scope_error(scope_id)
@@ -1706,6 +1745,7 @@ def restore_snapshot(scope_id: str, name: str, snapshot: str) -> dict:
                 raise StoreError(f"skill '{name}' is disabled in scope '{scope_id}'; enable it first")
             raise SkillNotFound(f"skill '{name}' has no SKILL.md in scope '{scope_id}'")
         current = read_skill_text_strict(md, subject=f"skill '{name}' in scope '{scope_id}'")
+        check_edit_target(md, current, expected)
         write_snapshot(_global_store().data_dir, scope_id, name, current)
         try:
             atomic_write_text(md, content)

@@ -191,8 +191,10 @@ const trackingMixin = {
       change(doc);
       this.busy = true;
       this.trackingNotes = { ...this.trackingNotes, [rowId || "_"]: "" };
+      let saved;
       try {
-        await this.putTracking(doc);
+        saved = await this.putTracking(doc);
+        await this.refresh();
       } catch (e) {
         const text = this.friendly(e.message);
         await this.loadTracking();
@@ -200,7 +202,6 @@ const trackingMixin = {
         if (rowId && this.route.page === "tracking") this.trackingNotes = { ...this.trackingNotes, [rowId]: text }; else this.toast(text, { err: true });
         return false;
       } finally { this.busy = false; }
-      await this.refresh();
       /* A filter on an agent that just left would hide every skill. */
       if (this.agentFilter !== "all" && !this.agentInfos.some((i) => i.id === this.agentFilter)) this.agentFilter = "all";
       /* Undo puts a whole earlier document back, so only the latest change may
@@ -208,7 +209,7 @@ const trackingMixin = {
       this.toasts.filter((note) => note.trackingUndo).forEach((note) => this.dismissToast(note));
       if (message) this.toast(message, undo ? { undoText: undoText || "Undone.", trackingUndo: true,
         undoAt: rowId === "_form" ? "#/settings/tracking" : null, undo: async () => {
-        await this.putTracking({ ...before, revision: this.tracking.revision });
+        await this.putTracking({ ...before, revision: saved.revision });
       } } : {});
       return true;
     },
@@ -235,8 +236,9 @@ const trackingMixin = {
       const lines = [`The ${a.name} column and its counts leave the table.`];
       let count = null;
       if (a.folder_status === "missing" || a.folder_status === "not-a-folder" || a.folder_status === "outside-home") lines.splice(0, 1, `${a.name} has nothing in the table now, so nothing leaves it.`);
-      else if (a.folder_status !== "ok" || !only) lines.push(`${a.name}'s folder can't be read, so we can't count its skills.`);
-      else if (!only.count) { lines.push(`Every skill in ${a.name} also lives in another agent.`); count = 0; }
+      else if (a.folder_status !== "ok") lines.push(`${a.name}'s folder can't be read, so we can't count its skills.`);
+      else if (!only) lines.push("Some skill folders couldn’t be fully read, so we can’t confirm how many skills will disappear.");
+      else if (!only.count) { lines.push(`Every skill in ${a.name} also lives in another place that will stay visible.`); count = 0; }
       else { lines.push(`${plural(only.count, "skill lives", "skills live")} only in ${a.name} and will no longer show.`); count = only.count; }
       const custom = a.kind === "custom";
       /* The mini table preview (TablePreview): today's columns with their skill
@@ -437,6 +439,12 @@ const oneColumnCopy = (row, column) => {
 const tableWritable = (copy) => copy && !copy.readOnly && !copy.record.read_only &&
   copy.record.addressable !== false && copy.state !== "link" && validName(copy.name);
 const tableSource = (copy) => tableWritable(copy) && copy.state !== "broken" && !!copy.hash;
+const copyFileState = (copy) => copy.record.disabled ? "off" : "on";
+const changesFileState = (source, target) => !target || copyFileState(source) !== copyFileState(target);
+const replacementEffect = (source, targets) => {
+  const changed = targets.filter((target) => changesFileState(source, target));
+  return changed.length ? ` The skill file will be switched ${copyFileState(source)} in ${join(changed.map((target) => target.label))}.` : "";
+};
 const sharedColumn = (agent) => agent.id === "agents";
 const tableAddressable = (row, agent) =>
   agent.writable && columnScopes(agent).length === 1 &&
@@ -476,7 +484,10 @@ function panelWords(selection) {
       what: "A copy is made from " + source.label + " with its supporting files and on/off state. You can undo it." };
   }
   if (status === "settings") {
-    return { ...result, line: "The file is on, but " + name + "’s own settings switch this skill off.",
+    const line = copy?.record.native_state?.consumer === "opencode"
+      ? "The file is on, but an OpenCode permission rule denies this skill."
+      : "The file is on, but " + name + "’s own settings switch this skill off.";
+    return { ...result, line,
       after: "On", afterStatus: "on", primary: "Show the settings file", key: "Enter",
       what: "Jackfield never changes agent settings files. Remove the line that turns it off, then refresh." };
   }
@@ -501,7 +512,7 @@ function panelWords(selection) {
 
 const tableMixin = {
   data() {
-    return { tableMode: "", tableVersion: "", tableNarrow: false,
+    return { tableMode: "", tableVersion: "", tableNarrow: false, tableStopAgent: "",
       tableFirstSeen: savedPreference("jackfield-first-table", ["yes", "no"], "no") === "yes" };
   },
   computed: {
@@ -515,6 +526,12 @@ const tableMixin = {
     },
     tableProblems() { return Model.attentionItems(this.shelfSkills, this.tableColumns); },
     tableProblemNames() { return new Set(this.tableProblems.map((item) => item.name)); },
+    tableAttentionDetail() {
+      return this.tableProblems.slice(0, 3).map((item) => {
+        if (item.type === "split") return `${item.name}: two versions`;
+        return `${item.agent.name}: ${item.name} ${item.type === "unreadable" ? "can’t be read" : "differs"}`;
+      }).join(" · ");
+    },
     tableBatchLimit() { return TABLE_BATCH_LIMIT; },
     tableRows() {
       return this.shelfSkills.map((row) => ({
@@ -530,21 +547,24 @@ const tableMixin = {
       }));
     },
     tableSelected() {
+      if (this.route.page === "skills" && this.route.view) return null;
       const value = this.route.selected || "";
       const index = value.lastIndexOf(":");
       if (index < 1) return null;
-      const row = this.m?.byName.get(value.slice(0, index));
+      const name = value.slice(0, index);
+      if (this.route.page === "skill" && name !== this.route.name) return null;
+      const row = this.m?.byName.get(name);
       const agent = this.tableColumns.find((column) => column.id === value.slice(index + 1));
       return row && agent ? tableChoice(row, agent, this.tableColumns) : null;
     },
     tableSelection() {
       return this.tableSelected ? { name: this.tableSelected.row.name, agent: this.tableSelected.agent.id } : null;
     },
-    tableSheetOpen() { return this.tableNarrow && this.route.page === "skills" && !this.route.view && !!this.tableSelected; },
+    tableSheetOpen() { return this.tableNarrow && !!this.tablePanel; },
     tableCopiesToReplace() {
       const s = this.tableSelected;
       if (!s) return [];
-      if (this.tableMode === "split") {
+      if (statusIsSplit(s.status)) {
         const chosen = s.groups[Number(this.tableVersion) - 1];
         return chosen ? s.groups.flat().filter((copy) => copy.hash !== chosen[0].hash) : [];
       }
@@ -553,10 +573,27 @@ const tableMixin = {
     tablePreviewSource() {
       const s = this.tableSelected;
       if (!s) return null;
-      if (this.tableMode === "split") return s.groups[Number(this.tableVersion) - 1]?.find(tableSource);
+      if (statusIsSplit(s.status)) return s.groups[Number(this.tableVersion) - 1]?.find(tableSource);
       return this.tableVersion === "current" ? s.copy : s.source;
     },
+    tableComparisonCopies() {
+      const s = this.tableSelected;
+      if (!s) return [];
+      if (this.tableMode === "split-compare" && statusIsSplit(s.status)) {
+        return s.groups.map((group) => group.find((copy) => this.bodyFetchable(copy)) || group[0]);
+      }
+      if (this.tableMode === "preview" && s.source && s.copy && ["different", "unreadable"].includes(s.status)) {
+        return s.status === "different" ? [s.source, s.copy] : [s.source];
+      }
+      return [];
+    },
     tablePanel() {
+      if (this.tableStopAgent) {
+        const confirm = this.trackLeaving(this.tableStopAgent);
+        if (confirm?.agent.tracked) return { state: "stop-tracking", skill: confirm.title, agent: confirm.agent.name,
+          mark: Model.agentMark(confirm.agent.id, confirm.agent.name).mark, confirm,
+          primaryDisabled: this.busy || this.trackLastAgent(confirm.agent) };
+      }
       const s = this.tableSelected;
       if (!s) return null;
       const { row, agent, status, copy } = s, key = tableKey(row.name, agent.id);
@@ -598,8 +635,12 @@ const tableMixin = {
       try { localStorage.setItem("jackfield-first-table", "yes"); } catch { /* storage can be disabled */ }
     },
     tableView(options) {
-      const href = Router.routeHref("skills", options);
-      if (this.route.page !== "skills" || href === this.route.href) return;
+      const route = this.route;
+      if (route.page !== "skills" && route.page !== "skill") return;
+      const href = route.page === "skill"
+        ? Router.skillHref(route.name, "", { ...this.readerRouteOptions(), sel: options.sel })
+        : Router.routeHref("skills", options);
+      if (href === route.href) return;
       if (this.route.selected !== (options.sel || null)) {
         this.tableMode = ""; this.tableVersion = ""; this.tableError = null;
       }
@@ -607,19 +648,21 @@ const tableMixin = {
       this.route = Router.parseRoute(href);
     },
     tableSelect(selection) {
+      this.tableStopAgent = "";
       this.tableView({ ...this.tableRouteOptions(), sel: tableKey(selection.name, selection.agent) });
       if (selection.primary && (this.tableSelected?.toggle || this.tableSelected?.add)) this.tablePrimary();
     },
     tableRouteOptions() { const r = this.route; return { q: r.search, agent: r.agent, only: r.only, sel: r.selected }; },
     tableClose() {
-      if (this.tableSelected && !this.tableFirstSeen) this.showTableFirst();
+      this.tableStopAgent = "";
+      if (this.route.page === "skills" && this.tableSelected && !this.tableFirstSeen) this.showTableFirst();
       this.tableView({ ...this.tableRouteOptions(), sel: null });
     },
     tableReviewPanel(panel, s) {
       if (this.tableMode === "preview" && s.source && s.copy && ["different", "unreadable"].includes(s.status)) {
         const targets = this.tableCopiesToReplace, source = this.tablePreviewSource;
         const compare = s.status === "different";
-        const required = compare ? [s.source, s.copy] : [s.source];
+        const required = this.tableComparisonCopies;
         const read = required.filter((copy) => this.bodyReady(copy))
           .map((copy) => ({ id: copy.scope, name: copy.label, text: this.bodyOf(copy) }));
         const comparisonPending = read.length < required.length;
@@ -631,18 +674,24 @@ const tableMixin = {
         preview: comparisonFailure ? "The instructions couldn’t be read. Go back and try again."
           : comparisonPending ? (compare ? "Reading the two versions…" : "Reading the replacement…")
           : targets.length && (!compare || this.tableVersion) ? "Replace copies in " + join(targets.map((copy) => copy.label)) +
-          ". The current folders go to Trash." : "Choose the version to keep.",
+          ". The current folders go to Trash." + replacementEffect(source, targets) : "Choose the version to keep.",
         primary: compare ? "Make copies match" : "Replace this copy",
         primaryDisabled: this.busy || comparisonPending || (compare && !this.tableVersion) || !source || !targets.length || !this.canReplaceTableCopies(targets) };
       }
       if (statusIsSplit(s.status)) {
+        const comparison = this.tableComparisonCopies.map((copy, index) => ({
+          id: String(index + 1), name: "Version " + (index + 1), text: this.bodyOf(copy),
+          ready: this.bodyReady(copy), failed: !this.bodyFetchable(copy) || !!this.bodyErrorOf(copy),
+        }));
+        const targets = this.tableCopiesToReplace, source = this.tablePreviewSource;
         return { ...panel, state: "split", line: "This skill has two versions. Pick the one to keep.",
           primary: "Make all " + s.groups.flat().length + " match", selectedCamp: this.tableVersion || null,
           camps: s.groups.map((group, i) => ({ id: String(i + 1), title: "Version " + (i + 1),
-            detail: join(group.map((copy) => copy.label)), action: "Keep version " + (i + 1) })),
-          preview: this.tableCopiesToReplace.length ? join(this.tableCopiesToReplace.map((copy) => copy.label)) +
-            " will get this version. Their current folders go to Trash." : "",
-          primaryDisabled: this.busy || !this.tablePreviewSource || !this.canReplaceTableCopies(this.tableCopiesToReplace) };
+            detail: join(group.map((copy) => copy.label + (copyFileState(copy) === "off" ? " (off)" : ""))),
+            facts: this.plural(group.length, "copy", "copies"), action: "Keep version " + (i + 1) })),
+          comparison, preview: targets.length ? join(targets.map((copy) => copy.label)) +
+            " will get this version. Their current folders go to Trash." + (source ? replacementEffect(source, targets) : "") : "",
+          primaryDisabled: this.busy || !source || comparison.some((version) => !version.ready) || !this.canReplaceTableCopies(targets) };
       }
       if (s.status === "unknown") {
         return { ...panel, state: "unknown", line: "The last steps can’t be confirmed.", checks: [
@@ -681,12 +730,17 @@ const tableMixin = {
       } else if (["different", "unreadable"].includes(s.status) && s.source && s.copy && s.writable && tableWritable(s.copy)) {
         this.tableMode = "preview";
         this.tableVersion = s.status === "unreadable" ? "reference" : "";
-        this.ensureBodies(s.status === "different" ? [s.source, s.copy] : [s.source]);
+        this.ensureBodies(this.tableComparisonCopies);
       } else this.tableOpenSkill(s.status === "settings" ? "why" : "");
     },
     tableChooseCamp(id) {
-      if (id !== "reference" && id !== "current") this.tableMode = "split";
       this.tableVersion = id;
+    },
+    tableCompareSplit() {
+      const s = this.tableSelected;
+      if (!s || !statusIsSplit(s.status)) return;
+      this.tableMode = "split-compare";
+      this.ensureBodies(this.tableComparisonCopies);
     },
     tableConfirm() {
       const s = this.tableSelected, source = this.tablePreviewSource, originals = this.tableCopiesToReplace;
@@ -700,7 +754,9 @@ const tableMixin = {
     },
     tableOpenSkill(screen = "") {
       const s = this.tableSelected;
-      if (s) Router.go(Router.skillHref(s.row.name, screen));
+      if (!s) return;
+      if (!screen && this.route.page === "skill") this.closeReaderSquare();
+      else Router.go(Router.skillHref(s.row.name, screen, this.route.page === "skill" ? this.readerRouteOptions() : {}));
     },
     tableOpenNamed(name) { if (name) Router.go(Router.skillHref(name)); },
     tableCancelPreview() { this.tableMode = ""; this.tableVersion = ""; },
@@ -719,10 +775,18 @@ const tableMixin = {
       else if (action === "remove-project") this.trackRemoveProject(path);
       else if (action === "track-found") this.trackFoundTrack(this.trackNewlyFound);
       else if (action === "found-later") this.trackFoundLater(this.trackNewlyFound);
-      else if (action === "stop") this.askStopTracking(id);
+      else if (action === "stop") {
+        this.tableClose();
+        this.tableStopAgent = id;
+      }
       else if (action === "details") this.trackDetails(id);
       else if (action === "show-project") this.trackShow(path || null);
       else Router.go("#/settings/tracking");
+    },
+    async tableConfirmStop() {
+      const agent = this.trackAgent(this.tableStopAgent);
+      if (!agent?.tracked || this.trackLastAgent(agent) || this.busy) return;
+      if (await this.stopTracking(agent.id) && this.tableStopAgent === agent.id) this.tableClose();
     },
     tableBatch({ names, agent: id }) {
       const agent = this.tableColumns.find((column) => column.id === id);
@@ -734,9 +798,12 @@ const tableMixin = {
           (s.status === "missing" || (["different", "unreadable"].includes(s.status) && tableWritable(s.copy))));
       if (!choices.length) { this.toast("Choose rows with a missing or different copy in " + agent.name + ".", { err: true }); return; }
       const originals = choices.map((s) => s.copy).filter(Boolean);
-      this.openDialog({ title: "Make these match in " + agent.name + "?", names: choices.map((s) => s.row.name),
+      const effects = choices.filter((choice) => changesFileState(choice.source, choice.copy));
+      this.openDialog({ title: "Make these match in " + agent.name + "?", names: choices.map((choice) =>
+        choice.row.name + (changesFileState(choice.source, choice.copy) ? " — skill file will be " + copyFileState(choice.source) : "")),
         namesLabel: "See all " + choices.length + " skills", confirm: "Make these match",
         lines: [choices.length + " copies will match their reference versions. Existing folders go to Trash.",
+          ...(effects.length ? ["The list shows the on/off state for " + this.plural(effects.length, "new or changed skill file") + "."] : []),
           ...(choices.length < names.length ? ["Only rows with an eligible reference and destination are included."] : [])],
         onConfirm: () => this.change("copy", { sources: choices.map((s) => s.source), originals, scopes: columnScopes(agent),
           keys: choices.map((s) => tableKey(s.row.name, id)), message: this.plural(choices.length, "copy", "copies") + " changed in " + agent.name + "." }) });
@@ -760,13 +827,14 @@ const app = createApp({
       trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", importError: "", dropDepth: 0, importForce: false,
       theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
       dialog: null, skillHistory: [], opener: null,
+      readerResult: null, readerGeneration: 0,
+      readerSnapshots: [], readerSnapshotsError: "", readerSnapshotsGeneration: 0,
     };
   },
   computed: {
     ...trackingMixin.computed,
     ...tableMixin.computed,
     tableHero() { return this.route.page === "skills" && !this.route.view; },
-    inboxCount() { return this.m ? this.queue.length : 0; },
     activePlace() {
       return { inbox: "#/attention", recovery: "#/trash", tools: "#/advanced", tracking: "#/advanced" }[this.route.page]
         || (this.route.page === "missing" ? "" : "#/skills");
@@ -833,7 +901,7 @@ const app = createApp({
     },
     /* A description longer than about four reader lines is folded so the
      * document itself starts above the fold on a 768px-tall laptop. */
-    leadLong() { return !!(this.skill && this.skill.description && this.skill.description.length > 360); },
+    leadLong() { return (this.refCopy?.description || this.skill?.description || "").length > 360; },
     skill() { return this.m && this.route.page === "skill" ? this.m.byName.get(this.route.name) || null : null; },
     treeAll() {
       const q = this.treeQuery.trim().toLowerCase();
@@ -855,15 +923,59 @@ const app = createApp({
     refCopy() {
       const s = this.skill;
       if (!s) return null;
+      const { copyScope, copyPath } = this.route;
+      if (copyScope && copyPath) {
+        return s.copies.find((copy) => copy.scope === copyScope && copy.path === copyPath) || null;
+      }
       if (this.readCopyName === s.name && this.readCopyScope) {
         return s.copies.find(c => c.scope === this.readCopyScope && c.path === this.readCopyPath) || null;
       }
       return s.ref.holders[0] || s.primary;
     },
+    readerPlaces() {
+      if (!this.skill) return [];
+      return this.tableColumns.map((agent) => {
+        const key = tableKey(this.skill.name, agent.id);
+        const status = this.tableWorking.includes(key) ? "working" : Model.squareStatus(this.skill, agent, null, this.tableColumns);
+        return { ...agent, path: this.shortPath(agent.path), status, label: TABLE_WORDS[status], selected: this.route.selected === key };
+      });
+    },
+    readerVerdict() { return this.skill ? Model.rowVerdict(this.skill, this.tableColumns) : ""; },
+    readerNativeCopies() { return this.skill?.copies.filter((copy) => copy.record.native_state) || []; },
+    readerTrashCopies() {
+      if (!this.skill) return [];
+      const counts = new Map();
+      for (const copy of this.skill.squareCopies) counts.set(copy.scope, (counts.get(copy.scope) || 0) + 1);
+      return this.skill.copies.filter((copy) => tableWritable(copy) && this.agentOf(copy.scope).writable &&
+        counts.get(copy.scope) === 1);
+    },
+    readerUniqueScope() {
+      const c = this.refCopy;
+      return !!c && this.skill.squareCopies.filter((copy) => copy.scope === c.scope).length === 1;
+    },
+    readerKey() {
+      const copy = this.refCopy;
+      return !this.route.screen && this.bodyFetchable(copy) && copy.path && copy.hash
+        ? JSON.stringify([this.bodyKey(copy), copy.record.path, copy.record.disabled]) : "";
+    },
+    readerView() {
+      return this.readerResult?.key === this.readerKey ? this.readerResult?.document : null;
+    },
+    readerError() {
+      return this.readerResult?.key === this.readerKey ? this.readerResult?.error || "" : "";
+    },
+    readerFileName() {
+      return this.readerView?.filename || (this.refCopy?.record.disabled ? "SKILL.md.disabled" : "SKILL.md");
+    },
+    readerSnapshotsKey() {
+      const c = this.refCopy;
+      return !this.route.screen && this.readerUniqueScope && this.bodyFetchable(c) && !c.readOnly
+        ? this.bodyKey(c) : "";
+    },
     docHtml() {
       const s = this.skill;
       if (!s) return "";
-      const text = stripFrontmatter(this.bodyOf(this.refCopy));
+      const text = this.readerView?.body ?? stripFrontmatter(this.bodyOf(this.refCopy));
       let marks = new Set();
       if (this.cmp && this.highlight && this.bodyReady(this.cmp)) {
         const theirs = new Set(stripFrontmatter(this.bodyOf(this.cmp)).split("\n").map((l) => l.trim()));
@@ -875,23 +987,33 @@ const app = createApp({
      * name it cannot address) is not "still loading": it is unreadable here,
      * and the reader says why instead of waiting forever. */
     docPending() {
+      if (this.readerKey) return !this.readerView && !this.readerError;
       const copy = this.refCopy;
       return !!this.skill && this.bodyFetchable(copy) && !this.bodyReady(copy) && !this.bodyErrorOf(copy);
     },
     docWhy() {
       const c = this.refCopy;
-      if (!c && this.readCopyName === this.skill?.name && this.readCopyScope) {
+      if (!c && (this.route.copyScope || (this.readCopyName === this.skill?.name && this.readCopyScope))) {
         return { title: "Selected copy is no longer listed", text: "Refresh files or choose another copy from Exact instances.", missing: true };
       }
       if (!c || this.bodyFetchable(c)) return null;
       const why = BROKEN_WHY[c.kind];
       return why ? { title: why[0], text: why[1] } : { title: "Not readable here", text: "" };
     },
-    docError() { return this.bodyErrorOf(this.refCopy); },
+    docError() { return this.readerKey ? this.readerError : this.bodyErrorOf(this.refCopy); },
     editable() { return !!this.skill && this.skill.copies.some((c) => c.state !== "broken" && !c.readOnly); },
-    canEdit() { return !!this.skill && this.editable && this.bodyFetchable(this.refCopy) && !(this.refCopy && this.refCopy.readOnly); },
+    canEdit() {
+      return !!this.skill && this.editable && this.bodyFetchable(this.refCopy) && this.refCopy.state === "on" &&
+        !this.refCopy.readOnly && this.readerUniqueScope;
+    },
     editWhy() { const c = this.refCopy; if (c && c.readOnly) return this.readOnlyWhy(c); return this.docWhy ? `${this.docWhy.title}. ${this.docWhy.text}` : ""; },
-    editTargets() { return this.skill ? this.skill.copies.filter((c) => c.state !== "broken" && !c.readOnly) : []; },
+    editTargets() { return this.readerTrashCopies.filter((copy) => copy.state === "on"); },
+    editTargetChanged() {
+      return this.edit?.targets.some((scope) => {
+        const copy = this.editTargets.find((target) => target.scope === scope);
+        return !copy || this.bodyKey(copy) !== this.edit.initialTargets[scope];
+      }) || false;
+    },
     editError() {
       if (!this.edit) return "";
       if (!this.edit.desc.trim()) return "Add a short description so agents know when to use this skill.";
@@ -900,7 +1022,7 @@ const app = createApp({
     },
     editDirty() { return !!this.edit && (this.edit.desc !== this.edit.baseDesc || this.edit.body !== this.edit.baseBody || JSON.stringify(this.edit.metadata)!==JSON.stringify(this.edit.baseMetadata)); },
     shareTargets() {
-      if (!this.skill || !this.m) return [];
+      if (!this.skill || !this.m || !this.readerUniqueScope || !tableSource(this.refCopy)) return [];
       const have = new Set(this.skill.copies.map((c) => c.scope));
       return this.m.agents.filter((a) => !a.library && a.writable && !have.has(a.id));
     },
@@ -996,7 +1118,16 @@ const app = createApp({
     },
     themeLabel() { return { system: "follows your computer", light: "light", dark: "dark" }[this.theme]; },
     themeIcon() { return PATHS[{ system: "auto", light: "sun", dark: "moon" }[this.theme]]; },
-    createTargets() { return this.m ? this.m.agents.filter((x) => x.writable) : []; },
+    createTargets() {
+      if (!this.m) return [];
+      const targets = this.m.agents.filter((agent) => agent.writable);
+      const library = this.scopes.find((scope) => scope.id === "global");
+      if (library?.exists === false && library.writable !== false && library.availability !== "read-only") {
+        targets.push({ ...Model.agentMark("global", "Your library"), id: "global",
+          name: "Your library", library: true, path: library.path });
+      }
+      return targets;
+    },
     formErrors() {
       const f = this.dialog && this.dialog.form;
       if (!f) return {};
@@ -1020,6 +1151,8 @@ const app = createApp({
     "cur.id"() { this.inboxComparisonScope = ""; },
     "route.name"() { this.compareWith = ""; this.leadOpen = false; this.loadSkillHistory(); this.primeBodies(); },
     "route.page"(page) { if (page !== "map") this.mapOrigin = null; },
+    readerKey() { this.loadReaderView(); },
+    readerSnapshotsKey() { this.loadReaderSnapshots(); },
     skill(s) { if (!s && this.edit) this.edit = null; if (s) this.ensureBodies(s.copies); },
     mapQuery() { this.resetMapPage(); },
     mapReviewOnly() { this.resetMapPage(); },
@@ -1078,12 +1211,85 @@ const app = createApp({
       else Router.go(item.path);
     },
     agentOf(id) { return (this.m && this.m.agent(id)) || { ...FALLBACK_AGENT, name: id || "Unknown" }; },
+    readerCopyValue(copy) { return copy ? JSON.stringify([copy.scope, copy.path]) : ""; },
+    readerRouteOptions() {
+      const { file, copyScope, copyPath } = this.route;
+      return { view: file ? "file" : "", scope: copyScope, copy: copyPath };
+    },
+    readerWhyHref() { return Router.skillHref(this.skill.name, "why", this.readerRouteOptions()); },
+    readerHref() { return Router.skillHref(this.skill.name, "", this.readerRouteOptions()); },
+    chooseReaderCopy(value) {
+      const chosen = this.skill.copies.find((copy) => this.readerCopyValue(copy) === value);
+      if (!chosen) return;
+      this.compareWith = "";
+      this.leadOpen = false;
+      const href = Router.skillHref(this.skill.name, "", { ...this.readerRouteOptions(), scope: chosen.scope,
+        copy: chosen.path, sel: this.route.selected });
+      Router.replace(href);
+      this.route = Router.parseRoute(href);
+    },
+    showReaderFile(file) {
+      const href = Router.skillHref(this.skill.name, "", { ...this.readerRouteOptions(), view: file ? "file" : "", sel: this.route.selected });
+      Router.replace(href);
+      this.route = Router.parseRoute(href);
+    },
+    closeReaderSquare() {
+      const place = this.tableSelection?.agent;
+      this.tableClose();
+      this.$nextTick(() => {
+        const opener = [...this.$refs.readerPlaces?.querySelectorAll("[data-place]") || []]
+          .find((element) => element.dataset.place === place);
+        opener?.querySelector("button")?.focus();
+      });
+    },
+
+    async loadReaderView() {
+      const gen = ++this.readerGeneration;
+      const key = this.readerKey;
+      this.readerResult = null;
+      if (!key) return;
+      const { name, scope, hash, path, record } = this.refCopy;
+      const query = new URLSearchParams({ scope, view: "reader", target_path: record.path || path });
+      try {
+        const document = await api(`/api/skills/${encodeURIComponent(name)}?${query}`);
+        if (document.path !== path || document.content_hash !== hash) {
+          throw new Error("The file changed since it was checked. Refresh files and try again.");
+        }
+        if (gen === this.readerGeneration) this.readerResult = { key, document };
+      } catch (error) {
+        if (gen === this.readerGeneration) this.readerResult = { key, error: this.friendly(error.message) };
+      }
+    },
+    async refreshReaderView() {
+      const key = this.readerKey;
+      await this.refresh();
+      if (key && key === this.readerKey) await this.loadReaderView();
+    },
+    readerListingSpace(listing) {
+      const percent = 100 * listing.entry_chars / listing.budget_chars;
+      if (percent < 0.1) return "Less than 0.1% of the estimated skill list space.";
+      return `About ${this.fmt(Number(percent.toFixed(1)))}% of the estimated skill list space.`;
+    },
+
+    async loadReaderSnapshots() {
+      const gen = ++this.readerSnapshotsGeneration;
+      this.readerSnapshots = [];
+      this.readerSnapshotsError = "";
+      if (!this.readerSnapshotsKey) return;
+      const { name, scope } = this.refCopy;
+      try {
+        const snapshots = await this.snapshotIds(name, scope);
+        if (gen === this.readerSnapshotsGeneration) this.readerSnapshots = snapshots;
+      } catch (error) {
+        if (gen === this.readerSnapshotsGeneration) this.readerSnapshotsError = this.friendly(error.message);
+      }
+    },
 
     /* ----- loading ----- */
     async loadSkillHistory() {
       const gen = ++this.historyGen;
       this.skillHistory = [];this.skillHistoryError="";
-      if (this.route.page !== "skill") return;
+      if (this.route.page !== "skill" || this.route.screen) return;
       const name = this.route.name;
       try {
         const rows = await api("/api/history?limit=20&name=" + encodeURIComponent(name));
@@ -1184,8 +1390,9 @@ const app = createApp({
       if (!request) {
         request = api(`/api/skills/${encodeURIComponent(c.name)}?scope=${encodeURIComponent(c.scope)}`)
           .then((record) => {
-            const path = record?.physical_path || record?.path;
+            const path = record?.link_followed ? record.linked_to : record?.physical_path || record?.path;
             if (path && c.path && path !== c.path) throw new Error("The copy moved. Refresh files to find its current folder.");
+            if (record?.content_hash && c.hash && record.content_hash !== c.hash) throw new Error("The file changed. Refresh files to read the current version.");
             if (record?.decode_error || typeof record?.body !== "string") throw new Error("The document could not be read.");
             return record.body;
           });
@@ -1217,9 +1424,10 @@ const app = createApp({
     primeBodies() {
       if (!this.m) return;
       const page = this.route && this.route.page;
-      if (page === "skill" && this.skill) return this.ensureBodies(this.skill.copies);
+      if (page === "skill" && this.skill && this.route.screen !== "why") return this.ensureBodies(this.skill.copies);
       if (page === "inbox" && this.curSkill) return this.ensureBodies(this.curSkill.copies);
       if (page === "map") return this.ensureBodies(this.mapComparePair);
+      if (this.tableHero && this.tableMode) return this.ensureBodies(this.tableComparisonCopies);
       return undefined;
     },
     comparisonEvidence(pair) {
@@ -1234,6 +1442,11 @@ const app = createApp({
       return { copies, preview };
     },
     async retryDocument() {
+      if (this.readerKey) {
+        await this.refreshReaderView();
+        if (this.readerView) this.$refs.readerIdentity?.focus();
+        return;
+      }
       const copy = this.refCopy;
       await this.ensureBodies(copy);
       if (this.refCopy !== copy || !this.bodyReady(copy)) return;
@@ -1269,12 +1482,7 @@ const app = createApp({
     },
     dismissDialog(restoreFocus) {
       const opener = this.opener, aiEdit = this.dialog.aiEdit;
-      const returnRoute = restoreFocus && (this.dialog.routedNew || this.dialog.routedDiagnosis);
       this.dialog = null;
-      if (returnRoute) {
-        const href = this.route.screen === "new" ? "#/skills" : Router.skillHref(this.route.name);
-        this.changeRoute(Router.parseRoute(href));
-      }
       if (aiEdit) this.retireAiEdit(aiEdit.result);
       if (restoreFocus) this.$nextTick(() => { if (!this.dialog && opener?.isConnected) opener.focus(); });
     },
@@ -1381,11 +1589,15 @@ const app = createApp({
       return turning === "off" ? ` That frees about ${this.fmt(n)} tokens of that agent's budget.` : ` It uses about ${this.fmt(n)} tokens.`;
     },
 
-    async syncDiffering() {
+    reviewReaderChange(copy) {
+      const place = copy && this.tableColumns.find((column) => columnScopes(column).includes(copy.scope));
+      if (place) this.tableSelect({ name: this.skill.name, agent: place.id });
+      else this.toast("This copy has no square in the Skills table. Open Exact instances to review it.", { err: true });
+    },
+    syncDiffering() {
       const s = this.skill;
       if (!s || s.ref.ambiguous) return;
-      const from = s.ref.holders[0].scope;
-      await this.runSync(s.name, from, s.differing.filter((c) => !c.readOnly).map((c) => c.scope), `${s.name} now matches in`);
+      this.reviewReaderChange(s.differing[0]);
     },
     async runSync(name, from, tos, label, onUndo) {
       if (this.busy) return null;
@@ -1440,7 +1652,8 @@ const app = createApp({
     },
     fixSkillBad() {
       const p = this.m.problems.find((x) => x.id === "bad:" + this.skill.name);
-      if (p) this.fixBad(p);
+      if (p?.fixable) this.reviewReaderChange(this.skill.broken[0]);
+      else if (p) this.fixBad(p);
     },
     fixBad(p, undoHook) {
       if (p.fixable) return this.runSync(p.skill, p.source, p.agents, `${p.skill} was replaced in`, undoHook);
@@ -1449,35 +1662,47 @@ const app = createApp({
       return null;
     },
     openShare() {
-      if (!this.refCopy) return;
-      const s = this.skill, from = this.refCopy.scope;
+      if (!this.shareTargets.length) return;
+      const s = this.skill, source = this.refCopy, from = source.scope;
       this.openDialog({
         title: `Add “${s.name}” to another agent`, lines: ["Choose where to copy it. The copy comes from " + this.agentOf(from).name + ". Whether it is on or off, and its supporting files, are copied too."],
         picks: this.shareTargets.map((a) => ({ id: a.id, label: a.name, path: a.path })), chosen: this.shareTargets.length === 1 ? [this.shareTargets[0].id] : [], confirm: "Add",
-        onConfirm: (d) => this.runSync(s.name, from, d.chosen, `${s.name} was added to`),
+        onConfirm: (d) => this.change("copy", { sources: [source], scopes: d.chosen, originals: [],
+          keys: d.chosen.map((id) => tableKey(s.name, id)),
+          message: s.name + " added to " + join(d.chosen.map((id) => this.agentOf(id).name)) + "." }),
       });
     },
     openTrash() {
-      const s = this.skill;
+      const s = this.skill, copies = this.readerTrashCopies;
+      if (!copies.length) return;
       this.openDialog({
         title: `Move “${s.name}” to the trash?`, danger: true, confirm: "Move to trash",
         lines: ["Choose the places to remove it from. Each agent keeps its own trash folder, and every copy you remove here can be restored from Recovery or with Undo."],
-      picks: s.copies.filter(c => !c.readOnly).map((c) => ({ id: c.scope, label: this.agentOf(c.scope).name, path: shortPath(c.path) })), chosen: s.copies.filter(c => !c.readOnly).length === 1 ? [s.copies.find(c => !c.readOnly).scope] : [],
+        picks: copies.map((copy) => ({ id: copy.scope, label: this.agentOf(copy.scope).name, path: shortPath(copy.path) })),
+        chosen: copies.length === 1 ? [copies[0].scope] : [],
         onConfirm: async (d) => {
           this.busy = true;
+          const trashed = [];
+          let failure = "";
           try {
-            const trashed = [];
             for (const sc of d.chosen) {
               const r = await api(`/api/skills/${encodeURIComponent(s.name)}?scope=${encodeURIComponent(sc)}&purge=0`, { method: "DELETE" });
-              if (r && r.trash_path) trashed.push({ scope: sc, trash_path: r.trash_path });
+              if (!r?.trash_path) throw new Error("The trash entry could not be confirmed. Check Trash before retrying.");
+              trashed.push({ scope: sc, trash_path: r.trash_path });
             }
+          } catch (error) {
+            failure = this.friendly(error.message);
+          }
+          try {
             await this.refresh();
+            if (!trashed.length) { if (failure) this.toast(failure, { err: true }); return; }
             const undo = trashed.length ? async () => { for (const t of trashed) await this.restoreTrashed(s.name, t.scope, t.trash_path); } : null;
             const undoAt = this.route.page === "skill" && this.route.name === s.name &&
               !this.m.byName.get(s.name) ? "#/skills" : null;
-            this.toast(`${s.name} moved to the trash in ${join(d.chosen.map((id) => this.agentOf(id).name))}.`, { undo, undoAt });
+            const places = join(trashed.map((item) => this.agentOf(item.scope).name));
+            this.toast(`${s.name} moved to the trash in ${places}.${failure ? " " + failure : ""}`, { undo, undoAt, err: !!failure });
             if (undoAt) Router.go(undoAt);
-          } catch (e) { this.toast(e.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
+          } finally { this.busy = false; }
         },
       });
     },
@@ -1523,6 +1748,12 @@ const app = createApp({
         catch (error) { this.toast("Skill created. Test cases could not be saved. " + this.friendly(error.message), { err: true }); }
       }
     },
+    async newSkillCreated({ name, count }) {
+      const origin = this.route.href;
+      await this.refresh();
+      this.toast(`${name} created in ${plural(count, "place")}.`);
+      if (this.route.href === origin && this.m?.byName.has(name)) Router.go(Router.skillHref(name));
+    },
     openCreate(prefill = {}) {
       const first = this.createTargets.find((x) => !x.library) || this.createTargets[0];
       const target = this.createTargets.find((x) => x.id === prefill.scope);
@@ -1535,6 +1766,7 @@ const app = createApp({
             await api("/api/skills?scope=" + encodeURIComponent(f.scope), { method: "POST",
               body: JSON.stringify({ name: f.name.trim(), description: f.desc.trim(), category:f.category,version:f.version,license:f.license,compatibility:f.compatibility,allowed_tools:f.allowed_tools,body:f.body.replaceAll("{name}",f.name.trim()) }) });
             this.dialog=null;
+            this.$refs.newSkill?.finish();
             await this.saveAuthorCases(d, f.name.trim());
             await this.refresh();
             this.toast(`${f.name.trim()} created in ${this.agentOf(f.scope).name}.`);
@@ -1740,21 +1972,27 @@ const app = createApp({
        * A periodic re-read replaces `skill` with an equal-named object, so the
        * identity that matters is the name and the route, not the object. */
       await this.ensureBodies([c]);
-      if (this.route.href !== href || !this.skill || this.skill.name !== s.name || this.route.page !== "skill") return;
+      if (this.route.href !== href || !this.skill || this.skill.name !== s.name || this.route.page !== "skill" ||
+          !this.refCopy || this.refCopy.scope !== c.scope || this.refCopy.path !== c.path || this.refCopy.hash !== c.hash) return;
       if (!this.bodyReady(c)) { this.toast(this.bodyErrorOf(c) || "The document could not be read. Try again.", { err: true }); return; }
       const body = stripFrontmatter(this.bodyOf(c).replace(/^\uFEFF/, ""));
       const metadata={category:c.record.category||"",version:c.record.version||"",license:c.record.license||"",compatibility:Domain.formatCompat(c.record.compatibility),allowed_tools:Domain.formatTools(c.record.allowed_tools)};
-      this.edit = { name: s.name, desc: c.description, baseDesc: c.description, body, baseBody: body, metadata,baseMetadata:{...metadata},tab: "write", targets: this.readCopyPath ? [c.scope] : this.editTargets.map((x) => x.scope), copy: { path: c.path, scope: c.scope, hash: c.hash } };
+      const exact = this.route.copyPath || (this.readCopyName === s.name && this.readCopyPath);
+      const targets = this.editTargets;
+      this.edit = { name: s.name, desc: c.description, baseDesc: c.description, body, baseBody: body,
+        metadata, baseMetadata: { ...metadata }, tab: "write", error: "",
+        targets: exact ? [c.scope] : targets.filter((copy) => copy.hash === c.hash).map((copy) => copy.scope),
+        initialTargets: Object.fromEntries(targets.map((copy) => [copy.scope, this.bodyKey(copy)])),
+        copy: { path: c.path, scope: c.scope, hash: c.hash } };
       this.showSkillView("edit");
       this.$nextTick(() => { this.growArea(); const d = document.getElementById("ed-desc"); if (d) d.focus(); });
     },
     openAiDiagnosis() {
       if (!this.refCopy) return;
-      this.showSkillView("why");
-      this.openDialog({ title: "Why didn’t this skill run?", diagnosis: this.refCopy, routedDiagnosis: true });
+      this.openDialog({ title: "Why didn’t this skill run?", diagnosis: this.refCopy });
     },
     showSkillView(screen = "") {
-      const href = Router.skillHref(this.route.name, screen);
+      const href = Router.skillHref(this.route.name, screen, this.readerRouteOptions());
       this.route = Router.parseRoute(href);
       this.routeAction = href;
       Router.replace(href);
@@ -1842,7 +2080,9 @@ const app = createApp({
         e.body = e.baseBody = a.result.proposed;
         e.targets = [a.target.scope];
         await this.refresh();
-        e.copy.hash = this.skill?.copies.find(c => c.path === a.target.path && c.scope === a.target.scope)?.hash || "";
+        const installed = this.editTargets.find((copy) => copy.path === a.target.path && copy.scope === a.target.scope);
+        e.copy.hash = installed?.hash || "";
+        if (installed) e.initialTargets[installed.scope] = this.bodyKey(installed);
         this.toast(committed.warning || "AI edit saved. The previous folder is available in Recovery.");
         this.$nextTick(() => { this.growArea(); this.$refs.edbody?.focus(); });
       } catch (error) { a.error = this.friendly(error.message); }
@@ -1852,29 +2092,71 @@ const app = createApp({
       if (this.editDirty) return this.openDialog({ title: "Discard your changes?", lines: [`You have unsaved changes to “${this.edit.name}”.`], cancel: "Keep editing", confirm: "Discard changes", danger: true, onConfirm: () => { this.edit = null; this.showSkillView(); } });
       this.edit = null; this.showSkillView(); return null;
     },
+    async checkEditTarget(draft, scope) {
+      const record = await api(`/api/skills/${encodeURIComponent(draft.name)}?scope=${encodeURIComponent(scope)}`);
+      const path = record?.physical_path || record?.path;
+      const key = this.bodyKey({ name: draft.name, scope, path, hash: record?.content_hash });
+      if (key !== draft.initialTargets[scope] || record.disabled || record.read_only || record.malformed) {
+        throw new Error("This skill changed on disk in " + this.agentOf(scope).name + ". Your draft is still open.");
+      }
+    },
+    editFields(draft, different) {
+      const fields = {};
+      if (different || draft.desc !== draft.baseDesc) fields.description = draft.desc;
+      if (different || draft.body !== draft.baseBody) fields.body = draft.body;
+      for (const key of Object.keys(draft.metadata)) {
+        if (different || draft.metadata[key] !== draft.baseMetadata[key]) fields[key] = draft.metadata[key];
+      }
+      return fields;
+    },
     async saveEdit() {
       /* Same guard as the Save button: Ctrl/Cmd+S must not save to zero
        * targets (which discarded the edit), save nothing, or save twice. */
-      const e = this.edit; if (!e || this.editError || this.busy || !e.targets.length || !this.editDirty) return;
-      this.busy = true; const saved = [];
+      const e = this.edit;
+      if (!e || this.editError || this.busy || !e.targets.length || !this.editDirty || this.editTargetChanged) return;
+      const targets = this.editTargets.filter((copy) => e.targets.includes(copy.scope));
+      if (targets.length !== e.targets.length) return;
+      const writes = targets.map((copy) => ({ scope: copy.scope, path: copy.path, hash: copy.hash,
+        fields: this.editFields(e, copy.hash !== e.copy.hash) }));
+      this.busy = true;
+      e.error = "";
+      const saved = [], changed = [];
       try {
-        const fields = {};
-        if(e.desc!==e.baseDesc)fields.description=e.desc;
-        if(e.body!==e.baseBody)fields.body=e.body;
-        for(const key of Object.keys(e.metadata))if(e.metadata[key]!==e.baseMetadata[key])fields[key]=e.metadata[key];
-        const snaps = {};
-        for (const sc of e.targets) snaps[sc] = new Set(await this.snapshotIds(e.name, sc));
-        for (const sc of e.targets) {
-          await api(`/api/skills/${encodeURIComponent(e.name)}?scope=${encodeURIComponent(sc)}`, { method: "PATCH", body: JSON.stringify(fields) });
-          const fresh = (await this.snapshotIds(e.name, sc)).find((id) => !snaps[sc].has(id));
-          if (fresh) saved.push([sc, fresh]);
+        await Promise.all(writes.map(({scope}) => this.checkEditTarget(e, scope)));
+        for (const { scope, path, hash, fields } of writes) {
+          const url = `/api/skills/${encodeURIComponent(e.name)}?scope=${encodeURIComponent(scope)}`;
+          const result = await api(url, { method: "PATCH", body: JSON.stringify({ ...fields, expected: { path, content_hash: hash } }) });
+          if (result?.changed === false) continue;
+          changed.push(scope);
+          if (result?.snapshot && result.content_hash) {
+            const evidence = this.bodyKey({ name: e.name, scope, path, hash: result.content_hash });
+            saved.push({ scope, snapshot: result.snapshot, evidence, path, hash: result.content_hash });
+          }
         }
         this.edit = null;
         this.showSkillView();
+        this.reportEditResult(e, changed, saved);
+      } catch (error) {
+        e.targets = e.targets.filter((scope) => !changed.includes(scope));
+        e.error = this.friendly(error.message);
+        this.reportEditResult(e, changed, saved, e.error);
+      } finally {
         await this.refresh();
-        const undo = saved.length ? async () => { for (const [sc, snap] of saved) await api(`/api/trash/${encodeURIComponent(e.name)}?snapshot=${encodeURIComponent(snap)}&scope=${encodeURIComponent(sc)}`, { method: "POST" }); } : null;
-        this.toast(`${e.name} saved to ${plural(e.targets.length, "place")}.`, { undo });
-      } catch (err) { this.toast(err.message, { err: true }); await this.refresh(); } finally { this.busy = false; }
+        this.busy = false;
+      }
+    },
+    reportEditResult(draft, changed, saved, error = "") {
+      const initialTargets = Object.fromEntries(saved.map(({ scope, evidence }) => [scope, evidence]));
+      const undo = saved.length ? async () => {
+        await Promise.all(saved.map(({scope}) => this.checkEditTarget({ name: draft.name, initialTargets }, scope)));
+        for (const { scope, snapshot, path, hash } of saved) {
+          await api(`/api/trash/${encodeURIComponent(draft.name)}?snapshot=${encodeURIComponent(snapshot)}&scope=${encodeURIComponent(scope)}`,
+            { method: "POST", body: JSON.stringify({ expected: { path, content_hash: hash } }) });
+        }
+      } : null;
+      const message = changed.length ? `${draft.name} saved to ${plural(changed.length, "place")}.` : error ? "" : "No file changed.";
+      const recovery = changed.length !== saved.length ? " Check Recovery for other saved copies." : "";
+      this.toast([message + recovery, error].filter(Boolean).join(" "), { undo, err: !!error });
     },
     growArea() { const a = this.$refs.edbody; if (a) { a.style.height = "auto"; a.style.height = Math.max(420, a.scrollHeight + 4) + "px"; } },
     insertText(prefix) {
@@ -2040,13 +2322,8 @@ const app = createApp({
       this.updatePageTitle();
       if (!this.m || this.routeAction === next.href) return;
       this.routeAction = next.href;
-      if (next.screen === "new") {
-        this.openCreate({ template: next.template });
-        this.dialog.routedNew = true;
-      } else if (next.screen === "edit" && this.canEdit && !this.edit) {
+      if (next.screen === "edit" && this.canEdit && !this.edit) {
         this.openRouteEditor(next.href);
-      } else if (next.screen === "why" && this.refCopy) {
-        this.openAiDiagnosis();
       }
     },
     async openRouteEditor(href) {
@@ -2061,6 +2338,11 @@ const app = createApp({
       document.title = (missing ? "Page not found" : Router.title(this.route)) + " · Jackfield";
     },
     needsRouteConfirmation(next) {
+      const draft = this.$refs.newSkill;
+      if (draft?.dirty) {
+        return { title: "Discard this skill draft?", lines: ["The draft is still open."],
+          cancel: "Keep editing", confirm: "Discard draft", onConfirm: () => { draft.finish(); Router.go(next.href); } };
+      }
       if (this.editDirty && !(next.page === "skill" && next.name === this.edit.name && next.screen === "edit")) {
         return { title: "Discard your changes?", lines: ["You have unsaved changes to “" + this.edit.name + "”."],
           cancel: "Keep editing", confirm: "Discard changes", onConfirm: () => { this.edit = null; Router.go(next.href); } };
@@ -2074,6 +2356,7 @@ const app = createApp({
     },
     changeRoute(next) {
       if (next.href === this.route.href) { Router.replace(next.href); return; }
+      if (this.$refs.newSkill?.writing || (this.busy && this.edit)) { Router.replace(this.route.href); return; }
       if (this.dialog?.form && (this.busy || this.createDraftDirty())) {
         Router.replace(this.route.href);
         if (!this.busy) this.reviewCreateDiscard(next.href);
@@ -2088,6 +2371,8 @@ const app = createApp({
         this.leaveUndo(next.href);
       }
       this.mapMenu = ""; this.projectMenu = false;
+      this.tableStopAgent = "";
+      this.tableMode = ""; this.tableVersion = ""; this.tableError = null;
       if (next.page !== "map") this.mapConfirm = "";
       const previous = this.route;
       if (next.page === "tracking" && (previous.page !== next.page || previous.name !== next.name)) {
@@ -2098,7 +2383,8 @@ const app = createApp({
       this.loadSkillHistory();
       this.primeBodies();
       if (next.page === "recovery") this.loadAgentTrash();
-      window.scrollTo(0, 0); this.focusH1();
+      window.scrollTo(0, 0);
+      if (next.screen !== "new") this.focusH1();
       this.showRouteScreen();
     },
     skipCurrent() { if (!this.cur) return; const id = this.cur.id; this.skipped = [...this.skipped.filter((x) => x !== id), id]; this.front = null; this.focusH1(); },
@@ -2109,7 +2395,9 @@ const app = createApp({
     this.applyRouteOptions(this.route);
     Router.onChange((next) => this.changeRoute(next));
     window.addEventListener("beforeunload", (e) => {
-      if (this.editDirty || this.trackFormDirty || this.createDraftDirty()) { e.preventDefault(); e.returnValue = ""; }
+      if (this.editDirty || this.trackFormDirty || this.createDraftDirty() || this.$refs.newSkill?.dirty || this.$refs.newSkill?.writing) {
+        e.preventDefault(); e.returnValue = "";
+      }
     });
     document.addEventListener("keydown", (e) => {
       const t = e.target, typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
@@ -2143,7 +2431,7 @@ const app = createApp({
       lastLoad = Date.now(); this.refresh({ observe: this.route.page === "skills" && !this.route.view });
     });
     if (window.matchMedia) {
-      const tablet = window.matchMedia("(max-width: 640px)");
+      const tablet = window.matchMedia("(width < 900px)");
       const setTableWidth = () => { this.tableNarrow = tablet.matches; };
       setTableWidth(); tablet.addEventListener("change", setTableWidth);
       const mq = window.matchMedia("(prefers-color-scheme: dark)");

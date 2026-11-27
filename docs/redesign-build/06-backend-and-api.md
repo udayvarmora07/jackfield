@@ -25,8 +25,8 @@ and ask the maintainer before adding a route (AGENTS.md "ASK before"). Any
 |---|---|---|
 | All copies for the table | `GET /api/skills?scope=all&body=0` | `content_hash`, `enabled`, `description`, `tokens`, `physical_path`, scope, `native_state`, instance state. Already filtered by tracking on the server |
 | Columns, folders, counts | `GET /api/scopes` | Tracked scopes only; the showing project only |
-| One document | `GET /api/skills/<name>?scope=` | Lazy, cached by `scope+name+content_hash` (`ensureBodies`) |
-| Same-name instances in a recursive scope | `GET /api/skills?scope=<s>&q=<name>` | Matched by `physical_path` (existing behaviour) |
+| Skill page document and Details | `GET /api/skills/<name>?scope=&view=reader&target_path=` | Exact selected folder. Returns current UTF-8 text, rendered-source body, file counts and the personal Claude Code listing estimate where applicable |
+| Document for the editor and comparisons | `GET /api/skills/<name>?scope=` | Lazy, cached by scope, name, path and content hash. Comparison reads for same-name instances in one scope match scoped list rows by `physical_path` |
 | History | `GET /api/history?limit=&name=&scope=&snapshots=1` | S3 details, S8 recent changes, Undo of edits |
 | Trash | `GET /api/trash[?scope=]` | S8 |
 | Templates | `GET /api/templates`, `GET /api/templates/<id>` | S5 |
@@ -46,8 +46,8 @@ and ask the maintainer before adding a route (AGENTS.md "ASK before"). Any
 | Add to a place (Not here) | Checked batch `sync` to an empty destination | Move the added copy to Trash if its folder still matches the installed tree |
 | Make match / replace damaged / keep version N | Check the source and destinations, move the existing folders to Trash with a checked batch `remove`, then run a checked non-forced batch `sync` | Move the added copy to Trash and restore its exact previous `trash_path` |
 | Several rows at once | `POST /api/batch/preview`, `POST /api/batch/execute` for the relevant checked operations above | One Undo for confirmed results with verified recovery evidence |
-| Edit | `PATCH /api/skills/<name>?scope=` per place | `POST /api/trash/<name>?snapshot=<id>&scope=` (existing snapshot rollback) |
-| Create | `POST /api/skills?scope=` per place | Move to Trash |
+| Edit | `PATCH /api/skills/<name>?scope=` per place, with expected folder and content hash | `POST /api/trash/<name>?snapshot=<id>&scope=` with the returned hash and exact snapshot ID |
+| Create | `POST /api/skills?preview=1` returns the serialized file without writing; `POST /api/skills?scope=` writes per chosen place | Move to Trash |
 | Move to Trash | `DELETE /api/skills/<name>?scope=&purge=0` | `POST /api/trash/<name>?scope=` |
 | Delete forever | `DELETE /api/skills/<name>?scope=&purge=1` | None: say so first |
 | Restore | `POST /api/trash/<name>[?scope=]` (+ `trash_path`) | Move to Trash again |

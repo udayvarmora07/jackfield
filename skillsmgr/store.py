@@ -34,7 +34,7 @@ from .atomic_io import move_trash_tree, stage_sibling
 from .atomic_io import register_lock_root as _register_lock_root
 from . import archive as _archive
 from .path_safety import mkdir_private
-from .documents import has_document, read_skill_text_strict, reject_conflicting_documents, toggle_document
+from .documents import check_edit_target, edit_receipt, has_document, read_skill_text_strict, reject_conflicting_documents, toggle_document
 from .read_flights import coalesced_read
 from .errors import (  # noqa: F401  (re-exported for compatibility)
     LockTimeoutError,
@@ -52,6 +52,7 @@ from .clock import iso, now_iso, stamp
 from .catalog import catalog_path, load_catalog
 from .loader import document_reuse_worthwhile, husk_record, load_skill, name_is_addressable, scan_dir
 from .search import rank_results
+from .skill_create import new_skill_document, new_skill_fields
 
 SCHEMA_VERSION = "1"
 
@@ -1503,21 +1504,7 @@ class Store:
         body: str | None = None,
     ) -> dict:
         """Create a new skill from validated inputs."""
-        try:
-            name = validate_skill_name(name.strip())
-        except ValueError as exc:
-            raise StoreError(str(exc)) from exc
-        if not description or not description.strip():
-            raise StoreError("description is required")
-        description = description.strip()
-        if len(description) > MAX_DESCRIPTION:
-            raise StoreError(
-                f"description exceeds {MAX_DESCRIPTION} characters"
-            )
-        if compatibility and len(compatibility) > MAX_COMPATIBILITY:
-            raise StoreError(
-                f"compatibility exceeds {MAX_COMPATIBILITY} characters"
-            )
+        name, description = new_skill_fields(name, description, compatibility)
         skill_dir = _safe_skill_path(self.skills_dir, name)
         if skill_dir.exists():
             raise StoreError(f"skill '{name}' already exists")
@@ -1527,32 +1514,10 @@ class Store:
         # in the handler below failed the same way.
         self._init_db()
 
-        data: dict = {"name": name, "description": description}
-        if license:
-            data["license"] = license
-        if compatibility:
-            data["compatibility"] = compatibility
-        if version:
-            data["version"] = version
-        if allowed_tools:
-            if isinstance(allowed_tools, str):
-                allowed_tools = allowed_tools.strip()
-            elif isinstance(allowed_tools, (list, tuple)):
-                allowed_tools = [
-                    t.strip() for t in allowed_tools if str(t).strip()
-                ]
-            data["allowed-tools"] = allowed_tools
-        metadata = dict(metadata_extra or {})
-        if category:
-            metadata["category"] = category
-        if metadata:
-            data["metadata"] = metadata
-
-        if body is None:
-            body = f"# {name}\n"
-        if not body.endswith("\n"):
-            body += "\n"
-        content = dump_frontmatter(data, key_order=list(data.keys())) + body
+        content = new_skill_document(
+            name, description, license=license, category=category, compatibility=compatibility,
+            version=version, allowed_tools=allowed_tools, metadata_extra=metadata_extra, body=body, normalize_tools=True,
+        )
 
         history_id: int | None = None
         try:
@@ -1674,6 +1639,7 @@ class Store:
         allowed_tools: str | None = None,
         metadata_extra: dict | None = None,
         body: str | None = None,
+        *, expected: tuple[str, str] | None = None,
     ) -> dict:
         skill_dir = _safe_skill_path(self.skills_dir, name)
         with _skill_and_index_locks(self.skills_dir, skill_dir):
@@ -1687,6 +1653,7 @@ class Store:
                 allowed_tools=allowed_tools,
                 metadata_extra=metadata_extra,
                 body=body,
+                expected=expected,
             )
 
     def _edit_unlocked(
@@ -1700,6 +1667,7 @@ class Store:
         allowed_tools: str | None = None,
         metadata_extra: dict | None = None,
         body: str | None = None,
+        *, expected: tuple[str, str] | None = None,
     ) -> dict:
         """Apply partial updates to a skill, preserving unknown frontmatter keys."""
         skill_dir = _safe_skill_path(self.skills_dir, name)
@@ -1712,6 +1680,7 @@ class Store:
             raise SkillNotFound(f"skill '{name}' has no SKILL.md")
 
         text = read_skill_text_strict(md_file, subject=f"skill '{name}'")
+        check_edit_target(md_file, text, expected)
         try:
             data, original_body = parse_frontmatter(text)
         except FrontmatterError as exc:
@@ -1773,12 +1742,14 @@ class Store:
                 original_body = body
                 changed = True
 
+        snapshot = None
+        content = text
         if changed:
             key_order = original_keys + [k for k in data if k not in original_keys]
             content = dump_frontmatter(data, key_order=key_order) + original_body
             replaced = False
             try:
-                write_snapshot(self.data_dir, "global", name, text)
+                snapshot = write_snapshot(self.data_dir, "global", name, text)
                 atomic_write_text(md_file, content)
                 replaced = True
                 self._upsert_entry(name)
@@ -1803,7 +1774,7 @@ class Store:
                     except Exception as rollback_exc:
                         _diagnose(f"edit rollback failed for {name!r}", rollback_exc)
                 raise
-        return {"name": name, "changed": changed}
+        return {"name": name, "changed": changed, **edit_receipt(expected, snapshot, content)}
 
     def remove(self, name: str, purge: bool = False) -> dict:
         """Move a skill to the trash, or permanently delete it with ``purge``."""
@@ -1902,7 +1873,8 @@ class Store:
         finally:
             conn.close()
 
-    def restore(self, name: str, snapshot: str | None = None, *, trash_path: str | None = None) -> dict:
+    def restore(self, name: str, snapshot: str | None = None, *, trash_path: str | None = None,
+                expected: tuple[str, str] | None = None) -> dict:
         """Restore the selected trash entry (newest by default), or roll back a snapshot."""
         skill_dir = _safe_skill_path(self.skills_dir, name)
         if snapshot is not None:
@@ -1915,6 +1887,7 @@ class Store:
             with mutation_lock(index_lock_path(self.skills_dir)):
 
                 current = read_skill_text_strict(md_file, subject=f"skill '{name}'")
+                check_edit_target(md_file, current, expected)
                 write_snapshot(self.data_dir, "global", name, current)
                 try:
                     atomic_write_text(md_file, content)

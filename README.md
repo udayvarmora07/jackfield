@@ -99,7 +99,7 @@ Windows (PowerShell):
 powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/udayvarmora07/jackfield/main/install.ps1 | iex"
 ```
 
-The installer uses `uv tool install` if you have [uv](https://docs.astral.sh/uv/), otherwise `pipx install`, otherwise a private virtual environment with a `skills-mgr` link in `~/.local/bin` (Windows: `%LOCALAPPDATA%\skill-control-plane\venv`). With uv you do not need Python already installed; otherwise you need **Python ≥ 3.11**. It does not edit your shell start-up files or PATH; it prints the line to add if `jackfield` is not found yet. It never touches your skills.
+The installer uses `uv tool install` if you have [uv](https://docs.astral.sh/uv/), otherwise `pipx install`, otherwise a private virtual environment with a `skills-mgr` link in `~/.local/bin` (Windows: `%LOCALAPPDATA%\skill-control-plane\venv`). With uv you do not need Python already installed. The other install methods require **Python ≥ 3.11**. If `skills-mgr` isn’t on PATH, the installer prints the line to add to your shell configuration. It never touches your skills.
 
 Prefer to read it first? Download [`install.sh`](https://github.com/udayvarmora07/jackfield/blob/main/install.sh) or [`install.ps1`](https://github.com/udayvarmora07/jackfield/blob/main/install.ps1), look at it, then run it.
 

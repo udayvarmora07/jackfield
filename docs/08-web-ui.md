@@ -533,9 +533,10 @@ new persistence or authority.
 |---|---|---|---|
 | GET | `/api/skills[?scope=SCOPE][&q=TERM][&limit=N][&offset=N][&body=FLAG]` | — | list of skills (scope-aware; default global), including root availability, consumer, discovery recursion, `addressable`, observed instance state, and unresolved effective-state metadata. `body=0` (the list view) omits bodies and the parsed `portable_frontmatter` / `frontmatter_extensions` maps, which no list reads (the detail route still returns them; 2026-11-20); absent or `body=1` preserves existing fields. Invalid, blank or repeated body flags are 400s before scanning. Search remains body-aware. **Opt-in paging:** `limit`/`offset` bound the page and every response carries `X-Total-Count` (the unpaged total). An unpaged request still returns every row, because the web UI depends on it. List pages are serialized with compact separators (`,` `:`); the parsed value is unchanged. Paging parameters this API does not implement (`page`, `per_page`, `cursor`, `before`, `after`, `start`, `skip`, `first`) are a `400` naming `limit`/`offset`, not silently ignored; `limit` is capped at 500 (docs/24 §D3-9) |
 | GET | `/api/skills/<name>[?scope=SCOPE]` | — | full record incl. body + path. A row whose directory is gone answers `404 skill_not_found` rather than `200` with the stored body — `list()` already omits it and `doctor()` still reports it as a stale row, so serving it here was the one route returning content the filesystem does not have (docs/24 §D3-6) |
+| GET | `/api/skills/<name>?scope=SCOPE&view=reader&target_path=PATH` | — | Skill page view for one selected folder. Returns physical `path`, `filename`, `content_hash`, exact UTF-8 `raw`, parsed `body`, main-document `lines`, bounded `files` with relative paths and nullable line counts, `files_incomplete`, and nullable `claude_listing` for personal Claude Code skills. |
 | GET | `/api/skills/<name>/raw[?scope=SCOPE]` | — | raw SKILL.md text (text/plain) |
-| POST | `/api/skills[?scope=SCOPE]` | `{name, description, category?, version?, license?, compatibility?, allowed_tools?, body?}` | created record (201) |
-| PATCH | `/api/skills/<name>[?scope=SCOPE]` | partial fields (same keys as POST) | `{name, changed}` |
+| POST | `/api/skills[?scope=SCOPE]` | `{name, description, category?, version?, license?, compatibility?, allowed_tools?, body?}` | Created record (201). `preview=1` returns `{name, content}` (200) with the exact serialized text and writes no files. The create call still checks the destination. |
+| PATCH | `/api/skills/<name>[?scope=SCOPE]` | Partial fields from POST and optional `expected: {path, content_hash}` | `{name, changed}`. Guarded changes verify the folder and hash under the write lock and return the exact `snapshot` ID and resulting `content_hash`. |
 | POST | `/api/skills/<name>/disable[?scope=SCOPE]` | — | `{name, disable: true}` |
 | POST | `/api/skills/<name>/enable[?scope=SCOPE]` | — | `{name, enable: true}` |
 | DELETE | `/api/skills/<name>?purge=0\|1[&scope=SCOPE]` | — | Store.remove / scopes.remove_skill result |
@@ -940,6 +941,17 @@ with Ctrl/Cmd K and from the desktop header.
   view clears earlier agent, state and tag filters.
 - The reader places comparison controls next to the document at every width.
   Its history follows the current skill and discards reads from an earlier route.
+- The Paper reader and Editor retain an explicit copy in the URL. The reader
+  checks the exact UTF-8 text against the observed hash and identifies library
+  history and saved file snapshots separately. The Editor compares guarded
+  changes and Undo against the current path and content hash. Snapshot restore
+  accepts the same optional `expected` object in the request body.
+- New skill previews the serialized `SKILL.md` before creating it in the chosen
+  folders. A partial result lists each confirmed write, keeps those files and
+  requires checking uncertain destinations before another attempt.
+- “Why isn’t it running?” shows what the app observed on disk and in settings.
+  Agent runtime loading stays Unknown. Prompt simulations and trace review are
+  available under the reader’s AI maintenance disclosure.
 - **Honesty rules** (`model.js`): there is no version order, so a skill whose
   copies differ is "Copies differ" and the reference copy is the content most
   copies hold; a tie is reported as ambiguous and the Inbox asks which copy to
@@ -952,8 +964,9 @@ with Ctrl/Cmd K and from the desktop header.
   (`write_snapshot` on forced sync and edit) and the snapshot rollback route.
   Agent-scope trash offers Undo and the reviewed restore in Recovery.
 - Keyboard shortcuts (`/`, `?`, and the Inbox's Enter/`S`) never fire from a
-  link, button, field or summary, so Enter on a link always follows it. An Undo
-  toast lasts 20 s and pauses while focused or hovered. "Skip to content"
+  link, button, field or summary, so Enter on a link always follows it. Undo
+  stays available on the current page until it is used, dismissed or replaced
+  by a newer Undo. "Skip to content"
   focuses the page heading without changing the route. See
   @docs/32-continuation-verification-2026-11-06.md.
 - The page re-reads the filesystem when the tab becomes visible again (at most

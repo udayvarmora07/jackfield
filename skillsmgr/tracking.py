@@ -29,7 +29,6 @@ import copy
 import json
 import os
 import re
-import shutil
 import stat
 from pathlib import Path
 
@@ -39,6 +38,7 @@ from .clock import stamp
 from .context import active_store
 from .documents import DOCUMENT_NAMES
 from .errors import StoreError
+from .file_reads import FileTooLarge, NotRegularFile, SymlinkNotAllowed, read_regular_file
 from .root_discovery import project_scope_specs
 
 FILE_NAME = "tracking.json"
@@ -308,7 +308,11 @@ def load(data_dir: Path) -> tuple[dict, str, str | None]:
     if info.st_size > MAX_FILE_BYTES:
         return default_document(), "broken", "It is larger than a settings file can be."
     try:
-        raw = path.read_text(encoding="utf-8")
+        raw = read_regular_file(path, MAX_FILE_BYTES, follow_symlinks=False).decode("utf-8")
+    except FileTooLarge:
+        return default_document(), "broken", "It is larger than a settings file can be."
+    except (NotRegularFile, SymlinkNotAllowed):
+        return default_document(), "broken", "It isn't a regular file."
     except (OSError, UnicodeError) as exc:
         return default_document(), "broken", f"It couldn't be read ({getattr(exc, 'strerror', None) or exc})."
     try:
@@ -501,17 +505,19 @@ def count_skill_folders(root: Path, *, recursive: bool) -> tuple[str, list[str] 
     return "ok", names
 
 
-def _scope_names(scope: scopes.Scope) -> tuple[str, list[str] | None]:
+def _scope_names(scope: scopes.Scope) -> tuple[str, list[str] | None, bool]:
     """Names in a scope as the table counts them (tracked roots only)."""
     try:
         if not scope.base.is_dir():
-            return count_skill_folders(scope.base, recursive=scope.recursive)
+            status, names = count_skill_folders(scope.base, recursive=scope.recursive)
+            return status, names, status != "unreadable"
         if not os.access(scope.base, os.R_OK | os.X_OK):
-            return "unreadable", None
-        rows = scopes._scan_agent_root(scope, link_roots=scopes._peer_link_roots(scope))
+            return "unreadable", None, False
+        problems: list[dict] = []
+        rows = scopes._scan_agent_root(scope, link_roots=scopes._peer_link_roots(scope), collector=problems)
     except OSError:
-        return "unreadable", None
-    return "ok", [str(row.get("name")) for row in rows]
+        return "unreadable", None, False
+    return "ok", [str(row.get("name")) for row in rows], not problems
 
 
 # -- the live report (GET /api/tracking) -----------------------------------
@@ -546,22 +552,25 @@ def _project_report(folder: str, showing: str | None, custom_specs: list) -> dic
             "skill_folders": found, "skill_count": total if status == "ok" else None}
 
 
-def report(data_dir: Path, store_skills_dir: Path) -> dict:
+def report(data_dir: Path, store_skills_dir: Path, *, saved_document: dict | None = None) -> dict:
     """Saved settings (or defaults) plus what is on disk right now."""
-    document, state, reason = load(data_dir)
+    document, state, reason = (load(data_dir) if saved_document is None else (saved_document, "ok", None))
     view = TrackingView(document, state)
     agents_doc = document["agents"]
     view_scopes = [s for s in _view_scopes(view)]
     names_by_scope: dict[str, list[str] | None] = {}
     status_by_scope: dict[str, str] = {}
+    incomplete = False
     for scope in view_scopes:
-        status_by_scope[scope.id], names_by_scope[scope.id] = _scope_names(scope)
+        status, names, complete = _scope_names(scope)
+        status_by_scope[scope.id], names_by_scope[scope.id] = status, names
+        incomplete = incomplete or not complete
     global_status, global_names = count_skill_folders(Path(store_skills_dir), recursive=False)
     names_by_scope["global"] = global_names or []
 
     def only_here(scope_id: str) -> dict | None:
         mine = names_by_scope.get(scope_id)
-        if mine is None:
+        if mine is None or incomplete or global_status == "unreadable":
             return None
         elsewhere: set[str] = set()
         for other, names in names_by_scope.items():
@@ -848,22 +857,29 @@ def _validate_against(new: dict, current: dict, current_state: str, store_skills
 
 def _copy_broken_aside(path: Path) -> Path | None:
     """Keep a hand-edited file we couldn't read before replacing it (T8)."""
-    if not path.exists() and not path.is_symlink():
+    if not os.path.lexists(path):
         return None
     target = path.with_name(f"tracking.broken-{stamp()}.json")
     counter = 1
-    while target.exists():
+    while os.path.lexists(target):
         counter += 1
         target = path.with_name(f"tracking.broken-{stamp()}-{counter}.json")
-    if path.is_symlink() or not path.is_file():
-        # Never follow a link or copy a device: move the entry itself aside.
-        os.replace(path, target)
-    else:
-        shutil.copyfile(path, target)
     try:
-        os.chmod(target, 0o600)
+        data = read_regular_file(path, MAX_FILE_BYTES, follow_symlinks=False)
+    except (FileTooLarge, NotRegularFile, SymlinkNotAllowed):
+        # Preserve the entry itself when it cannot be safely read as settings.
+        os.replace(path, target)
+        return target
+    # Create the backup with private permissions without chmod on a path.
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600)
+    try:
+        with os.fdopen(fd, "wb") as backup:
+            backup.write(data)
+            backup.flush()
+            os.fsync(backup.fileno())
     except OSError:
-        pass
+        target.unlink(missing_ok=True)
+        raise
     return target
 
 
@@ -890,15 +906,15 @@ def save(data_dir: Path, store_skills_dir: Path, body: dict) -> dict:
             for agent in known_agents():
                 if agent.id not in seen and count_skill_folders(agent.base, recursive=False)[0] == "ok":
                     seen.append(agent.id)
-        if state == "broken":
-            _copy_broken_aside(path)
+        backup = _copy_broken_aside(path) if state == "broken" else None
         new["revision"] = current_revision + 1
-        atomic_write_text(path, json.dumps(new, indent=2) + "\n")
         try:
-            os.chmod(path, 0o600)
+            atomic_write_text(path, json.dumps(new, indent=2) + "\n")
         except OSError:
-            pass
-    return report(data_dir, store_skills_dir)
+            if backup and not os.path.lexists(path):
+                os.replace(backup, path)
+            raise
+    return report(data_dir, store_skills_dir, saved_document=new)
 
 
 def adapters_filter(view: TrackingView):

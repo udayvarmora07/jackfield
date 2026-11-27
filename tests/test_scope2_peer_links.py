@@ -246,8 +246,8 @@ class PeerLinkInterfaceTests(PeerLinkCase):
         const visibleContext={m:reversedModel,query:'',filter:'all',agentFilter:'claude-code',tagFilter:'',catalog:{tags:{}}};
         visibleContext.shelfSkills=ctx.options.computed.shelfSkills.call(visibleContext);
         const visible=ctx.options.computed.visible.call(visibleContext);
-        const defaultRef=ctx.options.computed.refCopy.call({skill,readCopyName:'',readCopyScope:'',readCopyPath:''});
-        const exactAlias=ctx.options.computed.refCopy.call({skill,readCopyName:'a',readCopyScope:'claude-code',readCopyPath:'/p/agents/a'});
+        const defaultRef=ctx.options.computed.refCopy.call({skill,route:{}});
+        const exactAlias=ctx.options.computed.refCopy.call({skill,route:{copyScope:'claude-code',copyPath:'/p/agents/a'}});
         const refused=M.build([rec('r','claude-code',{malformed:true,instance_states:['invalid'],
           decode_error:'skill path escapes managed root'})],scopes).skills[0];
         return {scopes:skill.copies.map(c=>c.scope),aliasState:alias.state,aliasReadOnly:alias.readOnly,
@@ -256,8 +256,8 @@ class PeerLinkInterfaceTests(PeerLinkCase):
           visible:visible.map(s=>s.name),referenceScopes:skill.ref.holders.map(c=>c.scope),
           referenceCount:skill.ref.groups[0].length,status:skill.status.label,
           defaultRef:defaultRef.scope,exactAlias:exactAlias.scope,
-          ownerCanEdit:ctx.options.computed.canEdit.call({skill,refCopy:owner,editable:true,docWhy:null,bodyFetchable:()=>true}),
-          aliasCanEdit:ctx.options.computed.canEdit.call({skill,refCopy:alias,editable:true,docWhy:null,bodyFetchable:()=>true}),
+          ownerCanEdit:ctx.options.computed.canEdit.call({skill,refCopy:owner,editable:true,readerUniqueScope:true,bodyFetchable:()=>true}),
+          aliasCanEdit:ctx.options.computed.canEdit.call({skill,refCopy:alias,editable:true,readerUniqueScope:true,bodyFetchable:()=>true}),
           refused:refused.status.label};""")
 
         self.assertEqual(["claude-code", "agents"], out["scopes"])

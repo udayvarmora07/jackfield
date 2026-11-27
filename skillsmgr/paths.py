@@ -110,7 +110,7 @@ def data_dir() -> Path:
             f"  fix: this directory is only readable and writable by your user.\n"
             f"       run: chmod 700 {manager}\n"
             f"  or point the manager somewhere private, e.g.:\n"
-            f"       export JACKFIELD_DATA=$HOME/.local/share/jackfield"
+            f"       export JACKFIELD_DATA=$HOME/.local/jackfield-data"
         ) from None
 
 

@@ -215,7 +215,7 @@
     }
   },
   {
-    "name": "claude observed disabled",
+    "name": "claude observed off",
     "records": [
       {
         "name": "demo",
@@ -223,14 +223,45 @@
         "content_hash": "a",
         "physical_path": "/a/demo",
         "native_state": {
-          "observed_setting": "disabled",
-          "sources": []
+          "consumer": "claude-code",
+          "observed_setting": "off",
+          "sources": [{"source": "user", "status": "ok", "declared": "off"}]
         }
       }
     ],
     "expected": {
       "a": "settings"
     }
+  },
+  {
+    "name": "claude higher priority setting overrides off",
+    "records": [{
+      "name": "demo", "scope": "a", "content_hash": "a", "physical_path": "/a/demo",
+      "native_state": {"consumer": "claude-code", "observed_setting": "on", "sources": [
+        {"source": "user", "status": "ok", "declared": "off"},
+        {"source": "project-local", "status": "ok", "declared": "on"}
+      ]}
+    }],
+    "expected": {"a": "on"}
+  },
+  {
+    "name": "opencode deny",
+    "records": [{
+      "name": "demo", "scope": "a", "content_hash": "a", "physical_path": "/a/demo",
+      "native_state": {"consumer": "opencode", "sources": [{"source": "user", "status": "ok", "declared": "deny"}]}
+    }],
+    "expected": {"a": "settings"}
+  },
+  {
+    "name": "opencode conflicting declarations remain unknown",
+    "records": [{
+      "name": "demo", "scope": "a", "content_hash": "a", "physical_path": "/a/demo",
+      "native_state": {"consumer": "opencode", "sources": [
+        {"source": "user", "status": "ok", "declared": "deny"},
+        {"source": "project", "status": "ok", "declared": "allow"}
+      ]}
+    }],
+    "expected": {"a": "unknown"}
   },
   {
     "name": "unknown settings",

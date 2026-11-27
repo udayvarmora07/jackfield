@@ -4,6 +4,7 @@ import json
 import threading
 import urllib.error
 import urllib.request
+from hashlib import sha256
 from pathlib import Path
 
 from skillsmgr import scopes
@@ -26,10 +27,10 @@ class EditFieldsTests(ScopedHomeTestCase):
         self.thread.join(timeout=5)
         self.server.httpd.server_close()
 
-    def patch(self, scope, fields):
+    def request(self, method, path, fields):
         request = urllib.request.Request(
-            f"http://127.0.0.1:{self.server.port}/api/skills/editable?scope={scope}",
-            method="PATCH", data=json.dumps(fields).encode(),
+            f"http://127.0.0.1:{self.server.port}{path}",
+            method=method, data=json.dumps(fields).encode(),
             headers={"Content-Type": "application/json"},
         )
         try:
@@ -38,6 +39,9 @@ class EditFieldsTests(ScopedHomeTestCase):
             response = error
         with response:
             return response.status, json.loads(response.read())
+
+    def patch(self, scope, fields):
+        return self.request("PATCH", f"/api/skills/editable?scope={scope}", fields)
 
     def seed(self, scope):
         fields = dict(license="MIT", category="quality", version="1", compatibility="Python", allowed_tools="Read", body="# Original")
@@ -81,3 +85,44 @@ class EditFieldsTests(ScopedHomeTestCase):
                 self.assertEqual(self.patch(scope, {"body": "# Changed"})[0], 200)
                 current, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
                 self.assertEqual(current, data)
+
+    def test_guarded_edit_and_snapshot_rollback_require_current_file(self):
+        for scope in ("global", "codex"):
+            with self.subTest(scope=scope):
+                document = self.seed(scope)
+                original = document.read_bytes()
+                expected = {"path": str(document.parent.resolve()), "content_hash": sha256(original).hexdigest()}
+                status, result = self.patch(scope, {"body": "# Edited", "expected": expected})
+                self.assertEqual(status, 200)
+                edited = document.read_bytes()
+                self.assertEqual(result["content_hash"], sha256(edited).hexdigest())
+                status, _ = self.patch(scope, {"body": "must not write", "expected": expected})
+                self.assertEqual(status, 400)
+                self.assertEqual(document.read_bytes(), edited)
+
+                route = f"/api/trash/editable?snapshot={result['snapshot']}&scope={scope}"
+                current = {**expected, "content_hash": result["content_hash"]}
+                document.write_bytes(edited + b"External change.\n")
+                status, _ = self.request("POST", route, {"expected": current})
+                self.assertEqual(status, 400)
+                self.assertTrue(document.read_bytes().endswith(b"External change.\n"))
+                document.write_bytes(edited)
+                status, _ = self.request("POST", route, {"expected": current})
+                self.assertEqual(status, 200)
+                self.assertEqual(document.read_bytes(), original)
+
+    def test_create_preview_matches_written_bytes_and_bad_flag_cannot_create(self):
+        fields = {"name": "previewed", "description": "Use this: café. # note\nAnother line.",
+                  "body": "# Preview\r\n\r\nText", "license": "on", "allowed_tools": "Read "}
+        status, preview = self.request("POST", "/api/skills?preview=1", fields)
+        self.assertEqual(status, 200)
+        global_file = self.store.skills_dir / "previewed" / "SKILL.md"
+        self.assertFalse(global_file.exists())
+        for query in ("preview=", "preview=0", "preview=1&preview=0"):
+            status, _ = self.request("POST", f"/api/skills?{query}", fields)
+            self.assertEqual(status, 400, query)
+            self.assertFalse(global_file.exists())
+        for scope in ("global", "codex"):
+            status, result = self.request("POST", f"/api/skills?scope={scope}", fields)
+            self.assertEqual(status, 201)
+            self.assertEqual((Path(result["path"]) / "SKILL.md").read_bytes(), preview["content"].encode("utf-8"))

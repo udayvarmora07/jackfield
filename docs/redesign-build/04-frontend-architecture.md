@@ -44,8 +44,9 @@ code facts were read on 2026-11-27 (`app.js` 124 KB, `index.html` 92 KB,
 | `ui-forms.js` | `jf-place-rows`, `jf-live-rules`, unsaved-changes guard | — |
 | `ui-doc.js` | `jf-document`, `jf-checks-grid`, `jf-compare`, `jf-choose-version` | parts of `app.js`, `ai-diagnostic.js` |
 | `screen-skills.js` | S1 + S2, first launch, states, project picker, column header menu | Home, Skills shelf, Sync map |
-| `screen-skill.js` | S3, S4, S6 | Skill reader, editor, explain |
-| `screen-new.js` | S5 | New skill dialog |
+| `screen-skill.js` | S3 and S4 (currently rendered by `index.html` and `app.js`) | Skill reader and editor |
+| `screen-new.js` | S5 | New skill page, preview and multi-place creation |
+| `screen-why.js` | S6 | Skill checks and the first observed failure |
 | `screen-attention.js` | S7 | Inbox |
 | `screen-trash.js` | S8 | Recovery |
 | `screen-advanced.js` | S9, the S10 shell, S11 | Tools hub, settings tool |
@@ -69,8 +70,8 @@ not matter.
 | Route | Screen | Notes |
 |---|---|---|
 | `#/skills` | S1 Skills table | Query: `?q=`, `?only=problems`, `?agent=<id>` (phone focus), `?sel=<name>:<agent>` (selected square) — so reload keeps the panel |
-| `#/skills/<name>` | S3 Skill page | `?view=file` for File text |
-| `#/skills/<name>/edit` | S4 Editor | Reload keeps the editor (F5) |
+| `#/skills/<name>` | S3 Skill page | `?view=file` for File text; `scope` and `copy` retain a selected copy; `sel` retains a selected square |
+| `#/skills/<name>/edit` | S4 Editor | Reload keeps the editor and an explicit copy (F5) |
 | `#/skills/<name>/why` | S6 Why isn't it running? | |
 | `#/new` | S5 New skill | `?template=<id>` |
 | `#/attention` | S7 Needs attention | `?item=<id>` |
@@ -142,7 +143,7 @@ match wins:
 | 4 | `version-1` / `version-2` | The readable copies split evenly between two `content_hash` values (no majority) and this copy holds the first / second |
 | 5 | `different` | A majority `content_hash` exists among readable copies in tracked places and this copy differs from it |
 | 6 | `off` | The file is switched off by Jackfield (`SKILL.md.disabled`) |
-| 7 | `settings` (Off in settings) | Switched on, and a settings source Jackfield read for this agent declares it disabled (`native_state.sources[].declared == "disabled"`, or Claude Code's `observed_setting`) |
+| 7 | `settings` (Off in settings) | Switched on, and the files declare it disabled (`disabled`, Claude Code’s `off`, OpenCode’s `deny`). A resolved `observed_setting` takes precedence over individual declarations. Conflicting OpenCode declarations are Unknown because cross-file merging is unverified. |
 | 8 | `unknown` | Switched on, but a settings source for this agent exists and could not be read or parsed (`status` not `ok`/`missing`/`unobserved`) |
 | 9 | `on` | Everything above was checked and passed |
 

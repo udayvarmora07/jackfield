@@ -8,7 +8,7 @@
   <title>Jackfield</title>
   <meta name="description" content="Inspect detected AI tools, their skill copies and differences. Local only.">
   <script src="preferences.js"></script>
-  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="system.css">
   <link rel="stylesheet" href="layout.css">
@@ -18,22 +18,24 @@
 <body>
 <div id="app" class="sm-root" v-cloak>
   <a class="skip" href="#main" :inert="!!dialog || tableSheetOpen" @click.prevent="skipToContent()">Skip to content</a>
-  <jf-nav :active-place="activePlace" :attention="tableHero ? tableProblemNames.size : inboxCount" :theme-label="themeLabel" :skills-hero="tableHero"
+  <jf-nav :active-place="activePlace" :attention="tableProblemNames.size" :theme-label="themeLabel" :skills-hero="tableHero"
     :theme-icon="themeIcon" :blocked="!!dialog || tableSheetOpen" @search="openCommands()" @theme="cycleTheme()" @help="openHelp()"></jf-nav>
 
   <main id="main" ref="main" tabindex="-1" :inert="!!dialog">
     <!-- loading / failure -->
     <jf-not-found v-if="route.page === 'missing'" :route="route"></jf-not-found>
     <tool-center v-else-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine" @tool-group="trackGroupByKey" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
-    <jf-skills-screen v-else-if="route.page === 'skills' && !route.view" :rows="tableRows" :agents="tableColumns"
+    <jf-skills-screen v-else-if="route.page === 'skills' && !route.view && route.screen !== 'new'" :rows="tableRows" :agents="tableColumns"
       :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError"
       :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.screen"
       :agents-found="!!tracking?.agents.some((agent) => agent.folder_status === 'ok')"
       :busy="busy" :projects="tracking?.projects || []" :showing="tracking?.showing || ''" :changed-rows="changedRows"
-      :attention-count="tableProblemNames.size" @select="tableSelect($event)" @primary="tablePrimary()"
+      :attention-count="tableProblemNames.size" :attention-detail="tableAttentionDetail" :sheet-viewport="tableNarrow"
+      @select="tableSelect($event)" @primary="tablePrimary()"
       @open-skill="tableOpenNamed($event)" @close-panel="tableClose()" @view-change="tableView($event)"
       @tracking-action="tableTracking($event)" @manage-agents="goTo('#/settings/tracking')" @first-launch-done="showTableFirst()"
-      @choose-camp="tableChooseCamp($event)" @confirm="tableConfirm()" @look-again="refresh({ showChanges: true })"
+      @choose-camp="tableChooseCamp($event)" @compare-split="tableCompareSplit()" @confirm="tableConfirm()"
+      @confirm-stop="tableConfirmStop()" @look-again="refresh({ showChanges: true })"
       @open-folder="tableFolder()" @why="tableOpenSkill('why')" @cancel-preview="tableCancelPreview()"
       @batch="tableBatch($event)" @refresh="refresh({ showChanges: true })"></jf-skills-screen>
     <div class="page" v-else-if="loading && !m">
@@ -49,7 +51,7 @@
 
     <template v-else-if="m">
     <!-- A failed re-read must be visible on every page, not only Home. -->
-    <div class="page" style="padding-bottom:0" v-if="loadError && route.page !== 'home'">
+    <div class="page" style="padding-bottom:0" v-if="loadError && route.page !== 'home'" :inert="tableSheetOpen">
       <p class="state-note err" role="alert">{{ loadError }} <button type="button" class="btn btn-line btn-sm" @click="refresh()">Try again</button></p>
     </div>
     <!-- ========== HOME ========== -->
@@ -249,6 +251,8 @@
     </div>
 
     <!-- ========== SKILLS ========== -->
+    <jf-new-skill v-else-if="route.screen === 'new'" :key="route.template" ref="newSkill" :agents="createTargets" :scopes="scopes"
+      :records="records" :template="route.template || ''" @created="newSkillCreated($event)" @refresh="refresh()" @ai="openCreate($event)"></jf-new-skill>
     <div class="page" v-else-if="route.page === 'skills'">
       <div class="shelf-head">
         <div><h1 class="h1" id="h1" tabindex="-1">Skills</h1>
@@ -325,27 +329,48 @@
     <!-- ========== SKILL (notebook) ========== -->
     <div v-else-if="route.page === 'skill'">
       <jf-not-found v-if="!skill" :route="route" :places="m.infos.length" :suggestion="missingSuggestion"></jf-not-found>
-      <div class="nb" v-else>
-        <nav class="tree" aria-label="All skills">
-          <div class="tree-find"><label class="sr-only" for="tree-q">Filter skills</label><input id="tree-q" type="search" placeholder="Filter skills" autocomplete="off" v-model="treeQuery"></div>
-          <a v-for="x in treeList" :key="x.name" :href="'#/skills/' + enc(x.name)" :aria-current="x.name === skill.name ? 'page' : null"><span class="nm" translate="no">{{ x.name }}</span><i :class="['d', x.status.key]" role="img" :aria-label="x.status.label"></i></a>
-          <p class="tree-more" v-if="treeHidden">{{ treeHidden }} more. Type to filter.</p>
-        </nav>
-        <div class="nb-main">
-          <div class="nb-bar"><a href="#/skills">Skills</a><span aria-hidden="true">/</span><b>{{ skill.name }}</b>
-            <span class="acts" v-if="!edit">
-              <button type="button" class="btn btn-line btn-sm" v-if="refCopy" @click="openAiDiagnosis()">Why didn’t it run?</button>
-              <button type="button" class="btn btn-line btn-sm" @click="openShare()" v-if="refCopy && shareTargets.length"><ic name="share" cls="i-s"></ic>Add to agent</button>
-              <button type="button" class="btn btn-ink btn-sm" @click="startEdit()" :disabled="!canEdit || docPending" :title="editWhy || null"><ic name="pencil" cls="i-s"></ic>Edit<span class="sr-only" v-if="editWhy"> — {{ editWhy }}</span></button></span></div>
-
-          <!-- read -->
-          <div class="sheet" v-if="!edit">
-            <article>
-              <p class="meta">{{ skill.category ? skill.category + ', ' : '' }}{{ skill.tools.length ? 'In ' + plural(skill.tools.length, 'place') : 'Only in your library' }}</p>
-              <h1 class="doc-title" id="h1" tabindex="-1" translate="no">{{ skill.name }}</h1>
-              <p class="doc-lead" :class="{ clamped: leadLong && !leadOpen, empty: !skill.description }" id="doc-lead">{{ skill.description || 'No description yet.' }}</p>
-              <button type="button" class="link lead-more" v-if="leadLong" :aria-expanded="leadOpen ? 'true' : 'false'" aria-controls="doc-lead" @click="leadOpen = !leadOpen">{{ leadOpen ? 'Show less' : 'Show the whole description' }}</button>
-              <div class="inline-note bad" v-if="skill.status.key === 'bad'"><b>Problem:</b> {{ brokenText }}<br><button type="button" class="btn btn-ink btn-sm" @click="fixSkillBad()">{{ brokenAction }}</button></div>
+      <jf-why-screen v-else-if="route.screen === 'why'" :key="skill.name" :name="skill.name" :scopes="scopes"
+        :records="records" :busy="loading" :error="loadError" :project="tracking?.showing || ''"
+        :reader-href="readerHref()" @refresh="refresh()"></jf-why-screen>
+      <div class="jf-skill-reader" v-else-if="!edit && route.screen !== 'edit'">
+        <div class="jf-reader-heading" :inert="tableSheetOpen">
+          <div class="jf-reader-title">
+            <nav aria-label="Breadcrumb"><a href="#/skills">Skills</a><span aria-hidden="true">/</span><span aria-current="page" translate="no">{{ skill.name }}</span></nav>
+            <h1 id="h1" tabindex="-1" translate="no">{{ skill.name }}</h1>
+          </div>
+          <div class="jf-reader-views" role="group" aria-label="View">
+            <button type="button" class="sm-btn" :aria-pressed="!route.file" @click="showReaderFile(false)">Read</button>
+            <button type="button" class="sm-btn" :aria-pressed="route.file" @click="showReaderFile(true)">File text</button>
+          </div>
+          <a class="jf-reader-why" :href="readerWhyHref()">Why isn’t it running?</a>
+          <button type="button" class="sm-btn sm-btn--accent" @click="startEdit()" :disabled="!canEdit || docPending" :title="editWhy || null"><ic name="pencil" cls="i-s"></ic>Edit<span class="sr-only" v-if="editWhy"> — {{ editWhy }}</span></button>
+        </div>
+        <div :inert="tableSheetOpen">
+          <p id="doc-lead" class="jf-reader-lead doc-lead" :class="{ clamped: leadLong && !leadOpen }">{{ refCopy?.description || skill.description || 'No description yet.' }}</p>
+          <button type="button" class="link lead-more" v-if="leadLong" :aria-expanded="leadOpen" aria-controls="doc-lead" @click="leadOpen = !leadOpen">{{ leadOpen ? 'Show less' : 'Show the whole description' }}</button>
+          <p v-if="readerPlaces.length" class="jf-reader-verdict">{{ readerVerdict }}</p>
+          <section v-if="readerPlaces.length" class="jf-reader-places" aria-label="This skill in each place" ref="readerPlaces">
+            <div v-for="place in readerPlaces" :key="place.id" :data-place="place.id">
+              <div class="jf-reader-place-label"><jf-agent :agent="place"></jf-agent></div>
+              <jf-square :status="place.status" :label="place.label" :selected="place.selected"
+                :accessible-label="skill.name + ' in ' + place.name + ': ' + place.label"
+                @select="tableSelect({ name: skill.name, agent: place.id })"></jf-square>
+            </div>
+          </section>
+          <p v-if="readerPlaces.length" class="jf-reader-hint">Click a square to see what it means and change it. These are the same squares as in the Skills table.</p>
+        </div>
+        <div class="jf-reader-body">
+          <article class="jf-reader-document" :inert="tableSheetOpen" aria-label="Skill document">
+            <div class="jf-reader-source" v-if="skill.copies.length > 1 || refCopy" ref="readerIdentity" tabindex="-1">
+              <label v-if="skill.copies.length > 1">Read copy
+                <select class="field" :value="readerCopyValue(refCopy)" @change="chooseReaderCopy($event.target.value)">
+                  <option value="" disabled>Choose a copy</option>
+                  <option v-for="copy in skill.copies" :key="readerCopyValue(copy)" :value="readerCopyValue(copy)">{{ agentOf(copy.scope).name }}<template v-if="skill.copies.some(other => other !== copy && other.scope === copy.scope)"> — {{ copy.path }}</template></option>
+                </select>
+              </label>
+              <span v-else>Reading from <b>{{ agentOf(refCopy.scope).name }}</b></span>
+              <code v-if="refCopy?.path" class="sm-mono" :title="refCopy.path" translate="no">{{ shortPath(refCopy.path) }}</code>
+            </div>
               <section class="inline-note reader-comparison" aria-labelledby="reader-comparison-title" v-if="skill.status.key === 'warn' && cmp">
                 <h2 id="reader-comparison-title">Copies differ</h2>
                 <p v-if="skill.ref.ambiguous">The copies are split evenly. <a class="link" href="#/attention" @click.exact.left.prevent="openInboxFor(skill.name)">Choose a reference in Inbox</a> to sync them.</p>
@@ -353,40 +378,81 @@
                 <div class="reader-comparison-controls">
                   <label v-if="readerCompareCopies.length > 1">Compare with <select class="field reader-compare-select" :value="bodyKey(cmp)" @change="compareWith = $event.target.value"><option v-for="c in readerCompareCopies" :key="bodyKey(c)" :value="bodyKey(c)">{{ agentOf(c.scope).name }}<template v-if="readerCompareCopies.some(other => other !== c && other.scope === c.scope)"> — {{ c.path }}</template></option></select></label>
                   <label class="hl-row"><input type="checkbox" v-model="highlight"> Highlight what's missing</label>
-                  <button type="button" class="btn btn-ink btn-sm" @click="syncDiffering()" :disabled="busy || skill.ref.ambiguous">{{ matchLabel }}</button>
+                  <button type="button" class="btn btn-line btn-sm" @click="syncDiffering()" :disabled="busy || skill.ref.ambiguous">Review a different copy</button>
                 </div>
               </section>
-              <div class="reader-copy" v-if="refCopy" ref="readerIdentity" tabindex="-1">
-                <span>Reading from <b>{{ agentOf(refCopy.scope).name }}</b></span><code v-if="refCopy.path" translate="no">{{ refCopy.path }}</code>
-              </div>
-              <div class="reader-error" v-if="docError"><p class="state-note err" role="alert">{{ docError }}</p><button type="button" class="btn btn-line btn-sm" @click="retryDocument()">Retry document</button></div>
+
+            <div class="state-note err" v-if="docWhy || skill.status.key === 'bad'">
+              <b>{{ docWhy?.title || "Can't read a copy" }}</b> {{ docWhy?.text || brokenText }}
+              <button v-if="docWhy?.missing" type="button" class="sm-btn" :disabled="loading" @click="refresh()">Refresh files</button>
+              <button v-else-if="skill.status.key === 'bad'" type="button" class="sm-btn" @click="fixSkillBad()">{{ brokenAction }}</button>
+            </div>
+            <template v-if="route.file && !docWhy">
+              <p v-if="readerError" class="state-note err" role="alert">{{ readerError }} <button type="button" class="sm-btn" :disabled="loading" @click="refreshReaderView()">Refresh files</button></p>
+              <p v-else-if="!readerKey" class="state-note">File text is unavailable for this copy. Open its folder to check the exact file.</p>
+              <p v-else-if="!readerView" class="state-note" role="status">Reading file text…</p>
+              <template v-else>
+                <p class="jf-reader-hint">Exactly what is in {{ readerFileName }} in {{ agentOf(refCopy.scope).name }}, including the header the agent reads.</p>
+                <pre class="jf-file-text sm-filetext" v-text="readerView.raw"></pre>
+              </template>
+            </template>
+            <template v-else-if="!route.file && !docWhy">
+              <div class="reader-error" v-if="docError"><p class="state-note err" role="alert">{{ docError }}</p><button type="button" class="sm-btn" @click="retryDocument()">Retry document</button></div>
               <p class="state-note" role="status" v-else-if="docPending">Reading document…</p>
-              <div class="state-note" v-else-if="docWhy"><b>{{ docWhy.title }}</b> {{ docWhy.text }} <button v-if="docWhy.missing" type="button" class="btn btn-line btn-sm" :disabled="loading" @click="refresh()">Refresh files</button></div>
-              <pre class="jf-file-text" v-else-if="route.file">{{ bodyOf(refCopy) }}</pre>
-              <div class="doc" v-else v-html="docHtml"></div>
-            </article>
-            <aside class="margin" aria-label="About this skill">
-              <div class="note bad" v-if="skill.status.key === 'bad'"><h2 class="note-h">Problem</h2><p>{{ brokenText }}</p><button type="button" class="btn btn-ink btn-sm" @click="fixSkillBad()">{{ brokenAction }}</button></div>
-              <div class="note" v-if="skill.status.key === 'off'"><h2 class="note-h">Turned off</h2><p>Every observed document copy is disabled on disk.</p><button type="button" class="btn btn-ink btn-sm" @click="allOn()">Turn on everywhere</button></div>
-              <div class="note ok" v-if="skill.status.key === 'ok'"><h2 class="note-h">Status</h2><p>Readable documents match. Supporting files and agent loading are unverified.</p></div>
-              <div class="note"><h2 class="note-h">Copies in</h2><p>Switches rename skill files only; native agent settings are separate.</p><div class="uses">
-                <div class="use" v-for="c in skill.copies" :key="c.scope + '/' + (c.record.path || c.path)"><logo :agent="agentOf(c.scope)" size="xs"></logo>
-                  <span>{{ agentOf(c.scope).name }} <span class="ver-tag" v-if="c.version && skill.ref.groups.length > 1" :class="{ odd: c.hash !== skill.ref.hash }" :title="'Copy ' + c.version + ' — same text as ' + join(skill.copies.filter((x) => x.hash === c.hash).map((x) => agentOf(x.scope).name))">Copy {{ c.version }}</span>
-                    <small class="bad" v-if="c.state === 'broken'">Can't be read</small><small v-else-if="c.state === 'link'">Linked from another folder</small><small v-if="c.linkFrom">Linked from {{ shortPath(c.linkFrom) }}</small><small class="warn" v-else-if="c.hash && c.hash !== skill.ref.hash">Different from most places</small><small v-else-if="c.state === 'off'">Turned off here</small><small class="num" v-if="c.tokens">About {{ fmt(c.tokens) }} tokens</small></span>
-                  <label class="switch" :title="(c.readOnly ? readOnlyWhy(c) : (c.state === 'on' ? 'File enabled' : 'File disabled') + ' in ' + agentOf(c.scope).name + (c.tokens ? ' · about ' + fmt(c.tokens) + ' tokens' : ''))"><input type="checkbox" :checked="c.state === 'on'" :disabled="c.state === 'broken' || busy || c.readOnly" @change="toggleCopy(c)"><span class="tr"></span><span class="sr-only">File enabled in {{ agentOf(c.scope).name }}{{ c.version && skill.ref.groups.length > 1 ? ', copy ' + c.version + (c.hash !== skill.ref.hash ? ', differs from most places' : '') : '' }}{{ c.tokens ? ', about ' + fmt(c.tokens) + ' tokens' : '' }}{{ c.readOnly ? ', read-only: ' + readOnlyWhy(c) : '' }}</span></label></div>
-              </div></div>
-              <div class="note" v-if="skill.copies.some((c) => c.record.native_state)"><details class="native-settings"><summary>Native settings (partial)</summary>
-                <p>Observed declarations only. Effective loading is unknown; file switches do not change these settings.</p>
-                <div v-for="c in skill.copies.filter((c) => c.record.native_state)" :key="c.scope + '/' + (c.record.path || c.path)">
-                  <b>{{ agentOf(c.scope).name }}</b>
-                  <ul class="hist"><li v-for="source in c.record.native_state.sources" :key="source.source">{{ source.source }}: {{ source.status }}<small>{{ source.declared ? 'Declared setting: ' + source.declared : source.status === 'ok' ? 'No matching declaration' : source.status === 'missing' ? 'Settings file absent' : 'Declaration unknown' }}</small></li></ul>
-                  <p>{{ c.record.native_state.reason }}</p>
+              <div class="doc sm-doc" v-else v-html="docHtml"></div>
+            </template>
+          </article>
+          <div class="jf-reader-side">
+            <div v-if="tableSheetOpen" class="jf-panel-scrim" aria-hidden="true" @click="closeReaderSquare()"></div>
+            <jf-side-panel v-if="tablePanel" :key="route.selected" :panel="tablePanel" :modal="tableSheetOpen" :focus-heading="true"
+              @close="closeReaderSquare()" @primary="tablePrimary()" @open-skill="tableOpenSkill()"
+              @choose-camp="tableChooseCamp($event)" @compare-split="tableCompareSplit()" @confirm="tableConfirm()"
+              @look-again="refresh({ showChanges: true })" @open-folder="tableFolder()" @why="tableOpenSkill('why')"
+              @cancel-preview="tableCancelPreview()"></jf-side-panel>
+            <aside class="jf-reader-details" aria-label="Details" :inert="tableSheetOpen">
+              <section v-if="refCopy">
+                <h2 class="sm-cap">Files</h2>
+                <template v-if="readerView">
+                  <p class="jf-reader-fact"><span>{{ readerFileName }}</span><span>{{ plural(readerView.lines, 'line') }}</span></p>
+                  <p v-for="file in readerView.files" :key="file.path" class="jf-reader-fact">
+                    <span>{{ file.path }}</span><span>{{ file.lines == null ? 'Line count unavailable' : plural(file.lines, 'line') }}</span>
+                  </p>
+                  <p v-if="readerView.files_incomplete" class="jf-reader-hint">Some files are missing from this list. Open the folder to see them.</p>
+                </template>
+                <p v-else-if="readerKey && !readerError" class="jf-reader-hint">Checking files…</p>
+                <p v-else>File details are unavailable for this copy.</p>
+              </section>
+              <section v-if="refCopy?.tokens || readerView?.claude_listing">
+                <h2 class="sm-cap">Size</h2>
+                <p v-if="refCopy?.tokens">About {{ fmt(refCopy.tokens) }} tokens in this file.</p>
+                <template v-if="readerView?.claude_listing">
+                  <p v-if="readerView.claude_listing.listing === 'hidden'">Uses 0% of the estimated personal skill list space.</p>
+                  <p v-else-if="readerView.claude_listing.budget_chars > 0">{{ readerListingSpace(readerView.claude_listing) }}</p>
+                  <p v-else>The Claude skill list estimate is unavailable.</p>
+                  <p class="jf-reader-hint">{{ readerView.claude_listing.basis }}</p>
+                </template>
+              </section>
+              <section>
+                <h2 class="sm-cap">History</h2>
+                <p v-if="skillHistoryError" class="state-note err">{{ skillHistoryError }} <button type="button" class="sm-btn" @click="loadSkillHistory()">Retry</button></p>
+                <ul v-if="skillHistory.length" class="hist"><li v-for="(h, i) in skillHistory" :key="i">{{ h.action }}<small>{{ fmtDate(h.at) }}</small></li></ul>
+                <p v-else-if="!skillHistoryError">No recorded library changes.</p>
+                <p v-if="readerSnapshots.length">{{ plural(readerSnapshots.length, 'saved file snapshot') }} in {{ agentOf(refCopy.scope).name }}.</p>
+                <p v-else-if="readerSnapshotsError">Couldn't read file snapshots. <button type="button" class="link" @click="loadReaderSnapshots()">Retry</button></p>
+                <a href="#/trash">Open history and snapshots</a>
+              </section>
+              <div class="jf-reader-actions">
+                <button type="button" class="sm-btn sm-btn--quiet" v-if="shareTargets.length" @click="openShare()"><ic name="share" cls="i-s"></ic>Add to agent</button>
+                <button type="button" class="sm-btn sm-btn--quiet" :disabled="!readerTrashCopies.length || busy" @click="openTrash()"><ic name="trash" cls="i-s"></ic>Move to Trash</button>
+              </div>
+              <details class="native-settings" v-if="readerNativeCopies.length"><summary>Native settings (partial)</summary>
+                <p>Observed declarations only. Effective loading is unknown.</p>
+                <div v-for="copy in readerNativeCopies" :key="readerCopyValue(copy)">
+                  <b>{{ agentOf(copy.scope).name }}</b>
+                  <ul class="hist"><li v-for="source in copy.record.native_state.sources" :key="source.source">{{ source.source }}: {{ source.status }}<small>{{ source.declared ? 'Declared setting: ' + source.declared : source.status === 'ok' ? 'No matching declaration' : source.status === 'missing' ? 'Settings file absent' : 'Declaration unknown' }}</small></li></ul>
+                  <p>{{ copy.record.native_state.reason }}</p>
                 </div>
-              </details></div>
-              <div class="note" v-if="skill.ref.groups.length > 1"><b>Copies</b>
-                <ul class="hist"><li v-for="g in skill.ref.groups" :key="g[0].hash"><span class="ver-tag" :class="{ odd: g[0].hash !== skill.ref.hash }">Copy {{ g[0].version }}</span> {{ join(g.map((c) => agentOf(c.scope).name)) }}<small>{{ g[0].hash === skill.ref.hash && !skill.ref.ambiguous ? 'Held by the most places' : plural(g.length, 'place') }} · {{ fmt(words(g[0].tokens)) }} words</small></li></ul></div>
-              <div class="note"><h2 class="note-h">Length</h2><p>About {{ fmt(words(skill.tokens)) }} words, {{ lengthPct }}% of a reading window</p></div>
-              <div class="note"><h2 class="note-h">History</h2><p class="state-note err" v-if="skillHistoryError">{{skillHistoryError}} <button class="btn btn-line btn-sm" @click="loadSkillHistory()">Retry</button></p><ul class="hist"><li v-for="(h, i) in skillHistory" :key="i">{{ h.action }}<small>{{ fmtDate(h.at) }}</small></li><li v-if="!skillHistory.length && !skillHistoryError">No recorded changes<small>Edits made here are listed</small></li></ul><a href="#/trash">Open history and snapshots</a></div>
+              </details>
               <div class="note"><details class="paths folder-paths">
                 <summary>Folder locations and source updates</summary>
                 <div v-for="c in skill.copies" :key="c.scope + '/' + (c.record.path || c.path)">
@@ -396,24 +462,37 @@
                 </div>
               </details></div>
               <div class="note" v-if="refCopy"><details class="paths"><summary>AI maintenance</summary>
-                <div class="tp-acts"><button type="button" class="btn btn-line btn-sm" @click="openSkillTool('ai-ask')">Find related skills</button><button type="button" class="btn btn-line btn-sm" v-if="refCopy.state === 'on'" @click="openSkillTool('ai-port')">Check agent compatibility</button><a class="tp-link" href="#/advanced/ai-overlap">Check collection overlap</a><a class="tp-link" href="#/advanced/ai-profile">Suggest a project profile</a></div>
+                <div class="tp-acts"><button type="button" class="btn btn-line btn-sm" @click="openAiDiagnosis()">Test a prompt or trace</button><button type="button" class="btn btn-line btn-sm" @click="openSkillTool('ai-ask')">Find related skills</button><button type="button" class="btn btn-line btn-sm" v-if="refCopy.state === 'on'" @click="openSkillTool('ai-port')">Check agent compatibility</button><a class="tp-link" href="#/advanced/ai-overlap">Check collection overlap</a><a class="tp-link" href="#/advanced/ai-profile">Suggest a project profile</a></div>
               </details></div>
-              <div><button type="button" class="btn btn-danger btn-sm" @click="openTrash()"><ic name="trash" cls="i-s"></ic>Move to trash</button></div>
               <details><summary>Permanent removal</summary><p class="sub">Deletes selected copies without trash or Undo.</p><button type="button" class="btn btn-danger btn-sm" @click="openPermanentDelete()">Delete permanently</button></details>
             </aside>
           </div>
+        </div>
+      </div>
 
-          <!-- edit -->
-          <template v-else>
-            <div class="sheet sheet-edit">
-              <article>
-                <p class="meta">Editing. The previous text is kept as a snapshot you can roll back to.</p>
-                <h1 class="doc-title" id="h1" tabindex="-1" translate="no">{{ skill.name }}</h1>
-                <label class="ed-label" for="ed-desc">Description <span style="font-weight:600;color:var(--muted)">(when should an agent use this?)</span></label>
-                <textarea class="ed-input ed-desc" id="ed-desc" rows="3" :value="edit.desc" @input="edit.desc = $event.target.value.replace(/\s*\n\s*/g, ' ')" @keydown.enter.prevent :aria-invalid="editError ? 'true' : null" :aria-describedby="editError ? 'ed-err' : null"></textarea>
+      <div class="jf-skill-reader jf-editor" v-else-if="edit">
+        <div class="jf-reader-heading savebar" role="region" aria-label="Save changes">
+          <div class="jf-reader-title">
+            <nav aria-label="Breadcrumb"><a href="#/skills">Skills</a><span aria-hidden="true">/</span><a :href="readerHref()" translate="no">{{ edit.name }}</a><span aria-hidden="true">/</span><span aria-current="page">Edit</span></nav>
+            <h1 id="h1" tabindex="-1">Editing {{ edit.name }}</h1>
+          </div>
+          <span v-if="editDirty" role="status">Unsaved changes</span>
+          <button type="button" class="sm-btn" :disabled="busy" @click="cancelEdit()">Cancel</button>
+          <button type="button" class="sm-btn sm-btn--accent" @click="saveEdit()" :disabled="!!editError || !edit.targets.length || busy || !editDirty || editTargetChanged"
+            aria-describedby="jf-editor-save-note">{{ busy ? 'Saving…' : edit.targets.length ? 'Save to ' + plural(edit.targets.length, 'place') : 'Save' }}</button>
+        </div>
+        <p class="state-note err" v-if="edit.error || editTargetChanged" role="alert">{{ edit.error || 'This skill changed on disk. Open the current copy in another tab to compare before saving.' }}
+          <a v-if="editTargetChanged" :href="readerHref()" target="_blank" rel="noopener">Open current copy</a>
+        </p>
+        <div class="jf-reader-body">
+          <article class="jf-reader-document">
+                <label class="ed-label" for="ed-desc">Description</label>
+                <p class="sm-hint" id="edit-desc-hint">Agents read this to decide when to use the skill. One or two plain sentences.</p>
+                <textarea class="ed-input ed-desc" id="ed-desc" rows="3" :value="edit.desc" @input="edit.desc = $event.target.value.replace(/\s*\n\s*/g, ' ')" @keydown.enter.prevent :aria-invalid="editError ? 'true' : null" :aria-describedby="editError ? 'edit-desc-hint ed-err' : 'edit-desc-hint'" :disabled="busy"></textarea>
                 <p class="ed-err" id="ed-err" v-if="editError"><ic name="bad" cls="i-s"></ic>{{ editError }}</p>
                 <p class="ed-hint num" v-else>{{ edit.desc.length }} / 1024</p>
-                <details class="instance-metadata"><summary>Additional metadata</summary><div class="instance-fields"><label v-for="field in ['category','version','license','compatibility','allowed_tools']" :key="field">{{field==='allowed_tools'?'Allowed tools':titleCase(field)}}<input class="field" v-model="edit.metadata[field]"></label></div></details>
+                <details class="instance-metadata"><summary>Additional metadata</summary><div class="instance-fields"><label v-for="field in ['category','version','license','compatibility','allowed_tools']" :key="field">{{field==='allowed_tools'?'Allowed tools':titleCase(field)}}<input class="field" v-model="edit.metadata[field]" :disabled="busy"></label></div></details>
+                <h2 class="ed-label">Content</h2>
                 <div class="ed-toolbar">
                   <div class="ed-tabs seg" role="group" aria-label="Editor view">
                     <button type="button" :aria-pressed="edit.tab === 'write'" @click="edit.tab = 'write'">Write</button>
@@ -423,19 +502,33 @@
                     <button type="button" aria-label="Heading" title="Heading" @click="insertText('## ')">H</button><button type="button" title="Bullet list" @click="insertText('- ')">Bullet list</button><button type="button" title="Numbered list" @click="insertText('1. ')">Numbered list</button><button type="button" aria-label="Bold" title="Bold" @click="wrapText('**')"><b>B</b></button></span>
                   <button type="button" class="btn btn-line btn-sm" v-if="edit.tab === 'write'" :disabled="busy || !edit.copy.hash" @click="openAiEdit()">Edit with AI</button>
                 </div>
-                <template v-if="edit.tab === 'write'"><label class="sr-only" for="ed-body">Instructions</label><textarea class="ed-area" id="ed-body" ref="edbody" spellcheck="true" v-model="edit.body"></textarea></template>
+                <template v-if="edit.tab === 'write'"><label class="sr-only" for="ed-body">Instructions</label><textarea class="ed-area" id="ed-body" ref="edbody" spellcheck="true" v-model="edit.body" :disabled="busy"></textarea></template>
                 <div class="doc" style="margin-top:20px" v-else v-html="renderDoc(edit.body)"></div>
-              </article>
+          </article>
+          <aside class="jf-reader-details jf-editor-places" aria-labelledby="jf-editor-places-title">
+            <div><h2 id="jf-editor-places-title">Save to</h2>
+              <p class="sm-hint">The selected copies receive the edited content. Supporting files stay in their folders.</p>
             </div>
-            <div class="savebar" role="region" aria-label="Save changes">
-              <span class="dirty" v-if="editDirty" role="status">Unsaved changes</span>
-              <span class="to">Save to:
-                <label v-for="c in editTargets" :key="c.scope"><input type="checkbox" :value="c.scope" v-model="edit.targets">{{ agentOf(c.scope).name }}</label></span>
-              <span class="sp"><button type="button" class="btn btn-soft" @click="cancelEdit()">Cancel</button>
-                <button type="button" class="btn btn-ink" @click="saveEdit()" :disabled="!!editError || !edit.targets.length || busy || !editDirty">Save {{ edit.targets.length ? 'to ' + plural(edit.targets.length, 'place') : '' }}</button></span>
-            </div>
-          </template>
+            <label v-for="copy in editTargets" :key="copy.scope" class="jf-editor-place">
+              <input type="checkbox" class="sm-check" :value="copy.scope" v-model="edit.targets" :disabled="busy || bodyKey(copy) !== edit.initialTargets[copy.scope]">
+              <span>
+                <jf-agent :agent="{ ...agentOf(copy.scope), path: shortPath(copy.path) }"></jf-agent>
+                <small v-if="bodyKey(copy) !== edit.initialTargets[copy.scope]">This copy changed on disk.</small>
+                <small v-else-if="copy.hash !== edit.copy.hash">Different copy. Selecting it replaces its description, instructions and editable metadata.</small>
+              </span>
+            </label>
+            <p id="jf-editor-save-note" class="sm-hint">{{ editError || (edit.targets.length ? plural(edit.targets.length, 'place') + ' selected.' : 'Choose where to save.') }}</p>
+          </aside>
         </div>
+      </div>
+      <div class="page" v-else>
+        <h1 id="h1" tabindex="-1">Editing {{ skill.name }}</h1>
+        <p v-if="docPending" role="status">Reading document…</p>
+        <template v-else>
+          <p v-if="docError || docWhy" class="state-note err">{{ docError || docWhy?.text }}</p>
+          <button type="button" class="sm-btn" v-if="canEdit" @click="retryDocument()">Retry document</button>
+          <a :href="'#/skills/' + enc(skill.name)">Back to the skill</a>
+        </template>
       </div>
     </div>
 
@@ -733,20 +826,20 @@
         </template>
         <div class="explain" v-if="dialog.how"><b>What to do</b>{{ dialog.how }}<code v-for="p in dialog.paths" :key="p">{{ p }}</code></div>
         <form class="dlg-form" v-if="dialog.form" @submit.prevent="confirmDialog()">
-          <label class="ed-label" for="nf-name">Name</label>
-          <input class="ed-input" style="font-family:var(--mono);font-style:normal;font-size:15px" id="nf-name" v-model="dialog.form.name" autocomplete="off" spellcheck="false" :aria-invalid="formErrors.name ? 'true' : null" aria-describedby="nf-hint">
-          <p :class="formErrors.name ? 'ed-err' : 'ed-hint'" id="nf-hint" style="text-align:left">{{ formErrors.name || 'Lowercase words joined by hyphens, like code-review.' }}</p>
-          <label class="ed-label" for="nf-desc">Description <span style="font-weight:600;color:var(--muted)">(when should an agent use this?)</span></label>
-          <input class="ed-input" id="nf-desc" v-model="dialog.form.desc" :aria-invalid="formErrors.desc ? 'true' : null" aria-describedby="nf-dhint">
-          <p :class="formErrors.desc ? 'ed-err' : 'ed-hint'" id="nf-dhint" style="text-align:left">{{ formErrors.desc || 'Start with “Use this when…”.' }}</p>
-          <label class="ed-label" for="nf-scope">Create it in</label>
-          <select class="field" id="nf-scope" v-model="dialog.form.scope" style="width:100%"><option v-for="a in createTargets" :key="a.id" :value="a.id">{{ a.name }}</option></select>
+          <label class="ed-label" for="legacy-nf-name">Name</label>
+          <input class="ed-input" style="font-family:var(--mono);font-style:normal;font-size:15px" id="legacy-nf-name" v-model="dialog.form.name" autocomplete="off" spellcheck="false" :aria-invalid="formErrors.name ? 'true' : null" aria-describedby="legacy-nf-hint">
+          <p :class="formErrors.name ? 'ed-err' : 'ed-hint'" id="legacy-nf-hint" style="text-align:left">{{ formErrors.name || 'Lowercase words joined by hyphens, like code-review.' }}</p>
+          <label class="ed-label" for="legacy-nf-desc">Description <span style="font-weight:600;color:var(--muted)">(when should an agent use this?)</span></label>
+          <input class="ed-input" id="legacy-nf-desc" v-model="dialog.form.desc" :aria-invalid="formErrors.desc ? 'true' : null" aria-describedby="legacy-nf-dhint">
+          <p :class="formErrors.desc ? 'ed-err' : 'ed-hint'" id="legacy-nf-dhint" style="text-align:left">{{ formErrors.desc || 'Start with “Use this when…”.' }}</p>
+          <label class="ed-label" for="legacy-nf-scope">Create it in</label>
+          <select class="field" id="legacy-nf-scope" v-model="dialog.form.scope" style="width:100%"><option v-for="a in createTargets" :key="a.id" :value="a.id">{{ a.name }}</option></select>
           <details v-if="dialog.author" class="instance-metadata">
             <summary>Create with AI</summary>
-            <label class="ed-label" for="nf-brief">What should the skill do?</label>
-            <textarea class="field instance-create-body" id="nf-brief" rows="3" maxlength="10000" v-model="dialog.author.brief"></textarea>
-            <label class="ed-label" for="nf-excerpts">Source excerpts or examples (optional)</label>
-            <textarea class="field instance-create-body" id="nf-excerpts" rows="3" maxlength="16000" v-model="dialog.author.context"></textarea>
+            <label class="ed-label" for="legacy-nf-brief">What should the skill do?</label>
+            <textarea class="field instance-create-body" id="legacy-nf-brief" rows="3" maxlength="10000" v-model="dialog.author.brief"></textarea>
+            <label class="ed-label" for="legacy-nf-excerpts">Source excerpts or examples (optional)</label>
+            <textarea class="field instance-create-body" id="legacy-nf-excerpts" rows="3" maxlength="16000" v-model="dialog.author.context"></textarea>
             <div class="tp-acts">
               <button type="button" class="btn btn-line" :disabled="dialog.author.pending || !dialog.author.brief.trim()" @click="requestAuthorDraft(true)">Preview AI request</button>
             </div>
@@ -772,9 +865,9 @@
               </label>
             </fieldset>
           </details>
-          <label class="ed-label" for="nf-template">Start from a stored template</label><select class="field" id="nf-template" v-model="dialog.form.template" @change="loadCreateTemplate()"><option value="">Default structure</option><option v-for="name in createTemplates" :key="name" :value="name">{{name}}</option></select>
+          <label class="ed-label" for="legacy-nf-template">Start from a stored template</label><select class="field" id="legacy-nf-template" v-model="dialog.form.template" @change="loadCreateTemplate()"><option value="">Default structure</option><option v-for="name in createTemplates" :key="name" :value="name">{{name}}</option></select>
           <details class="instance-metadata"><summary>Additional metadata</summary><div class="instance-fields"><label v-for="field in ['category','version','license','compatibility','allowed_tools']" :key="field">{{field==='allowed_tools'?'Allowed tools':titleCase(field)}}<input class="field" v-model="dialog.form[field]"></label></div></details>
-          <label class="ed-label" for="nf-body">Instructions</label><textarea class="field instance-create-body" id="nf-body" rows="8" v-model="dialog.form.body" :disabled="dialog.templateLoading"></textarea>
+          <label class="ed-label" for="legacy-nf-body">Instructions</label><textarea class="field instance-create-body" id="legacy-nf-body" rows="8" v-model="dialog.form.body" :disabled="dialog.templateLoading"></textarea>
           <p class="state-note err" v-if="dialog.error" role="alert">{{dialog.error}}</p>
           <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">Create</button>
         </form>
@@ -930,6 +1023,8 @@
 <script src="ui-doc.js"></script>
 <script src="screen-not-found.js"></script>
 <script src="screen-skills.js"></script>
+<script src="screen-new.js"></script>
+<script src="screen-why.js"></script>
 <script src="palette.js"></script>
 <script src="library-tools.js"></script>
 <script src="ai-center.js"></script>

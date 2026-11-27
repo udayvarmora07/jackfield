@@ -1267,6 +1267,25 @@ def _native_partial(observation: object) -> bool:
     )
 
 
+def claude_skill_listing(name: str, frontmatter: dict, *, disabled: bool, home) -> dict:
+    """Estimate a personal skill's listing entry from user settings only."""
+    observation = native_state.observe_claude_listing(home=home)
+    setting = native_state.observe_native_states("claude-code", [name], home=home).get(name)
+    if observation.get("partial") or _native_partial(setting):
+        return {"entry_chars": None, "budget_chars": None, "listing": "unknown",
+                "basis": "User settings are incomplete. Project settings are unobserved."}
+
+    record = {"name": name, "description": frontmatter.get("description"),
+              "frontmatter_extensions": frontmatter, "disabled": disabled}
+    cap = observation.get("max_desc_chars") or native_state.DEFAULT_LISTING_MAX_DESC_CHARS
+    pairs, _, _ = _collect_listing([record], cap, {name: setting}, "")
+    budget = _listing_budget(observation, DEFAULT_WINDOW)
+    return {"entry_chars": pairs[0][0]["entry_chars"] if pairs else 0,
+            "budget_chars": budget["budget_chars_estimate"],
+            "listing": pairs[0][0]["listing"] if pairs else "hidden",
+            "basis": f"Based on {budget['basis']}. Project settings not observed."}
+
+
 def _note_listing_scope(unavailable: list[dict], section: dict) -> None:
     """Record that this report observed no Claude Code instances at all."""
     if section.get("instances_observed"):

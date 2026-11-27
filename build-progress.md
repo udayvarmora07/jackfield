@@ -33,9 +33,55 @@ Jackfield name and mark. Their project sources are in `branding/jackfield/`.
   [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/45982680566) passed.
 - [x] Phase 1 · Shell integrated on `main` as `72401c7`. All 17
   [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/45997716936) passed.
-- [x] Phase 2 · Skills table and side panel implemented and verified locally.
-  [GitHub CI for main](https://github.com/udayvarmora07/jackfield/actions/workflows/ci.yml?query=branch%3Amain)
-- [ ] Phases 3–8 · Remaining screens, migration cleanup and acceptance.
+- [x] Phase 2 · Skills table and side panel integrated on `main` as `78cfedd`.
+  All 17 [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46011057550)
+  passed on that commit. The four-artifact review corrections are recorded
+  in [the progress log](docs/06-progress-log.md).
+- [ ] Phase 3 · The Skill page, Editor, New skill and diagnosis screens are
+  implemented. See the remaining acceptance items below.
+- [ ] Phases 4–8 · Remaining screens, migration cleanup and acceptance.
+
+## Phase 3 · Everyday jobs
+
+| Screen | Behavior |
+| --- | --- |
+| Skill page | Uses the same squares and reviewed changes as the Skills table. File text retains the selected copy and checks its UTF-8 bytes against the observed hash. History identifies library events and separately reports saved snapshots for the selected place. |
+| Editor | Different copies start unticked. The server checks each selected folder and content hash under its write lock. Undo uses the exact snapshot returned by the write and checks the saved version before restoring. |
+| New skill | Shows three starting layouts and stored templates. The preview and real create serialize through the same code. A partial result keeps confirmed files and shows the uncertain destinations. Existing AI authoring and metadata are available from the form. |
+| Why isn’t it running? | Shows the first failed check in place order and distinguishes files, observed settings and runtime. Runtime loading remains Unknown. The original prompt and trace tools are under AI maintenance. |
+
+The Skill page reads both views from the selected folder’s current document,
+including when the library index is stale or a recursive scope holds several
+copies with the same name. Details lists supporting files and counts lines
+in readable text within the scan limits. The Claude Code size estimate uses
+the selected personal copy and observed user settings.
+
+The Editor currently saves existing writable copies. Saving to a new place
+needs a staged copy that keeps supporting files and publishes the edited
+document together. The diagnostics page offers the confirmed Claude settings
+path for copying. It uses a recheck and a plain explanation when the exact
+settings path is unavailable.
+
+Opened all four screens with synthetic data at 1440 and 390 pixels in light
+and dark themes. The browser checks cover search to File text, exact creation
+in two folders, partial creation, an external edit arriving before a write,
+snapshot Undo, and a settings change followed by a diagnosis recheck.
+
+The Skill page Details update passed 98 headless Chromium checks, including
+two exact copies in one scope and filename changes after toggle and Undo.
+The full Python 3.12 suite ran 2,538 tests with 13 platform-dependent skips.
+The new reader and Claude listing contracts passed on Python 3.11–3.14.
+Store and web smoke tests, browser smoke, four HTTP contracts, and clean
+wheel and source distribution installs passed again.
+
+Before the Skill page Details update, Python 3.11–3.14 each ran 2,531 tests
+with 12–13 platform-dependent skips. Chromium passed 96 end-to-end checks and
+a separate first-run creation case.
+Store and web smoke tests, the browser smoke, four HTTP contracts, Ruff, the
+documentation and token checks, and clean wheel and source distribution
+installs passed. Bandit passed on the modified Python modules. The full scan
+reported a low-severity finding in the existing seeded bootstrap calculation.
+Hosted CI and a physical phone check are pending.
 
 ## Findings checked in Phase 0
 

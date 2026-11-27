@@ -3,8 +3,8 @@
 ## Path
 
 The recorded work follows requirements → UX discovery → UI and design system →
-approved screens. The maintainer has yet to confirm the overall path. The
-proposed continuation is build → UX review → launch.
+approved screens → build. The build spec puts UX review and launch after
+acceptance. The maintainer has yet to confirm the overall path.
 
 ## Skipped steps
 
@@ -31,6 +31,12 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 
 ## Last check
 
-2026-11-27 · Step 8, Build in progress. Phase 1 landed on `main` as `72401c7`
-with all 17 CI jobs passing. The Phase 2 Skills table and side panel passed
-local verification and design comparison. [Status board](project-status.html)
+2026-11-28 · Step 8, Build in progress. Phase 2 landed at `78cfedd` and all
+17 CI jobs passed for that commit. The four-artifact review corrections
+are included with the Phase 3 work to date.
+
+Phase 3 now has implementations of the Skill page, Editor, New skill
+and “Why isn’t it running?” The Skill page reads the exact current copy.
+Saving to missing places remains open in the Editor. [Build progress](build-progress.md)
+[Build plan](docs/redesign-build/07-build-plan.md#phase-3--everyday-jobs) ·
+[Status board](project-status.html)

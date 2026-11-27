@@ -35,6 +35,8 @@ from .adapters import project_observation, workspaces_payload
 from .catalog import delete_profile, enrich_rows, load_catalog, profile_preview, save_profile, update_tags
 from .external_scan import scan_options
 from .path_safety import contained_path
+from .skill_create import new_skill_document, new_skill_fields
+from .skill_reader import read_skill_view
 from .source_update import cancel_update_review, commit_update_review, list_update_snapshots, prepare_local_update, prepare_snapshot_update, read_update_review
 from .templates import create_template, list_templates, read_template, template_path
 from .validator import validate_skill
@@ -519,9 +521,29 @@ def _flag(qs: dict[str, list[str]], name: str) -> bool:
     return (qs.get(name, [""])[0] or "").strip().lower() in {"1", "true", "yes"}
 
 
+def _preview_skill_create(qs: dict[str, list[str]]) -> bool:
+    if "preview" not in qs:
+        return False
+    if qs["preview"] != ["1"]:
+        raise StoreError("use preview=1 to preview a skill without writing")
+    return True
+
+
 def _scope_param(qs: dict[str, list[str]]) -> str:
     """The requested scope id; absent or blank means ``global``."""
     return (qs.get("scope", [""])[0] or "").strip() or "global"
+
+
+def _skill_detail_payload(store: Store, name: str, qs: dict[str, list[str]]) -> dict:
+    scope = _scope_param(qs)
+    if qs.get("view") == ["reader"]:
+        targets = qs.get("target_path", [])
+        if len(targets) != 1 or not targets[0]:
+            raise RequestError(400, "Select one skill folder to read.")
+        return read_skill_view(scope, name, targets[0])
+    record = scopes.get_skill(scope, name)
+    _enrich_rows_with_catalog(store, [record])
+    return record
 
 
 def _trash_rows(store, qs: dict[str, list[str]]) -> list[dict]:
@@ -603,6 +625,20 @@ def _validated_skill_fields(data: dict, *, keep_empty: bool = False) -> dict:
         if value != "" or keep_empty:
             fields[field] = value
     return fields
+
+
+def _expected_skill_edit(data: dict) -> dict:
+    if "expected" not in data:
+        return {}
+    value = data["expected"]
+    if not isinstance(value, dict):
+        raise StoreError("expected must be an object")
+    folder, digest = value.get("path"), value.get("content_hash")
+    if not isinstance(folder, str) or not Path(folder).is_absolute() or "\x00" in folder:
+        raise StoreError("expected.path must be an absolute folder path")
+    if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+        raise StoreError("expected.content_hash must be a SHA-256 hash")
+    return {"expected": (folder, digest)}
 
 
 def _head_safe_body(command: str, body: bytes) -> bytes:
@@ -1111,9 +1147,7 @@ class WebAppHandler(BaseHTTPRequestHandler):
         """
         if len(parts) != 3 or parts[:2] != ["api", "skills"]:
             return False
-        record = scopes.get_skill(_scope_param(qs), parts[2])
-        _enrich_rows_with_catalog(self.store, [record])
-        self._send_json(record)
+        self._send_json(_skill_detail_payload(self.store, parts[2], qs))
         return True
 
     def _route_templates_get(self, parts: list[str]) -> bool:
@@ -1456,6 +1490,14 @@ class WebAppHandler(BaseHTTPRequestHandler):
         if parts != ["api", "skills"]:
             return False
         scope = _scope_param(qs)
+        name, description, fields = self._skill_creation_input()
+        if _preview_skill_create(qs):
+            self._preview_skill_creation(name, description, fields)
+        else:
+            self._send_json(scopes.create_skill(scope, name, description, **fields), 201)
+        return True
+
+    def _skill_creation_input(self) -> tuple[str, str, dict]:
         data = self._body_json()
         name = data.pop("name", None)
         description = data.pop("description", None)
@@ -1463,9 +1505,16 @@ class WebAppHandler(BaseHTTPRequestHandler):
             raise StoreError("name must be a non-empty string")
         if not isinstance(description, str) or not description.strip():
             raise StoreError("description must be a non-empty string")
-        fields = _validated_skill_fields(data)
-        self._send_json(scopes.create_skill(scope, name, description, **fields), 201)
-        return True
+        return name, description, _validated_skill_fields(data)
+
+    def _preview_skill_creation(self, name: str, description: str, fields: dict) -> None:
+        name, description = new_skill_fields(name, description, fields.get("compatibility"))
+        content = new_skill_document(name, description, **fields)
+        try:
+            content.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise StoreError("skill text must be valid UTF-8") from exc
+        self._send_json({"name": name, "content": content})
 
     def _route_skill_toggle_post(self, parts: list[str], qs: dict[str, list[str]]) -> bool:
         """Serve ``POST /api/skills/<name>/disable`` and ``/enable``.
@@ -1512,7 +1561,7 @@ class WebAppHandler(BaseHTTPRequestHandler):
         snapshot = qs.get("snapshot", [None])[0]
         scope = _scope_param(qs)
         if snapshot:
-            self._send_json(scopes.restore_snapshot(scope, name, snapshot))
+            self._send_json(scopes.restore_snapshot(scope, name, snapshot, **_expected_skill_edit(body)))
             return
         trash_path = body.get("trash_path")
         if trash_path is not None and not isinstance(trash_path, str):
@@ -1702,7 +1751,7 @@ class WebAppHandler(BaseHTTPRequestHandler):
             scope = _scope_param(qs)
             data = self._body_json()
             fields = _validated_skill_fields(data, keep_empty=True)
-            self._send_json(scopes.edit_skill(scope, parts[2], **fields))
+            self._send_json(scopes.edit_skill(scope, parts[2], **fields, **_expected_skill_edit(data)))
         else:
             self._send_error(404, "unknown endpoint", code="unknown_endpoint")
 

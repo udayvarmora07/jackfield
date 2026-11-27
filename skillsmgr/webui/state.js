@@ -210,6 +210,7 @@
       },
       async change(kind, target) {
         if (this.busy) return;
+        const origin = this.route;
         this.busy = true;
         this.tableError = null;
         this.tableWorking = target.keys;
@@ -234,9 +235,14 @@
           if (result?.skipped) message = `${result.copiesMade.length} copies changed. ${result.skipped} could not be changed.`;
           if (result && !undo) message += " Undo isn’t available for these copies.";
           if (result?.unavailable || (result && !undo && target.originals.length)) message += " Check Trash for previous copies.";
-          if (this.route.page === "skills") {
+          const reader = origin.page === "skill" && !origin.screen;
+          if (this.route.page === "skills" || (reader && this.route.page === "skill" &&
+              this.route.name === origin.name && !this.route.screen)) {
             const selected = this.tableSelection;
-            if (this.tableSheetOpen && target.keys.includes(selected.name + ":" + selected.agent)) this.tableClose();
+            if (selected && this.tableSheetOpen && target.keys.includes(selected.name + ":" + selected.agent)) {
+              if (this.route.page === "skill") this.closeReaderSquare();
+              else this.tableClose();
+            }
             this.toast(message, { undo, err: !!result?.skipped });
           }
         } catch (error) {
@@ -263,10 +269,8 @@
           this.toasts = this.toasts.filter((note) => !note.undo);
         }
         this.toasts.push(t); this.live = text + (t.undo ? " Undo is available." : "");
-        this.armToast(t, t.undo ? 20000 : (t.err ? 7000 : 4000));
+        if (!t.undo) this.armToast(t, t.err ? 7000 : 4000);
       },
-      /* WCAG 2.2.1: a toast with an action never times out while the reader is
-       * on it; it waits until focus and pointer leave, then gets its time again. */
       armToast(t, ms) {
         clearTimeout(t.timer);
         t.ms = ms;
@@ -274,7 +278,7 @@
       },
       holdToast(t, held) {
         t.held = held;
-        if (!held) this.armToast(t, Math.max(t.ms || 4000, 6000));
+        if (!held && !t.undo) this.armToast(t, Math.max(t.ms || 4000, 6000));
       },
       dismissToast(t) {
         clearTimeout(t.timer);
