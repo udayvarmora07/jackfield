@@ -475,7 +475,7 @@ const app = createApp({
       return [
         { id: "all", label: "All", n: sk.filter((s) => s.status.key !== "note").length },
         { id: "care", label: "Needs care", n: this.careCount },
-        { id: "off", label: "Turned off", n: sk.filter((s) => s.status.key === "off").length },
+        { id: "off", label: "Turned off", n: this.shelfSkills.filter((s) => Model.hasOffCopy(s, this.agentFilter)).length },
       ];
     },
     shelfTotal() { return this.shelfSkills.length; },
@@ -503,7 +503,7 @@ const app = createApp({
       return this.shelfSkills.filter((s) => {
         const k = s.status.key;
         if (this.filter === "care" && k !== "warn" && k !== "bad") return false;
-        if (this.filter === "off" && k !== "off") return false;
+        if (this.filter === "off" && !Model.hasOffCopy(s, this.agentFilter)) return false;
         if (this.agentFilter !== "all" && !s.copies.some((c) => c.scope === this.agentFilter)) return false;
         const tags = (this.catalog.tags || {})[s.name] || [];
         if (this.tagFilter === "__untagged" && tags.length) return false;
@@ -1782,11 +1782,10 @@ app.component("ic", {
 });
 app.component("logo", {
   props: { agent: Object, size: { type: String, default: "" } },
-  /* A real agent mark when one is vendored (model.js AGENT_ICONS), otherwise
-   * the initials badge. Both are decorative: the agent name is always shown. */
-  template: '<span v-if="agent.icon" :class="[\'logo\', \'mark-tile\', size]" aria-hidden="true">'
-    + '<svg :viewBox="agent.icon.vb"><path v-for="(p, i) in agent.icon.paths" :key="i" :d="p.d" :style="{ fill: p.fill || \'currentColor\' }" :fill-rule="p.evenodd ? \'evenodd\' : null"></path></svg></span>'
-    + '<span v-else :class="[\'logo\', size]" :style="{ background: agent.color }" aria-hidden="true">{{ agent.initials }}</span>',
+  /* The visible agent name also labels the decorative mark or initials. */
+  template: '<span :class="[\'logo\', size]" aria-hidden="true">'
+    + '<span v-if="agent.mark" class="agm" :data-a="agent.mark"></span>'
+    + '<span v-else>{{ agent.initials }}</span></span>',
 });
 
 app.component("listing-budgets", {

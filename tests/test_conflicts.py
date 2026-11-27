@@ -36,6 +36,8 @@ class ExtractionTests(unittest.TestCase):
                          {'positive': {'pnpm'}, 'negative': {'npm'}})
         self.assertEqual(conflicts.stances('Run `uv sync` first')['Python package tool']['positive'], {'uv'})
         self.assertEqual(conflicts.stances('Open the browser tabs view.'), {})
+        self.assertEqual(conflicts.stances('Always use tabs.')["indentation"]["positive"], {"tabs"})
+        self.assertEqual(conflicts.stances('Always use spaces.')["indentation"]["positive"], {"spaces"})
 
     def test_rules_skip_fences_headings_and_plain_prose(self):
         found = conflicts.rules('# Never a heading\nPlain prose line here.\n```\nnever inside\n```\n'

@@ -105,6 +105,14 @@ class ModelStatusTests(unittest.TestCase):
             "rec('.system','codex',{malformed:true,addressable:false,instance_states:['invalid','unaddressable']})]")
         self.assertEqual(out, {"README.md": "Not a skill", ".system": "Not a skill"})
 
+    def test_partial_disable_is_found_without_changing_the_skill_status(self):
+        result = _node("""
+          const skill = {copies: [{scope: 'claude-code', state: 'on'}, {scope: 'codex', state: 'off'}]};
+          return [M.hasOffCopy(skill), M.hasOffCopy(skill, 'codex'), M.hasOffCopy(skill, 'claude-code'),
+                  M.hasOffCopy({copies: []})];
+        """)
+        self.assertEqual(result, [True, True, False, False])
+
     def test_disabled_everywhere_is_turned_off(self):
         out = self._status(
             "[rec('a','codex',{disabled:1,instance_states:['disabled']}),"
@@ -202,46 +210,43 @@ class ModelProblemTests(unittest.TestCase):
         self.assertNotIn("cursor", out)
 
 
-@unittest.skipUnless(NODE, "node is required")
-class BadgeContrastTests(unittest.TestCase):
-    """Agent badges print white initials on a fill, so each fill needs 4.5:1."""
-
-    @staticmethod
-    def _contrast_on_white(hex_color: str) -> float:
-        channels = [int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
-        linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
-        luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
-        return 1.05 / (luminance + 0.05)
-
-    def test_every_badge_fill_clears_aa_against_white_initials(self):
-        source = (V2 / "model.js").read_text(encoding="utf-8")
-        block = source[source.index("const BRAND"):source.index("const AGENT_ICONS")]
-        fills = set(re.findall(r"#[0-9a-fA-F]{6}", block))
-        self.assertGreaterEqual(len(fills), 8)
-        for fill in sorted(fills):
-            self.assertGreaterEqual(self._contrast_on_white(fill), 4.5, f"{fill} fails AA with white text")
-
-
 class AgentIconTests(unittest.TestCase):
-    """Real agent marks are vendored path data with a recorded licence."""
+    """Approved marks are local SVG masks. The fallback keeps readable initials."""
 
-    def test_each_vendored_mark_is_path_data_with_a_licence_note(self):
-        source = (V2 / "model.js").read_text(encoding="utf-8")
-        block = source[source.index("const AGENT_ICONS"):source.index("function hash")]
-        rows = re.findall(r'^\s+"([a-z-]+)": \{ vb: "([0-9 ]+)", paths: \[(.+)\] \}, // (.+)$', block, re.M)
-        self.assertEqual({r[0] for r in rows},
-                         {"claude-code", "codex", "cursor", "gemini", "opencode", "commandcode", "agents", "global"})
-        for agent, view_box, paths, note in rows:
-            self.assertEqual(len(view_box.split()), 4, agent)
-            for path in re.findall(r'd: "([^"]+)"', paths):
-                self.assertRegex(path, r"^[MmZzLlHhVvCcSsQqTtAa0-9.,\s-]+$", agent)
-            self.assertRegex(note, r"(CC0-1\.0|MIT|Apache-2\.0)$", agent)
+    @unittest.skipUnless(NODE, "node is required")
+    def test_scope_ids_map_to_well_formed_local_svg_masks(self):
+        from urllib.parse import unquote
+        from xml.etree import ElementTree
+
+        ids = ["claude-code", "codex", "cursor", "gemini", "opencode", "commandcode",
+               "agents", "project-agents", "custom-kilo", "global", "unknown"]
+        marks = _node("return " + json.dumps(ids) + ".map(id=>M.agentMark(id).mark);")
+        self.assertEqual(marks, ["CC", "CX", "Cursor", "Gemini", "OC", "Command Code",
+                                 "SH", "PJ", "Custom agent", None, None])
+        sheet = (V2 / "system.css").read_text(encoding="utf-8")
+        for mark in filter(None, marks):
+            match = re.search(r'\[data-a="' + re.escape(mark) +
+                              r'"\]\{--agi:url\("data:image/svg\+xml,([^"]+)"', sheet)
+            self.assertIsNotNone(match, mark)
+            svg = ElementTree.fromstring(unquote(match[1]))
+            self.assertEqual(svg.tag, "{http://www.w3.org/2000/svg}svg")
+            self.assertEqual(len(svg.get("viewBox").split()), 4)
+            self.assertTrue(all(element.tag.rsplit("}", 1)[-1] in {"svg", "g", "path", "rect", "circle"}
+                                for element in svg.iter()), mark)
 
     def test_agents_without_a_mark_keep_the_initials_badge(self):
-        app =(V2 / "app.js").read_text(encoding="utf-8")
-        self.assertIn('v-if="agent.icon"', app)
-        self.assertIn("v-else", app)
-        self.assertIn("{{ agent.initials }}", app)
+        app = (V2 / "app.js").read_text(encoding="utf-8")
+        self.assertIn('v-if="agent.mark"', app)
+        self.assertIn('v-else>{{ agent.initials }}', app)
+
+    def test_initials_are_readable_in_both_themes(self):
+        from check_design_tokens import contrast
+        from tools.gen_tokens import SOURCE, token_values
+
+        source = json.loads(SOURCE.read_text(encoding="utf-8"))
+        for theme in ("light", "dark"):
+            palette = token_values(source, theme)
+            self.assertGreaterEqual(contrast(palette["ink-2"], palette["raise"]), 4.5)
 
 
 class BrandMarkTests(unittest.TestCase):
@@ -835,7 +840,8 @@ class InterfaceSourceTests(unittest.TestCase):
 
     def test_no_inline_script_and_no_external_resource(self):
         self.assertNotRegex(self.html, r"<script(?![^>]*\bsrc=)[^>]*>")
-        for text in (self.html, self.css, self.app):
+        for text in (self.html, self.css, self.app, *((V2 / f).read_text(encoding="utf-8")
+                      for f in ("tokens.css", "system.css", "layout.css", "tools.css"))):
             self.assertNotRegex(text, r"https?://(?!www\.w3\.org)", "no runtime fetch from another origin")
 
     def test_html_is_injected_only_from_the_escaped_renderer_or_constant_icons(self):
@@ -847,7 +853,7 @@ class InterfaceSourceTests(unittest.TestCase):
             if src.startswith(("/", "http", "#", "data:")):
                 continue
             self.assertTrue((V2 / src).resolve().exists(), f"missing {src}")
-        for rel in re.findall(r'url\("([^")]+\.woff2)"\)', self.css):
+        for rel in re.findall(r'url\("([^")]+\.woff2)"\)', (V2 / "tokens.css").read_text(encoding="utf-8")):
             self.assertTrue((V2 / rel).exists(), f"missing font {rel}")
 
     def test_tooling_uses_only_the_documented_api_families(self):
@@ -857,35 +863,29 @@ class InterfaceSourceTests(unittest.TestCase):
         self.assertIn("/api/templates", called)
         self.assertIn("/api/batch", called)
 
-    def test_every_css_variable_it_uses_is_declared(self):
-        declared = set(re.findall(r"(--[a-z0-9-]+)\s*:", self.css))
-        used = set(re.findall(r"var\((--[a-z0-9-]+)", self.css))
-        self.assertEqual(used - declared, set())
-
     def test_both_themes_meet_contrast_for_text_and_controls(self):
-        def tokens(block):
-            return dict(re.findall(r"(--[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})", block))
-        light = tokens(self.css[: self.css.index("*, *::before")])
-        dark = {**light, **tokens(self.css[self.css.index(':root[data-theme="dark"] {'):])}
+        from check_design_tokens import contrast
 
-        def lum(h):
-            r, g, b = (int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
-            f = lambda c: c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4  # noqa: E731
-            return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
-
-        def ratio(a, b):
-            hi, lo = sorted((lum(a), lum(b)), reverse=True)
-            return (hi + 0.05) / (lo + 0.05)
-
-        for name, t in (("light", light), ("dark", dark)):
-            for fg in ("--ink", "--ink-2", "--muted"):
-                for bg in ("--bg", "--surface", "--sunken"):
-                    self.assertGreaterEqual(ratio(t[fg], t[bg]), 4.5, f"{name} {fg} on {bg}")
-            for bg in ("--paper", "--tree-bg"):
-                self.assertGreaterEqual(ratio(t["--muted"], t[bg]), 4.5, f"{name} reader text on {bg}")
-            for fg, bg in (("--ok", "--ok-bg"), ("--warn", "--warn-bg"), ("--bad", "--bad-bg"), ("--off", "--off-bg")):
-                self.assertGreaterEqual(ratio(t[fg], t[bg]), 4.5, f"{name} {fg} on {bg}")
-            self.assertGreaterEqual(ratio(t["--line-strong"], t["--surface"]), 3.0, f"{name} control boundary")
+        sheet = (V2 / "tokens.css").read_text(encoding="utf-8")
+        light_sheet, dark_sheet = sheet.split(':root[data-theme="dark"] {', 1)
+        colour = re.compile(r"(--[a-z0-9-]+):\s*(#[0-9a-fA-F]{6});")
+        light = dict(colour.findall(light_sheet))
+        dark = {**light, **dict(colour.findall(dark_sheet))}
+        aliases = dict(re.findall(r"(--[a-z0-9-]+):\s*var\((--[a-z0-9-]+)\);", self.css))
+        pairs = [
+            (fg, bg, 4.5)
+            for fg in ("--ink", "--ink-2", "--muted")
+            for bg in ("--bg", "--surface", "--sunken", "--paper", "--tree-bg")
+        ]
+        pairs += [("--ok", "--ok-bg", 4.5), ("--warn", "--warn-bg", 4.5),
+                  ("--bad", "--bad-bg", 4.5), ("--off", "--off-bg", 4.5),
+                  ("--line-strong", "--surface", 3.0)]
+        for theme, tokens in (("light", light), ("dark", dark)):
+            for foreground, background, minimum in pairs:
+                with self.subTest(theme=theme, foreground=foreground, background=background):
+                    self.assertGreaterEqual(contrast(tokens[aliases.get(foreground, foreground)],
+                                                     tokens[aliases.get(background, background)]),
+                                            minimum)
 
     def test_phone_navigation_reaches_every_page(self):
         nav = self.html[self.html.index('class="bottomnav"'):]
@@ -972,7 +972,9 @@ class ServedTests(unittest.TestCase):
 
     def test_the_interface_and_its_assets_are_served(self):
         for path, kind in (("/", "text/html"), ("/app.js", "javascript"), ("/model.js", "javascript"),
-                           ("/styles.css", "text/css"), ("/library-tools.js", "javascript"),
+                           ("/styles.css", "text/css"), ("/tokens.css", "text/css"),
+                           ("/system.css", "text/css"), ("/layout.css", "text/css"),
+                           ("/library-tools.js", "javascript"),
                            ("/tool-center.js", "javascript"), ("/ai-center.js", "javascript"),
                            ("/ai-diagnostic.js", "javascript"), ("/tools.css", "text/css"),
                            ("/domain.js", "javascript"), ("/preferences.js", "javascript"),

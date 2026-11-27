@@ -28,6 +28,7 @@ APP_JS = WEBUI / "app.js"
 INDEX_HTML = WEBUI / "index.html"
 CSS = WEBUI / "styles.css"
 DESIGN_MD = ROOT / "DESIGN.md"
+TOKENS_CSS = WEBUI / "tokens.css"
 FONTS = WEBUI / "static" / "fonts"
 
 
@@ -178,17 +179,18 @@ console.log(JSON.stringify({{
 
 
 class DesignContractTests(unittest.TestCase):
-    """DESIGN.md is the contract; the stylesheet and the package are its proof."""
+    """The versioned tokens and offline fonts make up the design contract."""
 
-    def test_the_contract_file_exists_and_carries_tokens_and_rationale(self):
+    def test_the_guide_points_to_the_versioned_tokens_without_colour_values(self):
         doc = _read(DESIGN_MD)
-        self.assertTrue(doc.startswith("---\n"), "DESIGN.md must open with token front matter")
-        self.assertIn("colors:", doc)
-        self.assertIn("typography:", doc)
-        self.assertIn("## Don't change", doc)
+        self.assertIn("design/tokens.json", doc)
+        self.assertNotRegex(doc, r"#[0-9a-fA-F]{6}\b")
+        source = json.loads(_read(ROOT / "design" / "tokens.json"))
+        self.assertEqual(source["name"], "Jackfield")
+        self.assertEqual({theme["id"] for theme in source["color"]["themes"]}, {"light", "dark"})
 
     def test_no_runtime_font_cdn_anywhere_in_the_frontend(self):
-        for path in (CSS, INDEX_HTML, APP_JS, DOMAIN_JS):
+        for path in (TOKENS_CSS, CSS, INDEX_HTML, APP_JS, DOMAIN_JS):
             text = _read(path)
             self.assertNotIn("fonts.googleapis.com", text, f"{path.name} fetches a font CDN")
             self.assertNotIn("fonts.gstatic.com", text, f"{path.name} fetches a font CDN")
@@ -218,7 +220,7 @@ class DesignContractTests(unittest.TestCase):
         down: the bytes are present, the declaration is present, and the page
         still renders in the wrong typeface. Assert the glyph coverage.
         """
-        css = _read(CSS)
+        css = _read(TOKENS_CSS)
         faces = re.findall(r"@font-face\s*\{([^}]*)\}", css)
         sans = [face for face in faces if "IBM Plex Sans" in face]
         self.assertTrue(sans, "the interface face is not declared")
@@ -232,7 +234,9 @@ class DesignContractTests(unittest.TestCase):
             for src in re.findall(r'url\("?([^")]+)"?\)', face):
                 self.assertNotIn("http", src, f"{src} is a remote reference")
                 self.assertTrue((WEBUI / src).is_file(), f"{src} does not exist beside styles.css")
-        self.assertGreaterEqual(len(faces), 4)
+        self.assertEqual(len(faces), 8)
+        self.assertTrue(all("unicode-range:" in face for face in faces))
+        self.assertTrue((FONTS / "OFL-IBM-Plex.txt").is_file())
 
 
     def test_no_easing_curve_overshoots(self):

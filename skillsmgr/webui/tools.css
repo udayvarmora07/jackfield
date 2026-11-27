@@ -142,7 +142,7 @@
 .tp-list .v2-tool-row { padding: 12px; margin: 0 -12px; border-radius: var(--r-sm); border-bottom: 0; flex-wrap: wrap; }
 .tp-list .v2-tool-row:hover, .tp-list .v2-tool-row.on { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .tp-list .v2-tool-row .tp-acts { gap: 6px; }
-.tp-pick-rows li button { display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: var(--r-sm); background: none; text-align: left; font: 500 14px var(--mono); color: var(--ink-2); }
+.tp-pick-rows li button { display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: var(--r-sm); background: none; text-align: left; font: 500 14px var(--font-sans); color: var(--ink-2); }
 .tp-pick-rows li button:hover { background: var(--hover); color: var(--ink); }
 .tp-pick-rows li button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
 .tp-pick-rows li button.tp-builtin { font-family: var(--ui); font-style: italic; }
@@ -152,7 +152,7 @@
 .tp-pick legend { display: flex; gap: 12px; align-items: baseline; padding: 0 6px; color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; }
 .tp-pick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 14px; max-height: 232px; overflow-y: auto; padding: 4px 2px; }
 .tp-pick-list .tp-check { min-height: 32px; }
-.tp-tag { display: inline-flex; align-items: center; gap: 4px; margin: 2px 6px 2px 0; padding: 1px 4px 1px 8px; border-radius: var(--r-xs); background: var(--warn-bg); color: var(--warn-text); font: 600 12.5px var(--mono); }
+.tp-tag { display: inline-flex; align-items: center; gap: 4px; margin: 2px 6px 2px 0; padding: 1px 4px 1px 8px; border-radius: var(--r-xs); background: var(--warn-bg); color: var(--warn-text); font: 600 12.5px var(--font-sans); }
 .tp-tag button { border: 0; background: none; color: inherit; min-width: 24px; min-height: 24px; font-size: var(--fs-body); line-height: 1; }
 
 /* Quality */
@@ -179,7 +179,7 @@
 .tp-mini > .btn { justify-self: start; }
 .tp-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .tp-stats > div { display: grid; gap: 2px; padding: 14px 16px; border-radius: var(--r-md); background: var(--sunken); }
-.tp-stats b { font: 600 28px/1.1 var(--mono); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.tp-stats b { font: 600 28px/1.1 var(--font-sans); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .tp-stats small { color: var(--muted); font-size: var(--fs-small); }
 .tp-doctor { padding: 10px 0; border-top: 1px solid var(--line); }
 .tp-doctor h3 { margin: 0 0 4px; }
@@ -355,7 +355,7 @@
    page says how the tool works instead of standing empty. */
 .ai-steps { list-style: none; counter-reset: step; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px 24px; margin: 0; padding: 0; }
 .ai-steps li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: 2px 10px; align-items: start; }
-.ai-steps li::before { content: counter(step); grid-row: span 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line-strong); font: 600 var(--fs-caption)/1 var(--mono); color: var(--ink-2); }
+.ai-steps li::before { content: counter(step); grid-row: span 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line-strong); font: 600 var(--fs-caption)/1 var(--font-sans); color: var(--ink-2); }
 .ai-steps b { font-size: var(--fs-ui); }
 .ai-steps span { color: var(--ink-2); font-size: var(--fs-small); }
 /* Keep the last option and its focus indicator visible at the scroll limit. */

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Project Status</title>
+<title>Jackfield UI — Project status</title>
 <style>
 :root { --bg:#fafafa; --card:#fff; --ink:#1c1c1c; --mute:#666; --line:#e2e2e2; --warn:#fff6e0; --warnline:#e8c66a; --next:#eef4ff; --nextline:#9db8ea; }
 @media (prefers-color-scheme: dark) { :root { --bg:#161616; --card:#1f1f1f; --ink:#eee; --mute:#9a9a9a; --line:#333; --warn:#2c2516; --warnline:#7a6427; --next:#18212f; --nextline:#3b5580; } }
@@ -16,41 +16,41 @@ h1 { font-size:22px; margin:0 0 4px; } .sub { color:var(--mute); margin:0 0 20px
 table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
 th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
 th { font-size:13px; color:var(--mute); } td.s { white-space:nowrap; }
-a { color:inherit; } code { font-size:13px; }
-.wrap { overflow-x:auto; }
+a { color:inherit; text-underline-offset:2px; } code { font-size:13px; }
+.wrap { overflow-x:auto; } .date { white-space:nowrap; }
 </style>
 </head>
 <body><main>
-<h1>Skills Manager UI (Jackfield)</h1>
-<p class="sub">Step 8 of 12 · Build · checked 27 Nov 2026 (second check)</p>
+<h1>Jackfield UI</h1>
+<p class="sub">Step 8 of 12 · Build · checked 27 Nov 2026</p>
 
-<div class="box next"><h2>Next</h2>
-<p style="margin:0">Confirm the path, then run <code>/build</code> for the main redesign. It reads <code>design-brief.md</code>, the design system (v12) and the approved screens, and writes <code>build-progress.md</code>. First decide whether <code>DESIGN.md</code> is rewritten from the design system's tokens or the token gate reads <code>tokens.json</code> (handoff open question 4).</p></div>
+<section class="box next" aria-labelledby="next"><h2 id="next">Next</h2>
+<p style="margin:0">Phase 0 passed local verification. Integration and CI are pending.
+<a href="docs/redesign-build/07-build-plan.md#phase-1--shell">Phase 1</a> builds the shell, navigation and search.
+<a href="build-progress.md">Build progress</a></p></section>
 
-<div class="box warn"><h2>Watch out</h2><ul>
-<li><b>Out of date:</b> the handoff package (26 Nov, 00:18) was made before the Agent tracking feature joined <code>requirements.md</code> (10:42).</li>
-<li><b>Build half done:</b> Agent tracking was built onto the shipped UI. The approved redesign look is not built: <code>styles.css</code> still uses the old bone ground and teal accent.</li>
-<li><b>Files not where /build looks:</b> no <code>design-system.md</code>, <code>design-tokens.css</code> or <code>designs/final/</code> in the root. Copies are in <code>handoff/</code>.</li>
-<li><b>Rename:</b> committed in <code>75c1bb6</code> (CI green). The approved screens, briefs and handoff still say "Skills Manager".</li>
-<li><b>Local tests:</b> 15 of 2,508 fail on this checkout (CI green). Project scopes read the working directory, so the untracked skills in <code>.agents/skills</code> and <code>.claude/skills</code> leak into "all scopes" tests.</li>
-<li><b>Open ends:</b> 10 items in <a href="handoff/open-questions.md">handoff/open-questions.md</a> (brand guidelines, undrawn states, font licence, among others).</li>
-</ul></div>
+<section class="box warn" aria-labelledby="watch"><h2 id="watch">Watch out</h2><ul>
+<li>The <a href="handoff/index.html">local handoff</a> was assembled before the final design. It still uses the Skills Manager name and design system v11. Use the <a href="docs/61-redesign-build-spec-2026-11-27.md">build spec</a> and <a href="designs/final/README.md">approved boards</a> for implementation.</li>
+<li>The token decision is settled. Q5 (backup download date) remains open for Phase 4 and Q2 (placement of all 21 tools in Advanced) for Phase 5. <a href="docs/redesign-build/09-open-questions-and-risks.md">Decision register</a></li>
+</ul></section>
 
-<div class="wrap"><table>
-<tr><th>#</th><th>Step</th><th>Status</th><th>What's there</th></tr>
-<tr><td>1</td><td>Brainstorm</td><td class="s">⬜ not run</td><td>No <code>idea-brief.md</code>. The project started at requirements.</td></tr>
-<tr><td>2</td><td>Requirements</td><td class="s">✅ done</td><td><a href="requirements.md">requirements.md</a> · 26 Nov · main redesign + Agent tracking, no blocking questions</td></tr>
-<tr><td>3</td><td>UX discovery</td><td class="s">✅ done</td><td><a href="ux-brief.md">ux-brief.md</a>, <a href="design-brief.md">design-brief.md</a> · 26 Nov · both approved</td></tr>
-<tr><td>4</td><td>Journey map</td><td class="s">⬜ not run</td><td>No <code>journey-map.html</code></td></tr>
-<tr><td>5</td><td>UI: find the look</td><td class="s">✅ done</td><td><a href="ui-progress.md">ui-progress.md</a> · hero S1 approved; Agent tracking hero S14 approved 26 Nov</td></tr>
-<tr><td>6</td><td>Design system</td><td class="s">✅ done</td><td>v12 on claude.ai; copy in <a href="handoff/4-design-system/README.md">handoff/4-design-system/</a></td></tr>
-<tr><td>7</td><td>UI: roll out the screens</td><td class="s">✅ done</td><td>Approved rows A/D and ATA/ATD, canvas v52; copies in <code>handoff/3-ui/screens/</code></td></tr>
-<tr><td>8</td><td>Build</td><td class="s">🟡 in progress</td><td>Agent tracking built (commit 78cc21b). Main redesign look not started. No <code>build-progress.md</code>.</td></tr>
-<tr><td>9</td><td>UX review</td><td class="s">⬜ not started</td><td></td></tr>
-<tr><td>10</td><td>Launch</td><td class="s">⬜ not started</td><td></td></tr>
-<tr><td>11</td><td>Native app</td><td class="s">⏭ skipped</td><td>A local web UI, not a phone app</td></tr>
-<tr><td>12</td><td>Handoff package</td><td class="s">🟡 out of date</td><td><a href="handoff/index.html">handoff/</a> · 26 Nov, before Agent tracking</td></tr>
+<div class="wrap" role="region" aria-label="Project steps" tabindex="0"><table>
+<thead><tr><th scope="col">#</th><th scope="col">Step</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col">Evidence</th></tr></thead>
+<tbody>
+<tr><td>1</td><th scope="row">Brainstorm</th><td class="s">⬜ Not started</td><td>—</td><td>The redesign began with requirements.</td></tr>
+<tr><td>2</td><th scope="row">Requirements</th><td class="s">✅ Done</td><td class="date"><time datetime="2026-11-26">26 Nov</time></td><td><a href="requirements.md">Requirements</a> for the main redesign and Agent tracking.</td></tr>
+<tr><td>3</td><th scope="row">UX discovery</th><td class="s">✅ Done</td><td class="date"><time datetime="2026-11-26">26 Nov</time></td><td>Approved flows and screen inventory in the <a href="ux-brief.md">UX brief</a> and <a href="design-brief.md">design brief</a>.</td></tr>
+<tr><td>4</td><th scope="row">Journey map</th><td class="s">⬜ Not started</td><td>—</td><td>The <a href="ux-brief.md#user-journey-map">UX brief</a> includes maps for the redesign and Agent tracking. The standalone HTML map is pending.</td></tr>
+<tr><td>5</td><th scope="row">UI direction</th><td class="s">✅ Done</td><td class="date"><time datetime="2026-11-26">26 Nov</time></td><td>Paper hero and Agent tracking hero approved in <a href="ui-progress.md">UI progress</a>.</td></tr>
+<tr><td>6</td><th scope="row">Design system</th><td class="s">✅ Done</td><td class="date"><time datetime="2026-11-27">27 Nov</time></td><td><a href="https://claude.ai/artifact/27HHwcNGwDAZ2cne6xW4ei">Private v13 artifact</a>. The local build uses the <a href="design/tokens.json">approved tokens</a>.</td></tr>
+<tr><td>7</td><th scope="row">Screen rollout</th><td class="s">✅ Done</td><td class="date"><time datetime="2026-11-27">27 Nov</time></td><td><a href="designs/final/README.md">50 board exports</a> from canvas v58. <a href="ui-progress.md">UI progress</a> records the approvals.</td></tr>
+<tr><td>8</td><th scope="row">Build</th><td class="s">🟡 In progress</td><td class="date"><time datetime="2026-11-27">27 Nov</time></td><td>Phase 0 was verified locally. See <a href="build-progress.md">build progress</a> and the <a href="docs/61-redesign-build-spec-2026-11-27.md">Paper build spec</a>.</td></tr>
+<tr><td>9</td><th scope="row">UX review</th><td class="s">⬜ Not started</td><td>—</td><td>The redesign review follows implementation.</td></tr>
+<tr><td>10</td><th scope="row">Launch</th><td class="s">⬜ Not started</td><td>—</td><td>The redesign has no launch plan yet.</td></tr>
+<tr><td>11</td><th scope="row">Native app</th><td class="s">⏭ Skipped</td><td class="date"><time datetime="2026-11-27">27 Nov</time></td><td>Inferred from the local web UI scope. Phone-width layouts are in the web build.</td></tr>
+<tr><td>12</td><th scope="row">Handoff</th><td class="s">🟡 In progress</td><td class="date"><time datetime="2026-11-26">26 Nov</time></td><td>The <a href="handoff/index.html">local draft</a> is out of date.</td></tr>
+</tbody>
 </table></div>
-<p class="sub" style="margin-top:16px">Record: <a href="project-status.md">project-status.md</a></p>
+<p class="sub" style="margin-top:16px"><a href="project-status.md">Project status record</a> · <a href="task.md">Task checklist</a></p>
 </main></body>
 </html>

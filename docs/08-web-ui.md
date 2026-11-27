@@ -971,19 +971,19 @@ section. Quality displays them under its unavailable-evidence disclosure.
 The check reads file metadata only. When either signal appears, Quality
 links to Microsoft's APM audit reference.
 
-## Design system (styles.css, tools.css)
+## Design system
 
-**[SPEC] The contract is `DESIGN.md` at the repository root, not this section.**
-Every token, its measured contrast ratio, the type scale, the desktop-first
-layout rules and the refused defaults (cream ground, serif display face,
-terracotta accent, uppercase tracked labels, middle-dot metadata) live there.
-`check_design_tokens.py` re-derives every contrast pair from the shipped
-`styles.css` (light `:root` and the `:root[data-theme="dark"]` overrides) on
-each run, checks `DESIGN.md`'s colours match, and fails on a regression; a
-palette is a claim, and a claim nobody re-checks decays.
-`tests/test_v2_interface_contracts.py` additionally fails if any rule uses an
-undeclared custom property, because an undeclared token renders transparent
-and passes every other gate.
+**[SPEC]** `design/tokens.json` holds the approved Paper values. Run
+`python3 tools/gen_tokens.py` to regenerate `skillsmgr/webui/tokens.css`.
+The page loads the generated sheet, `system.css` (v13 components), `layout.css`,
+`styles.css` and `tools.css` in order. Existing layouts use aliases during
+the migration. The IBM Plex faces and their OFL licence are shipped locally.
+`DESIGN.md` explains voice, statuses and component usage.
+
+`check_design_tokens.py` verifies that the generated sheet matches the
+source and measures contrast in both themes.
+`tests/test_css_token_references.py` checks the loaded stylesheets for
+undeclared custom properties and stray hex colours.
 
 - Toasts support an **Undo** action (used for sync, edit and on/off).
 

@@ -118,10 +118,8 @@ jobs:
       - name: Documentation/source consistency
         run: python3 check_docs.py
       - name: Design token contrast
-        # The design contract is DESIGN.md; this re-derives every ratio in
-        # styles.css from the WCAG formula and fails on a regression. It is a
-        # gate rather than guidance because a palette is a claim, and a claim
-        # nobody re-checks decays silently.
+        # Verify the generated stylesheet against design/tokens.json and
+        # re-check contrast in both themes.
         run: python3 check_design_tokens.py
 
   xplat:

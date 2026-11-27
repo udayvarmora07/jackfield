@@ -66,9 +66,12 @@ assert all((completion / name).is_file() and (completion / name).stat().st_size
            for name in ('skills-mgr.bash', '_skills-mgr')), completion
 fonts = root / 'webui/static/fonts'
 faces = sorted(fonts.glob('*.woff2'))
-assert len(faces) >= 4 and all(face.stat().st_size > 1000 for face in faces), faces
-assert (root / 'webui/styles.css').read_text(encoding='utf-8').count('static/fonts/IBMPlexSans') >= 1, 'styles.css must load the vendored interface face'
-assert 'IBMPlexSans' in {face.name.split('-')[0] for face in faces}, faces
+assert len(faces) >= 8 and all(face.stat().st_size > 1000 for face in faces), faces
+assert (fonts / 'OFL-IBM-Plex.txt').is_file(), 'IBM Plex licence is missing'
+tokens = (root / 'webui/tokens.css').read_text(encoding='utf-8')
+assert all('static/fonts/' + face.name in tokens for face in faces), 'tokens.css must load all vendored faces'
+assert tokens.count('unicode-range:') >= len(faces), 'fonts must declare their Unicode ranges'
+assert all((root / 'webui' / name).is_file() for name in ('system.css', 'layout.css')), 'Paper styles are missing'
 
 with tempfile.TemporaryDirectory(dir=Path.cwd()) as data:
     def cli(*args):

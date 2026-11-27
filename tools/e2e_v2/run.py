@@ -60,6 +60,10 @@ def main():
     root.chmod(0o700)
     home, data = root / ('home-' + 'long-path-' * 16), root / 'data'
     for p in (home, data): p.mkdir(mode=0o700)
+    # The server discovers project-local scopes from cwd. Keep the checkout's
+    # own .agents and .claude skills out of the otherwise isolated fixture.
+    project = home / 'workspace'
+    project.mkdir(mode=0o700)
     roots = { 'claude': home/'.claude/skills', 'codex': home/'.codex/skills', 'opencode': home/'.config/opencode/skills', 'agents': home/'.agents/skills' }
     for p in roots.values(): p.mkdir(parents=True)
     def doc(name, text): return f'---\nname: {name}\ndescription: Use this fixture for browser testing.\n---\n# {name}\n\n{text}\n'
@@ -102,9 +106,12 @@ def main():
             'Previous Codex copy only.\n', encoding='utf-8')
     server_env = _fixture_environment(root, home, data)
     browser_env = None if args.pilot else _browser_environment(root, home, args.browser)
-    subprocess.run([sys.executable, '-m', 'skillsmgr', 'create', 'library-fixture', '-d',
+    fixture_python = [sys.executable, '-I', '-B', '-c']
+    import_source = f'import sys; sys.path.insert(0, {str(REPO)!r}); '
+    cli_code = import_source + 'from runpy import run_module; run_module("skillsmgr", run_name="__main__")'
+    subprocess.run([*fixture_python, cli_code, 'create', 'library-fixture', '-d',
                     'Use this for browser recovery checks.', '--body', 'Fixture body.'],
-                   cwd=REPO, env=server_env, check=True, stdout=subprocess.DEVNULL)
+                   cwd=project, env=server_env, check=True, stdout=subprocess.DEVNULL)
     server_code = (
         'import os; from pathlib import Path; '
         'from skillsmgr.store import Store; from skillsmgr.webapp import WebAppServer; '
@@ -117,7 +124,7 @@ def main():
     print('The localhost binding is the unauthenticated test server\'s only security boundary.', flush=True)
     local_http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     with (root/'server.log').open('w') as log:
-        server = subprocess.Popen([sys.executable, '-c', server_code], cwd=REPO, env=server_env,
+        server = subprocess.Popen([*fixture_python, import_source + server_code], cwd=project, env=server_env,
                                   stdout=log, stderr=subprocess.STDOUT)
         try:
             for _ in range(100):

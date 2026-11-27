@@ -4,6 +4,7 @@
 skillsmgr/webui/static/vendor/vue.global.prod.js -text
 skillsmgr/webui/static/vendor/markdown-it.umd.min.js -text
 skillsmgr/webui/static/vendor/markdown-it-LICENSES.txt text eol=lf
+skillsmgr/webui/static/fonts/OFL-IBM-Plex.txt text eol=lf
 
 # Hosted verification compares these members against a Linux-built artifact.
 /LICENSE text eol=lf

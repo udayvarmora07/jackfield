@@ -86,8 +86,11 @@ FACETS = {
 }
 _FACET_RE = {facet: {option: re.compile(pattern, re.I) for option, pattern in options.items()}
              for facet, options in FACETS.items()}
-# Facets whose words are common elsewhere ("browser tabs") count only in context.
-_FACET_CONTEXT = {"indentation": re.compile(r"\bindent", re.I),
+# Bare imperative "use tabs" or "use spaces" is an indentation preference.
+# Mentions such as "Open the browser tabs view" still need indent context.
+_FACET_CONTEXT = {"indentation": re.compile(
+    r"\bindent|^(?:(?:always|never|only|do not|don't)\s+)?(?:use|prefer)\s+(?:tabs|spaces)\s*[.!]?\s*$",
+    re.I),
                   "indent width": re.compile(r"\bindent", re.I)}
 
 

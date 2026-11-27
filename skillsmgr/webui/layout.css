@@ -1,0 +1,24 @@
+/* Shared structure for the existing shell and the approved Paper components. */
+#app.sm-root { font-size: inherit; }
+
+.brand svg { display: none; flex: none; }
+.brand .brand-lockup { width: 125px; height: 30px; }
+.brand .brand-symbol { width: 30px; height: 30px; }
+.brand .brand-lockup.jf-l,
+:root[data-theme="dark"] .brand .brand-lockup.jf-d { display: block; }
+:root[data-theme="dark"] .brand .brand-lockup.jf-l { display: none; }
+
+/* Keep room for the current six tabs until the redesigned shell lands. */
+@media (min-width: 601px) and (max-width: 1199px), (max-width: 359px) {
+  .brand .brand-lockup.jf-l,
+  :root[data-theme="dark"] .brand .brand-lockup.jf-d { display: none; }
+  .brand .brand-symbol.jf-l,
+  :root[data-theme="dark"] .brand .brand-symbol.jf-d { display: block; }
+  :root[data-theme="dark"] .brand .brand-symbol.jf-l { display: none; }
+}
+@media (min-width: 360px) and (max-width: 600px) {
+  .brand .brand-lockup { width: 121px; height: 29px; }
+}
+
+.logo .agm { width: 56%; height: 56%; }
+.logo.xs .agm, .logo.sm .agm { width: 66%; height: 66%; }

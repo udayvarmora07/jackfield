@@ -1,64 +1,70 @@
-/* Jackfield.
-   One system for every screen, taken from DESIGN.md: a cool bone ground (not
-   cream), IBM Plex Sans for interface and headings, IBM Plex Mono for every
-   identifier (skill names, paths, counts), ink-black actions and one teal
-   signal ink. Plex is vendored and identical on every platform, which matters
-   for a tool whose job is comparing a file on one machine with another. */
-
-@font-face { font-family: "IBM Plex Sans"; src: url("static/fonts/IBMPlexSans-400-latin.woff2") format("woff2"); font-weight: 100 700; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "IBM Plex Sans"; src: url("static/fonts/IBMPlexSans-400-latin-ext.woff2") format("woff2"); font-weight: 100 700; font-display: swap; unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-/* IBM Plex Mono keeps punctuation distinct in paths and skill names. */
-@font-face { font-family: "IBM Plex Mono"; src: url("static/fonts/IBMPlexMono-400-latin.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "IBM Plex Mono"; src: url("static/fonts/IBMPlexMono-500-latin.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "IBM Plex Mono"; src: url("static/fonts/IBMPlexMono-600-latin.woff2") format("woff2"); font-weight: 600 800; font-display: swap; }
-
+/* Existing layouts use the approved Paper tokens through these aliases. */
 :root {
-  --bg: #f2f3f1;              /* cool bone ground (DESIGN.md), never warm cream */
-  --surface: #fdfdfc;
-  --sunken: #eaecea;
-  --hover: #eef0ee;
-  --line: #dfe2e0;
-  --line-strong: #80878e;     /* control boundaries, >= 3:1 on every surface */
-  --ink: #1a1c1f;
-  --ink-2: #454a50;
-  --muted: #5a6168;          /* >= 4.5:1 on --sunken and --tree-bg */
-  --brand: #0d6a63;           /* the one signal ink: selection, focus, counts */
-  --mark: #f6e3a1;            /* highlighter */
-  --on-ink: #ffffff;          /* text on an --ink fill */
-  --paper: #fbfbfa; --tree-bg: #eceeec; --canvas: #f7f8f6;
-  --sel: #dde2df; --hover-2: #e4e7e5; --line-2: #c6ccc9; --line-3: #d3d8d5;
-  --doc: #24272b; --doc-2: #4d5359; --ink-hover: #33373c;
-  --warn-text: #7a4d10; --bad-text: #8a1c13; --ribbon-bg: #fbf3e2; --ribbon-line: #ecd9b4;
-  --ok-edge: #bfe0cb; --warn-edge: #efd09f; --bad-edge: #f0c3be;
-  --d-ok: #4f9168; --d-warn: #c98a2c; --d-bad: #c9472f; --d-off: #a3aaae;
-  --track: #e0e3e1; --switch-off: #c3c9c6; --soft-hover: #e1e5e3;
-  --ok-on-dark: #7ee0a8; --warn-on-dark: #f5c27a; --error-on-toast: #ffb3a7; --ver-text: #3c4146; --chip-text: #3f444a;
-  color-scheme: light;
-
-  --ok: #1c7a47;   --ok-bg: #e5f2ea;   --ok-line: #22a05a;
-  --warn: #8f4f00; --warn-bg: #fbf0dc; --warn-line: #d97706;
-  --bad: #b42318;  --bad-bg: #fbe8e6;  --bad-line: #dc2626;
-  --off: #575d63;  --off-bg: #e9ebea;
-  --add-bg: #e7f5ec; --add-ink: #166534;
-  --del-bg: #fbeced; --del-ink: #9f1239;
-
-  --r-xs: 3px; --r-sm: 5px; --r-md: 6px; --r-lg: 8px; --r-xl: 8px; --r-pill: 999px; /* pills only for status */
+  --sunken: var(--raise); /* alias: remove in phase 7 */
+  --hover: var(--raise); /* alias: remove in phase 7 */
+  --line-strong: var(--text-faint); /* alias: remove in phase 7 */
+  --muted: var(--mute); /* alias: remove in phase 7 */
+  --brand: var(--accent); /* alias: remove in phase 7 */
+  --mark: var(--warn-soft); /* alias: remove in phase 7 */
+  --on-ink: var(--on-toast); /* alias: remove in phase 7 */
+  --paper: var(--surface); /* alias: remove in phase 7 */
+  --tree-bg: var(--raise); /* alias: remove in phase 7 */
+  --canvas: var(--bg); /* alias: remove in phase 7 */
+  --sel: var(--accent-soft); /* alias: remove in phase 7 */
+  --hover-2: var(--raise); /* alias: remove in phase 7 */
+  --line-2: var(--line); /* alias: remove in phase 7 */
+  --line-3: var(--line-subtle); /* alias: remove in phase 7 */
+  --doc: var(--ink); /* alias: remove in phase 7 */
+  --doc-2: var(--ink-2); /* alias: remove in phase 7 */
+  --ink-hover: var(--ink-2); /* alias: remove in phase 7 */
+  --warn-text: var(--warn); /* alias: remove in phase 7 */
+  --bad-text: var(--bad); /* alias: remove in phase 7 */
+  --ribbon-bg: var(--warn-soft); /* alias: remove in phase 7 */
+  --ribbon-line: var(--warn-line); /* alias: remove in phase 7 */
+  --warn-edge: var(--warn-line); /* alias: remove in phase 7 */
+  --d-ok: var(--accent); /* alias: remove in phase 7 */
+  --d-warn: var(--warn-mark); /* alias: remove in phase 7 */
+  --d-bad: var(--bad); /* alias: remove in phase 7 */
+  --d-off: var(--mark-faint); /* alias: remove in phase 7 */
+  --track: var(--line); /* alias: remove in phase 7 */
+  --switch-off: var(--mark-faint); /* alias: remove in phase 7 */
+  --soft-hover: var(--raise); /* alias: remove in phase 7 */
+  --chip-text: var(--ink-2); /* alias: remove in phase 7 */
+  --ok: var(--accent); /* alias: remove in phase 7 */
+  --ok-bg: var(--accent-soft); /* alias: remove in phase 7 */
+  --ok-line: var(--accent); /* alias: remove in phase 7 */
+  --warn-bg: var(--warn-soft); /* alias: remove in phase 7 */
+  --bad-bg: var(--bad-soft); /* alias: remove in phase 7 */
+  --bad-line: var(--bad); /* alias: remove in phase 7 */
+  --off: var(--mute); /* alias: remove in phase 7 */
+  --off-bg: var(--raise); /* alias: remove in phase 7 */
+  --add-bg: var(--accent-soft); /* alias: remove in phase 7 */
+  --add-ink: var(--accent); /* alias: remove in phase 7 */
+  --del-bg: var(--bad-soft); /* alias: remove in phase 7 */
+  --del-ink: var(--bad); /* alias: remove in phase 7 */
+  --r-xs: var(--radius-xs); /* alias: remove in phase 7 */
+  --r-sm: var(--radius-sm); /* alias: remove in phase 7 */
+  --r-md: var(--radius-md); /* alias: remove in phase 7 */
+  --r-lg: var(--radius-lg); /* alias: remove in phase 7 */
+  --r-xl: var(--radius-xl); /* alias: remove in phase 7 */
+  --r-pill: var(--radius-pill); /* alias: remove in phase 7 */
+  --shadow-lift: var(--shadow-panel); /* alias: remove in phase 7 */
+  --ui: var(--font-sans); /* alias: remove in phase 7 */
+  --display: var(--font-sans); /* alias: remove in phase 7 */
+  --mono: var(--font-mono); /* alias: remove in phase 7 */
   --shadow: none;
-  --shadow-lift: 0 1px 2px rgb(26 28 31 / .05), 0 12px 32px -18px rgb(26 28 31 / .22);
-  --ui: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: var(--ui);
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --ease: cubic-bezier(.2, 0, .2, 1);
-  /* Type scale (better-typography): one named step per role, every size scaled
-     by --fs-k so the "Large text" preference reaches all text, not only body.
-     A tool, not a magazine: headings are set firmly but small. */
   --fs-k: 1;
-  --fs-caption: calc(12px * var(--fs-k));  --fs-small: calc(13px * var(--fs-k));
-  --fs-ui: calc(14px * var(--fs-k));       --fs-body: calc(15px * var(--fs-k));
-  --fs-lead: calc(16px * var(--fs-k));     --fs-title: calc(18px * var(--fs-k));
-  --fs-h3: calc(20px * var(--fs-k));       --fs-h2: calc(23px * var(--fs-k));
-  --fs-h1-sm: calc(25px * var(--fs-k));    --fs-h1: calc(30px * var(--fs-k));
-  --fs-display: calc(32px * var(--fs-k));
+  --fs-caption: calc(var(--type-caption-size) * var(--fs-k));
+  --fs-small: calc(var(--type-cell-size) * var(--fs-k));
+  --fs-ui: calc(var(--type-ui-size) * var(--fs-k));
+  --fs-body: calc(var(--type-body-size) * var(--fs-k));
+  --fs-lead: calc(var(--type-body-lg-size) * var(--fs-k));
+  --fs-title: calc(var(--type-title-banner-size) * var(--fs-k));
+  --fs-h3: calc(var(--type-title-doc-size) * var(--fs-k));
+  --fs-h2: calc(var(--type-title-panel-size) * var(--fs-k));
+  --fs-h1-sm: calc(var(--type-title-panel-size) * var(--fs-k));
+  --fs-h1: calc(var(--type-title-page-size) * var(--fs-k));
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -90,16 +96,11 @@ a { color: inherit; }
 /* A click inside a dialog focuses the dialog itself, so Escape and the Tab
  * trap keep working; that programmatic focus needs no ring. */
 .dlg:focus { outline: none; }
-/* The brand mark (same drawing as logo.svg: Jackfield, quiet soft J), coloured
- * by theme tokens so it follows the in-app theme toggle rather than the OS
- * colour scheme. The jack takes the signal ink; the quiet cells take --line. */
-.mark { width: 30px; height: 30px; flex: none; display: block; }
-.mark .cl { fill: var(--ink); } .mark .fl { fill: var(--brand); } .mark .ql { fill: var(--line); }
 .tabs { display: flex; gap: 2px; }
 .tabs a { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: var(--r-sm); color: var(--ink-2); font-weight: 600; text-decoration: none; white-space: nowrap; transition: background-color .12s var(--ease), color .12s var(--ease); }
 .tabs a:hover { background: var(--hover); color: var(--ink); }
 .tabs a[aria-current="page"] { background: var(--sunken); color: var(--ink); }
-.badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-ink); font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: var(--fs-caption); font-weight: 650; display: inline-grid; place-items: center; }
+.badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-accent); font-family: var(--font-sans); font-variant-numeric: tabular-nums; font-size: var(--fs-caption); font-weight: 650; display: inline-grid; place-items: center; }
 .badge:empty { display: none; }
 .gsearch { margin-left: auto; position: relative; width: 320px; }
 .gsearch .i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
@@ -135,13 +136,10 @@ a { color: inherit; }
 .pill .i { width: 14px; height: 14px; }
 .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .off { color: var(--off); }
 .pill.ok { background: var(--ok-bg); } .pill.warn { background: var(--warn-bg); } .pill.bad { background: var(--bad-bg); } .pill.off { background: var(--off-bg); }
-.logo { width: 52px; height: 52px; border-radius: var(--r-md); display: grid; place-items: center; color: #fff; font-weight: 650; font-size: 17px; flex: none; }
+.logo { width: 52px; height: 52px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--ink-2); background: var(--raise); box-shadow: inset 0 0 0 1px var(--line); font-weight: 650; font-size: 17px; flex: none; }
 .logo.sm { width: 30px; height: 30px; border-radius: var(--r-xs); font-size: 11px; }
 .logo.xs { width: 24px; height: 24px; border-radius: var(--r-xs); font-size: 9.5px; }
 /* Real agent marks sit on a neutral tile so monochrome marks follow the theme. */
-.logo.mark-tile { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
-.logo.mark-tile svg { width: 56%; height: 56%; }
-.logo.xs.mark-tile svg, .logo.sm.mark-tile svg { width: 66%; height: 66%; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow); }
 .meter .ml { display: flex; justify-content: space-between; font-size: var(--fs-small); color: var(--ink-2); }
 .meter .ml b { color: var(--ink); }
@@ -280,7 +278,7 @@ select.field { padding-right: 34px; appearance: none; background-image: url("dat
 .meta { font-size: var(--fs-small); font-weight: 600; color: var(--muted); }
 /* The skill name is an identifier, so the reader sets it in mono like every
    other name in the product; the description beneath it is prose. */
-.doc-title { font-family: var(--mono); font-size: var(--fs-h1); font-weight: 600; letter-spacing: -.035em; line-height: 1.15; margin-top: 8px; overflow-wrap: anywhere; }
+.doc-title { font-family: var(--font-sans); font-size: var(--fs-h1); font-weight: 600; letter-spacing: -.035em; line-height: 1.15; margin-top: 8px; overflow-wrap: anywhere; }
 .doc-lead { font-size: var(--fs-lead); color: var(--doc-2); margin-top: 10px; line-height: 1.55; max-width: 68ch; }
 .doc { font-size: var(--fs-body); line-height: 1.7; color: var(--doc); margin-top: 28px; min-width: 0; max-width: 72ch; overflow-wrap: anywhere; }
 .doc p { margin: 0 0 14px; }
@@ -523,8 +521,7 @@ button.map-state:hover { border-color: currentColor; }
 .toasts { position: fixed; z-index: 70; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toasts[inert] { z-index: 59; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: 0 20px 50px -10px rgb(0 0 0 / .4); font-weight: 600; font-size: var(--fs-ui); animation: rise .18s var(--ease); max-width: calc(100vw - 32px); }
-.toast .i { color: var(--ok-on-dark); }
-.toast.err .i { color: var(--error-on-toast); }
+.toast .i { color: var(--on-toast); }
 .toast > span { overflow-wrap: anywhere; }
 .sync-targets { padding-inline-start: 20px; color: var(--ink-2); }
 .sync-targets code { display: block; overflow-wrap: anywhere; }
@@ -540,7 +537,6 @@ button.map-state:hover { border-color: currentColor; }
 }
 @media (max-width: 900px) {
   .top { gap: 12px; padding: 0 16px; }
-  .brand-t { display: none; }
   .tabs { overflow-x: auto; margin-left: auto; }
   .page { padding: 28px 18px 96px; }
   .h1 { font-size: var(--fs-h1-sm); }
@@ -605,7 +601,7 @@ button.map-state:hover { border-color: currentColor; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 .more-row { display: flex; justify-content: center; margin-top: 16px; }
 .kbd-hint { color: var(--muted); font-size: var(--fs-small); }
-.sk-b b { font-family: var(--mono); font-size: var(--fs-ui); font-weight: 600; letter-spacing: -.01em; }
+.sk-b b { font-family: var(--font-sans); font-size: var(--fs-ui); font-weight: 600; letter-spacing: -.01em; }
 .room-p { max-width: 100%; }
 .who { color: var(--brand); }
 .pick-list { display: grid; gap: 8px; }
@@ -628,31 +624,11 @@ button.map-state:hover { border-color: currentColor; }
 .d.linked, .d.note { border: 1.5px solid var(--line-strong); }
 .room-note { font-size: var(--fs-small); color: var(--muted); margin-top: -6px; }
 
-/* ---------- Dark theme (cool graphite, a full palette rather than one accent on
-   black; every pair measured in tests/test_v2_interface_contracts.py) ---------- */
-:root[data-theme="dark"] {
-  --bg: #101316; --surface: #171a1e; --sunken: #1c2025; --hover: #1e2227; --line: #2a2f35; --line-strong: #79818a;
-  --ink: #e9ebed; --ink-2: #c3c8cd; --muted: #9ba2a9; --brand: #4fc7bd; --mark: rgb(214 170 60 / .34);
-  --ok: #63d18f; --ok-bg: #15281d; --ok-line: #3fae6e; --warn: #f0ae55; --warn-bg: #2c2416; --warn-line: #d98a2b;
-  --bad: #ff8f80; --bad-bg: #351f1d; --bad-line: #e5584a; --off: #a4aab0; --off-bg: #22262b;
-  --add-bg: #15281d; --add-ink: #8ee0ae; --del-bg: #351f1d; --del-ink: #ffa89c;
-  --on-ink: #101316;
-  --paper: #14171b; --tree-bg: #13161a; --canvas: #14171b; --sel: #262b31; --hover-2: #1f2328;
-  --line-2: #3a4047; --line-3: #2a2f35; --doc: #dde0e3; --doc-2: #b4bac0; --ink-hover: #ffffff;
-  --warn-text: #f2c27f; --bad-text: #ffb3a7; --ribbon-bg: #29231a; --ribbon-line: #4a3a20;
-  --ok-edge: #2c5a3f; --warn-edge: #6b4a1d; --bad-edge: #6b2f29;
-  --d-ok: #63d18f; --d-warn: #f0ae55; --d-bad: #ff8f80; --d-off: #79818a;
-  --track: #2a2f35; --switch-off: #3a4047; --soft-hover: #262b31;
-  --ok-on-dark: #1f7a45; --warn-on-dark: #9a5300; --error-on-toast: #9f2520; --ver-text: #d0d5da; --chip-text: #c9ced3;
-  --shadow: none; --shadow-lift: 0 1px 2px rgb(0 0 0 / .4), 0 16px 40px -20px rgb(0 0 0 / .7);
-  color-scheme: dark;
-}
 :root[data-theme="dark"] .scrim { background: rgb(0 0 0 / .6); }
 .themebtn { width: 40px; height: 40px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; color: var(--ink-2); flex: none; }
 .themebtn:hover { border-color: var(--line-strong); color: var(--ink); }
 
-:root[data-theme="dark"] .badge { color: var(--on-ink); }
-:root[data-text-size="large"] { --fs-k: 1.133; } /* 15px body -> 17px; every type step follows */
+:root[data-text-size="large"] { --fs-k: 1.133; } /* Scale every text role */
 .section-jumps { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .section-jumps > span { margin-inline-end: 4px; color: var(--muted); font-size: var(--fs-small); font-weight: 600; }
 .section-jumps .btn { min-height: 36px; }
@@ -694,7 +670,7 @@ button.map-state:hover { border-color: currentColor; }
 .top { gap: 20px; }
 /* Fade the trailing edge only while tabs are actually hidden off the end;
  * an unconditional mask dimmed "Tools" even when every tab fit. */
-.tabs.is-clipped { mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.tabs.is-clipped { mask-image: linear-gradient(90deg, black 85%, transparent); }
 @media (max-width: 600px) {
   .f-acts .btn-lg { width: 100%; white-space: normal; height: auto; min-height: 50px; padding-block: 10px; text-align: center; }
   .shelf-head .btn { width: 100%; }
@@ -714,7 +690,7 @@ button.map-state:hover { border-color: currentColor; }
 .h1 { letter-spacing: -.015em; }
 
 /* Which copy each agent has: a letter per distinct text, A = most places. */
-.ver-tag { display: inline-block; font-family: var(--mono); font-size: var(--fs-caption); font-weight: 600; padding: 0 6px; border-radius: var(--r-xs); background: var(--sunken); color: var(--ink-2); border: 1px solid var(--line); vertical-align: 1px; }
+.ver-tag { display: inline-block; font-family: var(--font-sans); font-size: var(--fs-caption); font-weight: 600; padding: 0 6px; border-radius: var(--r-xs); background: var(--sunken); color: var(--ink-2); border: 1px solid var(--line); vertical-align: 1px; }
 .ver-tag.odd { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-edge); }
 .use small { color: var(--muted); }
 /* Phone: navigation moves to the bottom where a thumb reaches it, and no tab is cut off. */
@@ -803,7 +779,7 @@ button.map-state:hover { border-color: currentColor; }
 }
 
 @media (min-width:761px) and (max-width:1199px) { .themebtn.launcher { display: none; } }
-@media (max-width:1100px) { .brand-t { display: none; } .gsearch { width: 220px; flex-basis: 220px; } }
+@media (max-width:1100px) { .gsearch { width: 220px; flex-basis: 220px; } }
 @media (max-width:760px) and (min-width:601px) { .gsearch { display: none; } }
 /* Phone: the shelf's header actions share the page's edges (they shrank to
    their content, leaving a ragged right edge beside the full-width search). */
@@ -836,8 +812,7 @@ button.map-state:hover { border-color: currentColor; }
 a, button, summary, label, select, [role="button"] { touch-action: manipulation; }
 .dlg, .tree, .instance-dialog { overscroll-behavior: contain; }
 /* Browser surfaces in the system's own palette (impeccable craft floor): the
-   highlighter token for selection (ink on --mark is 13.5:1 light; the dark
-   --mark is a 32% tint under light ink), the brand caret, quiet scrollbars. */
+   highlighter token for selection (ink on the attention surface), the brand caret, quiet scrollbars. */
 ::selection { background: var(--mark); color: var(--ink); }
 input, textarea, [contenteditable] { caret-color: var(--brand); }
 html, .tree, .dlg, .map-scroll, .mpanel, .instance-dialog { scrollbar-color: var(--line-2) transparent; }
@@ -850,10 +825,8 @@ html, .tree, .dlg, .map-scroll, .mpanel, .instance-dialog { scrollbar-color: var
 .shelf.compact .sk-b p { -webkit-line-clamp: 1; min-height: 0; }
 .shelf.compact .sk-f { margin-top: 8px; }
 
-/* Identifiers read as identifiers everywhere (DESIGN.md): a skill name in the
-   map, the repair panel or the reader's tree is set in Plex Mono, so a hyphen
-   never looks like a dash and a long name breaks at its hyphens, not mid-word. */
-.map-table tbody th, .mrow b, .tree a .nm, .shared-row > span:first-child { font-family: var(--mono); font-size: var(--fs-small); font-weight: 500; letter-spacing: -.01em; }
+/* Let skill names wrap at hyphens in the map and keep them in the UI face. */
+.map-table tbody th, .mrow b, .tree a .nm, .shared-row > span:first-child { font-family: var(--font-sans); font-size: var(--fs-small); font-weight: 500; letter-spacing: -.01em; }
 .mrow b { font-size: var(--fs-ui); font-weight: 600; }
 .map-table tbody th { overflow-wrap: normal; word-break: normal; hyphens: manual; }
 /* Disclosures carry a drawn chevron instead of the browser's black triangle. */
@@ -870,7 +843,7 @@ details[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; 
 /* Code is code: aligned columns and trailing comments keep their columns and
    scroll sideways instead of wrapping into each other. */
 .doc pre { white-space: pre; overflow-x: auto; font-size: var(--fs-small); line-height: 1.6; border: 1px solid var(--line); }
-.chips span { font-family: var(--mono); font-size: var(--fs-caption); font-weight: 500; }
+.chips span { font-family: var(--font-sans); font-size: var(--fs-caption); font-weight: 500; }
 /* Wide monitors: a tool uses the room it is given instead of a 1320px column. */
 .page { max-width: 1560px; }
 /* Laptop screens (768px tall) are the common case: the Skills header, filters
@@ -883,7 +856,7 @@ details[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; 
 .ribbon { margin-top: 14px; padding: 8px 10px 8px 14px; border-radius: var(--r-md); font-size: var(--fs-ui); }
 .cat { margin-top: 22px; }
 .cat > .cat-h { padding: 8px 0 6px; }
-.cat-h .h2 { font-family: var(--mono); font-size: var(--fs-h3); }
+.cat-h .h2 { font-family: var(--font-sans); font-size: var(--fs-h3); }
 .field { height: 38px; }
 .seg button { height: 30px; }
 /* Reader: the margin notes start level with the document's first line instead
@@ -912,7 +885,7 @@ details[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; 
 .gq-pop { position: absolute; inset-block-start: calc(100% + 6px); inset-inline-end: 0; width: max(100%, 300px); max-height: calc(100dvh - 72px); overflow: auto; overscroll-behavior: contain; z-index: 50; padding: 6px; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-md); box-shadow: var(--shadow-lift); }
 @media (max-width: 600px) { .gq-pop { inset-inline-start: 0; inset-inline-end: auto; width: min(300px, calc(100vw - 76px)); max-height: calc(100dvh - 136px); } }
 .gq-pop a { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 7px 10px; border-radius: var(--r-sm); text-decoration: none; color: var(--ink); }
-.gq-pop a b { font-family: var(--mono); font-size: var(--fs-small); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.gq-pop a b { font-family: var(--font-sans); font-size: var(--fs-small); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .gq-pop a small { flex: none; color: var(--muted); font-size: var(--fs-caption); }
 .gq-none { padding: 8px 10px; color: var(--ink-2); font-size: var(--fs-small); overflow-wrap: anywhere; }
 .gq-all { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-top: 4px; padding: 8px 10px; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 var(--r-sm) var(--r-sm); background: none; color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; text-align: left; }
@@ -979,18 +952,18 @@ details[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; 
 .mrow .btn-soft:hover, .mrow .peek:hover { border-color: var(--line-strong); }
 .mrow .peek[aria-expanded="true"] { color: var(--ink); border-color: var(--brand); box-shadow: inset 0 -2px 0 var(--brand); }
 .mrow b { overflow-wrap: anywhere; }
-.meter .ml b { font-family: var(--mono); font-weight: 600; }
+.meter .ml b { font-family: var(--font-sans); font-weight: 600; }
 .over-word { font-family: var(--ui); color: var(--warn); font-weight: 600; margin-right: 4px; }
-.lim-l { position: relative; height: 14px; font-family: var(--mono); font-size: var(--fs-caption); color: var(--muted); }
+.lim-l { position: relative; height: 14px; font-family: var(--font-sans); font-size: var(--fs-caption); color: var(--muted); }
 .lim-l { padding-left: calc(80% - 14px); }
 .home-extra { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
-.hist-n { display: block; font-family: var(--mono); font-size: var(--fs-small); font-weight: 500; }
+.hist-n { display: block; font-family: var(--font-sans); font-size: var(--fs-small); font-weight: 500; }
 .lb-pill { height: 20px; font-size: var(--fs-caption); padding: 0 8px; margin-left: 6px; vertical-align: 2px; }
-.lb-num { font-family: var(--mono); font-size: var(--fs-small); margin-top: 2px; }
+.lb-num { font-family: var(--font-sans); font-size: var(--fs-small); margin-top: 2px; }
 .listing-budget .track { margin: 8px 0 6px; }
 .lim-l { margin-top: 6px; height: 12px; line-height: 12px; padding-left: 0; }
 .lim-l { text-indent: calc(80% - 13px); }
-.rec-list b, .instance-row strong { font-family: var(--mono); font-size: var(--fs-ui); font-weight: 600; }
+.rec-list b, .instance-row strong { font-family: var(--font-sans); font-size: var(--fs-ui); font-weight: 600; }
 .instance-filters .map-carry { margin-left: auto; font-size: var(--fs-small); color: var(--ink-2); }
 .instance-filters .map-carry + .count { margin-left: 12px; }
 /* Narrow windows: the map keeps a readable column per agent and scrolls
@@ -1053,7 +1026,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
 .trk-will-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .trk-ribbon { align-items: flex-start; }
 .trk-more summary { cursor: pointer; color: var(--ink-2); }
-.trk-names { margin: 6px 0 0; padding-left: 18px; max-height: 12rem; overflow: auto; font-family: var(--mono); font-size: 13px; }
+.trk-names { margin: 6px 0 0; padding-left: 18px; max-height: 12rem; overflow: auto; font-family: var(--font-sans); font-size: 13px; }
 .trk-preview { font-weight: 600; }
 .trk-safe { margin-top: 4px; }
 .trk-strip { margin-top: 16px; padding: 10px 14px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

@@ -7,6 +7,29 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-27 — Paper redesign Phase 0 foundations
+
+**[NOTE]** Imported the approved v13 design-system export into the current web
+UI. The generated token sheet changes both themes through temporary aliases.
+The app uses the approved Jackfield lockup and monochrome agent marks, and
+ships the IBM Plex subsets with their licence. The contrast and package checks
+cover the new assets. The Turned off filter now includes mixed-state copies,
+and Contradiction check recognises unqualified tabs versus spaces directives.
+See @build-progress.md for the remaining screen work.
+
+**[NOTE]** The browser fixture now runs from an empty project inside its
+temporary home. The existing checkout's installed project skills were changing
+search matches and Add to agent targets. All 71 browser checks passed after
+isolation. The Python 3.11–3.14 suites, smoke checks, token and documentation
+checks, and pinned wheel and sdist clean installs also passed locally.
+
+## 2026-11-27 — Redesign status board refreshed
+
+**[NOTE]** Updated `project-status.md` and `project-status.html` from the approved
+v13 design system, v58 screen inventory and current build checklist. The board
+records Q3 as settled, flags the older handoff package, and points to Phase 0
+when the maintainer resumes implementation.
+
 ## 2026-11-27 — Brand working files and project status committed
 
 **[NOTE]** Committed the remaining brand exploration files in `branding/jackfield/`
