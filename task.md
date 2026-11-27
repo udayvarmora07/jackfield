@@ -18,7 +18,9 @@ records, not additional live work.
   `skills-mgr`), web UI, docs, management skill, `JACKFIELD_*` variables with
   legacy fallback, new installs in `~/.local/share/jackfield` (an existing
   `skills-manager` library used in place).
-- [ ] Rename the GitHub repository and move the local folder (symlink kept).
+- [x] GitHub repository renamed to `udayvarmora07/jackfield` (old URLs redirect);
+  checkout moved to `~/jackfield` with `~/skills-manager` left as a symlink and
+  all worktrees repaired (2026-11-27).
 - [ ] At the next release: publish as `jackfield` on PyPI (trusted publisher for
   the new project, installers' `DIST`/`COMMAND`, `tools/verify_published.py`,
   README badge) and a final `skill-control-plane` that points to it.

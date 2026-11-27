@@ -28,6 +28,13 @@ and every dated or archived document. The PyPI distribution stays
 `skill-control-plane` until the release that publishes `jackfield`; installers,
 `tools/verify_published.py` and trusted publishing switch with that release.
 
+**[NOTE] Repository and checkout.** GitHub `udayvarmora07/skills-manager` is now
+`udayvarmora07/jackfield`; the old web, clone and raw URLs redirect. The local
+checkout moved from `~/skills-manager` to `~/jackfield`; `~/skills-manager` is a
+symlink so existing sessions, worktrees and tool configs keep resolving, and
+`git worktree repair` updated the three `.claude/worktrees` and
+`~/overnight-ui/worktree`.
+
 **[NOTE] Defects found while renaming.** (1) In-process `--data-dir` set the data
 variable for the rest of the process; with a new higher-precedence name the leak
 pointed 478 tests at deleted temp roots. `cli.main` now scopes the override to
