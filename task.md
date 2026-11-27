@@ -1,6 +1,6 @@
 # Task Checklist — Skills Manager
 
-**Version 0.13.0**
+**Version 0.13.1**
 
 **AI manifest**: Live work and the remaining gated/deferred queue. `[ ]` means
 pending, `[/]` in progress, `[x]` completed. Historical milestones, including
@@ -15,9 +15,10 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 
 - [x] Write the build spec from design system v13, canvas v58
   (`designs/final/`) and the briefs, checked against the current code.
-- [ ] Maintainer answers the open questions Q1–Q11 in
-  @docs/redesign-build/09-open-questions-and-risks.md (Q1, Q3, Q4 and Q8 block
-  phases 0–2).
+- [x] Blocking questions Q1, Q3, Q4 and Q8 decided (recommended answers,
+  2026-11-27); design sources committed.
+- [ ] Remaining open questions Q2, Q5–Q7, Q9–Q11 in
+  @docs/redesign-build/09-open-questions-and-risks.md (Q2 blocks phase 5).
 - [ ] Phase 0 · Foundations: tokens pipeline, `system.css`, fonts + OFL, logo,
   agent marks, rewritten token gate, `var()` reference test, `DESIGN.md`; the
   whole app changes look in one commit.

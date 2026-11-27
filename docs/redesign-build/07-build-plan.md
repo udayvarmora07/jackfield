@@ -44,7 +44,7 @@ tests. Screen detail: @docs/redesign-build/05-screens.md. Tests:
 | 0.6 | Logo: lockup in the header from `branding/jackfield/kit/svg/` (light + dark inline), favicon check | `index.html` | S |
 | 0.7 | Agent marks from `system.css`; one scope-id → `data-a` table in `model.js`; retire `AGENT_ICONS` | `model.js`, `app.js` | S |
 | 0.8 | Gates: rewrite `check_design_tokens.py` to read `design/tokens.json` + `tokens.css`; add `tests/test_css_token_references.py` (every `var()` resolves; no stray hex); extend `check_package_data.py` for new files and the licence; update `pyproject.toml` only if a glob is needed (it should not be: files are flat) | gates, tests | M |
-| 0.9 | Rewrite `DESIGN.md` from v13 (front matter colours = `tokens.json`; prose = DS README essentials); update `docs/08-web-ui.md` "Design system" section | docs | S |
+| 0.9 | Rewrite `DESIGN.md` as a short guide from v13 (voice, status vocabulary, rules, where values live) with **no colour values** (Q3); update `docs/08-web-ui.md` "Design system" section | docs | S |
 
 **Exit:** every page renders in the v13 palette and fonts in both themes; all
 gates green; no undeclared `var()`; the old teal and bone appear nowhere.

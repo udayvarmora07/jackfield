@@ -86,7 +86,7 @@ plain words and put `code` under "Technical details". A 409 from tracking is
 
 | Gap | Handling | Needs approval? |
 |---|---|---|
-| Agents without a settings reader (Cursor, custom agents) | Square rules 7–8 cannot fire; Q1 decides On vs Unknown | No (frontend rule) |
+| Agents without a settings reader (Cursor, custom agents) | Square rules 7–8 cannot fire; they show On with "settings aren't checked" in the panel (Q1, decided 2026-11-27) | No (frontend rule) |
 | "Actually loaded" | Always Unknown with the fixed explanation (S6) | No |
 | "Recent changes" undo for older history rows | Offer Undo only where a snapshot id exists in `/api/history?snapshots=1`; others are read-only lines | No |
 | "Last one: 20 Nov" for backups | The app does not record backup downloads today; omit the line unless a local preference stores the last download time (browser `localStorage`, per browser) | No; if a server record is wanted, it is new scope (ask) |

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Editor — A · Save-to card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sm-root{--bg:#F6F6F3;--surface:#FFFFFF;--raise:#F5F5F3;--line:#ECECE9;--line-subtle:#F3F3F1;--ink:#191917;--ink-2:#3B3B37;--mute:#666660;--text-faint:#6E6E67;--mark-faint:#9A9A93;--accent:#2D58D0;--on-accent:#FFFFFF;--accent-soft:#EDF1FC;--warn:#8A4700;--warn-mark:#C06A00;--warn-soft:#FFF7EC;--warn-line:#F1DDC0;--bad:#A3261A;--bad-soft:#FDEEEC;--toast:#191917;--on-toast:#FAFAF9;--shadow-panel:0 1px 2px rgba(25,25,23,.04),0 10px 28px rgba(25,25,23,.07);--shadow-toast:0 12px 32px rgba(0,0,0,.22);--font-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--radius-xs:5px;--radius-sm:9px;--radius-md:11px;--radius-lg:14px;--radius-xl:16px;--radius-pill:999px/* unslop-ignore: design-system radius-pill, used only for labels and counts */;--control:36px;--control-lg:46px;--touch:44px;--square:64px;--panel:392px}
+.sm-root.dark{--bg:#121211;--surface:#1A1A19;--raise:#222220;--line:#2C2C2A;--line-subtle:#242422;--ink:#EDEDEA;--ink-2:#CFCFCA;--mute:#B0B0A9;--text-faint:#9A9A93;--mark-faint:#77776F;--accent:#8CAEFF;--on-accent:#0C1430;--accent-soft:#1C2540;--warn:#F2B866;--warn-mark:#F2A33C;--warn-soft:#241B10;--warn-line:#4A3517;--bad:#FF9C8F;--bad-soft:#2E1714;--toast:#EDEDEA;--on-toast:#121211;--shadow-panel:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35)}
+.sm-root{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font-sans);font-size:14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.sm-root a{color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
+.sm-root button:focus-visible,.sm-root a:focus-visible,.sm-root input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sm-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:var(--control);padding:0 14px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 14px/1 var(--font-sans);cursor:pointer;box-sizing:border-box;white-space:nowrap}
+.sm-root a.sm-btn{color:var(--ink);text-decoration:none}
+.sm-btn:hover{border-color:var(--mark-faint)}
+.sm-btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.sm-btn:disabled{opacity:.5;cursor:not-allowed}
+.sm-btn--accent,.sm-root a.sm-btn--accent{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
+.sm-btn--quiet{background:transparent;border-color:transparent;color:var(--mute);padding:0 10px}
+.sm-btn--icon{width:34px;height:34px;padding:0}
+@media (max-width:640px){.sm-btn--icon{width:var(--touch);height:var(--touch)}}
+.sm-kbd{font:500 11px/1 var(--font-mono);color:var(--mute);border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--radius-xs);padding:2px 5px;background:var(--surface)}
+.sm-ag{display:inline-grid;place-items:center;flex:none;width:20px;height:20px;border-radius:var(--radius-xs);background:var(--raise);border:1px solid var(--line);font:600 9.5px/1 var(--font-mono);color:var(--ink-2)}
+.sm-status{display:inline-flex;align-items:center;gap:9px;font:500 13px/16px var(--font-sans)}
+.sm-mk{position:relative;flex:none;width:9px;height:9px;box-sizing:border-box}
+.is-on .sm-mk{border-radius:50%;background:var(--accent)}
+.is-off{color:var(--mute)}.is-off .sm-mk{border-radius:50%;border:1.5px solid var(--mark-faint)}
+.is-different{color:var(--warn)}.is-different .sm-mk{width:8px;height:8px;background:var(--warn-mark);transform:rotate(45deg);border-radius:1.5px}
+.is-missing{color:var(--text-faint)}.is-missing .sm-mk{width:9px;height:1.5px;background:var(--mark-faint);border-radius:1px}
+.sm-undo{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:16px;max-width:calc(100% - 32px);box-sizing:border-box;padding:10px 10px 10px 18px;background:var(--toast);color:var(--on-toast);border-radius:14px;box-shadow:var(--shadow-toast);font:400 14px/20px var(--font-sans)}
+.sm-undo button{height:32px;padding:0 12px;border-radius:9px;border:1px solid rgba(127,127,127,.45);background:transparent;color:var(--on-toast);font:600 13px/1 var(--font-sans);cursor:pointer}
+.sm-undo .sm-undo__x{width:32px;padding:0;border:0;font-size:16px}
+.sm-nav{display:flex;align-items:center;gap:32px;min-height:60px;padding:0 40px;border-bottom:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+.sm-root .sm-nav__link{display:inline-block;color:var(--mute);text-decoration:none;font:500 14px/1 var(--font-sans);padding:22px 0 20px;border-bottom:1.5px solid transparent}
+.sm-root .sm-nav__link[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+.sm-nav__count{color:var(--warn);font-weight:600;margin-left:5px}
+.sm-search{display:flex;align-items:center;gap:10px;width:280px;max-width:100%;height:34px;padding:0 10px 0 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--mute);font:400 14px/1 var(--font-sans);cursor:pointer}
+.sm-mono{font:400 11.5px/16px var(--font-mono);letter-spacing:-.01em;color:var(--text-faint)}
+.sm-cap{margin:0;font:600 12px/16px var(--font-sans);letter-spacing:.02em;color:var(--mute)}
+.sm-main{margin:0 auto;padding:0 40px 96px;box-sizing:border-box}
+@media (max-width:640px){.sm-nav{padding:0 16px;gap:14px}.sm-main{padding:0 16px 96px}}
+.sm-label{display:block;font:600 14px/1.3 var(--font-sans);color:var(--ink)}
+.sm-hint{font:400 13px/1.5 var(--font-sans);color:var(--mute)}
+.sm-textarea{display:block;width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:400 15px/1.55 var(--font-sans);resize:vertical}
+.sm-textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.sm-textarea--file{font:400 13px/1.7 var(--font-mono);padding:16px 18px;tab-size:2}
+.sm-check{width:18px;height:18px;margin:0;accent-color:var(--accent);flex:none}
+.sm-doc{font:400 15px/1.7 var(--font-sans);color:var(--ink-2)}
+.sm-doc p{margin:0 0 14px}
+.sm-doc h1{margin:0 0 12px;font:600 24px/1.25 var(--font-sans);letter-spacing:-.02em;color:var(--ink)}
+.sm-doc h2{margin:30px 0 10px;font:600 19px/1.3 var(--font-sans);letter-spacing:-.015em;color:var(--ink)}
+.sm-doc ul,.sm-doc ol{margin:0 0 16px;padding-left:22px}
+.sm-doc li{margin:5px 0}
+.place{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--line-subtle);cursor:pointer}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-2);display:inline-block}
+
+/* Icons (2026-11-25): agent marks and state icons drawn as masks so they follow the theme colour. */
+span.ag[data-a],span.sm-ag[data-a]{flex:none;width:20px;height:20px;box-sizing:border-box;font-size:0!important;line-height:0;color:var(--ink-2,var(--ink2))}
+span.ag[data-a]::before,span.sm-ag[data-a]::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-a="CC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="OC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="CX"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="SH"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="PJ"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+
+/* Icons pass 2 (2026-11-25): agent marks by name, inline marks, state and choice icons. */
+span.ag[data-a],span.sm-ag[data-a]{display:inline-grid;place-items:center;border-radius:5px;background:var(--raise);border:1px solid var(--line)}
+[data-a="Claude Code"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="Codex"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="OpenCode"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="Shared folder"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="This project"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+span.agm[data-a]{display:inline-block;flex:none;width:14px;height:14px;vertical-align:-2px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-i="Light"]::before,[data-i="Dark"]::before,[data-i="Match my computer"]::before,[data-i="Blank"]::before,[data-i="Step by step"]::before,[data-i="Checklist"]::before{content:"";flex:none;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ii) center/contain no-repeat;mask:var(--ii) center/contain no-repeat}
+[data-i="Light"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Dark"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Match my computer"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='12' rx='2'/%3E%3Cpath d='M8 20h8M12 16v4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Blank"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z'/%3E%3Cpath d='M14 3v5h5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Step by step"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h11M10 12h11M10 18h11M4 5h1.5v4M4 9h3M4 15.5c0-1 3-1.3 3 0 0 1-3 1.6-3 3h3'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Checklist"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 7 2 2 4-4M3 15l2 2 4-4M13 7h8M13 15h8'/%3E%3C/g%3E%3C/svg%3E")}
+.conn::before{content:"";flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:var(--ci) center/contain no-repeat;mask:var(--ci) center/contain no-repeat}
+.conn.failed{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16.5h.01'/%3E%3C/g%3E%3C/svg%3E")}.conn.ok{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/g%3E%3C/svg%3E")}.conn.untested{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/g%3E%3C/svg%3E")}
+details>summary{list-style:none;display:flex;align-items:center;gap:6px;cursor:pointer}details>summary::-webkit-details-marker{display:none}details>summary::before{content:"";width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;transition:transform .12s}details[open]>summary::before{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){details>summary::before{transition:none}}
+
+/* Jackfield lockup (2026-11-27, design system v13). */
+.jf-logo{display:block;flex:none}.jf-logo .jf-d{display:none}.theme-dark .jf-logo .jf-l,.sm-root.dark .jf-logo .jf-l,.dark .jf-logo .jf-l{display:none}.theme-dark .jf-logo .jf-d,.sm-root.dark .jf-logo .jf-d,.dark .jf-logo .jf-d{display:inline}
+</style>
+</helmet>
+<div class="sm-root {{ theme }}">
+  <header class="sm-nav">
+    <a href="D01-Skills.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px; letter-spacing: -0.01em">
+      <svg class="jf-logo" width="125" height="30" viewBox="0 0 1070 256" role="img" aria-label="Jackfield"><g class="jf-l"><g><path fill="#DDDDD8" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/><path fill="#191917" d="M184 96H232A8 8 0 0 1 240 104V152A8 8 0 0 1 232 160H184A8 8 0 0 1 176 152V104A8 8 0 0 1 184 96Z M24 96H72A8 8 0 0 1 80 104V152A8 8 0 0 1 72 160H24A8 8 0 0 1 16 152V104A8 8 0 0 1 24 96Z M104 176H152A8 8 0 0 1 160 184V232A8 8 0 0 1 152 240H104A8 8 0 0 1 96 232V184A8 8 0 0 1 104 176Z M24 176H72A8 8 0 0 1 80 184V232A8 8 0 0 1 72 240H56A40 40 0 0 1 16 200V184A8 8 0 0 1 24 176Z M184 176H232A8 8 0 0 1 240 184V200A40 40 0 0 1 200 240H184A8 8 0 0 1 176 232V184A8 8 0 0 1 184 176Z"/><path fill="#2D58D0" d="M184 16H232A8 8 0 0 1 240 24V72A8 8 0 0 1 232 80H184A8 8 0 0 1 176 72V24A8 8 0 0 1 184 16Z"/></g><g transform="translate(306.35 166.70)"><path fill="#191917" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/><path fill="#2D58D0" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/></g></g><g class="jf-d"><g><path fill="#2C2C2A" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/><path fill="#EDEDEA" d="M185 97H231A8 8 0 0 1 239 105V151A8 8 0 0 1 231 159H185A8 8 0 0 1 177 151V105A8 8 0 0 1 185 97Z M25 97H71A8 8 0 0 1 79 105V151A8 8 0 0 1 71 159H25A8 8 0 0 1 17 151V105A8 8 0 0 1 25 97Z M105 177H151A8 8 0 0 1 159 185V231A8 8 0 0 1 151 239H105A8 8 0 0 1 97 231V185A8 8 0 0 1 105 177Z M25 177H71A8 8 0 0 1 79 185V231A8 8 0 0 1 71 239H56A39 39 0 0 1 17 200V185A8 8 0 0 1 25 177Z M185 177H231A8 8 0 0 1 239 185V200A39 39 0 0 1 200 239H185A8 8 0 0 1 177 231V185A8 8 0 0 1 185 177Z"/><path fill="#8CAEFF" d="M185 17H231A8 8 0 0 1 239 25V71A8 8 0 0 1 231 79H185A8 8 0 0 1 177 71V25A8 8 0 0 1 185 17Z"/></g><g transform="translate(306.35 166.70)"><path fill="#EDEDEA" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/><path fill="#8CAEFF" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/></g></g></svg>
+    </a>
+    <nav aria-label="Main" style="display: flex; gap: 26px; flex-wrap: wrap">
+      <a class="sm-nav__link" href="D01-Skills.dc.html" aria-current="page">Skills</a>
+      <a class="sm-nav__link" href="D08-Needs-Attention.dc.html">Needs attention<span class="sm-nav__count">3</span></a>
+      <a class="sm-nav__link" href="D09-Trash-Backups.dc.html">Trash &amp; backups</a>
+      <a class="sm-nav__link" href="D10-Advanced.dc.html">Advanced</a>
+    </nav>
+    <div style="flex: 1 1 auto"></div>
+    <button type="button" class="sm-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span style="flex: 1; text-align: left">Search skills and actions</span><span class="sm-kbd">/</span></button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Switch theme" onClick="{{ toggleTheme }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Help"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17.3h.01"/></svg></button>
+  </header>
+
+  <main class="sm-main" style="max-width: 1360px">
+    <div style="position: sticky; top: 0; z-index: 3; background: var(--bg); border-bottom: 1px solid var(--line); padding: 20px 0 16px; display: flex; align-items: center; gap: 14px 20px; flex-wrap: wrap">
+      <div style="flex: 1 1 440px; min-width: 0">
+        <nav aria-label="Breadcrumb" style="display: flex; gap: 8px; font-size: 13px; color: var(--mute); margin-bottom: 6px"><a href="D01-Skills.dc.html" style="color: var(--mute)">Skills</a><span aria-hidden="true">/</span><a href="D04-Skill-Page.dc.html" style="color: var(--mute)">test-driven-development</a><span aria-hidden="true">/</span><span aria-current="page">Edit</span></nav>
+        <h1 style="margin: 0; font-size: 30px; line-height: 1.12; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere">Editing test-driven-development</h1>
+      </div>
+      <sc-if value="{{ dirty }}" hint-placeholder-val="{{ true }}">
+        <span role="status" style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2)"><span class="dot" aria-hidden="true"></span>Unsaved changes</span>
+      </sc-if>
+      <button type="button" class="sm-btn" onClick="{{ cancel }}">Cancel</button>
+      <button type="button" class="sm-btn sm-btn--accent" style="height: 38px; padding: 0 18px" disabled="{{ cantSave }}" onClick="{{ save }}">{{ saveLabel }}<span style="font: 500 11px/1 var(--font-mono); opacity: .75">Ctrl S</span></button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; padding-top: 28px">
+      <div style="flex: 999 1 600px; min-width: 0; max-width: 840px; display: flex; flex-direction: column; gap: 28px">
+        <div>
+          <label class="sm-label" for="a-desc">Description</label>
+          <p class="sm-hint" id="a-desc-hint" style="margin: 4px 0 10px">Agents read this to decide when to use the skill. One or two plain sentences.</p>
+          <textarea id="a-desc" class="sm-textarea" rows="3" aria-describedby="a-desc-hint a-desc-size" value="{{ desc }}" onChange="{{ onDesc }}"></textarea>
+          <p class="sm-hint" id="a-desc-size" style="margin: 8px 0 0">Uses about 2% of Claude’s skill list space.</p>
+        </div>
+
+        <div>
+          <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px">
+            <div>
+              <label class="sm-label" for="a-body">Content</label>
+              <p class="sm-hint" style="margin: 4px 0 0">The instructions the agent follows, written in Markdown.</p>
+            </div>
+            <div role="group" aria-label="Content view" style="display: flex; gap: 4px; padding: 3px; background: var(--raise); border: 1px solid var(--line); border-radius: 11px">
+              <button type="button" class="sm-btn" aria-pressed="{{ writePressed }}" onClick="{{ showWrite }}" style="height: 30px; border-color: transparent">Write</button>
+              <button type="button" class="sm-btn" aria-pressed="{{ previewPressed }}" onClick="{{ showPreview }}" style="height: 30px; border-color: transparent">Preview</button>
+            </div>
+          </div>
+          <sc-if value="{{ isWrite }}" hint-placeholder-val="{{ true }}">
+            <textarea id="a-body" class="sm-textarea sm-textarea--file" rows="26" spellcheck="false" value="{{ body }}" onChange="{{ onBody }}"></textarea>
+          </sc-if>
+          <sc-if value="{{ isPreview }}" hint-placeholder-val="{{ false }}">
+            <div class="sm-doc" style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px 28px">
+              <h1>Test-driven development</h1>
+              <p>Write a test that fails for the right reason before you change any code. Then write the least code that makes it pass, and tidy up while the tests stay green.</p>
+              <h2>Steps</h2>
+              <ol>
+                <li>Write one small test for the next behavior. Run it and watch it fail.</li>
+                <li>Write the simplest code that makes it pass.</li>
+                <li>Run the whole suite. Tidy up only while everything is green, then commit.</li>
+                <li>Repeat with the next behavior.</li>
+              </ol>
+              <h2>Don’t</h2>
+              <ul>
+                <li>Write several tests before any code.</li>
+                <li>Change a test just to make it pass.</li>
+                <li>Skip the failing run: a test that never failed proves nothing.</li>
+              </ul>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <aside aria-labelledby="a-saveto" style="flex: 1 1 320px; max-width: 380px; position: sticky; top: 112px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px 18px; box-sizing: border-box; box-shadow: var(--shadow-panel)">
+        <h2 id="a-saveto" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Save to</h2>
+        <p class="sm-hint" style="margin: 4px 0 10px">Every ticked place gets this exact version.</p>
+        <sc-for list="{{ places }}" as="r" hint-placeholder-count="5">
+          <label class="place">
+            <input type="checkbox" class="sm-check" checked="{{ r.checked }}" onChange="{{ r.toggle }}" style="margin-top: 1px">
+            <span style="flex: 1; min-width: 0">
+              <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500"><span class="ag" data-a="{{ r.name }}" aria-hidden="true"></span>{{ r.name }}</span><span class="{{ r.scls }}"><span class="sm-mk" aria-hidden="true"></span>{{ r.label }}</span></span>
+              <span class="{{ r.noteCls }}" style="display: block; margin-top: 3px; font-size: 13px; line-height: 1.45">{{ r.note }}</span>
+            </span>
+          </label>
+        </sc-for>
+        <div style="border-top: 1px solid var(--line-subtle); padding-top: 12px; font-size: 13px; line-height: 1.5; color: var(--mute)">{{ summary }} <a href="#">Compare OpenCode’s version</a></div>
+      </aside>
+    </div>
+  </main>
+
+  <sc-if value="{{ leave }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 8; background: rgba(25,25,23,.32); display: grid; place-items: center; padding: 16px">
+      <div role="dialog" aria-modal="true" aria-labelledby="a-leave" style="width: 100%; max-width: 440px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-toast); box-sizing: border-box">
+        <h2 id="a-leave" style="margin: 0 0 8px; font-size: 19px; font-weight: 600; letter-spacing: -0.015em">Leave without saving?</h2>
+        <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.55; color: var(--ink-2)">Your changes to test-driven-development haven’t been saved anywhere yet. If you leave, they’re lost.</p>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap">
+          <button type="button" class="sm-btn" onClick="{{ discard }}" style="color: var(--bad)">Leave without saving</button>
+          <button type="button" class="sm-btn sm-btn--accent" onClick="{{ keep }}">Keep editing</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasUndo }}" hint-placeholder-val="{{ false }}">
+    <div role="status" class="sm-undo"><span>{{ undoText }}</span><button type="button" onClick="{{ undo }}">Undo</button><button type="button" class="sm-undo__x" aria-label="Dismiss" onClick="{{ dismiss }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":1300}}'>
+const SKILL = 'test-driven-development';
+const PLACES = [
+  { name: 'Claude Code', k: 'on' }, { name: 'Codex', k: 'on' }, { name: 'OpenCode', k: 'diff' }, { name: 'Shared folder', k: 'on' }, { name: 'This project', k: 'none' }
+];
+const LABEL = { on: 'Same copy', diff: 'Different', none: 'Not here' };
+const CLS = { on: 'sm-status is-on', diff: 'sm-status is-different', none: 'sm-status is-missing' };
+const DESC = 'Write the failing test first, then the smallest code that makes it pass. Use when adding a feature or fixing a bug.';
+const BODY = '# Test-driven development\n\nWrite a test that fails for the right reason before you change any\ncode. Then write the least code that makes it pass, and tidy up while\nthe tests stay green.\n\n## When to use it\n\n- Adding a feature with clear inputs and outputs.\n- Fixing a bug: first write a test that shows the bug.\n- Changing code that has no tests yet.\n\n## Steps\n\n1. Write one small test for the next behavior. Run it and watch it fail.\n2. Write the simplest code that makes it pass.\n3. Run the whole suite. Tidy up only while everything is green, then commit.\n4. Repeat with the next behavior.\n\n## Don’t\n\n- Write several tests before any code.\n- Change a test just to make it pass.\n- Skip the failing run: a test that never failed proves nothing.\n';
+function noteFor(k, on) {
+  if (k === 'diff') return on ? { note: 'Its own version will be replaced by this one. The old file goes to Trash.', noteCls: 'is-different' } : { note: 'Has its own version, so it is left out. Tick to replace it.', noteCls: 'is-different' };
+  if (k === 'none') return on ? { note: 'A new copy will be added here.', noteCls: 'sm-hint' } : { note: 'No copy here. Tick to add one.', noteCls: 'sm-hint' };
+  return { note: on ? 'Will be updated.' : 'Will keep the old version.', noteCls: 'sm-hint' };
+}
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { desc: DESC, body: BODY, view: 'write', dirty: true, ticks: [true, true, false, true, false], leave: false, undo: null, dark: null }; }
+  renderVals() {
+    const dark = this.state.dark === null ? !!(this.props.dark ?? true) : this.state.dark;
+    const ticks = this.state.ticks;
+    const n = ticks.filter(Boolean).length;
+    const write = this.state.view === 'write';
+    const places = PLACES.map((p, i) => Object.assign({ name: p.name, label: LABEL[p.k], scls: CLS[p.k], checked: ticks[i], toggle: () => { const t = this.state.ticks.slice(); t[i] = !t[i]; this.setState({ ticks: t }); } }, noteFor(p.k, ticks[i])));
+    return {
+      theme: dark ? 'dark' : 'light',
+      toggleTheme: () => this.setState({ dark: !dark }),
+      desc: this.state.desc, body: this.state.body,
+      onDesc: (e) => this.setState({ desc: e.target.value, dirty: true }),
+      onBody: (e) => this.setState({ body: e.target.value, dirty: true }),
+      isWrite: write, isPreview: !write,
+      writePressed: write ? 'true' : 'false', previewPressed: write ? 'false' : 'true',
+      showWrite: () => this.setState({ view: 'write' }),
+      showPreview: () => this.setState({ view: 'preview' }),
+      dirty: this.state.dirty,
+      places,
+      summary: n === 0 ? 'Tick at least one place to save.' : 'Saving updates ' + n + ' cop' + (n === 1 ? 'y' : 'ies') + '. You can undo it.',
+      saveLabel: n === 0 ? 'Choose where to save' : 'Save to ' + n + ' place' + (n === 1 ? '' : 's'),
+      cantSave: n === 0 || !this.state.dirty,
+      save: () => { if (n === 0) return; this.setState({ dirty: false, undo: 'Saved ' + SKILL + ' to ' + n + ' place' + (n === 1 ? '' : 's') + '.' }); },
+      cancel: () => { if (this.state.dirty) this.setState({ leave: true }); },
+      leave: this.state.leave,
+      keep: () => this.setState({ leave: false }),
+      discard: () => this.setState({ leave: false, dirty: false, desc: DESC }),
+      hasUndo: !!this.state.undo, undoText: this.state.undo || '',
+      undo: () => this.setState({ undo: null, dirty: true }),
+      dismiss: () => this.setState({ undo: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

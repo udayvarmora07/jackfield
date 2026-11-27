@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skills table — phone, dark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ph{--bg:#F6F6F3;--surface:#FFFFFF;--raise:#F5F5F3;--line:#ECECE9;--line2:#F3F3F1;--ink:#191917;--ink2:#3B3B37;--mute:#666660;--faint:#9A9A93;--faint-text:#6E6E67;--acc:#2D58D0;--acc-ink:#FFFFFF;--acc-soft:#EDF1FC;--warn:#8A4700;--warn-mk:#C06A00;--warn-soft:#FFF7EC;--warn-line:#F1DDC0;--bad:#A3261A}
+.ph.dark{--bg:#121211;--surface:#1A1A19;--raise:#222220;--line:#2C2C2A;--line2:#242422;--ink:#EDEDEA;--ink2:#CFCFCA;--mute:#B0B0A9;--faint:#77776F;--faint-text:#9A9A93;--acc:#8CAEFF;--acc-ink:#0C1430;--acc-soft:#1C2540;--warn:#F2B866;--warn-mk:#F2A33C;--warn-soft:#241B10;--warn-line:#4A3517;--bad:#FF9C8F}
+.ph{font-family:'IBM Plex Sans',sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.ph button:focus-visible,.ph a:focus-visible,.ph select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.mk{position:relative;flex:none;width:9px;height:9px;box-sizing:border-box}
+.k-on .mk{border-radius:50%;background:var(--acc)}
+.k-off{color:var(--mute)}.k-off .mk{border-radius:50%;border:1.5px solid var(--faint)}
+.k-set{color:var(--mute)}.k-set .mk{border-radius:50%;border:1.5px dashed var(--mute)}
+.k-diff{color:var(--warn)}.k-diff .mk{width:8px;height:8px;background:var(--warn-mk);transform:rotate(45deg);border-radius:1.5px}
+.k-bad{color:var(--bad)}.k-bad .mk::before,.k-bad .mk::after{content:"";position:absolute;left:3.5px;top:-1px;width:2px;height:11px;background:var(--bad);border-radius:1px;transform:rotate(45deg)}.k-bad .mk::after{transform:rotate(-45deg)}
+.k-none{color:var(--faint-text)}.k-none .mk{width:9px;height:1.5px;background:var(--faint);border-radius:1px}
+.prow{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 16px;border:0;border-bottom:1px solid var(--line2);background:var(--surface);text-align:left;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;color:var(--ink);box-sizing:border-box}
+.prow.sel{background:var(--acc-soft)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:56px;text-decoration:none;color:var(--mute);font-size:11px;font-weight:500}
+.tab[aria-current="page"]{color:var(--ink)}
+.icon44{width:44px;height:44px;display:grid;place-items:center;border:0;background:transparent;color:var(--ink);border-radius:11px;cursor:pointer}
+.pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px/* unslop-ignore: design-system radius-pill, used only for labels and counts */;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500}
+
+/* Icons (2026-11-25): agent marks and state icons drawn as masks so they follow the theme colour. */
+span.ag[data-a],span.sm-ag[data-a]{flex:none;width:20px;height:20px;box-sizing:border-box;font-size:0!important;line-height:0;color:var(--ink-2,var(--ink2))}
+span.ag[data-a]::before,span.sm-ag[data-a]::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-a="CC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="OC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="CX"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="SH"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="PJ"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+
+/* Icons pass 2 (2026-11-25): agent marks by name, inline marks, state and choice icons. */
+span.ag[data-a],span.sm-ag[data-a]{display:inline-grid;place-items:center;border-radius:5px;background:var(--raise);border:1px solid var(--line)}
+[data-a="Claude Code"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="Codex"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="OpenCode"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="Shared folder"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="This project"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+span.agm[data-a]{display:inline-block;flex:none;width:14px;height:14px;vertical-align:-2px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-i="Light"]::before,[data-i="Dark"]::before,[data-i="Match my computer"]::before,[data-i="Blank"]::before,[data-i="Step by step"]::before,[data-i="Checklist"]::before{content:"";flex:none;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ii) center/contain no-repeat;mask:var(--ii) center/contain no-repeat}
+[data-i="Light"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Dark"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Match my computer"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='12' rx='2'/%3E%3Cpath d='M8 20h8M12 16v4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Blank"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z'/%3E%3Cpath d='M14 3v5h5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Step by step"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h11M10 12h11M10 18h11M4 5h1.5v4M4 9h3M4 15.5c0-1 3-1.3 3 0 0 1-3 1.6-3 3h3'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Checklist"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 7 2 2 4-4M3 15l2 2 4-4M13 7h8M13 15h8'/%3E%3C/g%3E%3C/svg%3E")}
+.conn::before{content:"";flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:var(--ci) center/contain no-repeat;mask:var(--ci) center/contain no-repeat}
+.conn.failed{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16.5h.01'/%3E%3C/g%3E%3C/svg%3E")}.conn.ok{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/g%3E%3C/svg%3E")}.conn.untested{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/g%3E%3C/svg%3E")}
+details>summary{list-style:none;display:flex;align-items:center;gap:6px;cursor:pointer}details>summary::-webkit-details-marker{display:none}details>summary::before{content:"";width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;transition:transform .12s}details[open]>summary::before{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){details>summary::before{transition:none}}
+
+/* Jackfield lockup (2026-11-27, design system v13). */
+.jf-logo{display:block;flex:none}.jf-logo .jf-d{display:none}.theme-dark .jf-logo .jf-l,.sm-root.dark .jf-logo .jf-l,.dark .jf-logo .jf-l{display:none}.theme-dark .jf-logo .jf-d,.sm-root.dark .jf-logo .jf-d,.dark .jf-logo .jf-d{display:inline}
+</style>
+</helmet>
+<div class="ph dark" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--bg); display: flex; flex-direction: column">
+  <header style="display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--line); flex: none">
+    <svg class="jf-logo" width="121" height="29" viewBox="0 0 1070 256" role="img" aria-label="Jackfield"><g><path fill="#2C2C2A" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/><path fill="#EDEDEA" d="M185 97H231A8 8 0 0 1 239 105V151A8 8 0 0 1 231 159H185A8 8 0 0 1 177 151V105A8 8 0 0 1 185 97Z M25 97H71A8 8 0 0 1 79 105V151A8 8 0 0 1 71 159H25A8 8 0 0 1 17 151V105A8 8 0 0 1 25 97Z M105 177H151A8 8 0 0 1 159 185V231A8 8 0 0 1 151 239H105A8 8 0 0 1 97 231V185A8 8 0 0 1 105 177Z M25 177H71A8 8 0 0 1 79 185V231A8 8 0 0 1 71 239H56A39 39 0 0 1 17 200V185A8 8 0 0 1 25 177Z M185 177H231A8 8 0 0 1 239 185V200A39 39 0 0 1 200 239H185A8 8 0 0 1 177 231V185A8 8 0 0 1 185 177Z"/><path fill="#8CAEFF" d="M185 17H231A8 8 0 0 1 239 25V71A8 8 0 0 1 231 79H185A8 8 0 0 1 177 71V25A8 8 0 0 1 185 17Z"/></g><g transform="translate(306.35 166.70)"><path fill="#EDEDEA" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/><path fill="#8CAEFF" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/></g></svg>
+    <span style="flex: 1" aria-hidden="true"></span>
+    <button type="button" class="icon44" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button type="button" class="icon44" aria-label="New skill"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  </header>
+
+  <div style="flex: 1; overflow-y: auto">
+    <div style="padding: 18px 16px 12px">
+      <div style="display: flex; align-items: baseline; gap: 10px"><h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em">Skills</h1><span style="color: var(--mute); font-size: 14px">142 in 5 places</span></div>
+    </div>
+    <div style="margin: 0 16px 14px; padding: 12px 14px; background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 14px; display: flex; align-items: center; gap: 10px">
+      <div style="flex: 1; font-size: 14px; line-height: 1.4"><strong style="display: inline-flex; align-items: center; gap: 8px; color: var(--warn); font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>3 need your attention</strong></div>
+      <a href="#" style="color: var(--ink); font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center">Review</a>
+    </div>
+    <div style="display: flex; gap: 8px; padding: 0 16px 12px">
+      <label style="flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--mute)">Showing
+        <select onChange="{{ pickAgent }}" style="height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--ink); font: 600 15px/1 'IBM Plex Sans', sans-serif">
+          <sc-for list="{{ agentOpts }}" as="o" hint-placeholder-count="5">
+            <option value="{{ o.value }}" selected="{{ o.selected }}">{{ o.name }}</option>
+          </sc-for>
+        </select>
+      </label>
+    </div>
+    <div style="border-top: 1px solid var(--line)">
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+        <button type="button" class="{{ r.cls }}" aria-label="{{ r.aria }}" onClick="{{ r.open }}">
+          <span style="flex: 1; min-width: 0">
+            <span style="display: block; font-weight: 600; font-size: 15px">{{ r.name }}</span>
+            <span style="display: block; color: var(--mute); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.desc }}</span>
+          </span>
+          <span class="{{ r.kcls }}" style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; flex: none"><span class="mk" aria-hidden="true"></span>{{ r.label }}</span>
+        </button>
+      </sc-for>
+      <div style="padding: 16px; text-align: center"><button type="button" style="height: 44px; padding: 0 18px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface); font: 500 14px/1 'IBM Plex Sans', sans-serif; color: var(--ink)">Show 50 more</button></div>
+    </div>
+  </div>
+
+  <nav aria-label="Main" style="display: flex; height: 64px; border-top: 1px solid var(--line); background: var(--surface); flex: none; padding: 0 4px">
+    <a class="tab" href="#" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Skills</a>
+    <a class="tab" href="#"><span style="position: relative"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg><span style="position: absolute; top: -5px; right: -12px; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-line); border-radius: 999px/* unslop-ignore: design-system radius-pill, used only for labels and counts */; font-size: 10px; font-weight: 700; padding: 0 5px">3</span></span>Attention</a>
+    <a class="tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Trash</a>
+    <a class="tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Advanced</a>
+  </nav>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ true }}">
+    <div aria-hidden="true" onClick="{{ close }}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5)"></div>
+    <section role="dialog" aria-label="{{ s.region }}" style="position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 18px 18px 0 0; padding: 10px 20px 24px; box-shadow: 0 -12px 32px rgba(0,0,0,.16)">
+      <div aria-hidden="true" style="width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 14px"></div>
+      <div style="display: flex; align-items: flex-start; gap: 12px">
+        <div style="flex: 1; min-width: 0">
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--mute)"><span class="ag" data-a="{{ s.agent }}" aria-hidden="true"></span>{{ s.agent }}</div>
+          <h2 style="margin: 2px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{ s.skill }}</h2>
+        </div>
+        <button type="button" class="icon44" aria-label="Close" onClick="{{ close }}" style="margin: -6px -10px 0 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p style="margin: 10px 0 14px; font-size: 15px; line-height: 1.5; color: var(--ink2)">{{ s.line }}</p>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px">
+        <span class="pill {{ s.nowCls }}"><span class="mk" aria-hidden="true"></span>{{ s.now }}</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--faint-text)" aria-label="becomes" role="img"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <span class="pill {{ s.afterCls }}"><span class="mk" aria-hidden="true"></span>{{ s.after }}</span>
+      </div>
+      <button type="button" onClick="{{ act }}" style="width: 100%; height: 50px; background: var(--acc); color: var(--acc-ink); border: 0; border-radius: 14px; font: 600 16px/1 'IBM Plex Sans', sans-serif; cursor: pointer">{{ s.primary }}</button>
+      <p style="margin: 10px 2px 14px; font-size: 13px; line-height: 1.5; color: var(--mute)">{{ s.what }}</p>
+      <div style="display: flex; gap: 18px; font-size: 15px; font-weight: 500">
+        <a href="D04-Skill-Page.dc.html" style="color: var(--acc); min-height: 44px; display: flex; align-items: center">Open skill</a>
+        <a href="#" style="color: var(--acc); min-height: 44px; display: flex; align-items: center">Why isn’t it running?</a>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ hasUndo }}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 12px; right: 12px; bottom: 76px; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; background: #EDEDEA; color: #121211; border-radius: 14px; font-size: 14px">
+      <span style="flex: 1">{{ undoText }}</span>
+      <button type="button" onClick="{{ undo }}" style="height: 44px; padding: 0 14px; border-radius: 9px; border: 1px solid rgba(18,18,17,.4); background: transparent; color: #121211; font: 600 14px/1 'IBM Plex Sans', sans-serif">Undo</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const AGENTS = ['Claude Code', 'Codex', 'OpenCode', 'Shared folder', 'This project'];
+const ROWS = [
+  { name: 'code-review', desc: 'Review a diff for bugs before you commit.', s: ['on', 'on', 'on', 'on', 'none'] },
+  { name: 'debugging-and-error-recovery', desc: 'Find the root cause before changing code.', s: ['on', 'diff', 'on', 'on', 'none'] },
+  { name: 'design-system', desc: 'Lock an approved screen into tokens and components.', s: ['on', 'none', 'none', 'none', 'on'] },
+  { name: 'docker-compose-patterns', desc: 'Write and fix Compose files the safe way.', s: ['off', 'off', 'none', 'none', 'none'] },
+  { name: 'frontend-performance', desc: 'Measure first, then fix slow pages.', s: ['on', 'on', 'none', 'on', 'none'] },
+  { name: 'git-workflow', desc: 'Branches, commits and pull requests, done cleanly.', s: ['set', 'on', 'on', 'on', 'none'] },
+  { name: 'idea-brainstorm', desc: 'Think an idea through before building it.', s: ['on', 'none', 'none', 'none', 'on'] },
+  { name: 'journey-map', desc: 'Draw the user journey before any UI.', s: ['on', 'none', 'none', 'none', 'on'] },
+  { name: 'security-review', desc: 'Check changes for risky patterns.', s: ['on', 'bad', 'on', 'none', 'none'] },
+  { name: 'test-driven-development', desc: 'Write the failing test first.', s: ['on', 'on', 'diff', 'on', 'none'] }
+];
+const LABEL = { on: 'On', off: 'Off', set: 'Off in settings', diff: 'Different', bad: "Can't read", none: 'Not here' };
+const NEXT = { on: 'off', off: 'on', none: 'on' };
+const DONE = { on: 'Turned off', off: 'Turned on', none: 'Added' };
+function sheetFor(name, k, a) {
+  const s = { skill: name, agent: a, region: name + ' in ' + a, now: LABEL[k], nowCls: 'k-' + k };
+  if (k === 'on') Object.assign(s, { after: 'Off', afterCls: 'k-off', line: a + ' can use this skill.', primary: 'Turn off in ' + a, what: 'The file is renamed so ' + a + ' skips it. Nothing is deleted. You can undo.' });
+  if (k === 'off') Object.assign(s, { after: 'On', afterCls: 'k-on', line: a + ' skips this skill.', primary: 'Turn on in ' + a, what: 'The file is renamed back. You can undo.' });
+  if (k === 'set') Object.assign(s, { after: 'On', afterCls: 'k-on', line: 'The file is on, but ' + a + '’s own settings switch it off.', primary: 'Open the settings file', what: 'Jackfield never changes agent settings files.' });
+  if (k === 'diff') Object.assign(s, { after: 'Same copy', afterCls: 'k-on', line: a + ' has its own version. The other places share one.', primary: 'Compare the two versions', what: 'Nothing changes until you confirm.' });
+  if (k === 'bad') Object.assign(s, { after: 'Readable', afterCls: 'k-on', line: 'The file in ' + a + ' is damaged.', primary: 'Preview a replacement', what: 'The damaged file goes to Trash, so you can get it back.' });
+  if (k === 'none') Object.assign(s, { after: 'On', afterCls: 'k-on', line: a + ' doesn’t have this skill yet.', primary: 'Add to ' + a, what: 'Copied from Claude Code. You can undo.' });
+  return s;
+}
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { agent: 1, open: 'code-review', over: {}, undo: null }; }
+  renderVals() {
+    const ai = this.state.agent; const over = this.state.over; const a = AGENTS[ai];
+    const kind = (r) => over[r.name + '|' + ai] || r.s[ai];
+    const rows = ROWS.map(r => { const k = kind(r); return { name: r.name, desc: r.desc, label: LABEL[k], kcls: 'k-' + k, cls: 'prow' + (this.state.open === r.name ? ' sel' : ''), aria: r.name + ' in ' + a + ': ' + LABEL[k], open: () => this.setState({ open: r.name }) }; });
+    const openRow = ROWS.find(r => r.name === this.state.open);
+    const cur = openRow ? kind(openRow) : 'on';
+    return {
+      agentOpts: AGENTS.map((n, i) => ({ name: n, value: String(i), selected: i === ai })),
+      pickAgent: (e) => this.setState({ agent: Number(e.target.value), open: null }),
+      rows,
+      sheetOpen: !!openRow,
+      s: openRow ? sheetFor(openRow.name, cur, a) : {},
+      close: () => this.setState({ open: null }),
+      act: () => { if (!openRow || !NEXT[cur]) return; const key = openRow.name + '|' + ai; this.setState({ over: Object.assign({}, over, { [key]: NEXT[cur] }), undo: { key, prev: cur, text: DONE[cur] + ' in ' + a + '.' }, open: null }); },
+      hasUndo: !!this.state.undo, undoText: this.state.undo ? this.state.undo.text : '',
+      undo: () => { const u = this.state.undo; if (!u) return; this.setState({ over: Object.assign({}, this.state.over, { [u.key]: u.prev }), undo: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

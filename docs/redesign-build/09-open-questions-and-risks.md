@@ -8,20 +8,32 @@ their mitigations. Until a question is answered, build the recommended option
 in a way that is cheap to change. Settled decisions are in
 @docs/redesign-build/01-sources-and-decisions.md; do not reopen them here.
 
+## Decided
+
+**[SPEC]** The maintainer chose the recommended answer for these four on
+2026-11-27. They are now build rules, not questions.
+
+| # | Decision |
+|---|---|
+| Q1 | Cursor and custom-agent squares say **On** when the file is found, readable and switched on. The side panel's details say "Cursor's own settings aren't checked", and S6 shows "Settings allow it" as Unknown for them |
+| Q3 | `check_design_tokens.py` reads `design/tokens.json` (the only source of values); `DESIGN.md` is rewritten as a short guide (voice, statuses, rules) **with no colour values** |
+| Q4 | "Off in settings" does **not** count in Needs attention; it shows on its square and is listed among the things checked in S7's empty state |
+| Q8 | `requirements.md`, `ui-progress.md` and `designs/final/` are committed, after the sample home path in ATA-07/08 and ATD-07/08 was changed to `/home/you/`; `handoff/` stays out of git |
+
 ## Open questions
 
 **[?]** Answer each in this table (keep the question, add the decision and date).
 
 | # | Question | Recommended | Owner | Blocks |
 |---|---|---|---|---|
-| Q1 | Cursor and custom agents have no settings reader. May their squares say **On**, or must they say **Unknown** (principle 1: no On unless checked)? | **On**, with the side panel's details saying "Cursor's own settings aren't checked", and "Settings allow it" as Unknown in S6. Unknown on every Cursor square would make a whole column grey and train people to ignore Unknown | Maintainer | Phase 2 (one constant) |
+| Q1 | Cursor and custom agents have no settings reader. May their squares say **On**, or must they say **Unknown** (principle 1: no On unless checked)? | **On**, with the side panel's details saying "Cursor's own settings aren't checked", and "Settings allow it" as Unknown in S6. Unknown on every Cursor square would make a whole column grey and train people to ignore Unknown | **Decided 2026-11-27: recommended** | — |
 | Q2 | The approved Advanced board shows 11 tool rows; the app has 21 tool ids (`model.js` `toolGroups`), and the board's "Doctor" is not one of them. Is the placement in @docs/redesign-build/05-screens.md (S9 table) right, and do the extra AI tools appear as rows or under their sub-label (Write, Test, Shorten, Find conflicts)? | The S9 mapping, with each sub-label as a small heading and its tools as rows, so nothing is lost and the board's four AI labels stay | Maintainer | Phase 5 |
-| Q3 | `DESIGN.md`: rewrite it from v13, or retire it and let the gate read `design/tokens.json` only? | **Both**: the gate reads `design/tokens.json` (one source of values); `DESIGN.md` is rewritten as the short human and agent guide (voice, statuses, rules) with no colour values of its own | Maintainer | Phase 0 |
-| Q4 | Should "Off in settings" count in Needs attention? A01 counts 3 (Different + Can't read only), while A08's empty state says it also checks settings | Not counted; listed as checked in the empty state (matches the hero board) | Maintainer | Phase 2 |
+| Q3 | `DESIGN.md`: rewrite it from v13, or retire it and let the gate read `design/tokens.json` only? | **Both**: the gate reads `design/tokens.json` (one source of values); `DESIGN.md` is rewritten as the short human and agent guide (voice, statuses, rules) with no colour values of its own | **Decided 2026-11-27: recommended** | — |
+| Q4 | Should "Off in settings" count in Needs attention? A01 counts 3 (Different + Can't read only), while A08's empty state says it also checks settings | Not counted; listed as checked in the empty state (matches the hero board) | **Decided 2026-11-27: recommended** | — |
 | Q5 | Backups "Last one: 20 Nov": the app does not record backup downloads | Store the last download time in the browser (per browser); omit the line when unknown | Developer | Phase 4 |
 | Q6 | Brand guidelines for the Claude, OpenCode, Cursor and Gemini logos (simple-icons) before release | Check each brand's terms; fall back to neutral marks for any that refuse | Maintainer | Release |
 | Q7 | The DS artifact's `tokens.json` says `"name": "Skills Manager"` and the index `namespace` is `SkillsManager` | Rename both in the DS artifact; the repo copy uses "Jackfield" from the start | Maintainer (DS owner) | None |
-| Q8 | `requirements.md`, `ui-progress.md` and `designs/final/` are untracked, but this spec cites them as sources. The repository is **public** | Commit `requirements.md`, `ui-progress.md` and `designs/final/` (2.2 MB) so the build's sources are versioned; keep `handoff/` (29 MB with a zip) out of git. A scan on 2026-11-27 found no emails, but ATA-07/08 and ATD-07/08 hard-code a sample home path containing the maintainer's first name in their scripts; change it to `/home/you/` first if that should not be public | Maintainer | Phase 0 (before the first screen) |
+| Q8 | `requirements.md`, `ui-progress.md` and `designs/final/` are untracked, but this spec cites them as sources. The repository is **public** | Commit `requirements.md`, `ui-progress.md` and `designs/final/` (2.2 MB) so the build's sources are versioned; keep `handoff/` (29 MB with a zip) out of git. A scan on 2026-11-27 found no emails, but ATA-07/08 and ATD-07/08 hard-code a sample home path containing the maintainer's first name in their scripts; change it to `/home/you/` first if that should not be public | **Decided 2026-11-27: recommended (path changed, files committed)** | — |
 | Q9 | The handoff package is stale (DS v11, "Skills Manager", 14 screens) | Regenerate it with `/handoff-package` after phase 2, not now | Maintainer | None |
 | Q10 | Phone cut-over width | 600px (DS fixes only 900 for Sheet and 640 for ListGrid) | Developer | Phase 6 |
 | Q11 | "Fix all…" batch on Needs attention (option C) | Not in this build; revisit after real use | Maintainer | None |

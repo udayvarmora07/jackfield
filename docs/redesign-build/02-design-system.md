@@ -21,8 +21,8 @@ anatomy is in @docs/redesign-build/03-components.md.
 | `skillsmgr/webui/layout.css` | Page grid, header, title rows, page widths, breakpoints | New, reads tokens only |
 | `skillsmgr/webui/static/fonts/OFL-IBM-Plex.txt` | SIL OFL 1.1 licence | `handoff/3-ui/prototype/fonts/OFL-IBM-Plex.txt` |
 | `skillsmgr/webui/logo.svg` | Favicon | `branding/jackfield/kit/svg/jackfield-favicon.svg` (already wired in `8ba0bc8`; verify) |
-| `DESIGN.md` | Rewritten as the product's design contract, from v13 | Phase 0 |
-| `check_design_tokens.py` | Reads `design/tokens.json` + `tokens.css`, not the old `DESIGN.md` front matter | Phase 0 |
+| `DESIGN.md` | Rewritten as a short guide (voice, statuses, rules, where values live) with **no colour values** (Q3, decided 2026-11-27) | Phase 0 |
+| `check_design_tokens.py` | Reads `design/tokens.json` (the only source of values) + `tokens.css`, not `DESIGN.md` | Phase 0 |
 
 **[SPEC]** Load order in `index.html`: `tokens.css` → `system.css` →
 `layout.css` → (until phase 7) `styles.css`, `tools.css`. Wrap the app root in

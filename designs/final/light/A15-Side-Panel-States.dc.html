@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Side panel states: evenly split, unknown, working, failed</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.theme-light{--bg:#F6F6F3;--surface:#FFFFFF;--raise:#F5F5F3;--line:#ECECE9;--line2:#F3F3F1;--ink:#191917;--ink2:#3B3B37;--mute:#666660;--faint:#9A9A93;--faint-text:#6E6E67;--acc:#2D58D0;--acc-ink:#FFFFFF;--acc-soft:#EDF1FC;--warn:#8A4700;--warn-mk:#C06A00;--warn-soft:#FFF7EC;--warn-line:#F1DDC0;--bad:#A3261A;--bad-soft:#FDEEEC;--toast:#191917;--toast-ink:#FAFAF9;--shadow:0 1px 2px rgba(25,25,23,.04),0 10px 28px rgba(25,25,23,.07)}
+.theme-dark{--bg:#121211;--surface:#1A1A19;--raise:#222220;--line:#2C2C2A;--line2:#242422;--ink:#EDEDEA;--ink2:#CFCFCA;--mute:#B0B0A9;--faint:#77776F;--faint-text:#9A9A93;--acc:#8CAEFF;--acc-ink:#0C1430;--acc-soft:#1C2540;--warn:#F2B866;--warn-mk:#F2A33C;--warn-soft:#241B10;--warn-line:#4A3517;--bad:#FF9C8F;--bad-soft:#2E1714;--toast:#EDEDEA;--toast-ink:#121211;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35)}
+.root{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.root a{color:var(--acc);text-underline-offset:3px;text-decoration-thickness:1px}
+.root button:focus-visible,.root a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.root label:focus-within{outline:2px solid var(--acc);outline-offset:1px}
+.cell{display:flex;align-items:center;gap:9px;width:100%;height:100%;min-height:64px;padding:0 16px;border:0;border-left:1px solid var(--line2);background:transparent;font:500 13px/1.2 'IBM Plex Sans',sans-serif;color:var(--ink);cursor:pointer;text-align:left;transition:background .12s}
+.cell:hover{background:var(--raise)}
+.root .cell:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.cell.sel{background:var(--acc-soft);box-shadow:inset 0 0 0 1.5px var(--acc)}
+.mk{position:relative;flex:none;width:9px;height:9px;box-sizing:border-box}
+.k-on .mk{border-radius:50%;background:var(--acc)}
+.k-off{color:var(--mute)}.k-off .mk{border-radius:50%;border:1.5px solid var(--faint)}
+.k-set{color:var(--mute)}.k-set .mk{border-radius:50%;border:1.5px dashed var(--mute)}
+.k-diff{color:var(--warn)}.k-diff .mk{width:8px;height:8px;background:var(--warn-mk);transform:rotate(45deg);border-radius:1.5px}
+.k-bad{color:var(--bad)}.k-bad .mk::before,.k-bad .mk::after{content:"";position:absolute;left:3.5px;top:-1px;width:2px;height:11px;background:var(--bad);border-radius:1px;transform:rotate(45deg)}.k-bad .mk::after{transform:rotate(-45deg)}
+.k-none{color:var(--faint-text)}.k-none .mk{width:9px;height:1.5px;background:var(--faint);border-radius:1px}
+.row{display:grid;grid-template-columns:minmax(300px,2.6fr) repeat(5,minmax(116px,1fr));border-bottom:1px solid var(--line2);background:var(--surface)}
+.root .navlink{color:var(--mute);text-decoration:none!important;font-size:14px;font-weight:500;padding:6px 0;border-bottom:1.5px solid transparent}
+.root .navlink:hover{color:var(--ink)}
+.btn{height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 14px/1 'IBM Plex Sans',sans-serif;cursor:pointer}
+.btn:hover{border-color:var(--faint)}
+.btn[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc)}
+.icobtn{width:34px;height:34px;padding:0;display:grid;place-items:center}
+@media (max-width:640px){.icobtn{width:44px;height:44px}}
+.kbd{font:500 11px/1 'IBM Plex Mono',monospace;color:var(--mute);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:2px 5px;background:var(--surface)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:-.01em;color:var(--faint-text)}
+.ag{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--raise);border:1px solid var(--line);font:600 9.5px/1 'IBM Plex Mono',monospace;color:var(--ink2)}
+.pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px/* unslop-ignore: design-system radius-pill, used only for labels and counts */;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500}
+.v-bad{color:var(--bad)}.v-warn{color:var(--warn)}.v-ok{color:var(--mute)}
+
+/* Icons (2026-11-25): agent marks and state icons drawn as masks so they follow the theme colour. */
+span.ag[data-a],span.sm-ag[data-a]{flex:none;width:20px;height:20px;box-sizing:border-box;font-size:0!important;line-height:0;color:var(--ink-2,var(--ink2))}
+span.ag[data-a]::before,span.sm-ag[data-a]::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-a="CC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="OC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="CX"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="SH"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="PJ"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+
+/* Icons pass 2 (2026-11-25): agent marks by name, inline marks, state and choice icons. */
+span.ag[data-a],span.sm-ag[data-a]{display:inline-grid;place-items:center;border-radius:5px;background:var(--raise);border:1px solid var(--line)}
+[data-a="Claude Code"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="Codex"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="OpenCode"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="Shared folder"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="This project"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+span.agm[data-a]{display:inline-block;flex:none;width:14px;height:14px;vertical-align:-2px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-i="Light"]::before,[data-i="Dark"]::before,[data-i="Match my computer"]::before,[data-i="Blank"]::before,[data-i="Step by step"]::before,[data-i="Checklist"]::before{content:"";flex:none;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ii) center/contain no-repeat;mask:var(--ii) center/contain no-repeat}
+[data-i="Light"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Dark"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Match my computer"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='12' rx='2'/%3E%3Cpath d='M8 20h8M12 16v4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Blank"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z'/%3E%3Cpath d='M14 3v5h5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Step by step"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h11M10 12h11M10 18h11M4 5h1.5v4M4 9h3M4 15.5c0-1 3-1.3 3 0 0 1-3 1.6-3 3h3'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Checklist"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 7 2 2 4-4M3 15l2 2 4-4M13 7h8M13 15h8'/%3E%3C/g%3E%3C/svg%3E")}
+.conn::before{content:"";flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:var(--ci) center/contain no-repeat;mask:var(--ci) center/contain no-repeat}
+.conn.failed{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16.5h.01'/%3E%3C/g%3E%3C/svg%3E")}.conn.ok{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/g%3E%3C/svg%3E")}.conn.untested{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/g%3E%3C/svg%3E")}
+details>summary{list-style:none;display:flex;align-items:center;gap:6px;cursor:pointer}details>summary::-webkit-details-marker{display:none}details>summary::before{content:"";width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;transition:transform .12s}details[open]>summary::before{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){details>summary::before{transition:none}}
+
+/* Round 6 (2026-11-27): S2 states the approved boards did not draw. */
+.k-unk{color:var(--mute)}.k-unk .mk::before{content:"?";position:absolute;left:0;top:-2px;width:9px;text-align:center;font:700 12px/12px 'IBM Plex Sans',sans-serif;color:var(--mute)}
+.k-work{color:var(--acc)}.k-work .mk{border-radius:50%;border:1.5px solid var(--acc);border-right-color:transparent;animation:s2spin .9s linear infinite}
+.k-v1{color:var(--warn)}.k-v1 .mk{width:8px;height:8px;background:var(--warn-mk);transform:rotate(45deg);border-radius:1.5px}
+.k-v2{color:var(--warn)}.k-v2 .mk{width:8px;height:8px;border:1.5px solid var(--warn-mk);transform:rotate(45deg);border-radius:1.5px}
+@keyframes s2spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.k-work .mk,.ring{animation:none}}
+.cell.hl{background:var(--warn-soft)}
+.cell.busy{cursor:progress}
+.vtag{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:4px;border:1px solid var(--warn-line);background:var(--warn-soft);font:600 10.5px/1 'IBM Plex Mono',monospace;color:var(--warn)}
+.pbtn{width:100%;height:46px;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--acc);color:var(--acc-ink);border:1px solid var(--acc);border-radius:11px;font:600 15px/1 'IBM Plex Sans',sans-serif;cursor:pointer;box-sizing:border-box;text-decoration:none}
+.root a.pbtn{color:var(--acc-ink);text-decoration:none}
+.pbtn[disabled]{background:var(--raise);color:var(--mute);border-color:var(--line);cursor:not-allowed}
+.sbtn{width:100%;height:40px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;font:500 14px/1 'IBM Plex Sans',sans-serif;cursor:pointer;box-sizing:border-box}
+.sbtn:hover{border-color:var(--faint)}
+.ring{flex:none;width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:s2spin .9s linear infinite}
+.opt{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer}
+.opt:hover{border-color:var(--faint)}
+.opt.on{border-color:var(--acc);background:var(--acc-soft)}
+.opt input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--acc);flex:none}
+.cap{font-size:12px;font-weight:600;color:var(--mute);letter-spacing:.02em}
+.errbox{padding:14px 16px;border-radius:12px;background:var(--bad-soft);border:1px solid var(--line)}
+.lead{margin:0 0 8px;font-size:17px;line-height:1.35;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.body{margin:0 0 16px;font-size:14px;line-height:1.55;color:var(--ink2)}
+.chk{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13.5px;color:var(--ink2);border-bottom:1px solid var(--line2)}
+.chk .st{margin-left:auto;font-weight:500}
+.ok-mk{width:16px;height:16px;border-radius:50%;background:var(--acc-soft);color:var(--acc);display:grid;place-items:center;flex:none}
+.q-mk{width:16px;height:16px;border-radius:50%;border:1.5px dashed var(--faint);color:var(--mute);display:grid;place-items:center;flex:none;box-sizing:border-box;font:700 10px/1 'IBM Plex Sans',sans-serif}
+.no-mk{width:16px;height:16px;border-radius:50%;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;flex:none}
+.cmp{width:100%;border-collapse:collapse;font-size:13px}
+.cmp th,.cmp td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line2);vertical-align:top}
+.cmp th{font-weight:600;color:var(--ink)}
+.cmp td:first-child{color:var(--mute);width:84px}
+.steps{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:2px}
+.steps li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;font-size:13.5px;line-height:1.45;color:var(--ink2)}
+.root details>summary{cursor:pointer;font-size:13px;font-weight:500;color:var(--mute);list-style:none}
+.root details>summary::-webkit-details-marker{display:none}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;box-sizing:border-box;box-shadow:var(--shadow)}
+
+/* Jackfield lockup (2026-11-27, design system v13). */
+.jf-logo{display:block;flex:none}.jf-logo .jf-d{display:none}.theme-dark .jf-logo .jf-l,.sm-root.dark .jf-logo .jf-l,.dark .jf-logo .jf-l{display:none}.theme-dark .jf-logo .jf-d,.sm-root.dark .jf-logo .jf-d,.dark .jf-logo .jf-d{display:inline}
+</style>
+
+</helmet>
+<div class="root {{ theme }}">
+  <header style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap; padding: 0 40px; min-height: 60px; border-bottom: 1px solid var(--line); background: var(--bg)">
+    <a href="A01-Skills.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px; letter-spacing: -0.01em">
+      <svg class="jf-logo" width="125" height="30" viewBox="0 0 1070 256" role="img" aria-label="Jackfield"><g class="jf-l"><g><path fill="#DDDDD8" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/><path fill="#191917" d="M184 96H232A8 8 0 0 1 240 104V152A8 8 0 0 1 232 160H184A8 8 0 0 1 176 152V104A8 8 0 0 1 184 96Z M24 96H72A8 8 0 0 1 80 104V152A8 8 0 0 1 72 160H24A8 8 0 0 1 16 152V104A8 8 0 0 1 24 96Z M104 176H152A8 8 0 0 1 160 184V232A8 8 0 0 1 152 240H104A8 8 0 0 1 96 232V184A8 8 0 0 1 104 176Z M24 176H72A8 8 0 0 1 80 184V232A8 8 0 0 1 72 240H56A40 40 0 0 1 16 200V184A8 8 0 0 1 24 176Z M184 176H232A8 8 0 0 1 240 184V200A40 40 0 0 1 200 240H184A8 8 0 0 1 176 232V184A8 8 0 0 1 184 176Z"/><path fill="#2D58D0" d="M184 16H232A8 8 0 0 1 240 24V72A8 8 0 0 1 232 80H184A8 8 0 0 1 176 72V24A8 8 0 0 1 184 16Z"/></g><g transform="translate(306.35 166.70)"><path fill="#191917" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/><path fill="#2D58D0" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/></g></g><g class="jf-d"><g><path fill="#2C2C2A" d="M24 16H72A8 8 0 0 1 80 24V72A8 8 0 0 1 72 80H24A8 8 0 0 1 16 72V24A8 8 0 0 1 24 16Z M104 16H152A8 8 0 0 1 160 24V72A8 8 0 0 1 152 80H104A8 8 0 0 1 96 72V24A8 8 0 0 1 104 16Z M104 96H152A8 8 0 0 1 160 104V152A8 8 0 0 1 152 160H104A8 8 0 0 1 96 152V104A8 8 0 0 1 104 96Z"/><path fill="#EDEDEA" d="M185 97H231A8 8 0 0 1 239 105V151A8 8 0 0 1 231 159H185A8 8 0 0 1 177 151V105A8 8 0 0 1 185 97Z M25 97H71A8 8 0 0 1 79 105V151A8 8 0 0 1 71 159H25A8 8 0 0 1 17 151V105A8 8 0 0 1 25 97Z M105 177H151A8 8 0 0 1 159 185V231A8 8 0 0 1 151 239H105A8 8 0 0 1 97 231V185A8 8 0 0 1 105 177Z M25 177H71A8 8 0 0 1 79 185V231A8 8 0 0 1 71 239H56A39 39 0 0 1 17 200V185A8 8 0 0 1 25 177Z M185 177H231A8 8 0 0 1 239 185V200A39 39 0 0 1 200 239H185A8 8 0 0 1 177 231V185A8 8 0 0 1 185 177Z"/><path fill="#8CAEFF" d="M185 17H231A8 8 0 0 1 239 25V71A8 8 0 0 1 231 79H185A8 8 0 0 1 177 71V25A8 8 0 0 1 185 17Z"/></g><g transform="translate(306.35 166.70)"><path fill="#EDEDEA" d="M14.25 14.85H46.2V-62.25H13.65V-77.4H65.4V9.0Q65.4 18.3 60.15 24.15Q54.9 30.0 43.8 30.0H14.25ZM159.0 0.0Q151.95 0.0 148.12 -3.52Q144.3 -7.05 143.55 -13.35H142.8Q140.7 -6.15 134.55 -2.17Q128.4 1.8 119.4 1.8Q107.7 1.8 100.8 -4.35Q93.9 -10.5 93.9 -21.45Q93.9 -44.85 128.25 -44.85H141.9V-49.95Q141.9 -57.3 138.3 -61.05Q134.7 -64.8 126.6 -64.8Q119.25 -64.8 114.75 -61.95Q110.25 -59.1 107.1 -54.6L96.15 -63.9Q99.75 -70.35 107.78 -74.78Q115.8 -79.2 128.55 -79.2Q143.85 -79.2 152.47 -72.08Q161.1 -64.95 161.1 -50.85V-14.4H170.25V0.0ZM125.85 -11.4Q132.75 -11.4 137.32 -14.62Q141.9 -17.85 141.9 -23.4V-33.75H128.7Q112.95 -33.75 112.95 -23.85V-20.85Q112.95 -16.2 116.4 -13.8Q119.85 -11.4 125.85 -11.4ZM219.0 1.8Q210.15 1.8 203.1 -1.05Q196.05 -3.9 191.18 -9.15Q186.3 -14.4 183.68 -21.9Q181.05 -29.4 181.05 -38.7Q181.05 -48.0 183.68 -55.5Q186.3 -63.0 191.18 -68.25Q196.05 -73.5 203.03 -76.35Q210.0 -79.2 218.85 -79.2Q231.15 -79.2 238.65 -74.1Q246.15 -69.0 250.05 -60.6L235.2 -52.5Q233.1 -57.45 229.27 -60.52Q225.45 -63.6 218.85 -63.6Q210.3 -63.6 205.73 -58.65Q201.15 -53.7 201.15 -45.15V-32.25Q201.15 -23.85 205.73 -18.82Q210.3 -13.8 219.15 -13.8Q226.05 -13.8 230.18 -16.95Q234.3 -20.1 236.85 -25.35L251.25 -16.8Q247.35 -8.55 239.47 -3.37Q231.6 1.8 219.0 1.8ZM268.05 -111.0H287.25V-45.9H288.15L299.4 -58.2L318.45 -77.4H340.8L310.05 -46.95L344.1 0.0H321.15L296.4 -36.0L287.25 -27.3V0.0H268.05ZM353.25 -15.15H376.95V-62.25H351.75V-77.4H376.95V-90.0Q376.95 -94.65 378.23 -98.47Q379.5 -102.3 382.2 -105.07Q384.9 -107.85 389.02 -109.42Q393.15 -111.0 398.7 -111.0H424.8V-95.85H396.15V-77.4H424.8V-62.25H396.15V-15.15H421.35V0.0H353.25ZM442.2 -15.15H467.7V-62.25H442.2V-77.4H486.9V-15.15H510.6V0.0H442.2ZM559.8 1.8Q550.5 1.8 543.3 -1.05Q536.1 -3.9 531.23 -9.15Q526.35 -14.4 523.8 -21.82Q521.25 -29.25 521.25 -38.55Q521.25 -48.0 523.88 -55.5Q526.5 -63.0 531.3 -68.25Q536.1 -73.5 542.92 -76.35Q549.75 -79.2 558.3 -79.2Q566.7 -79.2 573.45 -76.42Q580.2 -73.65 584.92 -68.55Q589.65 -63.45 592.2 -56.25Q594.75 -49.05 594.75 -40.35V-34.05H540.45V-32.1Q540.45 -23.7 545.7 -18.52Q550.95 -13.35 560.4 -13.35Q567.6 -13.35 572.78 -16.27Q577.95 -19.2 581.4 -24.0L592.35 -13.05Q588.15 -6.9 580.12 -2.55Q572.1 1.8 559.8 1.8ZM558.45 -65.1Q550.35 -65.1 545.4 -60.0Q540.45 -54.9 540.45 -46.5V-45.45H575.55V-46.8Q575.55 -55.2 570.97 -60.15Q566.4 -65.1 558.45 -65.1ZM609.3 -15.15H633.9V-95.85H609.3V-111.0H653.1V-15.15H677.85V0.0H609.3ZM744.45 -13.65H743.4Q740.25 -6.6 734.77 -2.4Q729.3 1.8 720.3 1.8Q713.7 1.8 708.23 -0.68Q702.75 -3.15 698.85 -8.17Q694.95 -13.2 692.85 -20.85Q690.75 -28.5 690.75 -38.7Q690.75 -59.1 698.85 -69.15Q706.95 -79.2 720.3 -79.2Q729.3 -79.2 734.77 -75.0Q740.25 -70.8 743.4 -63.75H744.45V-111.0H763.65V0.0H744.45ZM728.4 -13.5Q731.7 -13.5 734.62 -14.32Q737.55 -15.15 739.72 -16.73Q741.9 -18.3 743.17 -20.77Q744.45 -23.25 744.45 -26.55V-50.85Q744.45 -54.15 743.17 -56.62Q741.9 -59.1 739.72 -60.67Q737.55 -62.25 734.62 -63.08Q731.7 -63.9 728.4 -63.9Q720.0 -63.9 715.42 -58.8Q710.85 -53.7 710.85 -44.85V-32.55Q710.85 -23.7 715.42 -18.6Q720.0 -13.5 728.4 -13.5Z M468.07 -113.25H486.53A3.07 3.07 0 0 1 489.60 -110.17V-91.73A3.07 3.07 0 0 1 486.53 -88.65H468.07A3.07 3.07 0 0 1 465.00 -91.73V-110.17A3.07 3.07 0 0 1 468.07 -113.25Z"/><path fill="#8CAEFF" d="M46.73 -113.25H65.17A3.07 3.07 0 0 1 68.25 -110.17V-91.73A3.07 3.07 0 0 1 65.17 -88.65H46.73A3.07 3.07 0 0 1 43.65 -91.73V-110.17A3.07 3.07 0 0 1 46.73 -113.25Z"/></g></g></svg>
+    </a>
+    <nav aria-label="Main" style="display: flex; gap: 26px; flex-wrap: wrap; align-self: stretch; align-items: center">
+      <a class="navlink" href="A01-Skills.dc.html" aria-current="page" style="color: var(--ink); border-bottom-color: var(--ink)">Skills</a>
+      <a class="navlink" href="A08-Needs-Attention.dc.html">Needs attention <span style="color: var(--warn); font-weight: 600; margin-left: 3px">3</span></a>
+      <a class="navlink" href="A09-Trash-Backups.dc.html">Trash &amp; backups</a>
+      <a class="navlink" href="A10-Advanced.dc.html">Advanced</a>
+    </nav>
+    <div style="flex: 1 1 auto"></div>
+    <button type="button" style="display: flex; align-items: center; gap: 10px; width: 280px; max-width: 100%; height: 34px; padding: 0 10px 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; color: var(--mute); font: 400 14px/1 'IBM Plex Sans', sans-serif; cursor: pointer">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span style="flex: 1; text-align: left">Search skills and actions</span>
+      <span class="kbd">/</span>
+    </button>
+    <button type="button" aria-label="Switch theme" class="btn icobtn" onClick="{{ toggleTheme }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button type="button" aria-label="Help" class="btn icobtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17.3h.01"/></svg></button>
+  </header>
+
+
+  <main style="max-width: 1440px; margin: 0 auto; padding: 36px 40px 96px; box-sizing: border-box">
+    <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 20px">
+      <h1 style="margin: 0; font-size: 30px; line-height: 1.1; font-weight: 600; letter-spacing: -.02em">Skills</h1>
+      <span style="color: var(--mute); font-size: 15px">142 skills in 5 places</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <div style="flex: 999 1 680px; min-width: 0">
+        <section aria-label="Skills table" style="border: 1px solid var(--line); border-radius: 14px; overflow-x: auto; background: var(--surface)">
+          <div style="min-width: 900px">
+            <div class="row" style="border-bottom: 1px solid var(--line)">
+              <div style="padding: 14px 20px; font-size: 12px; font-weight: 600; color: var(--mute); letter-spacing: .02em">Skill</div>
+              <sc-for list="{{ agents }}" as="a" hint-placeholder-count="5">
+                <div style="padding: 12px 16px; border-left: 1px solid var(--line2); display: flex; align-items: center; gap: 9px; min-width: 0"><span class="ag" aria-hidden="true" data-a="{{ a.mono }}">{{ a.mono }}</span><span style="font-size: 13px; font-weight: 600; color: var(--ink)">{{ a.name }}</span></div>
+              </sc-for>
+            </div>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+              <div class="row">
+                <div style="padding: 12px 20px; min-width: 0; display: flex; flex-direction: column; justify-content: center">
+                  <div style="font-weight: 600; font-size: 14px; letter-spacing: -0.005em">{{ r.name }}</div>
+                  <div style="color: var(--mute); font-size: 13px; line-height: 1.4; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.desc }}</div>
+                  <div class="{{ r.vcls }}" style="font-size: 12px; margin-top: 4px; font-weight: 500">{{ r.verdict }}</div>
+                </div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
+                  <button type="button" class="{{ c.cls }}" aria-label="{{ c.aria }}" onClick="{{ c.pick }}"><span class="mk" aria-hidden="true"></span>{{ c.label }}<sc-if value="{{ c.hasTag }}" hint-placeholder-val="{{ false }}"><span class="vtag" aria-hidden="true">{{ c.tag }}</span></sc-if></button>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <aside aria-label="Selected square" class="panel" style="flex: 1 1 340px; max-width: 392px; position: sticky; top: 16px">
+
+        <div style="display: flex; align-items: center; gap: 9px"><span class="ag" aria-hidden="true" data-a="{{ p.mono }}">{{ p.mono }}</span><span style="font-size: 13px; color: var(--ink2); font-weight: 500">{{ p.agent }}</span></div>
+        <h2 style="margin: 14px 0 4px; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em">{{ p.skill }}</h2>
+        <div class="mono" style="margin-bottom: 18px">{{ p.path }}</div>
+
+        <sc-if value="{{ p.isGen }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.55; color: var(--ink2)">{{ p.line }}</p>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap">
+            <span class="pill {{ p.nowCls }}"><span class="mk" aria-hidden="true"></span>{{ p.now }}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--faint-text)" aria-label="becomes" role="img"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span class="pill {{ p.afterCls }}"><span class="mk" aria-hidden="true"></span>{{ p.after }}</span>
+          </div>
+          <button type="button" class="pbtn" onClick="{{ p.act }}">{{ p.primary }}<span style="font: 500 11px/1 'IBM Plex Mono', monospace; opacity: .75">{{ p.key }}</span></button>
+          <p style="margin: 12px 2px 0; font-size: 13px; line-height: 1.55; color: var(--mute)">{{ p.what }}</p>
+        </sc-if>
+
+        <sc-if value="{{ p.isSplit }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ p.stepPick }}" hint-placeholder-val="{{ true }}">
+            <p class="body" style="font-size: 15px">This skill has two versions, two places each. Pick the one to keep. The table marks where each version lives.</p>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px">
+              <sc-for list="{{ p.vers }}" as="v" hint-placeholder-count="2">
+                <div onMouseEnter="{{ v.enter }}" onMouseLeave="{{ v.leave }}" style="border: 1px solid var(--warn-line); border-radius: 12px; padding: 14px; background: var(--surface)">
+                  <div style="display: flex; align-items: center; gap: 8px"><span class="{{ v.kcls }}" style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600"><span class="mk" aria-hidden="true"></span>Version {{ v.n }}</span><span class="mono" style="margin-left: auto">{{ v.facts }}</span></div>
+                  <div style="display: flex; align-items: center; gap: 6px; margin: 8px 0 12px; font-size: 13px; color: var(--ink2); flex-wrap: wrap"><sc-for list="{{ v.marks }}" as="m" hint-placeholder-count="2"><span class="agm" data-a="{{ m.mono }}" aria-hidden="true"></span>{{ m.name }}</sc-for></div>
+                  <button type="button" class="sbtn" onFocus="{{ v.enter }}" onBlur="{{ v.leave }}" onClick="{{ v.pick }}">Keep version {{ v.n }}</button>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 0; font-size: 13px"><a href="A04-Skill-Page.dc.html">Compare the two versions</a></p>
+          </sc-if>
+          <sc-if value="{{ p.stepConfirm }}" hint-placeholder-val="{{ false }}">
+            <p class="lead">Keep version {{ p.chosen }} everywhere?</p>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap">
+              <span class="pill k-diff"><span class="mk" aria-hidden="true"></span>2 versions</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--faint-text)" aria-label="becomes" role="img"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              <span class="pill k-on"><span class="mk" aria-hidden="true"></span>Same copy in 4</span>
+            </div>
+            <p class="body">{{ p.preview }}</p>
+            <button type="button" class="pbtn" onClick="{{ p.go }}">Make all 4 match</button>
+            <button type="button" class="sbtn" style="margin-top: 8px" onClick="{{ p.back }}">Back</button>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ p.isUnk }}" hint-placeholder-val="{{ false }}">
+          <p class="body" style="font-size: 15px">We checked what we could. The last two steps can’t be confirmed, so the square says Unknown instead of guessing.</p>
+          <div style="margin-bottom: 16px">
+            <sc-for list="{{ p.checks }}" as="k" hint-placeholder-count="5">
+              <div class="chk"><sc-if value="{{ k.ok }}" hint-placeholder-val="{{ true }}"><span class="ok-mk"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></sc-if><sc-if value="{{ k.unk }}" hint-placeholder-val="{{ false }}"><span class="q-mk" aria-hidden="true">?</span></sc-if>{{ k.label }}<span class="st" style="color: {{ k.color }}">{{ k.state }}</span></div>
+            </sc-for>
+          </div>
+          <button type="button" class="pbtn" onClick="{{ p.look }}">Look again</button>
+          <p style="margin: 12px 2px 0; font-size: 13px; line-height: 1.55; color: var(--mute)">{{ p.lookNote }}</p>
+        </sc-if>
+
+        <sc-if value="{{ p.isWork }}" hint-placeholder-val="{{ false }}">
+          <p class="body" style="font-size: 15px">{{ p.workTitle }}</p>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap">
+            <span class="pill {{ p.nowCls }}"><span class="mk" aria-hidden="true"></span>{{ p.now }}</span>
+            <span class="ring" style="color: var(--acc)" role="img" aria-label="changing"></span>
+            <span class="pill {{ p.afterCls }}" style="opacity: .55"><span class="mk" aria-hidden="true"></span>{{ p.after }}</span>
+          </div>
+          <button type="button" class="pbtn" disabled="{{ true }}" aria-busy="true">Working…</button>
+          <p style="margin: 12px 2px 0; font-size: 13px; line-height: 1.55; color: var(--mute)">The square in the table says Working… until the file is really renamed.</p>
+        </sc-if>
+
+        <sc-if value="{{ p.isFail }}" hint-placeholder-val="{{ false }}">
+          <p class="lead" style="color: var(--bad)">{{ p.failTitle }}</p>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap">
+            <span class="pill {{ p.nowCls }}"><span class="mk" aria-hidden="true"></span>Still {{ p.now }}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--faint-text)" aria-label="becomes" role="img"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span class="pill {{ p.afterCls }}" style="text-decoration: line-through; color: var(--mute)"><span class="mk" aria-hidden="true"></span>{{ p.after }}</span>
+          </div>
+          <p class="body">{{ p.failWhy }} Nothing was changed.</p>
+          <button type="button" class="pbtn" onClick="{{ p.retry }}">Try again</button>
+          <button type="button" class="sbtn" style="margin-top: 8px">Open the folder</button>
+          <details style="margin-top: 14px">
+            <summary>Technical details</summary>
+            <p class="mono" style="margin: 8px 0 0; line-height: 1.5; overflow-wrap: anywhere">{{ p.raw }}</p>
+          </details>
+        </sc-if>
+
+        <div style="border-top: 1px solid var(--line2); padding-top: 14px; margin-top: 20px">
+          <div class="cap" style="margin-bottom: 6px">Other places</div>
+          <sc-for list="{{ p.others }}" as="o" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink2)"><span class="ag" data-a="{{ o.mono }}" aria-hidden="true">{{ o.mono }}</span>{{ o.agent }}</span><span class="{{ o.cls }}" style="display: flex; gap: 8px; align-items: center; font-weight: 500"><span class="mk" aria-hidden="true"></span>{{ o.label }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 18px; margin-top: 16px; font-size: 14px; font-weight: 500; flex-wrap: wrap">
+          <a href="A04-Skill-Page.dc.html">Open skill</a>
+          <a href="A07-Why-Not-Running.dc.html">Why isn’t it running?</a>
+        </div>
+
+      </aside>
+    </div>
+
+    <section aria-labelledby="gal-h" style="margin-top: 56px">
+      <h2 id="gal-h" style="margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">The four new panel states</h2>
+      <p style="margin: 0 0 20px; font-size: 14px; color: var(--mute)">Side by side, so they can be compared without clicking.</p>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; align-items: start">
+        <sc-for list="{{ gal }}" as="p" hint-placeholder-count="4">
+          <div>
+            <div class="cap" style="margin-bottom: 8px">{{ p.galTitle }}</div>
+            <div class="panel">
+
+        <div style="display: flex; align-items: center; gap: 9px"><span class="ag" aria-hidden="true" data-a="{{ p.mono }}">{{ p.mono }}</span><span style="font-size: 13px; color: var(--ink2); font-weight: 500">{{ p.agent }}</span></div>
+        <h2 style="margin: 14px 0 4px; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em">{{ p.skill }}</h2>
+        <div class="mono" style="margin-bottom: 18px">{{ p.path }}</div>
+
+        <sc-if value="{{ p.isSplit }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ p.stepPick }}" hint-placeholder-val="{{ true }}">
+            <p class="body" style="font-size: 15px">This skill has two versions, two places each. Pick the one to keep. The table marks where each version lives.</p>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px">
+              <sc-for list="{{ p.vers }}" as="v" hint-placeholder-count="2">
+                <div onMouseEnter="{{ v.enter }}" onMouseLeave="{{ v.leave }}" style="border: 1px solid var(--warn-line); border-radius: 12px; padding: 14px; background: var(--surface)">
+                  <div style="display: flex; align-items: center; gap: 8px"><span class="{{ v.kcls }}" style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600"><span class="mk" aria-hidden="true"></span>Version {{ v.n }}</span><span class="mono" style="margin-left: auto">{{ v.facts }}</span></div>
+                  <div style="display: flex; align-items: center; gap: 6px; margin: 8px 0 12px; font-size: 13px; color: var(--ink2); flex-wrap: wrap"><sc-for list="{{ v.marks }}" as="m" hint-placeholder-count="2"><span class="agm" data-a="{{ m.mono }}" aria-hidden="true"></span>{{ m.name }}</sc-for></div>
+                  <button type="button" class="sbtn" onFocus="{{ v.enter }}" onBlur="{{ v.leave }}" onClick="{{ v.pick }}">Keep version {{ v.n }}</button>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 0; font-size: 13px"><a href="A04-Skill-Page.dc.html">Compare the two versions</a></p>
+          </sc-if>
+          <sc-if value="{{ p.stepConfirm }}" hint-placeholder-val="{{ false }}">
+            <p class="lead">Keep version {{ p.chosen }} everywhere?</p>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap">
+              <span class="pill k-diff"><span class="mk" aria-hidden="true"></span>2 versions</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--faint-text)" aria-label="becomes" role="img"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              <span class="pill k-on"><span class="mk" aria-hidden="true"></span>Same copy in 4</span>
+            </div>
+            <p class="body">{{ p.preview }}</p>
+            <button type="button" class="pbtn" onClick="{{ p.go }}">Make all 4 match</button>
+            <button type="button" class="sbtn" style="margin-top: 8px" onClick="{{ p.back }}">Back</button>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ p.isUnk }}" hint-placeholder-val="{{ false }}">
+          <p class="body" style="font-size: 15px">We checked what we could. The last two steps can’t be confirmed, so the square says Unknown instead of guessing.</p>
+          <div style="margin-bottom: 16px">
+            <sc-for list="{{ p.checks }}" as="k" hint-placeholder-count="5">
+              <div class="chk"><sc-if value="{{ k.ok }}" hint-placeholder-val="{{ true }}"><span class="ok-mk"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></sc-if><sc-if value="{{ k.unk }}" hint-placeholder-val="{{ false }}"><span class="q-mk" aria-hidden="true">?</span></sc-if>{{ k.label }}<span class="st" style="color: {{ k.color }}">{{ k.state }}</span></div>
+            </sc-for>
+          </div>
+          <button type="button" class="pbtn" onClick="{{ p.look }}">Look again</button>
+          <p style="margin: 12px 2px 0; font-size: 13px; line-height: 1.55; color: var(--mute)">{{ p.lookNote }}</p>
+        </sc-if>
+
+        <sc-if value="{{ p.isWork }}" hint-placeholder-val="{{ false }}">
+          <p class="body" style="font-size: 15px">{{ p.workTitle }}</p>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap">
+            <span class="pill {{ p.nowCls }}"><span class="mk" aria-hidden="true"></span>{{ p.now }}</span>
+            <span class="ring" style="color: var(--acc)" role="img" aria-label="changing"></span>
+            <span class="pill {{ p.afterCls }}" style="opacity: .55"><span class="mk" aria-hidden="true"></span>{{ p.after }}</span>
+          </div>
+          <button type="button" class="pbtn" disabled="{{ true }}" aria-busy="true">Working…</button>
+          <p style="margin: 12px 2px 0; font-size: 13px; line-height: 1.55; color: var(--mute)">The square in the table says Working… until the file is really renamed.</p>
+        </sc-if>
+
+        <sc-if value="{{ p.isFail }}" hint-placeholder-val="{{ false }}">
+          <p class="lead" style="color: var(--bad)">{{ p.failTitle }}</p>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap">
+            <span class="pill {{ p.nowCls }}"><span class="mk" aria-hidden="true"></span>Still {{ p.now }}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--faint-text)" aria-label="becomes" role="img"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span class="pill {{ p.afterCls }}" style="text-decoration: line-through; color: var(--mute)"><span class="mk" aria-hidden="true"></span>{{ p.after }}</span>
+          </div>
+          <p class="body">{{ p.failWhy }} Nothing was changed.</p>
+          <button type="button" class="pbtn" onClick="{{ p.retry }}">Try again</button>
+          <button type="button" class="sbtn" style="margin-top: 8px">Open the folder</button>
+          <details style="margin-top: 14px">
+            <summary>Technical details</summary>
+            <p class="mono" style="margin: 8px 0 0; line-height: 1.5; overflow-wrap: anywhere">{{ p.raw }}</p>
+          </details>
+        </sc-if>
+
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+
+  <sc-if value="{{ hasUndo }}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 18px; background: var(--toast); color: var(--toast-ink); border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.22); font-size: 14px; z-index: 5">
+      <span>{{ undoText }}</span>
+      <button type="button" onClick="{{ undo }}" style="height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid rgba(127,127,127,.45); background: transparent; color: var(--toast-ink); font: 600 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer">Undo</button>
+      <button type="button" aria-label="Dismiss" onClick="{{ dismiss }}" style="width: 32px; height: 32px; border: 0; background: transparent; color: var(--toast-ink); cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"start":{"editor":"enum","options":["split","unknown","working","failed"],"default":"split"},"outcome":{"editor":"enum","options":["done","failed"],"default":"done"},"$preview":{"width":1440,"height":1700}}'>
+
+const VAR = 'B';
+const AGENTS = [
+  { name: 'Claude Code', mono: 'CC', path: '~/.claude/skills' }, { name: 'Codex', mono: 'CX', path: '~/.codex/skills' }, { name: 'OpenCode', mono: 'OC', path: '~/.config/opencode/skills' }, { name: 'Shared folder', mono: 'SH', path: '~/.agents/skills' }, { name: 'This project', mono: 'PJ', path: './.claude/skills' }
+];
+const ROWS = [
+  { name: 'code-review', desc: 'Review a diff for bugs before you commit.', s: ['on', 'on', 'on', 'on', 'none'] },
+  { name: 'test-driven-development', desc: 'Write the failing test first.', s: ['v1', 'v2', 'v2', 'v1', 'none'] },
+  { name: 'frontend-performance', desc: 'Measure first, then fix slow pages.', s: ['on', 'on', 'unk', 'on', 'none'] },
+  { name: 'git-workflow', desc: 'Branches, commits and pull requests, done cleanly.', s: ['set', 'on', 'on', 'on', 'none'] },
+  { name: 'security-review', desc: 'Check changes for risky patterns.', s: ['on', 'bad', 'on', 'none', 'none'] }
+];
+const VERS = { 1: { lines: 48, changed: '2 days ago', files: 1 }, 2: { lines: 51, changed: '3 weeks ago', files: 1 } };
+const LABEL = { on: 'On', off: 'Off', set: 'Off in settings', diff: 'Different', bad: "Can't read", none: 'Not here', unk: 'Unknown', work: 'Working…' };
+const NEXT = { on: 'off', off: 'on', none: 'on' };
+const DONE = { on: 'Turned off', off: 'Turned on', none: 'Added' };
+const DOING = { on: 'Turning off', off: 'Turning on', none: 'Adding' };
+const FAILT = { on: 'Couldn’t turn it off', off: 'Couldn’t turn it on', none: 'Couldn’t add it' };
+const START = { split: { r: 'test-driven-development', c: 1 }, unknown: { r: 'frontend-performance', c: 2 }, working: { r: 'code-review', c: 1 }, failed: { r: 'code-review', c: 1 } };
+function isVer(k) { return k === 'v1' || k === 'v2'; }
+function cellLook(k) {
+  if (isVer(k)) { const n = k.slice(1); if (VAR === 'B') return { cls: 'k-' + k, label: 'Version ' + n, tag: '' }; return { cls: 'k-diff', label: 'Different', tag: VAR === 'C' ? n : '' }; }
+  return { cls: 'k-' + k, label: LABEL[k], tag: '' };
+}
+function verdict(r) {
+  const n = r.s.filter(k => k !== 'none').length; const d = r.s.findIndex(k => k === 'diff'); const b = r.s.findIndex(k => k === 'bad'); const st = r.s.findIndex(k => k === 'set'); const u = r.s.findIndex(k => k === 'unk');
+  if (r.s.some(isVer)) return { verdict: 'Two versions, 2 places each. You choose.', vcls: 'v-warn' };
+  if (b >= 0) return { verdict: AGENTS[b].name + '’s file can’t be read', vcls: 'v-bad' };
+  if (d >= 0) return { verdict: AGENTS[d].name + ' has a different copy', vcls: 'v-warn' };
+  if (u >= 0) return { verdict: 'Can’t tell if ' + AGENTS[u].name + ' uses it', vcls: 'v-ok' };
+  if (st >= 0) return { verdict: 'Off in ' + AGENTS[st].name + ' settings', vcls: 'v-ok' };
+  return { verdict: 'Same copy in ' + n + ' place' + (n === 1 ? '' : 's'), vcls: 'v-ok' };
+}
+function places(row, n) { return row.s.map((k, i) => k === 'v' + n ? AGENTS[i] : null).filter(Boolean); }
+function joinNames(list) { const a = list.map(x => x.name); return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+function basePanel(row, i) {
+  const a = AGENTS[i].name;
+  return { skill: row.name, agent: a, mono: AGENTS[i].mono, path: AGENTS[i].path + '/' + row.name + '/SKILL.md',
+    isGen: false, isSplit: false, isUnk: false, isWork: false, isFail: false, stepPick: false, stepConfirm: false,
+    others: row.s.map((s, j) => Object.assign({ agent: AGENTS[j].name, mono: AGENTS[j].mono, j }, (() => { const c = cellLook(s); return { label: c.label, cls: c.cls }; })())).filter(o => o.j !== i),
+    radioName: 'ver-' + row.name };
+}
+function genericFill(p, k, a) {
+  const T = {
+    on: { after: 'Off', afterCls: 'k-off', line: a + ' can use this skill.', primary: 'Turn off in ' + a, key: 'Space', what: 'The file is renamed so ' + a + ' skips it. Nothing is deleted, and you can undo it.' },
+    off: { after: 'On', afterCls: 'k-on', line: a + ' skips this skill.', primary: 'Turn on in ' + a, key: 'Space', what: 'The file is renamed back so ' + a + ' can use it again. You can undo it.' },
+    set: { after: 'On', afterCls: 'k-on', line: 'The file is on, but ' + a + '’s own settings switch this skill off.', primary: 'Open the settings file', key: 'Enter', what: 'Jackfield never changes agent settings files. Remove the line that turns it off, then refresh.' },
+    bad: { after: 'Readable', afterCls: 'k-on', line: 'The file in ' + a + ' is damaged, so ' + a + ' may not load it.', primary: 'Preview a replacement', key: 'Enter', what: 'The replacement comes from Claude Code. The damaged file goes to Trash, so you can get it back.' },
+    none: { after: 'On', afterCls: 'k-on', line: a + ' doesn’t have this skill yet.', primary: 'Add to ' + a, key: 'Space', what: 'A copy is made from Claude Code (12 lines, 1 extra file). You can undo it.' }
+  };
+  return Object.assign(p, T[k] || T.on, { now: LABEL[k], nowCls: 'k-' + k });
+}
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = Object.assign({ dark: null, over: {}, undo: null, hoverVer: null, looked: false }, this.startState(props.start ?? 'split')); }
+  startState(start) {
+    const sel = START[start] || START.split; const key = sel.r + '|' + sel.c;
+    const phase = (start === 'working' || start === 'failed') ? { key, kind: start, from: 'on', to: 'off' } : null;
+    return { sel, phase, ver: {}, step: {}, looked: false };
+  }
+  componentDidUpdate(prev) { if ((prev.start ?? 'split') !== (this.props.start ?? 'split')) { clearTimeout(this.timer); this.setState(this.startState(this.props.start ?? 'split')); } }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  run(key, from, to, rowName, agentName, multi) {
+    clearTimeout(this.timer);
+    this.setState({ phase: { key, kind: 'working', from, to }, undo: null });
+    this.timer = setTimeout(() => {
+      const fail = (this.props.outcome ?? 'done') === 'failed' && !multi;
+      if (fail) { this.setState({ phase: { key, kind: 'failed', from, to } }); return; }
+      const over = Object.assign({}, this.state.over); const prev = {};
+      (multi || [key]).forEach(k => { prev[k] = over[k]; over[k] = multi ? 'on' : to; });
+      this.setState({ phase: null, over, undo: { prev, text: multi ? 'Made ' + rowName + ' match in 4 places.' : DONE[from] + ' ' + rowName + ' in ' + agentName + '.' } });
+    }, 1400);
+  }
+  renderVals() {
+    const st = this.state; const sel = st.sel; const over = st.over; const ph = st.phase;
+    const dark = st.dark === null ? !!(this.props.dark ?? false) : st.dark;
+    const eff = ROWS.map(r => ({ name: r.name, desc: r.desc, s: r.s.map((k, i) => over[r.name + '|' + i] || k) }));
+    const rows = eff.map(r => Object.assign({ name: r.name, desc: r.desc, cells: r.s.map((k, i) => {
+      const key = r.name + '|' + i; const working = ph && ph.kind === 'working' && (ph.key === key || (ph.multi && ph.multi.indexOf(key) >= 0));
+      const look = working ? { cls: 'k-work', label: LABEL.work, tag: '' } : cellLook(k);
+      const hl = VAR === 'B' && st.hoverVer && k === 'v' + st.hoverVer;
+      return { label: look.label, tag: look.tag, hasTag: !!look.tag, cls: 'cell ' + look.cls + (sel.r === r.name && sel.c === i ? ' sel' : '') + (hl ? ' hl' : '') + (working ? ' busy' : ''), aria: r.name + ' in ' + AGENTS[i].name + ': ' + look.label + (look.tag ? ' ' + look.tag : ''), pick: () => this.setState({ sel: { r: r.name, c: i }, hoverVer: null }) };
+    }) }, verdict(r)));
+    const row = eff.find(r => r.name === sel.r) || eff[0]; const key = row.name + '|' + sel.c; const k = row.s[sel.c]; const a = AGENTS[sel.c].name;
+    const p = this.panel(row, sel.c, k, key, ph && ph.key === key ? ph : (ph && ph.multi && ph.multi.indexOf(key) >= 0 ? ph : null), false);
+    const gal = [
+      this.panel(eff[1], 1, 'v2', 'g1', null, true),
+      this.panel(eff[2], 2, 'unk', 'g2', null, true),
+      this.panel(eff[0], 1, 'on', 'g3', { kind: 'working', from: 'on', to: 'off' }, true),
+      this.panel(eff[0], 1, 'on', 'g4', { kind: 'failed', from: 'on', to: 'off' }, true)
+    ];
+    gal.forEach((g, i) => { g.galTitle = ['Evenly split', 'Unknown', 'Working', 'Failed'][i]; g.radioName = 'gal-' + i; });
+    return {
+      theme: dark ? 'theme-dark' : 'theme-light', toggleTheme: () => this.setState({ dark: !dark }),
+      agents: AGENTS, rows, p, gal,
+      hasUndo: !!st.undo, undoText: st.undo ? st.undo.text : '',
+      undo: () => { const u = st.undo; if (!u) return; const o = Object.assign({}, this.state.over); Object.keys(u.prev).forEach(x => { if (u.prev[x] === undefined) delete o[x]; else o[x] = u.prev[x]; }); this.setState({ over: o, undo: null }); },
+      dismiss: () => this.setState({ undo: null })
+    };
+  }
+  panel(row, i, k, key, ph, still) {
+    const p = basePanel(row, i); const a = AGENTS[i].name; const noop = () => {};
+    if (ph && (ph.kind === 'working' || ph.kind === 'failed')) {
+      genericFill(p, ph.from, a);
+      p.isWork = ph.kind === 'working'; p.isFail = ph.kind === 'failed';
+      p.workTitle = (ph.multi ? 'Making ' + row.name + ' match in 4 places' : DOING[ph.from] + ' in ' + a) + '…';
+      p.failTitle = FAILT[ph.from]; p.failLine = row.name + ' is still ' + LABEL[ph.from] + ' in ' + a + '.';
+      p.failWhy = a + '’s skills folder is read-only, so the file couldn’t be renamed.';
+      p.raw = 'EACCES: permission denied, rename ' + AGENTS[i].path + '/' + row.name + '/SKILL.md';
+      p.retry = still ? noop : () => this.run(key, ph.from, ph.to, row.name, a);
+      return p;
+    }
+    if (isVer(k)) {
+      p.isSplit = true;
+      const chosen = still ? null : (this.state.ver[row.name] || null);
+      const step = still ? 'pick' : (this.state.step[row.name] || 'pick');
+      p.stepPick = step === 'pick'; p.stepConfirm = step === 'confirm'; p.chosen = chosen;
+      p.vers = [1, 2].map(n => ({ n, marks: places(row, n), facts: VERS[n].lines + ' lines · changed ' + VERS[n].changed, lines: VERS[n].lines, changed: VERS[n].changed, files: VERS[n].files, kcls: 'k-v' + n,
+        checked: chosen === n, cls: 'opt' + (chosen === n ? ' on' : ''),
+        pick: still ? noop : () => this.setState({ ver: Object.assign({}, this.state.ver, { [row.name]: n }), step: Object.assign({}, this.state.step, { [row.name]: VAR === 'B' ? 'confirm' : 'pick' }) }),
+        enter: still ? noop : () => this.setState({ hoverVer: n }), leave: still ? noop : () => this.setState({ hoverVer: null }) }));
+      p.noPick = !chosen;
+      p.goLabel = chosen ? 'Make all 4 places match' : 'Choose a version first';
+      const losers = chosen ? places(row, chosen === 1 ? 2 : 1) : [];
+      p.preview = chosen ? joinNames(losers) + ' get version ' + chosen + '. Their copies go to Trash, so you can get them back.' : 'Nothing changes until you choose and confirm.';
+      const multi = row.s.map((x, j) => isVer(x) ? row.name + '|' + j : null).filter(Boolean);
+      p.go = still || !chosen ? noop : () => { this.setState({ step: Object.assign({}, this.state.step, { [row.name]: 'pick' }), ver: Object.assign({}, this.state.ver, { [row.name]: null }) }); clearTimeout(this.timer); this.setState({ phase: { key, kind: 'working', from: 'diff', to: 'on', multi } }); this.timer = setTimeout(() => { const over = Object.assign({}, this.state.over); const prev = {}; multi.forEach(m => { prev[m] = over[m]; over[m] = 'on'; }); this.setState({ phase: null, over, undo: { prev, text: 'Kept version ' + chosen + ' of ' + row.name + ' in 4 places.' } }); }, 1400); };
+      p.back = still ? noop : () => this.setState({ step: Object.assign({}, this.state.step, { [row.name]: 'pick' }), ver: Object.assign({}, this.state.ver, { [row.name]: null }) });
+      return p;
+    }
+    if (k === 'unk') {
+      p.isUnk = true;
+      p.checks = [
+        { label: 'Found', state: 'Yes', ok: true, unk: false, color: 'var(--mute)' }, { label: 'Readable', state: 'Yes', ok: true, unk: false, color: 'var(--mute)' }, { label: 'File turned on', state: 'Yes', ok: true, unk: false, color: 'var(--mute)' },
+        { label: a + ' settings allow it', state: 'Can’t read settings', ok: false, unk: true, color: 'var(--warn)' }, { label: 'Loaded by ' + a, state: 'Unknown', ok: false, unk: true, color: 'var(--mute)' }
+      ];
+      const looked = !still && this.state.looked;
+      p.lookNote = looked ? 'Looked again just now. Still can’t read ' + a + '’s settings file.' : 'If you fix the settings file, Look again updates the square.';
+      p.look = still ? noop : () => this.setState({ looked: true });
+      return p;
+    }
+    genericFill(p, k, a); p.isGen = true;
+    p.act = still || !NEXT[k] ? noop : () => this.run(key, k, NEXT[k], row.name, a);
+    return p;
+  }
+}
+
+</script>
+</body>
+</html>

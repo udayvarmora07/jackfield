@@ -1,11 +1,20 @@
 # Progress Log — Skills Manager
 
-**Version 0.8.3**
+**Version 0.8.4**
 
 **AI manifest**: Current delivery receipts and a bounded resident window.
 Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-17.md;
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
+
+## 2026-11-27 — Redesign decisions Q1, Q3, Q4, Q8
+
+**[SPEC]** The maintainer chose the recommended answers: Cursor and custom-agent squares say On
+with "settings aren't checked" in the panel (Q1); the token gate reads `design/tokens.json` and
+`DESIGN.md` becomes a guide without colour values (Q3); Off in settings does not count in Needs
+attention (Q4); `requirements.md`, `ui-progress.md` and `designs/final/` are committed after the
+sample home path in four boards was changed to `/home/you/` (Q8). Recorded in
+@docs/redesign-build/09-open-questions-and-risks.md.
 
 ## 2026-11-27 — Redesign build spec
 

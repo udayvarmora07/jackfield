@@ -148,10 +148,10 @@ match wins:
 - `native_state.effective_state` is always `unknown` and "Actually loaded" is
   never claimed; that is S6's last check, not a square word.
 - **Agents with no settings reader** (Cursor, custom agents): rule 7 and 8
-  cannot fire. Whether they may show On is open question Q1; until it is
-  answered, build the recommended option (On, with the panel's details saying
-  "Cursor's own settings aren't checked") behind one constant so the other
-  option is a one-line change.
+  cannot fire, so they show **On** when rules 1–6 pass (decided 2026-11-27,
+  Q1). The panel's details say "Cursor's own settings aren't checked" and S6
+  shows "Settings allow it" as Unknown for them. Keep the choice in one named
+  constant so it stays easy to change.
 - Only **tracked** agents and the **showing** project are columns; the server
   already filters (`tracking.py` overlay), and the client never re-adds them.
 
@@ -163,8 +163,8 @@ then "Off everywhere", "On in 3, off in 1", else "Same copy in 4 places".
 **[SPEC]** `attentionItems` = every Can't read square + every Different square +
 every evenly split skill (one item per skill). This matches A01 ("3 skills need
 your attention": two Different, one Can't read). Off in settings is shown on its
-square and checked in S7's empty-state sentence but is not an item (open
-question Q4).
+square and checked in S7's empty-state sentence but is not an item (decided
+2026-11-27, Q4).
 
 ## Change, preview, Undo
 

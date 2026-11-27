@@ -31,7 +31,7 @@ Advanced area for everything else.
 |---|---|---|---|
 | 1 | Design system **v13** (artifact) | Tokens, type, components (`sm-*`), status vocabulary, voice, icon and logo rules | https://claude.ai/artifact/27HHwcNGwDAZ2cne6xW4ei (private); copied into the repo in phase 0 |
 | 2 | Approved boards, canvas **v58** | Layout, copy, states and behaviour of every screen | `designs/final/light/` and `designs/final/dark/` (25 + 25 `.dc.html`, identical to the canvas, sha256 checked 2026-11-27) |
-| 3 | Briefs | Flows F1–F9, T1–T9, screen inventory S1–S19, the tracking backend contract | `ux-brief.md`, `design-brief.md` (tracked); `requirements.md`, `ui-progress.md` (repository root, **untracked**: open question Q8) |
+| 3 | Briefs | Flows F1–F9, T1–T9, screen inventory S1–S19, the tracking backend contract | `ux-brief.md`, `design-brief.md`, `requirements.md`, `ui-progress.md` (repository root; the last two committed 2026-11-27, Q8) |
 | 4 | This spec | How to build it here: files, routes, data, phases, tests | `docs/redesign-build/` |
 | 5 | Handoff package 2026-11-26 | Decisions log and history | `handoff/` (untracked). **Stale where it disagrees with 1–2**: it describes DS v11, 14 screens and "Skills Manager" |
 
