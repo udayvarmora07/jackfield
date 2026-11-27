@@ -42,10 +42,10 @@ and ask the maintainer before adding a route (AGENTS.md "ASK before"). Any
 
 | Action | Route | Undo |
 |---|---|---|
-| Turn off / on in one place | `POST /api/skills/<name>/disable?scope=` / `…/enable?scope=` | The opposite call |
-| Add to a place (Not here) | `POST /api/sync {name, from_scope, to_scopes:[…]}` | Move the new copy to Trash (`DELETE /api/skills/<name>?scope=&purge=0`) |
-| Make match / replace damaged / keep version N | `POST /api/sync {…, force:true}` → `replaced_to_trash` map | Restore each replaced copy from Trash (`POST /api/trash/<name>?scope=` with its `trash_path`) |
-| Several rows at once | `POST /api/batch/preview`, `POST /api/batch/execute` | Per the batch plan's inverse (existing) |
+| Turn off / on in one place | Checked batch `disable` / `enable` | Check the post-change copy and apply the opposite batch operation |
+| Add to a place (Not here) | Checked batch `sync` to an empty destination | Move the added copy to Trash if its folder still matches the installed tree |
+| Make match / replace damaged / keep version N | Check the source and destinations, move the existing folders to Trash with a checked batch `remove`, then run a checked non-forced batch `sync` | Move the added copy to Trash and restore its exact previous `trash_path` |
+| Several rows at once | `POST /api/batch/preview`, `POST /api/batch/execute` for the relevant checked operations above | One Undo for confirmed results with verified recovery evidence |
 | Edit | `PATCH /api/skills/<name>?scope=` per place | `POST /api/trash/<name>?snapshot=<id>&scope=` (existing snapshot rollback) |
 | Create | `POST /api/skills?scope=` per place | Move to Trash |
 | Move to Trash | `DELETE /api/skills/<name>?scope=&purge=0` | `POST /api/trash/<name>?scope=` |
@@ -61,6 +61,12 @@ and ask the maintainer before adding a route (AGENTS.md "ASK before"). Any
 body (415 otherwise). Errors are one shape `{error, code}`; show `error` in
 plain words and put `code` under "Technical details". A 409 from tracking is
 "These settings changed in another window. Reload to see them."
+
+**[SPEC]** For S1 and S2, re-read the confirmed on-disk state after a write.
+Use the batch plans to check the source and destination evidence before
+changing the folders. Compare the installed tree before offering a copy Undo.
+If the result cannot be verified, ask the user to refresh and check Trash.
+Independent filesystem writers can still change a folder between checks.
 
 ## What the client derives
 

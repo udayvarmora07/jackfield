@@ -162,8 +162,10 @@ match wins:
 
 **[SPEC]** `rowVerdict(row)` (the line under each skill name) follows A01's
 `verdict()`: first Can't read ("Codex's file can't be read"), then Different
-("Codex has a different copy"), then settings ("Off in Claude Code settings"),
-then "Off everywhere", "On in 3, off in 1", else "Same copy in 4 places".
+("Codex has a different copy"), then an even version split, then settings
+("Off in Claude Code settings"). Unconfirmed copies show "Some places could
+not be checked". Otherwise the line summarizes which places have the same
+copy and which are on or off.
 
 **[SPEC]** `attentionItems` = every Can't read square + every Different square +
 every evenly split skill (one item per skill). This matches A01 ("3 skills need

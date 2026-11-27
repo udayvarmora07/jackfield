@@ -334,6 +334,88 @@ class SymlinkedScopeRootTests(BatchSixCase):
 
 
 class SyncFailureHandlingTests(BatchSixCase):
+    def test_non_force_collision_preserves_external_destination_and_backup(self):
+        scopes._global_store().create("collision", "A skill synced to an empty target.")
+        root = self.home / ".agents" / "skills"
+        root.mkdir(parents=True)
+        destination = root / "collision"
+        backup = root / ".collision.skillsmgr-backup"
+        copy = scopes._copy_skill_tree
+
+        def copy_then_create_destination(source, stage):
+            copy(source, stage)
+            destination.mkdir()
+            (destination / "SKILL.md").write_text("external document", encoding="utf-8")
+            backup.mkdir()
+            (backup / "keep.txt").write_text("external backup", encoding="utf-8")
+
+        with mock.patch.object(scopes, "_copy_skill_tree", side_effect=copy_then_create_destination):
+            with self.assertRaises(StoreError):
+                scopes.sync_skill("collision", "global", ["agents"])
+
+        self.assertEqual((destination / "SKILL.md").read_text(encoding="utf-8"), "external document")
+        self.assertEqual((backup / "keep.txt").read_text(encoding="utf-8"), "external backup")
+        self.assertFalse((root / ".collision.skillsmgr-stage").exists())
+
+    def test_non_force_collision_at_rename_preserves_nonempty_destination(self):
+        scopes._global_store().create("late", "A skill synced to an empty target.")
+        root = self.home / ".agents" / "skills"
+        root.mkdir(parents=True)
+        destination = root / "late"
+        rename = Path.rename
+
+        def create_then_rename(stage, target):
+            destination.mkdir()
+            (destination / "SKILL.md").write_text("late document", encoding="utf-8")
+            return rename(stage, target)
+
+        with mock.patch.object(Path, "rename", create_then_rename):
+            with self.assertRaises(StoreError):
+                scopes.sync_skill("late", "global", ["agents"])
+
+        self.assertEqual((destination / "SKILL.md").read_text(encoding="utf-8"), "late document")
+        self.assertFalse((root / ".late.skillsmgr-stage").exists())
+
+    def test_non_force_success_does_not_retire_new_external_backup(self):
+        scopes._global_store().create("backup-race", "A skill synced to an empty target.")
+        root = self.home / ".agents" / "skills"
+        root.mkdir(parents=True)
+        backup = root / ".backup-race.skillsmgr-backup"
+        copy = scopes._copy_skill_tree
+
+        def copy_then_create_backup(source, stage):
+            copy(source, stage)
+            backup.mkdir()
+            (backup / "keep.txt").write_text("external backup", encoding="utf-8")
+
+        with mock.patch.object(scopes, "_copy_skill_tree", side_effect=copy_then_create_backup):
+            result = scopes.sync_skill("backup-race", "global", ["agents"])
+
+        self.assertEqual(result["synced"], ["agents"])
+        self.assertEqual((backup / "keep.txt").read_text(encoding="utf-8"), "external backup")
+        self.assertNotIn("replaced_to_trash", result)
+
+    def test_non_force_collision_rejects_dangling_symlink(self):
+        scopes._global_store().create("linkrace", "A skill synced to an empty target.")
+        root = self.home / ".agents" / "skills"
+        root.mkdir(parents=True)
+        destination = root / "linkrace"
+        copy = scopes._copy_skill_tree
+
+        def copy_then_link(source, stage):
+            copy(source, stage)
+            try:
+                destination.symlink_to(root / "missing", target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("creating directory symlinks is unavailable")
+
+        with mock.patch.object(scopes, "_copy_skill_tree", side_effect=copy_then_link):
+            with self.assertRaises(StoreError):
+                scopes.sync_skill("linkrace", "global", ["agents"])
+
+        self.assertTrue(destination.is_symlink())
+        self.assertFalse((root / ".linkrace.skillsmgr-stage").exists())
+
     def _read_only(self, scope_id: str) -> Path:
         """Create an existing scope root that cannot be written to."""
         target = self._agent_skill(scope_id, f"placeholder-{scope_id}")

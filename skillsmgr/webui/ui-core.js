@@ -3,7 +3,7 @@
 
 window.Jackfield.register((app) => {
   app.component("jf-nav", {
-    props: ["activePlace", "attention", "themeLabel", "themeIcon", "blocked"],
+    props: ["activePlace", "attention", "themeLabel", "themeIcon", "blocked", "skillsHero"],
     emits: ["search", "theme", "help"],
     data: () => ({ places: window.Jackfield.palette.places }),
     template: "#jf-nav-template",

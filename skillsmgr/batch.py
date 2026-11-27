@@ -61,8 +61,10 @@ def _batch_tree_hash(path: object) -> str:
     digest = hashlib.sha256()
     count = total = 0
     try:
-        if root.is_symlink() or not root.is_dir():
+        root_info = root.lstat()
+        if not stat.S_ISDIR(root_info.st_mode):
             raise StoreError("batch skill tree is unavailable or a symlink")
+        digest.update(stat.S_IMODE(root_info.st_mode).to_bytes(2, "big"))
         for base, dirs, files in os.walk(root, followlinks=False, onerror=lambda exc: (_ for _ in ()).throw(exc)):
             dirs.sort()
             files.sort()
@@ -78,6 +80,7 @@ def _batch_tree_hash(path: object) -> str:
                 encoded = str(relative).encode("utf-8")
                 digest.update(len(encoded).to_bytes(8, "big"))
                 digest.update(encoded)
+                digest.update(stat.S_IMODE(info.st_mode).to_bytes(2, "big"))
                 if stat.S_ISDIR(info.st_mode):
                     digest.update(b"D")
                     continue

@@ -17,14 +17,25 @@
 </head>
 <body>
 <div id="app" class="sm-root" v-cloak>
-  <a class="skip" href="#main" :inert="!!dialog" @click.prevent="skipToContent()">Skip to content</a>
-  <jf-nav :active-place="activePlace" :attention="inboxCount" :theme-label="themeLabel"
-    :theme-icon="themeIcon" :blocked="!!dialog" @search="openCommands()" @theme="cycleTheme()" @help="openHelp()"></jf-nav>
+  <a class="skip" href="#main" :inert="!!dialog || tableSheetOpen" @click.prevent="skipToContent()">Skip to content</a>
+  <jf-nav :active-place="activePlace" :attention="tableHero ? tableProblemNames.size : inboxCount" :theme-label="themeLabel" :skills-hero="tableHero"
+    :theme-icon="themeIcon" :blocked="!!dialog || tableSheetOpen" @search="openCommands()" @theme="cycleTheme()" @help="openHelp()"></jf-nav>
 
   <main id="main" ref="main" tabindex="-1" :inert="!!dialog">
     <!-- loading / failure -->
     <jf-not-found v-if="route.page === 'missing'" :route="route"></jf-not-found>
     <tool-center v-else-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine" @tool-group="trackGroupByKey" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
+    <jf-skills-screen v-else-if="route.page === 'skills' && !route.view" :rows="tableRows" :agents="tableColumns"
+      :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError"
+      :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.screen"
+      :agents-found="!!tracking?.agents.some((agent) => agent.folder_status === 'ok')"
+      :busy="busy" :projects="tracking?.projects || []" :showing="tracking?.showing || ''" :changed-rows="changedRows"
+      :attention-count="tableProblemNames.size" @select="tableSelect($event)" @primary="tablePrimary()"
+      @open-skill="tableOpenNamed($event)" @close-panel="tableClose()" @view-change="tableView($event)"
+      @tracking-action="tableTracking($event)" @manage-agents="goTo('#/settings/tracking')" @first-launch-done="showTableFirst()"
+      @choose-camp="tableChooseCamp($event)" @confirm="tableConfirm()" @look-again="refresh({ showChanges: true })"
+      @open-folder="tableFolder()" @why="tableOpenSkill('why')" @cancel-preview="tableCancelPreview()"
+      @batch="tableBatch($event)" @refresh="refresh({ showChanges: true })"></jf-skills-screen>
     <div class="page" v-else-if="loading && !m">
       <h1 class="h1" id="h1" tabindex="-1">Looking at your agents…</h1>
       <p class="lede">Reading the skill folders on this computer.</p>
@@ -792,7 +803,7 @@
           <jf-empty v-if="!commandChoices.length">
             <p>Nothing matches “{{ commandQuery }}”.</p>
             <p class="sm-hint">We searched skill names, descriptions, actions and pages.</p>
-            <p v-if="paletteSuggestion">Did you mean <button type="button" class="link" @click="commandInput(paletteSuggestion.name)">{{ paletteSuggestion.name }}</button>?</p>
+            <p v-if="paletteSuggestion">Did you mean <button type="button" class="link" @click="useCommandSuggestion(paletteSuggestion.name)">{{ paletteSuggestion.name }}</button>?</p>
           </jf-empty>
           <div class="jf-palette-keys" aria-hidden="true">
             <span><kbd class="sm-kbd">↑</kbd> <kbd class="sm-kbd">↓</kbd> move</span>
@@ -812,10 +823,10 @@
   </div>
 
   <div class="sr-only" role="status" aria-live="polite">{{ live }}</div>
-  <jf-undo-bar :notes="toasts" :blocked="!!dialog" :busy="busy" @hold="holdToast" @undo="runUndo" @dismiss="dismissToast"></jf-undo-bar>
+  <jf-undo-bar :notes="toasts" :blocked="!!dialog || tableSheetOpen" :busy="busy" @hold="holdToast" @undo="runUndo" @dismiss="dismissToast"></jf-undo-bar>
 </div>
 <template id="jf-nav-template">
-  <header class="top jf-top sm-nav" :inert="blocked">
+  <header class="top jf-top sm-nav" :class="{ 'jf-top-hero': skillsHero }" :inert="blocked">
     <a class="brand" href="#/skills" aria-label="Jackfield home">
       <svg class="brand-lockup jf-l" viewBox="0 0 1070 256" aria-hidden="true">
         <g>
@@ -869,6 +880,7 @@
       <svg class="i" viewBox="0 0 24 24" aria-hidden="true" v-html="themeIcon"></svg>
     </button>
     <button type="button" class="themebtn help sm-btn sm-btn--icon" @click="$emit('help')" aria-label="Keyboard shortcuts"><ic name="info"></ic></button>
+    <a v-if="skillsHero" href="#/new" class="jf-mobile-create sm-btn sm-btn--icon" aria-label="New skill"><ic name="plus"></ic></a>
   </header>
   <nav class="bottomnav sm-tabs jf-phone" aria-label="Main" :inert="blocked">
     <a v-for="place in places" class="sm-tab" :key="place.path" :href="place.path"
@@ -914,7 +926,10 @@
 <script src="state.js"></script>
 <script src="router.js"></script>
 <script src="ui-core.js"></script>
+<script src="ui-table.js"></script>
+<script src="ui-doc.js"></script>
 <script src="screen-not-found.js"></script>
+<script src="screen-skills.js"></script>
 <script src="palette.js"></script>
 <script src="library-tools.js"></script>
 <script src="ai-center.js"></script>

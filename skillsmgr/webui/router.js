@@ -65,7 +65,7 @@
       case "skills": {
         const view = query.get("view");
         const page = view === "agents" ? "home" : view === "map" ? "map" : "skills";
-        return { page, search: query.get("q"), agent: query.get("agent"), only: query.get("only"), selected: query.get("sel") };
+        return { page, view, search: query.get("q"), agent: query.get("agent"), only: query.get("only"), selected: query.get("sel") };
       }
       case "new": return { page: "skills", screen: "new", template: query.get("template") };
       case "attention": return { page: "inbox", item: query.get("item") };

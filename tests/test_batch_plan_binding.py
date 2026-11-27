@@ -158,6 +158,20 @@ class BatchPlanBindingTests(unittest.TestCase):
         self.assertIn("stale", result["error"])
         self.assertEqual("local work", destination.read_text())
 
+    @unittest.skipIf(os.name == "nt", "Windows does not store POSIX executable bits")
+    def test_permission_only_change_preserves_the_folder_after_stale_remove(self):
+        companion = self.document().parent / "script.sh"
+        companion.write_text("fixture script contents\n", encoding="utf-8")
+        companion.chmod(0o644)
+        target = self.target()
+        plan = self.preview("remove", target)
+        companion.chmod(0o755)
+        status, result = self.execute("remove", target, plan)
+        self.assertEqual(status, 400, result)
+        self.assertIn("stale", result["error"])
+        self.assertTrue(companion.exists())
+        self.assertTrue(companion.stat().st_mode & 0o100)
+
     def test_batch_rejects_symlink_in_skill_tree(self):
         (self.document().parent / "reference").symlink_to(self.home, target_is_directory=True)
         status, result = self.request("POST", "/api/batch/preview", {

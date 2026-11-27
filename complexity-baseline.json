@@ -1071,7 +1071,7 @@
       "lineno": 101
     },
     "skillsmgr/batch.py::_batch_tree_hash": {
-      "complexity": 12,
+      "complexity": 11,
       "end_lineno": 91,
       "lineno": 58
     },
@@ -4021,7 +4021,7 @@
       "lineno": 1432
     },
     "skillsmgr/scopes.py::sync_skill": {
-      "complexity": 31,
+      "complexity": 27,
       "end_lineno": 1374,
       "lineno": 1253
     },

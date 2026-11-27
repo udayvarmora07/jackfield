@@ -7,6 +7,27 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-27 — Paper redesign Phase 2 Skills table
+
+**[NOTE]** The Skills route now opens the table and its selected-square
+panel. The phone-width list shows one agent and opens a modal sheet. The
+artifact review checked the approved local v13 tokens and v58 boards against
+the implementation and consulted the corresponding Claude session records.
+It fixed wrapped agent-folder headers and keyboard focus after choosing a
+“Did you mean” search suggestion. See @build-progress.md.
+
+**[NOTE]** The table uses existing checked batch operations and exact Trash
+entries for copy changes. Regression cases exercise a populated folder
+appearing during Sync, a dangling destination link, and permissions changes
+invalidating a reviewed batch. The guarded Undo checks the replacement
+before moving it to Trash and putting back the saved folder.
+
+**[NOTE]** All 87 Chromium scenarios and the Python 3.11–3.14 discovery
+suites passed locally. Retrying the live design references in the regular
+Chrome profile verified the Shadows values, the canvas artboard list, and the
+naming and brand-kit guidance. The exported boards still support comparison
+of prototype screen content.
+
 ## 2026-11-27 — Paper redesign Phase 1 shell
 
 **[NOTE]** Added the four-place desktop and phone navigation, hash router and
@@ -16,16 +37,20 @@ available from Skills views during the transition. Browser regression checks
 cover search and navigation, including clearing URL filters on return to
 plain Skills. See @build-progress.md for local and integration status.
 
-**[NOTE]** The Python 3.11–3.14 suites and 74 Chromium scenarios passed
+**[NOTE]** The Python 3.11–3.14 suites and 78 Chromium scenarios passed
 locally, along with smoke, static, HTTP and packaging checks. Search and Not
-found were inspected in both themes at desktop and phone widths. The Phase 1
-changes are in the working tree.
+found were inspected in both themes at desktop and phone widths.
 
 **[NOTE]** The integration review found draft loss on Back and Cancel, a
 late template response that could overwrite typed instructions, and a direct
 editor route that could not retry a failed read. Added browser regressions and
 fixed these cases. A tracking form also retains input when only the hash query
 changes.
+
+**[NOTE]** Phase 1 reached `main` as `72401c7` after local verification of
+the staged tree. All 17 GitHub jobs passed, including the Linux, macOS,
+Windows and headless Chromium suites.
+[GitHub CI run](https://github.com/udayvarmora07/jackfield/actions/runs/45997716936)
 
 ## 2026-11-27 — Paper redesign Phase 0 foundations
 

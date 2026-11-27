@@ -31,7 +31,6 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 
 ## Last check
 
-2026-11-27 · Step 8, Build in progress. Phase 0 landed on `main` with 17
-passing CI jobs. Phase 1 implements the shell, navigation and search and has
-passed local verification. Phase 2 follows Phase 1 integration.
-See the [status board](project-status.html).
+2026-11-27 · Step 8, Build in progress. Phase 1 landed on `main` as `72401c7`
+with all 17 CI jobs passing. The Phase 2 Skills table and side panel passed
+local verification and design comparison. [Status board](project-status.html)

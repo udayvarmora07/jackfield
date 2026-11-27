@@ -49,6 +49,7 @@ const PATHS = {
 };
 
 const CAP = 48;
+const TABLE_BATCH_LIMIT = 500;
 const FALLBACK_AGENT = { id: "", name: "Unknown", color: "#55585f", initials: "?", path: "" };
 const MAP_STATES = {
   on: { icon: "ok", label: "Enabled on disk" },
@@ -422,9 +423,331 @@ const trackingMixin = {
   },
 };
 
+const TABLE_WORDS = {
+  on: "On", off: "Off", settings: "Off in settings", missing: "Not here", different: "Different",
+  unreadable: "Can't read", "version-1": "Version 1", "version-2": "Version 2",
+  unknown: "Unknown", working: "Working…",
+};
+const tableKey = (name, id) => name + ":" + id;
+const columnScopes = (column) => column.scopes || [column.id];
+const oneColumnCopy = (row, column) => {
+  const matches = row.squareCopies.filter((copy) => columnScopes(column).includes(copy.scope));
+  return matches.length === 1 ? matches[0] : null;
+};
+const tableWritable = (copy) => copy && !copy.readOnly && !copy.record.read_only &&
+  copy.record.addressable !== false && copy.state !== "link" && validName(copy.name);
+const tableSource = (copy) => tableWritable(copy) && copy.state !== "broken" && !!copy.hash;
+const sharedColumn = (agent) => agent.id === "agents";
+const tableAddressable = (row, agent) =>
+  agent.writable && columnScopes(agent).length === 1 &&
+  row.squareCopies.filter((copy) => columnScopes(agent).includes(copy.scope)).length <= 1;
+
+function tableChoice(row, agent, columns) {
+  const status = Model.squareStatus(row, agent);
+  const copy = oneColumnCopy(row, agent);
+  const groups = Model.squareCamps(row, columns);
+  const fallback = row.squareCopies.find((c) => c.scope === "global" && tableSource(c));
+  const source = groups.length && (groups.length === 1 || groups[0].length > groups[1].length)
+    ? groups[0].find(tableSource) : groups.length ? null : fallback;
+  const writable = tableAddressable(row, agent);
+  const toggle = writable && !sharedColumn(agent) && tableWritable(copy) && ["on", "off"].includes(status);
+  const add = writable && status === "missing" && !!source;
+  return { row, agent, status, copy, groups, source, writable, toggle, add };
+}
+
+function panelWords(selection) {
+  const { status, agent, copy, source, toggle, add, writable } = selection;
+  const { name } = agent;
+  const result = { line: "", after: "", primary: "Open skill", what: "", key: "", afterStatus: null };
+  if (toggle) {
+    const on = status === "on";
+    const copies = selection.row.squareCopies.map((item) => item === copy
+      ? { ...item, state: on ? "off" : "on", record: { ...item.record, disabled: on } } : item);
+    const after = Model.squareStatus({ ...selection.row, squareCopies: copies }, agent);
+    return { line: on ? name + " can use this skill." : name + " skips this skill.",
+      after: TABLE_WORDS[after], afterStatus: after,
+      primary: (on ? "Turn off in " : "Turn on in ") + name, key: "Space",
+      what: on ? "The file is renamed so the agent skips it. Nothing is deleted, and you can undo it."
+        : "The file is renamed back so the agent can use it. You can undo it." };
+  }
+  if (add) {
+    return { line: name + " doesn’t have this skill yet.", after: source.state === "off" ? "Off" : "On",
+      afterStatus: source.state === "off" ? "off" : "on", primary: "Add to " + name, key: "Space",
+      what: "A copy is made from " + source.label + " with its supporting files and on/off state. You can undo it." };
+  }
+  if (status === "settings") {
+    return { ...result, line: "The file is on, but " + name + "’s own settings switch this skill off.",
+      after: "On", afterStatus: "on", primary: "Show the settings file", key: "Enter",
+      what: "Jackfield never changes agent settings files. Remove the line that turns it off, then refresh." };
+  }
+  if (status === "different" && source && copy && writable && tableWritable(copy)) {
+    return { ...result, line: name + " has its own version. The other places share one.",
+      after: "Same copy", afterStatus: "on", primary: "Compare the two versions", key: "Enter",
+      what: (copy.state === "off" ? "This copy is also switched off. " : "") +
+        "You choose which version wins. Nothing changes until you confirm." };
+  }
+  if (status === "unreadable" && source && copy && writable && tableWritable(copy)) {
+    return { ...result, line: "The file in " + name + " is damaged, so the agent may not load it.",
+      after: "Readable", afterStatus: "on", primary: "Preview a replacement", key: "Enter",
+      what: "The replacement comes from " + source.label + ". The damaged folder goes to Trash." };
+  }
+  const message = sharedColumn(agent) ? "The shared folder has no switch of its own."
+    : !writable || (copy && !tableWritable(copy)) ? "This square can’t safely identify one writable folder."
+    : status === "missing" ? "There is no single readable source to copy."
+    : status === "unreadable" ? "This file could not be read."
+    : "Open the skill to see the available copies.";
+  return { ...result, line: message };
+}
+
+const tableMixin = {
+  data() {
+    return { tableMode: "", tableVersion: "", tableNarrow: false,
+      tableFirstSeen: savedPreference("jackfield-first-table", ["yes", "no"], "no") === "yes" };
+  },
+  computed: {
+    tableColumns() {
+      if (!this.m) return [];
+      return Model.tableAgents(this.m.agents).map((column) => ({
+        ...column, kind: sharedColumn(column) ? "shared" : column.kind,
+        count: columnScopes(column).reduce((sum, id) => sum + (this.m.info(id)?.mine.length || 0), 0),
+        canStop: !!this.trackAgent(column.id)?.tracked && this.trackTrackedCount > 1,
+      }));
+    },
+    tableProblems() { return Model.attentionItems(this.shelfSkills, this.tableColumns); },
+    tableProblemNames() { return new Set(this.tableProblems.map((item) => item.name)); },
+    tableBatchLimit() { return TABLE_BATCH_LIMIT; },
+    tableRows() {
+      return this.shelfSkills.map((row) => ({
+        name: row.name, description: row.description, category: row.category, tokens: row.tokens, places: row.tools.length,
+        presentIn: row.tools.map((copy) => this.agentOf(copy.scope).name).join(" "),
+        verdict: Model.rowVerdict(row, this.tableColumns), attention: this.tableProblemNames.has(row.name),
+        cells: Object.fromEntries(this.tableColumns.map((agent) => {
+          const key = tableKey(row.name, agent.id);
+          const status = this.tableWorking.includes(key) ? "working" : Model.squareStatus(row, agent);
+          const actionable = ["on", "off", "missing"].includes(status);
+          return [agent.id, { status, label: TABLE_WORDS[status], actionable }];
+        })),
+      }));
+    },
+    tableSelected() {
+      const value = this.route.selected || "";
+      const index = value.lastIndexOf(":");
+      if (index < 1) return null;
+      const row = this.m?.byName.get(value.slice(0, index));
+      const agent = this.tableColumns.find((column) => column.id === value.slice(index + 1));
+      return row && agent ? tableChoice(row, agent, this.tableColumns) : null;
+    },
+    tableSelection() {
+      return this.tableSelected ? { name: this.tableSelected.row.name, agent: this.tableSelected.agent.id } : null;
+    },
+    tableSheetOpen() { return this.tableNarrow && this.route.page === "skills" && !this.route.view && !!this.tableSelected; },
+    tableCopiesToReplace() {
+      const s = this.tableSelected;
+      if (!s) return [];
+      if (this.tableMode === "split") {
+        const chosen = s.groups[Number(this.tableVersion) - 1];
+        return chosen ? s.groups.flat().filter((copy) => copy.hash !== chosen[0].hash) : [];
+      }
+      return this.tableVersion === "current" ? s.groups[0] || [] : s.copy ? [s.copy] : [];
+    },
+    tablePreviewSource() {
+      const s = this.tableSelected;
+      if (!s) return null;
+      if (this.tableMode === "split") return s.groups[Number(this.tableVersion) - 1]?.find(tableSource);
+      return this.tableVersion === "current" ? s.copy : s.source;
+    },
+    tablePanel() {
+      const s = this.tableSelected;
+      if (!s) return null;
+      const { row, agent, status, copy } = s, key = tableKey(row.name, agent.id);
+      const panel = {
+        agent: agent.name, mark: agent.mark, initials: agent.initials, skill: row.name,
+        path: this.shortPath(copy?.path || agent.path), now: TABLE_WORDS[status], nowStatus: status,
+        others: this.tableColumns.filter((other) => other.id !== agent.id).map((other) => ({
+          ...other, path: "", status: Model.squareStatus(row, other),
+        })),
+        ...panelWords(s),
+      };
+      if (this.tableWorking.includes(key)) return { ...panel, state: "working", line: "Checking the changed files…" };
+      if (this.tableError?.key === key) return { ...panel, state: "failed", ...this.tableError };
+      return this.tableReviewPanel(panel, s);
+    },
+    tableNotices() {
+      const result = [];
+      if (this.diskChanges.length) result.push({ key: "disk", title: this.plural(this.diskChanges.length, "skill changed") +
+        " on disk since this page loaded.", actions: [{ label: "Refresh", action: "refresh" }] });
+      if (this.tracking?.file.state === "broken" && !this.trackBrokenSeen) result.push({
+        key: "broken", title: "Your tracking settings couldn’t be read.", text: "Everything found is shown.",
+        actions: [{ label: "Open What to track", action: "manage" }, { label: "Dismiss", action: "dismiss-broken" }],
+      });
+      if (this.trackShowing && this.trackShowing.status !== "ok") result.push({
+        key: "project", title: this.trackShowing.path + " can’t be found",
+        actions: [{ label: "Choose another", action: "manage" }, { label: "Remove", action: "remove-project", path: this.trackShowing.path }],
+      });
+      if (this.trackNewlyFound) result.push({
+        key: "found", title: "Found " + this.trackNewlyFound.name + (this.trackNewlyFound.skill_count != null
+          ? " (" + this.plural(this.trackNewlyFound.skill_count, "skill") + ")" : "") + ".", text: "Track it?",
+        actions: [{ label: "Track", action: "track-found" }, { label: "Not now", action: "found-later" }],
+      });
+      return result;
+    },
+  },
+  methods: {
+    showTableFirst() {
+      this.tableFirstSeen = true;
+      try { localStorage.setItem("jackfield-first-table", "yes"); } catch { /* storage can be disabled */ }
+    },
+    tableView(options) {
+      const href = Router.routeHref("skills", options);
+      if (this.route.page !== "skills" || href === this.route.href) return;
+      if (this.route.selected !== (options.sel || null)) {
+        this.tableMode = ""; this.tableVersion = ""; this.tableError = null;
+      }
+      Router.replace(href);
+      this.route = Router.parseRoute(href);
+    },
+    tableSelect(selection) {
+      this.tableView({ ...this.tableRouteOptions(), sel: tableKey(selection.name, selection.agent) });
+      if (selection.primary && (this.tableSelected?.toggle || this.tableSelected?.add)) this.tablePrimary();
+    },
+    tableRouteOptions() { const r = this.route; return { q: r.search, agent: r.agent, only: r.only, sel: r.selected }; },
+    tableClose() {
+      if (this.tableSelected && !this.tableFirstSeen) this.showTableFirst();
+      this.tableView({ ...this.tableRouteOptions(), sel: null });
+    },
+    tableReviewPanel(panel, s) {
+      if (this.tableMode === "preview" && s.source && s.copy && ["different", "unreadable"].includes(s.status)) {
+        const targets = this.tableCopiesToReplace, source = this.tablePreviewSource;
+        const compare = s.status === "different";
+        const required = compare ? [s.source, s.copy] : [s.source];
+        const read = required.filter((copy) => this.bodyReady(copy))
+          .map((copy) => ({ id: copy.scope, name: copy.label, text: this.bodyOf(copy) }));
+        const comparisonPending = read.length < required.length;
+        const comparisonFailure = required.some((copy) => this.bodyErrorOf(copy));
+        return { ...panel, state: "preview", comparison: read, versionChoices: compare ? [
+          { id: "reference", label: "Keep " + s.source.label + "’s version" },
+          { id: "current", label: "Keep " + s.agent.name + "’s version" },
+        ] : [], selectedVersion: this.tableVersion,
+        preview: comparisonFailure ? "The instructions couldn’t be read. Go back and try again."
+          : comparisonPending ? (compare ? "Reading the two versions…" : "Reading the replacement…")
+          : targets.length && (!compare || this.tableVersion) ? "Replace copies in " + join(targets.map((copy) => copy.label)) +
+          ". The current folders go to Trash." : "Choose the version to keep.",
+        primary: compare ? "Make copies match" : "Replace this copy",
+        primaryDisabled: this.busy || comparisonPending || (compare && !this.tableVersion) || !source || !targets.length || !this.canReplaceTableCopies(targets) };
+      }
+      if (statusIsSplit(s.status)) {
+        return { ...panel, state: "split", line: "This skill has two versions. Pick the one to keep.",
+          primary: "Make all " + s.groups.flat().length + " match", selectedCamp: this.tableVersion || null,
+          camps: s.groups.map((group, i) => ({ id: String(i + 1), title: "Version " + (i + 1),
+            detail: join(group.map((copy) => copy.label)), action: "Keep version " + (i + 1) })),
+          preview: this.tableCopiesToReplace.length ? join(this.tableCopiesToReplace.map((copy) => copy.label)) +
+            " will get this version. Their current folders go to Trash." : "",
+          primaryDisabled: this.busy || !this.tablePreviewSource || !this.canReplaceTableCopies(this.tableCopiesToReplace) };
+      }
+      if (s.status === "unknown") {
+        return { ...panel, state: "unknown", line: "The last steps can’t be confirmed.", checks: [
+          { label: "Folder entry exists", status: s.copy ? "on" : "unknown", detail: s.copy ? "Found" : "Unknown" },
+          { label: "Document can be read", status: s.copy?.hash ? "on" : "unknown", detail: s.copy?.hash ? "Readable" : "Unknown" },
+          { label: "Agent’s settings allow it", status: "unknown", detail: "Unknown" },
+          { label: "Actually loaded", status: "unknown", detail: "Unknown" },
+        ], what: "Check the skill and the agent’s settings, then look again." };
+      }
+      if (s.status === "on" && ["cursor", "custom"].some((prefix) => s.agent.id.startsWith(prefix))) {
+        panel.what += " " + s.agent.name + "’s own settings aren’t checked.";
+      }
+      return { ...panel, primaryDisabled: this.busy };
+    },
+    canReplaceTableCopies(copies) {
+      return copies.length > 0 && copies.every((copy) => {
+        const row = this.m.byName.get(copy.name), agent = this.m.agent(copy.scope);
+        return tableWritable(copy) && agent?.writable && row.squareCopies.filter((c) => c.scope === copy.scope).length === 1;
+      });
+    },
+    tablePrimary() {
+      const s = this.tableSelected;
+      if (!s || this.busy) return;
+      if (this.tableError?.key === tableKey(s.row.name, s.agent.id)) {
+        const verify = this.tableError.verify;
+        this.tableError = null;
+        if (verify) { this.refresh({ showChanges: true }); return; }
+        if (statusIsSplit(s.status)) return;
+      }
+      if (s.toggle) {
+        this.change("toggle", { copy: s.copy, enable: s.status === "off", keys: [tableKey(s.row.name, s.agent.id)],
+          message: s.row.name + (s.status === "off" ? " turned on in " : " turned off in ") + s.agent.name + "." });
+      } else if (s.add) {
+        this.change("copy", { sources: [s.source], scopes: columnScopes(s.agent), originals: [],
+          keys: [tableKey(s.row.name, s.agent.id)], message: s.row.name + " added to " + s.agent.name + "." });
+      } else if (["different", "unreadable"].includes(s.status) && s.source && s.copy && s.writable && tableWritable(s.copy)) {
+        this.tableMode = "preview";
+        this.tableVersion = s.status === "unreadable" ? "reference" : "";
+        this.ensureBodies(s.status === "different" ? [s.source, s.copy] : [s.source]);
+      } else this.tableOpenSkill(s.status === "settings" ? "why" : "");
+    },
+    tableChooseCamp(id) {
+      if (id !== "reference" && id !== "current") this.tableMode = "split";
+      this.tableVersion = id;
+    },
+    tableConfirm() {
+      const s = this.tableSelected, source = this.tablePreviewSource, originals = this.tableCopiesToReplace;
+      if (!s || !source || !this.canReplaceTableCopies(originals) || this.busy) return;
+      if (this.tablePanel?.primaryDisabled) return;
+      const scopes = originals.map((copy) => copy.scope);
+      this.tableMode = ""; this.tableVersion = "";
+      this.change("copy", { sources: [source], scopes, originals,
+        keys: [tableKey(s.row.name, s.agent.id), ...scopes.map((id) => tableKey(s.row.name, id))],
+        message: s.row.name + " now matches in " + join(originals.map((copy) => copy.label)) + "." });
+    },
+    tableOpenSkill(screen = "") {
+      const s = this.tableSelected;
+      if (s) Router.go(Router.skillHref(s.row.name, screen));
+    },
+    tableOpenNamed(name) { if (name) Router.go(Router.skillHref(name)); },
+    tableCancelPreview() { this.tableMode = ""; this.tableVersion = ""; },
+    tableFolder() {
+      const s = this.tableSelected;
+      if (!s) return;
+      const folder = s.copy?.path || this.scopes.find((scope) => scope.id === s.agent.id)?.path;
+      if (!folder) return;
+      const copied = navigator.clipboard?.writeText(folder);
+      if (copied) copied.then(() => this.toast("Folder path copied."),
+        () => this.toast("Select and copy the displayed folder path.", { err: true }));
+    },
+    tableTracking({ action, id, path }) {
+      if (action === "refresh") this.refresh({ showChanges: true });
+      else if (action === "dismiss-broken") this.trackBrokenSeen = true;
+      else if (action === "remove-project") this.trackRemoveProject(path);
+      else if (action === "track-found") this.trackFoundTrack(this.trackNewlyFound);
+      else if (action === "found-later") this.trackFoundLater(this.trackNewlyFound);
+      else if (action === "stop") this.askStopTracking(id);
+      else if (action === "details") this.trackDetails(id);
+      else if (action === "show-project") this.trackShow(path || null);
+      else Router.go("#/settings/tracking");
+    },
+    tableBatch({ names, agent: id }) {
+      const agent = this.tableColumns.find((column) => column.id === id);
+      if (!agent || !agent.writable || columnScopes(agent).length !== 1 || this.busy) return;
+      if (names.length > TABLE_BATCH_LIMIT) return;
+      const choices = names.map((name) => this.m.byName.get(name)).filter(Boolean)
+        .map((row) => tableChoice(row, agent, this.tableColumns))
+        .filter((s) => s.source && s.writable && s.source.scope !== id &&
+          (s.status === "missing" || (["different", "unreadable"].includes(s.status) && tableWritable(s.copy))));
+      if (!choices.length) { this.toast("Choose rows with a missing or different copy in " + agent.name + ".", { err: true }); return; }
+      const originals = choices.map((s) => s.copy).filter(Boolean);
+      this.openDialog({ title: "Make these match in " + agent.name + "?", names: choices.map((s) => s.row.name),
+        namesLabel: "See all " + choices.length + " skills", confirm: "Make these match",
+        lines: [choices.length + " copies will match their reference versions. Existing folders go to Trash.",
+          ...(choices.length < names.length ? ["Only rows with an eligible reference and destination are included."] : [])],
+        onConfirm: () => this.change("copy", { sources: choices.map((s) => s.source), originals, scopes: columnScopes(agent),
+          keys: choices.map((s) => tableKey(s.row.name, id)), message: this.plural(choices.length, "copy", "copies") + " changed in " + agent.name + "." }) });
+    },
+  },
+};
+const statusIsSplit = (status) => status === "version-1" || status === "version-2";
+
 const app = createApp({
   data() {
-    return { ...Jack.createState(), ...trackingMixin.data(), historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
+    return { ...Jack.createState(), ...trackingMixin.data(), ...tableMixin.data(), historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
       route: Router.current(), routeAction: "", catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0,
       exportPending: false, exportError: "",
@@ -441,6 +764,8 @@ const app = createApp({
   },
   computed: {
     ...trackingMixin.computed,
+    ...tableMixin.computed,
+    tableHero() { return this.route.page === "skills" && !this.route.view; },
     inboxCount() { return this.m ? this.queue.length : 0; },
     activePlace() {
       return { inbox: "#/attention", recovery: "#/trash", tools: "#/advanced", tracking: "#/advanced" }[this.route.page]
@@ -702,6 +1027,7 @@ const app = createApp({
   methods: {
     ...Jack.stateActions,
     ...trackingMixin.methods,
+    ...tableMixin.methods,
     enc: encodeURIComponent, agentMark: Model.agentMark, plural, join, words, titleCase, shortPath, renderDoc,
     fmt(n) {return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale).format(Number(n));},
     /* The informative end of a long folder path ("…/.claude/skills"); the full
@@ -716,7 +1042,10 @@ const app = createApp({
     openSkillTool(tool) { if (this.refCopy) { this.toolTarget = markRaw(this.refCopy.record); Router.go(Router.toolHref(tool)); } },
     openConciseReview(handoff) { if(!handoff||!handoff.target||!handoff.reviewId)return;this.toolTarget=markRaw(handoff.target);this.sourceReviewHandoff={...handoff,target:this.toolTarget};Router.go(Router.toolHref("source-update")); },
     sourceReviewConsumed(reviewId) { if(this.sourceReviewHandoff&&this.sourceReviewHandoff.reviewId===reviewId)this.sourceReviewHandoff=null; },
-    inspectRecord(record) { this.query=record.name;this.filter="all";this.tagFilter="";this.agentFilter=record.scope||"all";this.libraryView="instances";Router.go("#/skills"); },
+    inspectRecord(record) {
+      this.libraryView = "instances";
+      Router.go(Router.routeHref("skills", { view: "instances", q: record.name, agent: record.scope || "all" }));
+    },
     openRecord(record) {this.toolTarget=markRaw(record);this.readCopyPath=record.physical_path||record.path||"";this.readCopyScope=record.scope||"";this.readCopyName=record.name||"";Router.go(Router.skillHref(record.name));},
     goTo(href) { Router.go(href); },
     openCommands() {
@@ -725,6 +1054,10 @@ const app = createApp({
       this.openDialog({ title: "Search skills, actions and pages", commands: true, cancel: "Close" });
     },
     commandInput(value) { this.commandQuery = value; this.commandActive = 0; },
+    useCommandSuggestion(name) {
+      this.commandInput(name);
+      this.$nextTick(() => document.getElementById("command-q")?.focus());
+    },
     commandKey(e) {
       const choices = this.commandChoices, length = choices.length;
       if (!length || e.isComposing) return;
@@ -1690,6 +2023,7 @@ const app = createApp({
     },
     applyRouteOptions(route, previous) {
       if (route.page === "skills") {
+        if (route.view === "instances") this.libraryView = "instances";
         const hasFilters = (r) => r?.page === "skills" && [r.search, r.agent, r.only].some((value) => value != null);
         if (hasFilters(route) || hasFilters(previous)) {
           this.pickAgent(route.agent || "all", route.search || "");
@@ -1780,7 +2114,7 @@ const app = createApp({
     document.addEventListener("keydown", (e) => {
       const t = e.target, typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
       const onControl = t && t.closest && t.closest("a, button, input, select, textarea, summary, [role=button], [contenteditable]");
-      if(document.querySelector("dialog[open]"))return;
+      if (e.defaultPrevented || this.tableSheetOpen || document.querySelector("dialog[open]")) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==="k" && !this.dialog && !document.querySelector("dialog[open]")) {e.preventDefault();this.openCommands();}
       if (e.key === "?" && !typing && !onControl && !this.dialog) { e.preventDefault(); this.openHelp(); }
       if (e.key === "/" && !typing && !onControl && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.openCommands(); }
@@ -1806,9 +2140,12 @@ const app = createApp({
     let lastLoad = Date.now();
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState !== "visible" || this.edit || this.busy || Date.now() - lastLoad < 15000) return;
-      lastLoad = Date.now(); this.refresh();
+      lastLoad = Date.now(); this.refresh({ observe: this.route.page === "skills" && !this.route.view });
     });
     if (window.matchMedia) {
+      const tablet = window.matchMedia("(max-width: 640px)");
+      const setTableWidth = () => { this.tableNarrow = tablet.matches; };
+      setTableWidth(); tablet.addEventListener("change", setTableWidth);
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
       const on = () => { if (this.theme === "system") this.applyTheme(); };
       if (mq.addEventListener) mq.addEventListener("change", on); else if (mq.addListener) mq.addListener(on);

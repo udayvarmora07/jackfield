@@ -29,9 +29,11 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Phase 1 implementation · Shell: router + legacy redirects, `state.js`, header and tab
   bar, Undo bar, notices, search and palette (S12), Not found (S13).
 - [x] Verify Phase 1 locally on Python 3.11–3.14 and Chromium. See @build-progress.md.
-- [ ] Integrate Phase 1 and verify CI before starting Phase 2.
-- [ ] Phase 2 · Hero: Skills table S1 + side panel S2 with every square state,
-  first launch, tracking doorways.
+- [x] Integrate Phase 1 and verify CI before starting Phase 2. Commit
+  `72401c7` passed all 17 jobs. See @build-progress.md.
+- [x] Phase 2 · Hero: Skills table S1 + side panel S2 with square states,
+  first launch, tracking doorways and guarded Undo. Local review against the
+  Claude canvas and design-system exports is recorded in @build-progress.md.
 - [ ] Phase 3 · Everyday jobs: S3 skill page, S4 editor, S5 new skill, S6 why.
 - [ ] Phase 4 · Upkeep: S7 Needs attention, S8 Trash & backups.
 - [ ] Phase 5 · Advanced S9, tool template S10 for all 21 tools, Settings S11,

@@ -1460,6 +1460,26 @@ def _snapshot_sync_target(dest: Path, data_dir: Path, scope_id: str, name: str, 
     return True
 
 
+def _publish_sync_stage(stage: Path, dest: Path, backup: Path, name: str, force: bool) -> None:
+    if force:
+        if dest.exists():
+            shutil.move(str(dest), str(backup))
+        shutil.move(str(stage), str(dest))
+    else:
+        if dest.exists() or dest.is_symlink():
+            raise FileExistsError(f"destination for '{name}' already exists")
+        stage.rename(dest)
+
+
+def _rollback_sync_stage(stage: Path, dest: Path, backup: Path, force: bool) -> None:
+    if force:
+        if dest.exists() and backup.exists():
+            shutil.rmtree(dest, ignore_errors=True)
+        if backup.exists() and not dest.exists():
+            shutil.move(str(backup), str(dest))
+    shutil.rmtree(stage, ignore_errors=True)
+
+
 def sync_skill(
     name: str,
     from_scope: str,
@@ -1549,9 +1569,7 @@ def sync_skill(
                 if backup.exists() or backup.is_symlink():
                     raise StoreError(f"a previous sync backup for '{name}' in scope '{sid}' needs manual review")
                 _copy_skill_tree(src_dir, stage)
-                if dest.exists():
-                    shutil.move(str(dest), str(backup))
-                shutil.move(str(stage), str(dest))
+                _publish_sync_stage(stage, dest, backup, name, force)
             except StoreError as exc:
                 # Policy refusals happen before replacement (retained backup
                 # or unsafe source). Keep recovery evidence and other targets.
@@ -1560,18 +1578,15 @@ def sync_skill(
                 skipped.append({"scope": sid, "reason": f"failed: {reason}"})
                 continue
             except OSError as exc:
-                if dest.exists() and backup.exists():
-                    shutil.rmtree(dest, ignore_errors=True)
-                if backup.exists() and not dest.exists():
-                    shutil.move(str(backup), str(dest))
-                shutil.rmtree(stage, ignore_errors=True)
+                _rollback_sync_stage(stage, dest, backup, force)
                 reason = getattr(exc, "strerror", None) or str(exc) or "copy failed"
                 failures.append((sid, reason))
                 skipped.append({"scope": sid, "reason": f"failed: {reason}"})
                 continue
-            disposition, path = _retire_sync_backup(scope, sid, name, backup, dest)
-            if disposition:
-                recovery.setdefault(disposition, {})[sid] = path
+            if force:
+                disposition, path = _retire_sync_backup(scope, sid, name, backup, dest)
+                if disposition:
+                    recovery.setdefault(disposition, {})[sid] = path
             synced.append(sid)
     if failures and not synced:
         failed_scope, reason = failures[0]

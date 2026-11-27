@@ -1,0 +1,322 @@
+[
+  {
+    "name": "on and missing",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo"
+      }
+    ],
+    "expected": {
+      "a": "on",
+      "b": "missing"
+    }
+  },
+  {
+    "name": "busy before missing",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo"
+      }
+    ],
+    "expected": {
+      "a": "on",
+      "b": "working"
+    },
+    "busy": [
+      "demo:b"
+    ]
+  },
+  {
+    "name": "busy before unreadable",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "malformed": true
+      }
+    ],
+    "expected": {
+      "a": "working",
+      "b": "missing"
+    },
+    "busy": [
+      "demo:a"
+    ]
+  },
+  {
+    "name": "unreadable before split and off",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "malformed": true,
+        "disabled": true
+      },
+      {
+        "name": "demo",
+        "scope": "b",
+        "content_hash": "b",
+        "physical_path": "/b/demo"
+      }
+    ],
+    "expected": {
+      "a": "unreadable",
+      "b": "on"
+    }
+  },
+  {
+    "name": "unaddressable",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "addressable": false
+      }
+    ],
+    "expected": {
+      "a": "unreadable",
+      "b": "missing"
+    }
+  },
+  {
+    "name": "refused link",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "decode_error": "path escapes managed root"
+      }
+    ],
+    "expected": {
+      "a": "unreadable",
+      "b": "missing"
+    }
+  },
+  {
+    "name": "split before off",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "disabled": true
+      },
+      {
+        "name": "demo",
+        "scope": "b",
+        "content_hash": "b",
+        "physical_path": "/b/demo",
+        "disabled": true
+      }
+    ],
+    "expected": {
+      "a": "version-1",
+      "b": "version-2"
+    }
+  },
+  {
+    "name": "different before off and settings",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo"
+      },
+      {
+        "name": "demo",
+        "scope": "b",
+        "content_hash": "a",
+        "physical_path": "/b/demo"
+      },
+      {
+        "name": "demo",
+        "scope": "c",
+        "content_hash": "b",
+        "physical_path": "/c/demo",
+        "disabled": true,
+        "native_state": {
+          "sources": [
+            {
+              "status": "ok",
+              "declared": "disabled"
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "a": "on",
+      "b": "on",
+      "c": "different"
+    }
+  },
+  {
+    "name": "off before settings",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "disabled": true,
+        "native_state": {
+          "sources": [
+            {
+              "status": "ok",
+              "declared": "disabled"
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "a": "off"
+    }
+  },
+  {
+    "name": "settings before unknown",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "native_state": {
+          "sources": [
+            {
+              "status": "invalid"
+            },
+            {
+              "status": "ok",
+              "declared": "disabled"
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "a": "settings"
+    }
+  },
+  {
+    "name": "claude observed disabled",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "native_state": {
+          "observed_setting": "disabled",
+          "sources": []
+        }
+      }
+    ],
+    "expected": {
+      "a": "settings"
+    }
+  },
+  {
+    "name": "unknown settings",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "native_state": {
+          "sources": [
+            {
+              "status": "unavailable"
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "a": "unknown"
+    }
+  },
+  {
+    "name": "missing settings allowed",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo",
+        "native_state": {
+          "sources": [
+            {
+              "status": "missing"
+            },
+            {
+              "status": "unobserved"
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "a": "on"
+    }
+  },
+  {
+    "name": "missing hash",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "",
+        "physical_path": "/a/demo"
+      }
+    ],
+    "expected": {
+      "a": "unknown"
+    }
+  },
+  {
+    "name": "three way split",
+    "records": [
+      {
+        "name": "demo",
+        "scope": "a",
+        "content_hash": "a",
+        "physical_path": "/a/demo"
+      },
+      {
+        "name": "demo",
+        "scope": "b",
+        "content_hash": "b",
+        "physical_path": "/b/demo"
+      },
+      {
+        "name": "demo",
+        "scope": "c",
+        "content_hash": "c",
+        "physical_path": "/c/demo"
+      }
+    ],
+    "expected": {
+      "a": "unknown",
+      "b": "unknown",
+      "c": "unknown"
+    }
+  }
+]

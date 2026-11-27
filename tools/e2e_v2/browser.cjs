@@ -28,9 +28,9 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   page.on('pageerror', e => exceptions.push(e.message));
   let navigation = 0;
   async function go(route) { route = ({home:'skills?view=agents', map:'skills?view=map'})[route] || route; await page.goto(base+'/?fixture-step='+(++navigation)+'#/'+route); await page.locator('main').waitFor(); await page.waitForLoadState('networkidle'); if (route.startsWith('skill/')) await page.locator('.use').first().waitFor(); await page.waitForTimeout(200); }
-  async function theme(t) { for (let i=0;i<3 && await page.locator('html').getAttribute('data-theme')!==t;i++) await page.locator('.themebtn').first().click(); assert.equal(await page.locator('html').getAttribute('data-theme'),t); }
+  async function theme(t) { for (let i=0;i<3 && await page.locator('html').getAttribute('data-theme')!==t;i++) { const button = page.locator('.themebtn:visible').first(); if (await button.count()) await button.click(); else { await page.keyboard.press('Control+k'); await page.getByRole('combobox', {name:'Search skills, actions and pages'}).fill('Switch theme'); await page.getByRole('option', {name:/Switch theme/}).click(); } } assert.equal(await page.locator('html').getAttribute('data-theme'),t); }
   const file=(scope,name='same-everywhere')=>path.join(home,scope,'skills',name,'SKILL.md');
-  await test('Default entry serves the interface at / with query and hash intact',async()=>{await page.goto(base+'/?window=claude#/skills');await page.waitForLoadState('networkidle');assert.equal(page.url(),base+'/?window=claude#/skills');assert(await page.locator('.sk').count()>0);});
+  await test('Default entry serves the interface at / with query and hash intact',async()=>{await page.goto(base+'/?window=claude#/skills');await page.waitForLoadState('networkidle');assert.equal(page.url(),base+'/?window=claude#/skills');const show=page.getByRole('button',{name:'Show my skills'});if(await show.isVisible())await show.click();assert(await page.getByRole('grid',{name:'Skills table'}).locator('tbody tr').count()>0);});
   await test('Four primary places navigate and identify the current page', async () => {
     try {
       for (const width of [1280, 390]) {
@@ -236,13 +236,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   });
   await test('Retired /v2 and /classic addresses open the interface at / keeping query and hash', async () => {
     await page.goto(base + '/classic/?window=claude#/skills');
-    await page.locator('.shelf').first().waitFor();
+    await page.getByRole('heading',{name:'Skills',exact:true}).waitFor();
     assert.equal(page.url(), base + '/?window=claude#/skills');
     await page.goto(base + '/v2?window=claude#/skills');
-    await page.locator('.shelf').first().waitFor();
+    await page.getByRole('heading',{name:'Skills',exact:true}).waitFor();
     assert.equal(page.url(), base + '/?window=claude#/skills');
-    assert.equal(await page.locator('#h1').innerText(), 'Skills');
-    assert(await page.locator('.shelf').first().isVisible());
+    assert(await page.getByRole('heading',{name:'Skills',exact:true}).isVisible());
   });
   await test('Unreadable Inbox guidance preserves original bytes',async()=>{ await go('inbox');const f=file('.codex','damaged-one'), bytes=fs.readFileSync(f);if (!(await page.locator('#focus-t').innerText()).includes('damaged-one')) await page.locator('.qi').filter({hasText:'damaged-one'}).click();assert.equal(await page.locator('[data-primary]').innerText(),'Show me how');await page.locator('[data-primary]').click();assert.match(await page.locator('.dlg').innerText(),/original file/);assert.deepEqual(fs.readFileSync(f),bytes);await page.keyboard.press('Escape'); });
   await test('Home Inbox count equals queue; acknowledging a note is not a fix', async () => {
@@ -294,19 +293,20 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await go('skill/sole-copy');
     await page.getByRole('button', {name:'Search skills, actions and pages'}).click();
     const search = page.getByRole('combobox', {name:'Search skills, actions and pages'});
+    await page.waitForFunction(() => document.activeElement?.id === 'command-q');
     await search.pressSequentially('same');
-    assert.equal(await search.inputValue(), 'same');
+    assert.equal(await search.inputValue(), 'same', 'the palette retains the typed query');
     const option = page.getByRole('option', {name:/same-everywhere/});
     await option.waitFor();
     await search.press('ArrowDown');
     assert.notEqual(await search.getAttribute('aria-activedescendant'), null);
     await page.getByRole('option', {name:'Show 1 match in Skills'}).click();
     await page.waitForURL(url => url.hash === '#/skills?q=same');
-    assert.equal(await page.getByRole('searchbox', {name:'Search skills'}).inputValue(), 'same');
+    await page.waitForFunction(() => document.querySelector('.jf-skills-filter input')?.value === 'same');
   });
   await test('New skill shows multiple lines of instructions and cancels cleanly', async () => {
     await go('skills');
-    await page.getByRole('button', {name:'New skill', exact:true}).click();
+    await page.getByRole('link', {name:'New skill', exact:true}).click();
     const dialog = page.getByRole('dialog', {name:'New skill'});
     const instructions = dialog.getByLabel('Instructions', {exact:true});
     assert(await instructions.evaluate(element => element.clientHeight > 100));
@@ -314,23 +314,16 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await dialog.waitFor({state:'hidden'});
   });
   await test('Search includes skills despite prior Skills filters and excludes observations', async () => {
-    await go('skills');
-    await page.getByRole('button', {name:'Shelf', exact:true}).click();
-    await page.getByLabel('Agent', {exact:true}).selectOption('codex');
+    await go('skills?view=shelf');
+        await page.getByLabel('Agent', {exact:true}).selectOption('codex');
     await page.getByRole('button', {name:/Turned off/}).click();
     await page.getByRole('button', {name:'Search skills, actions and pages'}).click();
     const search = page.getByRole('combobox', {name:'Search skills, actions and pages'});
     await search.fill('sole-copy');
     await page.getByRole('option', {name:'Show 1 match in Skills'}).click();
     await page.waitForURL(url => url.hash === '#/skills?q=sole-copy');
-    await page.waitForFunction(() => document.querySelector('#agent-f')?.value === 'all').catch(() => { throw Error('Agent filter did not reset'); });
-    assert.equal(await page.getByLabel('Agent', {exact:true}).inputValue(), 'all');
-    assert.equal(await page.getByRole('button', {name:/Turned off/}).getAttribute('aria-pressed'), 'false');
-    assert(await page.locator('.sk').filter({hasText:'sole-copy'}).isVisible());
-    await page.locator('.tabs a[href="#/skills"]').click();
-    await page.waitForURL(url => url.hash === '#/skills');
-    await page.waitForFunction(() => document.querySelector('#q')?.value === '').catch(() => { throw Error('Plain Skills search did not reset'); });
-    assert.equal(await page.getByRole('searchbox', {name:'Search skills'}).inputValue(), '');
+    assert.equal(await page.getByRole('searchbox', {name:'Filter skills'}).inputValue(), 'sole-copy');
+    assert(await page.getByRole('button', {name:/sole-copy in Claude Code/}).isVisible());
     await go('skill/sole-copy');
     assert.equal(await page.locator('.tree a').filter({hasText:'.system'}).count(), 0);
     await page.getByRole('button', {name:'Search skills, actions and pages'}).click();
@@ -357,12 +350,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Browser Back dismisses the previous page dialog and focuses the destination', async () => {
     await go('home');
     await page.locator('.tabs').getByRole('link', {name:'Skills', exact:true}).click();
-    await page.getByRole('button', {name:'New skill', exact:true}).click();
+    await page.getByRole('link', {name:'New skill', exact:true}).click();
     const dialog = page.getByRole('dialog', {name:'New skill'});
     await dialog.waitFor();
     await page.goBack();
     await dialog.waitFor({state:'hidden'});
-    const heading = page.getByRole('heading', {level:1, name:'Your agents'});
+    const heading = page.getByRole('heading', {level:1, name:'Skills', exact:true});
     await heading.waitFor();
     assert(await heading.evaluate(el => el === document.activeElement));
   });
@@ -559,7 +552,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   });
   await test('Create, editor focus, safe Markdown, save and Undo',async()=>{
     await go('skills');
-    await page.getByRole('button',{name:'New skill',exact:true}).first().click();
+    await page.getByRole('link',{name:'New skill',exact:true}).first().click();
     const name=page.locator('.dlg input').first();
     assert(await name.evaluate(e=>e===document.activeElement));
     await name.fill('created-browser');
@@ -718,7 +711,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     try{await go('home');assert.doesNotMatch(await page.locator('main').innerText(),/Traceback|PermissionError|[/]home[/]private/);}finally{await page.unrouteAll({behavior:'wait'});}
   });
   await test('Sync map totals, singular grammar and top-link target size',async()=>{
-    await go('skills');const total=Number((await page.locator('.seg button').first().innerText()).match(/\d+/)?.[0]);
+    await go('skills?view=shelf');const total=Number((await page.locator('.seg button').first().innerText()).match(/\d+/)?.[0]);
     await go('map');
     assert.equal(await page.locator('.map-total').innerText(), `Open all ${total.toLocaleString()} in Skills`);
     assert.doesNotMatch(await page.locator('main').innerText(),/1 copy differ(?!s)/);
@@ -726,13 +719,13 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const box=await page.locator('.top .tabs a[href="#/advanced"]').boundingBox();assert(box.height>=24);assert(box.width>=24);
   });
   await test('Shelf density persists across reload and is scoped to Shelf', async () => {
-    await go('skills');
+    await go('skills?view=shelf');
     const compact = page.getByRole('button', {name:'Compact', exact:true});
     const card = page.locator('.shelf .sk').first();
     const before = await card.boundingBox();
     try {
       await compact.click();
-      await go('skills');
+      await go('skills?view=shelf');
       assert.equal(await compact.getAttribute('aria-pressed'), 'true');
       assert((await card.boundingBox()).height < before.height);
       await page.getByRole('button', {name:'Exact instances', exact:true}).click();
@@ -829,7 +822,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     }
   });
   await test('Skills retains the search when opening Sync map', async () => {
-    await go('skills');
+    await go('skills?view=shelf');
     await page.getByRole('searchbox',{name:'Search skills',exact:true}).fill('majority-minor');
     await page.getByRole('button',{name:'Exact instances',exact:true}).click();
     assert.equal(await page.getByRole('searchbox',{name:'Search skills',exact:true}).inputValue(),'majority-minor');
@@ -841,7 +834,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert.equal(await mapSearch.inputValue(),'majority-minor');
       assert.equal(await page.getByRole('rowheader',{name:'majority-minor',exact:true}).count(),1);
     } finally {
-      await go('skills');
+      await go('skills?view=shelf');
       await page.getByRole('button',{name:'Shelf',exact:true}).click();
     }
   });
@@ -978,7 +971,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     for(const fixture of [[],[selected]]){
       await page.route(/[/]api[/]skills[?]scope=all(?:&body=0)?$/,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fixture)}));
       try {
-        await go('skills');
+        await go('skills?view=shelf');
         assert.equal(await page.locator('.sk').count(),fixture.length);
         if (fixture.length) assert.equal(await page.locator('.instance-filters .count').innerText(), '1 skill');
         else assert(await page.getByRole('heading', {name:'No skills yet'}).isVisible());
@@ -1012,7 +1005,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         fs.writeFileSync(path.join(root,`overflow-${percent}-${route.replace('/','-')}.json`),JSON.stringify(overflow,null,2));
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1),false,`browser zoom ${percent}: ${route}`);
       }
-      await go('skills');await page.getByRole('button',{name:'New skill',exact:true}).first().click();
+      await go('skills');await page.getByRole('link',{name:'New skill',exact:true}).first().click();
       assert(await page.locator('#nf-name').evaluate(e=>e===document.activeElement));
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1),false);
       await page.keyboard.press('Escape');
@@ -1082,7 +1075,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const listed=await page.request.get(base+'/api/skills?scope=claude-code&body=1');
     assert(listed.ok());const alias=(await listed.json()).find(row=>row.name===name);
     assert(alias);assert.equal(alias.body,'# Original owner text\n');assert.equal(alias.link_followed,true);assert.equal(alias.read_only,true);
-    await go('skills');
+    await go('skills?view=shelf');
     await page.getByRole('button',{name:'Refresh files',exact:true}).click();
     await page.waitForTimeout(350);
     await page.locator('#agent-f').selectOption('claude-code');
@@ -1331,6 +1324,226 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.locator('.toast',{hasText:'Removed Kilo. Its folder is unchanged.'}).waitFor();
     assert.equal(await page.locator('#trk-st-custom-kilo').count(),0);
     assert.deepEqual(fs.readFileSync(kilo),bytes);
+  });
+  for (const method of ['keyboard', 'mouse']) {
+    await test(`Phase 2 F2 Codex-only toggle and Undo by ${method}`, async () => {
+      const name = 'code-review', scopes = ['.claude', '.codex'];
+      const bytes = Buffer.from('---\nname: code-review\ndescription: Browser benchmark fixture.\n---\n# Code review\n');
+      for (const scope of scopes) {
+        const target = file(scope, name);
+        assert(!fs.existsSync(target) && !fs.existsSync(target + '.disabled'));
+        fs.mkdirSync(path.dirname(target), {recursive:true}); fs.writeFileSync(target, bytes);
+      }
+      const codex = file('.codex', name), claude = file('.claude', name);
+      try {
+        for (const [width, themeName] of [[1440,'light'], [1440,'dark'], [390,'light'], [390,'dark']]) {
+          await page.setViewportSize({width, height:900});
+          await go('skills'); await theme(themeName);
+          const showSkills = page.getByRole('button', {name:'Show my skills'});
+          if (await showSkills.isVisible()) await showSkills.click();
+          const filter = page.getByRole('searchbox', {name:'Filter skills'});
+          const filterToggle = page.getByRole('button', {name:'Filter and sort'});
+          if (!(await filter.isVisible()) && await filterToggle.isVisible()) await filterToggle.click();
+          await filter.fill(name);
+          const agentPicker = page.getByRole('combobox', {name:'Showing agent'});
+          if (await agentPicker.isVisible()) await agentPicker.selectOption({label:'Codex'});
+          const square = page.getByRole('button', {name:/code-review in Codex: On/i});
+          await square.waitFor();
+          if (method === 'keyboard') {
+            await filter.focus();
+            for (let i=0; i<20 && !(await page.evaluate(() => document.activeElement?.textContent?.trim() === 'code-review')); i++) await page.keyboard.press('Tab');
+            assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), name);
+            for (let i=0; i<10 && !(await square.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('ArrowRight');
+            assert(await square.evaluate(el => el === document.activeElement));
+            await page.keyboard.press('Enter');
+            const primary = page.getByRole('button', {name:/Turn off in Codex/}); await primary.waitFor();
+            await primary.focus(); await page.keyboard.press('Enter');
+          } else {
+            await square.click(); await page.getByRole('button', {name:/Turn off in Codex/}).click();
+          }
+          await page.getByRole('button', {name:/code-review in Codex: Off/i}).waitFor();
+          assert(!fs.existsSync(codex)); assert.deepEqual(fs.readFileSync(codex+'.disabled'), bytes);
+          assert.deepEqual(fs.readFileSync(claude), bytes); assert(!fs.existsSync(claude+'.disabled'));
+          const undo = page.getByRole('button', {name:'Undo', exact:true}).last(); await undo.waitFor();
+          if (method === 'keyboard') { await undo.focus(); await page.keyboard.press('Enter'); } else await undo.click();
+          await page.getByRole('button', {name:/code-review in Codex: On/i}).waitFor();
+          assert.deepEqual(fs.readFileSync(codex), bytes); assert(!fs.existsSync(codex+'.disabled'));
+          assert.deepEqual(fs.readFileSync(claude), bytes);
+        }
+      } finally {
+        for (const scope of scopes) fs.rmSync(path.dirname(file(scope, name)), {recursive:true, force:true});
+        await page.setViewportSize({width:1280,height:900});
+      }
+    });
+  }
+  await test('Phase 2 Shift+Space selects a row without writing', async () => {
+    await go('skills');
+    const showSkills = page.getByRole('button', {name:'Show my skills'});
+    if (await showSkills.isVisible()) await showSkills.click();
+    const source = file('.claude', 'sole-copy'), bytes = fs.readFileSync(source);
+    let writes = 0;
+    const observe = req => { if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method())) writes++; };
+    page.on('request', observe);
+    try {
+      const filter = page.getByRole('searchbox', {name:'Filter skills'}); await filter.fill('sole-copy');
+      await filter.focus();
+      for (let i=0; i<20 && !(await page.evaluate(() => document.activeElement?.textContent?.trim() === 'sole-copy')); i++) await page.keyboard.press('Tab');
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'sole-copy');
+      await page.keyboard.press('Shift+Space');
+      assert(await page.getByRole('checkbox', {name:'Select sole-copy'}).isChecked());
+      assert.equal(writes, 0); assert.deepEqual(fs.readFileSync(source), bytes);
+      await page.keyboard.press('Shift+Space');
+      assert(!(await page.getByRole('checkbox', {name:'Select sole-copy'}).isChecked()));
+      assert.equal(writes, 0);
+    } finally { page.off('request', observe); }
+  });
+  await test('Phase 2 add a missing copy and Undo restores the filesystem', async () => {
+    const name = 'phase-two-add', source = file('.claude', name), target = file('.codex', name);
+    const bytes = Buffer.from('---\nname: phase-two-add\ndescription: Browser copy fixture.\n---\n# Copy fixture\n');
+    assert(!fs.existsSync(source) && !fs.existsSync(target));
+    fs.mkdirSync(path.dirname(source), {recursive:true}); fs.writeFileSync(source, bytes);
+    try {
+      await go('skills');
+      const showSkills = page.getByRole('button', {name:'Show my skills'});
+      if (await showSkills.isVisible()) await showSkills.click();
+      await page.getByRole('searchbox', {name:'Filter skills'}).fill(name);
+      await page.getByRole('button', {name:/phase-two-add in Codex: Not here/i}).click();
+      await page.getByRole('button', {name:/Add to Codex/}).click();
+      await page.getByRole('button', {name:/phase-two-add in Codex: On/i}).waitFor();
+      assert.deepEqual(fs.readFileSync(target), bytes); assert.deepEqual(fs.readFileSync(source), bytes);
+      await page.getByRole('button', {name:'Undo', exact:true}).last().click();
+      await page.getByRole('button', {name:/phase-two-add in Codex: Not here/i}).waitFor();
+      assert(!fs.existsSync(target)); assert.deepEqual(fs.readFileSync(source), bytes);
+    } finally {
+      fs.rmSync(path.dirname(source), {recursive:true, force:true});
+      fs.rmSync(path.dirname(target), {recursive:true, force:true});
+    }
+  });
+  await test('Phase 2 stale Undo preserves an edited companion file', async () => {
+    const name = 'phase-two-stale', source = file('.claude', name), target = file('.codex', name);
+    const bytes = Buffer.from('---\nname: phase-two-stale\ndescription: Browser stale fixture.\n---\n# Stale fixture\n');
+    const companion = 'notes.txt', original = Buffer.from('Original notes\n'), edited = Buffer.from('Edited after copy\n');
+    assert(!fs.existsSync(source) && !fs.existsSync(target));
+    fs.mkdirSync(path.dirname(source), {recursive:true}); fs.writeFileSync(source, bytes);
+    fs.writeFileSync(path.join(path.dirname(source), companion), original);
+    try {
+      await go('skills');
+      const showSkills = page.getByRole('button', {name:'Show my skills'});
+      if (await showSkills.isVisible()) await showSkills.click();
+      await page.getByRole('searchbox', {name:'Filter skills'}).fill(name);
+      await page.getByRole('button', {name:/phase-two-stale in Codex: Not here/i}).click();
+      await page.getByRole('button', {name:/Add to Codex/}).click();
+      await page.getByRole('button', {name:/phase-two-stale in Codex: On/i}).waitFor();
+      const targetCompanion = path.join(path.dirname(target), companion);
+      assert.deepEqual(fs.readFileSync(targetCompanion), original);
+      fs.writeFileSync(targetCompanion, edited);
+      await page.getByRole('button', {name:'Undo', exact:true}).last().click();
+      await page.locator('.toast').filter({hasText:/Couldn't undo/i}).last().waitFor();
+      assert.deepEqual(fs.readFileSync(target), bytes);
+      assert.deepEqual(fs.readFileSync(targetCompanion), edited);
+      assert.deepEqual(fs.readFileSync(source), bytes);
+      assert.deepEqual(fs.readFileSync(path.join(path.dirname(source), companion)), original);
+    } finally {
+      fs.rmSync(path.dirname(source), {recursive:true, force:true});
+      fs.rmSync(path.dirname(target), {recursive:true, force:true});
+    }
+  });
+  await test('Phase 2 replace a different copy and Undo restores its bytes', async () => {
+    const target = file('.codex', 'majority-minor'), source = file('.claude', 'majority-minor');
+    const fixture = fs.readFileSync(target), replacement = fs.readFileSync(source);
+    const lateInstruction = 'Review this instruction after line forty.';
+    const before = Buffer.concat([fixture, Buffer.from('\n' + 'Context line\n'.repeat(40) + lateInstruction + '\n')]);
+    fs.writeFileSync(target, before);
+    const previewRequest = url => url.pathname === '/api/batch/preview';
+    const refuseOnce = route => route.fulfill({status:409, json:{error:'Fixture refused the first preview'}});
+    try {
+      await go('skills');
+      const showSkills = page.getByRole('button', {name:'Show my skills'});
+      if (await showSkills.isVisible()) await showSkills.click();
+      await page.getByRole('searchbox', {name:'Filter skills'}).fill('majority-minor');
+      await page.getByRole('button', {name:/majority-minor in Codex: Different/i}).click();
+      await page.getByRole('button', {name:/Compare the two versions/}).click();
+      const confirm = page.getByRole('button', {name:'Make copies match', exact:true});
+      assert(await confirm.isDisabled());
+      await page.locator('.jf-panel-details summary', {hasText:'Codex'}).click();
+      await page.getByRole('region', {name:'Codex instructions'}).getByText(lateInstruction, {exact:false}).waitFor();
+      await page.getByRole('button', {name:/Keep Claude Code’s version/}).click();
+      await page.route(previewRequest, refuseOnce, {times:1});
+      await confirm.click();
+      await page.getByRole('alert').filter({hasText:'Couldn’t complete the change'}).waitFor();
+      assert.deepEqual(fs.readFileSync(target), before);
+      await page.getByRole('button', {name:'Try again', exact:true}).click();
+      assert(await confirm.isDisabled());
+      await page.getByRole('button', {name:/Keep Claude Code’s version/}).click();
+      await confirm.click();
+      await page.getByRole('button', {name:/majority-minor in Codex: On/i}).waitFor();
+      assert.deepEqual(fs.readFileSync(target), replacement);
+      await page.getByRole('button', {name:'Undo', exact:true}).last().click();
+      await page.getByRole('button', {name:/majority-minor in Codex: Different/i}).waitFor();
+      assert.deepEqual(fs.readFileSync(target), before); assert.deepEqual(fs.readFileSync(source), replacement);
+    } finally {
+      await page.unroute(previewRequest, refuseOnce);
+      fs.mkdirSync(path.dirname(target), {recursive:true});
+      fs.writeFileSync(target, fixture);
+    }
+  });
+  await test('Phase 2 Skills and command suggestions return focus to their search fields', async () => {
+    await go('skills');
+    const show = page.getByRole('button', {name:'Show my skills'});
+    if (await show.isVisible()) await show.click();
+    const filter = page.getByRole('searchbox', {name:'Filter skills'});
+    await filter.fill('sole-copx');
+    const tableIdea = page.getByRole('button', {name:'sole-copy', exact:true});
+    await tableIdea.focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await filter.inputValue(), 'sole-copy');
+    assert(await filter.evaluate(el => el === document.activeElement));
+    await page.keyboard.press('Control+k');
+    const palette = page.getByRole('combobox', {name:'Search skills, actions and pages'});
+    await palette.fill('sole-copx');
+    await page.getByRole('dialog').getByRole('button', {name:'sole-copy', exact:true}).focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await palette.inputValue(), 'sole-copy');
+    assert(await palette.evaluate(el => el === document.activeElement));
+    await page.keyboard.press('ArrowDown');
+    assert(await palette.getAttribute('aria-activedescendant'));
+    await page.keyboard.press('Escape');
+  });
+  await test('Phase 2 1000 skills paginate and filter in the browser', async () => {
+    const list = /[/]api[/]skills[?]scope=all(?:&body=0)?$/;
+    const records = await (await page.request.get(base+'/api/skills?scope=all')).json();
+    const copy = records.find(record => record.scope === 'codex' && record.name === 'same-everywhere');
+    assert(copy);
+    const many = Array.from({length:1000}, (_, i) => ({...copy, name:'fixture-'+String(i).padStart(4,'0'), path:undefined, physical_path:undefined, body:undefined}));
+    try {
+      await page.route(list, route => route.fulfill({json:many}));
+      await go('skills');
+      const showSkills = page.getByRole('button', {name:'Show my skills'});
+      if (await showSkills.isVisible()) await showSkills.click();
+      const grid = page.getByRole('grid', {name:'Skills table'});
+      assert.equal(await grid.locator('tbody tr').count(), 50);
+      await page.getByRole('button', {name:'Show 50 more'}).click();
+      assert.equal(await grid.locator('tbody tr').count(), 100);
+      await page.getByRole('searchbox', {name:'Filter skills'}).fill('fixture-0999');
+      assert.equal(await grid.locator('tbody tr').count(), 1);
+      assert.match(await grid.locator('tbody tr').innerText(), /fixture-0999/);
+    } finally { await page.unrouteAll({behavior:'wait'}); }
+  });
+  await test('Phase 2 status case table runs in the browser Model', async () => {
+    const cases = JSON.parse(fs.readFileSync(path.join(__dirname, '../../tests/fixtures/square-status-cases.json'), 'utf8'));
+    await go('skills');
+    const failures = await page.evaluate(cases => {
+      const M = window.SkillsV2Model;
+      const scopes = ['a', 'b', 'c'].map(id => ({id, label:id, kind:'agent', exists:true}));
+      return cases.flatMap(c => {
+        const model = M.build(c.records, scopes), row = model.skills[0], busy = new Set(c.busy || []);
+        return Object.entries(c.expected).flatMap(([id, expected]) => {
+          const actual = M.squareStatus(row, model.agent(id), busy);
+          return actual === expected ? [] : [`${c.name} ${id}: ${actual} != ${expected}`];
+        });
+      });
+    }, cases);
+    assert.deepEqual(failures, []);
   });
   await test('No uncaught page errors',async()=>assert.deepEqual(exceptions,[]));
   record('Coverage limit','NOTE','Actual browser zoom is checked only in headed Chrome. Screen-reader and perceptual review require a person.');

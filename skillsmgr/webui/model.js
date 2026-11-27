@@ -198,6 +198,113 @@
     return skills;
   }
 
+  /* A project may expose several agent-specific folders in one column. */
+  function tableAgents(agents) {
+    const result = [];
+    for (const agent of agents || []) {
+      if (agent.library) continue;
+      if (agent.kind !== "project") { result.push(agent); continue; }
+      let project = result.find((a) => a.id === "project" && a.scopes);
+      if (!project) {
+        project = { id: "project", name: "This project", kind: "project", scopes: [], path: agent.path, writable: agent.writable };
+        result.push(project);
+      }
+      project.scopes.push(agent.id);
+    }
+    return result;
+  }
+
+  const scopeIds = (agent) => typeof agent === "string" ? [agent] : (agent.scopes || [agent.id]);
+  const squareCopies = (row, agent) => (row.squareCopies || row.copies || []).filter((c) => scopeIds(agent).includes(c.scope));
+
+  /* One vote per physical document, in displayed column order. */
+  function squareCamps(row, agents) {
+    const copies = [];
+    const seen = new Set();
+    for (const agent of agents || row.squareAgents || []) {
+      for (const copy of squareCopies(row, agent)) {
+        if (copy.state === "broken" || copy.state === "link" || !copy.hash) continue;
+        const path = copy.path || (copy.record && (copy.record.physical_path || copy.record.path)) || copy.scope;
+        if (!seen.has(path)) { seen.add(path); copies.push(copy); }
+      }
+    }
+    const groups = new Map();
+    for (const copy of copies) {
+      if (!groups.has(copy.hash)) groups.set(copy.hash, []);
+      groups.get(copy.hash).push(copy);
+    }
+    return [...groups.values()].sort((a, b) => b.length - a.length);
+  }
+
+  // Agents without a settings reader do not imply that a settings check failed.
+  const NO_SETTINGS_READER_IS_ON = true;
+  function settingsStatus(copy) {
+    const native = (copy.record || {}).native_state;
+    if (!native) return NO_SETTINGS_READER_IS_ON ? "on" : "unknown";
+    const sources = Array.isArray(native.sources) ? native.sources : [];
+    if (native.observed_setting === "disabled" || sources.some((s) => s.declared === "disabled")) return "settings";
+    if (sources.some((s) => !["ok", "missing", "unobserved"].includes(s.status))) return "unknown";
+    return "on";
+  }
+
+  function squareStatus(row, agent, busy, agents) {
+    const id = typeof agent === "string" ? agent : agent.id;
+    if (busy && busy.has(`${row.name}:${id}`)) return "working";
+    const copies = squareCopies(row, agent);
+    if (!copies.length) return "missing";
+    if (copies.some((c) => c.state === "broken" || c.state === "link")) return "unreadable";
+    const hashes = new Set(copies.map((c) => c.hash));
+    if (hashes.size !== 1) return "unknown";
+    if (hashes.has("")) return copies.every((c) => c.state === "off") ? "off" : "unknown";
+    const columns = agents || row.squareAgents || [];
+    if (columns.some((column) => squareCopies(row, column).some((c) => c.state !== "broken" && c.state !== "link" && !c.hash))) return "unknown";
+    const camps = squareCamps(row, agents);
+    const total = camps.reduce((n, group) => n + group.length, 0);
+    if (camps.length === 2 && camps[0].length === camps[1].length) {
+      return camps[0][0].hash === copies[0].hash ? "version-1" : "version-2";
+    }
+    if (camps.length > 1 && camps[0].length <= total / 2) return "unknown";
+    if (camps.length > 1 && copies[0].hash !== camps[0][0].hash) return "different";
+    if (copies.some((c) => c.state === "off")) return copies.every((c) => c.state === "off") ? "off" : "unknown";
+    const statuses = copies.map(settingsStatus);
+    return statuses.includes("settings") ? "settings" : statuses.includes("unknown") ? "unknown" : "on";
+  }
+
+  function rowVerdict(row, agents, busy) {
+    const columns = agents || row.squareAgents || [];
+    const states = columns.map((agent) => squareStatus(row, agent, busy, columns));
+    const find = (key) => columns[states.indexOf(key)];
+    if (find("unreadable")) return `${find("unreadable").name}’s file can’t be read`;
+    if (find("different")) return `${find("different").name} has a different copy`;
+    if (states.some((s) => s === "version-1" || s === "version-2")) return "Two versions, evenly split";
+    if (find("settings")) return `Off in ${find("settings").name} settings`;
+    if (states.includes("unknown") || states.includes("working")) return "Some places could not be checked";
+    const on = states.filter((s) => s === "on").length;
+    const off = states.filter((s) => s === "off").length;
+    if (off && !on) return "Off everywhere";
+    if (off) return `On in ${on}, off in ${off}`;
+    if (!on) return "No copies in tracked places";
+    if (on === 1) return `Only in ${find("on").name}`;
+    return `Same copy in ${plural(on, "place")}`;
+  }
+
+  function attentionItems(rows, agents, busy) {
+    const items = [];
+    for (const row of rows || []) {
+      const columns = agents || row.squareAgents || [];
+      let split = false;
+      for (const agent of columns) {
+        const type = squareStatus(row, agent, busy, columns);
+        if (type === "version-1" || type === "version-2") split = true;
+        if (type === "unreadable" || type === "different") {
+          items.push({ id: `${row.name}:${agent.id}:${type}`, type, name: row.name, agent, row });
+        }
+      }
+      if (split) items.push({ id: `${row.name}:split`, type: "split", name: row.name, agent: null, row });
+    }
+    return items;
+  }
+
   /* ---------- Per-agent summary ---------- */
   function agentInfo(agent, skills, suggested) {
     const mine = skills.filter((s) => s.status !== STATUS.note && s.copies.some((c) => c.scope === agent.id));
@@ -278,6 +385,21 @@
     const suggested = (opts && opts.suggested) || 100;
     const agents = buildAgents(scopes);
     const skills = buildSkills(records, agents);
+    const columns = tableAgents(agents);
+    const squares = new Map();
+    for (const record of Array.isArray(records) ? records : []) {
+      const name = String(record.name || "");
+      if (!name) continue;
+      if (!squares.has(name)) squares.set(name, new Map());
+      const copy = copyOf(record);
+      const key = `${copy.scope}\u0000${copy.path || copy.scope}`;
+      const prior = squares.get(name).get(key);
+      if (!prior || (prior.readOnly && !copy.readOnly)) squares.get(name).set(key, copy);
+    }
+    for (const row of skills) {
+      row.squareAgents = columns;
+      row.squareCopies = [...squares.get(row.name).values()];
+    }
     const infos = agents.map((a) => agentInfo(a, skills, suggested));
     const real = infos.filter((i) => !i.agent.library && i.mine.length);
     return {
@@ -544,6 +666,7 @@
 
   window.SkillsV2Model = Object.freeze({
     agentMark, hasOffCopy, plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
+    tableAgents, squareCamps, squareStatus, rowVerdict, attentionItems,
     toolGroups: Object.freeze(toolGroups), toolItems, toolIds,
     diffLines, changes, documentPreview, plainLine, renderDoc, stripFrontmatter, documentBaseline, consumerDiscovery,
   });
