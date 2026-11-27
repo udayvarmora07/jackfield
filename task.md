@@ -1,12 +1,38 @@
 # Task Checklist — Skills Manager
 
-**Version 0.12.1**
+**Version 0.13.0**
 
 **AI manifest**: Live work and the remaining gated/deferred queue. `[ ]` means
 pending, `[/]` in progress, `[x]` completed. Historical milestones, including
 older duplicates of this queue, are archived at
 @docs/archive/task-history-through-2026-11-17.md. Archive checkboxes are dated
 records, not additional live work.
+
+## Redesign build (2026-11-27)
+
+Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
+`docs/redesign-build/`). Phases land on `main` green, one at a time.
+
+- [x] Write the build spec from design system v13, canvas v58
+  (`designs/final/`) and the briefs, checked against the current code.
+- [ ] Maintainer answers the open questions Q1–Q11 in
+  @docs/redesign-build/09-open-questions-and-risks.md (Q1, Q3, Q4 and Q8 block
+  phases 0–2).
+- [ ] Phase 0 · Foundations: tokens pipeline, `system.css`, fonts + OFL, logo,
+  agent marks, rewritten token gate, `var()` reference test, `DESIGN.md`; the
+  whole app changes look in one commit.
+- [ ] Phase 1 · Shell: router + legacy redirects, `state.js`, header and tab
+  bar, Undo bar, notices, search and palette (S12), Not found (S13).
+- [ ] Phase 2 · Hero: Skills table S1 + side panel S2 with every square state,
+  first launch, tracking doorways.
+- [ ] Phase 3 · Everyday jobs: S3 skill page, S4 editor, S5 new skill, S6 why.
+- [ ] Phase 4 · Upkeep: S7 Needs attention, S8 Trash & backups.
+- [ ] Phase 5 · Advanced S9, tool template S10 for all 21 tools, Settings S11,
+  What to track S14–S19 restyled.
+- [ ] Phase 6 · Phone layouts.
+- [ ] Phase 7 · Remove the old UI code and aliases; rewrite web UI docs.
+- [ ] Phase 8 · Acceptance: ladder, accessibility, visual check against the
+  boards, maintainer's 20-minute test, `/ux-review`.
 
 ## Jackfield name and brand mark (2026-11-26)
 

@@ -1,11 +1,30 @@
 # Progress Log — Skills Manager
 
-**Version 0.8.2**
+**Version 0.8.3**
 
 **AI manifest**: Current delivery receipts and a bounded resident window.
 Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-17.md;
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
+
+## 2026-11-27 — Redesign build spec
+
+**[NOTE]** Added @docs/61-redesign-build-spec-2026-11-27.md and ten files in
+`docs/redesign-build/`: the plan to build the approved redesign (design system
+v13, canvas v58) into `skillsmgr/webui/` without a build step or new backend
+routes, in phases 0–8. Sources were read on 2026-11-27: the design system
+artifact (tokens, README, 18 component guides, `bundle.css`), all 25 light
+boards in `designs/final/` (byte-identical to the canvas; sampled sha256), the
+briefs, and the current code (routes, model, API calls, packaging and the 12
+test files that read the frontend). No product code changed.
+
+**[NOTE]** Findings recorded in the spec: the handoff package is stale (DS v11,
+14 screens); the Advanced board lists 11 tool rows while the app has 21 tool
+ids (Q2); Cursor and custom agents have no settings reader, so whether their
+squares may say On is open (Q1); `requirements.md`, `ui-progress.md` and
+`designs/final/` are untracked although the spec cites them (Q8); two board
+pairs hard-code a sample home path with the maintainer's first name in their
+scripts.
 
 ## 2026-11-27 — Seven-day session audit, repository cleanup, suite isolation
 

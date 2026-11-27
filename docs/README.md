@@ -1,6 +1,6 @@
 # Docs Index — Jackfield
 
-**Version 0.4.9**
+**Version 0.4.10**
 
 **AI manifest**: Entry point to the project docs. Every doc **in this tree** follows HADS: H1 title, version line, AI manifest, then `[SPEC]`/`[NOTE]`/`[?]` block markers on their own bold lines — and `check_docs.py` now enforces those three header facts for every `docs/*.md`, plus valid local links/anchors, table integrity, and the surface-parity checks below. Project files that live at the repository root (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `SECURITY.md`, `TODO.md`, `PLAN.md`, the threat model, the security report) carry their own header conventions and are deliberately outside the HADS contract. `docs/archive/` is outside the HADS header contract (`check_docs.py` globs `docs/*.md` non-recursively) but is still held to link, anchor, table and trailing-newline integrity, and carries the header facts by hand. The index was refreshed on 2026-10-05; flag stale facts in `06-progress-log.md`.
 
@@ -8,6 +8,7 @@
 
 | Doc | Covers | Load when |
 |---|---|---|
+| @docs/61-redesign-build-spec-2026-11-27.md | Build spec for the approved redesign (design system v13, one Skills table, four places): sources, tokens, components, architecture, screens, API mapping, phases 0–8, tests, open questions (detail in `docs/redesign-build/`) | Before any redesign build work in `skillsmgr/webui/` |
 | [V2 parity design and migration](superpowers/specs/2026-11-06-v2-feature-parity-design.md) | Source inventory, visual contract, research and linked implementation/acceptance plan | Understanding the completed v2 migration and default switch |
 | @docs/38-worktree-cleanup-2026-11-09.md | Audited merged-only branch/worktree cleanup, preservation decisions and recovery records | Before deleting remaining branches or recovering archived checkouts |
 | @docs/37-codebase-untangling-2026-11-09.md | Structural refactor decisions, compatibility boundaries and current-tree evidence | Before changing shared workflows or continuing the untangle pass |
