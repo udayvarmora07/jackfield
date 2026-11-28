@@ -25,6 +25,11 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
   findings, and feedback scoped to the current visit.
 - [x] Apply the before-launch review fixes to the shipped screens and record
   what could be reproduced in @docs/62-redesign-review-2026-11-28.md.
+- [x] Restore the browser smoke checks on the Paper Skills table.
+- [ ] Restore the selected-copy tools under Advanced and verify a linked copy.
+- [ ] Keep confirmations through navigation triggered by their own actions.
+- [ ] Fix the remaining Paper recovery, copy and layout findings. Verify hosted
+  CI after the follow-up commits.
 - [ ] Maintainer review of S9. Confirm any future change to the approved page
   widths during design acceptance.
 - [ ] Remaining open questions Q6–Q7, Q9–Q11 in

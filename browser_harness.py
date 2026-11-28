@@ -203,30 +203,39 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
       : `(() => { const original=window.fetch; window.fetch=function(input,init){ const target=typeof input==='string'?input:(input && input.url)||''; if(target.includes(${JSON.stringify(failedRoute)})) return Promise.reject(new Error('synthetic first-scan failure')); return original.call(this,input,init); }; })();`;
     await send('Page.addScriptToEvaluateOnNewDocument', {source:preload});
   }
-  await send('Page.navigate',{url: url + '/#/skills?view=agents'});
+  await send('Page.navigate',{url: url + '/#/skills'});
   const evalValue = async (expression) => { const r = await send('Runtime.evaluate', {expression, returnByValue:true}); return r.result && r.result.result && r.result.result.value; };
   const pause = (ms) => new Promise(r=>setTimeout(r,ms));
   // Ready = the app has mounted, the page heading is no longer the loading
-  // heading, and one representative block (agent cards, an empty-state note or
-  // an error alert) is on screen. Then the visible text must hold still for two
-  // consecutive checks (stableChecks), so a half-rendered frame never passes.
+  // heading, and a table, welcome, no-agents state or error alert is on screen.
+  // Then the visible text must hold still for two checks.
   const readyExpression = `(() => {
     const app = document.querySelector('#app');
     const heading = document.querySelector('#h1');
     const text = heading ? heading.innerText.trim() : '';
-    const rooms = document.querySelectorAll('.room').length;
-    const note = document.querySelector('.state-note');
-    const emptyHome = document.querySelector('.room-empty');
+    const rooms = document.querySelectorAll('.jf-grid tbody tr').length;
+    const welcome = document.querySelector('.jf-skills-welcome');
+    const emptyHome = [...document.querySelectorAll('.jf-skills-empty h2')].find(el => /No agent skills found yet|No agents are tracked/.test(el.innerText));
     const alert = document.querySelector('[role="alert"]');
-    const representative = rooms > 0 || !!note || !!emptyHome || !!alert;
-    return {ready: !!app && !app.hasAttribute('v-cloak') && !!text && !/^Looking at/.test(text) && representative,
-      rooms, emptyHome: emptyHome ? emptyHome.innerText.slice(0, 200) : '', alert: alert ? alert.innerText.slice(0, 200) : '',
-      looks: document.querySelectorAll('.look').length, marker: (document.querySelector('#main') || document.body).innerText.slice(0, 400)};
+    const attention = document.querySelector('.jf-attention-banner .sm-banner__title');
+    const attentionMatch = attention && attention.innerText.match(/^\\s*(\\d+)\\s+skills?\\s+needs?\\s+your attention/i);
+    const representative = rooms > 0 || !!welcome || !!emptyHome || !!alert;
+    return {ready: !!app && !app.hasAttribute('v-cloak') && !!text && !/^Looking (at|for)/i.test(text) && representative,
+      rooms, welcome: !!welcome, emptyHome: emptyHome ? emptyHome.innerText : '', alert: alert ? alert.innerText.slice(0, 200) : '',
+      looks: attentionMatch ? Number(attentionMatch[1]) : 0,
+      marker: (document.querySelector('#main') || document.body).innerText};
   })()`;
   let previousMarker = null, stableChecks = 0, ready = false, lastState = null;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const state = await evalValue(readyExpression);
     lastState = state;
+    // Exercise the populated table itself, not just its first-launch welcome.
+    if (scenario === 'populated' && state && state.welcome) {
+      await evalValue(`(() => { const button = [...document.querySelectorAll('.jf-skills-welcome button')].find(el => el.innerText.trim() === 'Show my skills'); if (button) button.click(); })()`);
+      previousMarker = null; stableChecks = 0;
+      await pause(100);
+      continue;
+    }
     if (state && state.ready && state.marker === previousMarker) stableChecks += 1;
     else stableChecks = 0;
     previousMarker = state ? state.marker : null;
@@ -236,11 +245,11 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
   if (!ready) throw new Error('The interface did not reach a stable rendered state: ' + JSON.stringify({lastState, errors, failed}));
   const firstUsefulMs = Date.now() - navigationStarted;
   const home = lastState;
-  // Scenario expectations: populated shows agent cards and a Needs-a-look
-  // queue (the malformed-observed fixture); empty says so in words; a failed
+  // Scenario expectations: populated shows rows and a Needs attention count
+  // (the malformed-observed fixture); empty says so in words; a failed
   // first scan shows an alert instead of a blank or crashed page.
-  if (scenario === 'populated' && !(home.rooms > 0 && home.looks > 0)) errors.push('Populated home did not show agent cards and the Needs-a-look queue: ' + JSON.stringify(home));
-  if (scenario === 'empty' && !(home.rooms === 0 && /No agent skill folders/.test(home.emptyHome))) errors.push('Empty home did not explain that no agent folders were found: ' + JSON.stringify(home));
+  if (scenario === 'populated' && !(home.rooms > 0 && home.looks > 0)) errors.push('Populated home did not show skill rows and the Needs attention count: ' + JSON.stringify(home));
+  if (scenario === 'empty' && !(home.rooms === 0 && /No agent skills found yet/.test(home.emptyHome))) errors.push('Empty home did not explain that no agent folders were found: ' + JSON.stringify(home));
   if ((scenario === 'scope-failure' || scenario === 'inventory-failure') && !home.alert) errors.push('A failed first scan did not surface an alert: ' + JSON.stringify(home));
   if (scenario === 'unavailable-root' && home.alert) errors.push('An unavailable agent root broke the first render: ' + JSON.stringify(home));
 
@@ -302,7 +311,7 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
   }
   if (!qualityReady) errors.push('Quality did not render bounded evidence without overflow: ' + JSON.stringify(qualityState));
   if (qualityState && qualityState.findings > 50) errors.push('Quality rendered more than one page (50) of findings at once');
-  await evalValue(`(() => { location.hash = '#/skills?view=agents'; return true; })()`);
+  await evalValue(`(() => { location.hash = '#/skills'; return true; })()`);
   await pause(150);
   if (screenshot) {
     const capture = await send('Page.captureScreenshot', {format:'png', captureBeyondViewport:true});

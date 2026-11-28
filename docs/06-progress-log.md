@@ -7,6 +7,14 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper browser smoke
+
+**[NOTE]** The browser smoke harness opens the Paper Skills route and waits
+for two stable checks. It dismisses the welcome card for the populated
+scenario so the table rows and Needs attention count are both exercised.
+The empty and failure scenarios check their Paper messages. The harness
+keeps its existing JSON fields.
+
 ## 2026-11-28 — Paper review fixes, Batch 2
 
 **[NOTE]** New skill confirms before replacing edited instructions and
