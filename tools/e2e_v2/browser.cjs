@@ -27,11 +27,11 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   const page = await context.newPage(); page.setDefaultTimeout(5000);
   page.on('pageerror', e => exceptions.push(e.message));
   let navigation = 0;
-  async function go(route) {
-    await page.goto(base + '/?fixture-step=' + (++navigation) + '#/' + route);
-    await page.locator('main').waitFor();
-    await page.waitForLoadState('networkidle');
-    if (route.startsWith('skill/')) await page.locator('.jf-reader-heading').waitFor();
+  async function go(route, target = page) {
+    await target.goto(base + '/?fixture-step=' + (++navigation) + '#/' + route);
+    await target.locator('main').waitFor();
+    await target.waitForLoadState('networkidle');
+    if (route.startsWith('skill/')) await target.locator('.jf-reader-heading').waitFor();
   }
   async function theme(t) { for (let i=0;i<3 && await page.locator('html').getAttribute('data-theme')!==t;i++) { const button = page.locator('.themebtn:visible').first(); if (await button.count()) await button.click(); else { await page.keyboard.press('Control+k'); await page.getByRole('combobox', {name:'Search skills, actions and pages'}).fill('Switch theme'); await page.getByRole('option', {name:/Switch theme/}).click(); } } assert.equal(await page.locator('html').getAttribute('data-theme'),t); }
   const file=(scope,name='same-everywhere')=>path.join(home,scope,'skills',name,'SKILL.md');
@@ -1569,8 +1569,14 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.locator('#nf-desc').fill('Use this fixture to verify browser creation.');
     await page.getByRole('button',{name:'Create in 1 place',exact:true}).click();
     await page.getByRole('button',{name:'Edit',exact:true}).waitFor();
+    const createdToast = page.locator('.toast').getByText('created-browser created in 1 place.', {exact:true});
+    await createdToast.waitFor();
+    const live = page.locator('#app > .sr-only[aria-live]');
+    assert.equal(await live.textContent(), 'created-browser created in 1 place.');
     const f=file('.claude','created-browser'), original=fs.readFileSync(f);
     await page.getByRole('button',{name:'Edit',exact:true}).click();
+    await createdToast.waitFor({state:'hidden'});
+    assert.equal(await live.textContent(), '');
     assert(await page.locator('#ed-desc').evaluate(e=>e===document.activeElement));
     await page.locator('#ed-body').fill('Name | Result\n--- | ---\n*italic* | [docs](https://example.test/a)\n\n<img src=x onerror="window.fixtureAttack=1">');
     await page.getByRole('button',{name:'Preview',exact:true}).click();
@@ -1591,6 +1597,57 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await undo.click();
     assert((await restore).ok());
     assert.deepEqual(fs.readFileSync(f),original);
+  });
+  await test('Leaving while creation refresh is pending does not show stale success', async () => {
+    const name = 'pending-create-feedback';
+    await go('skills');
+    await page.getByRole('link', {name:'New skill', exact:true}).first().click();
+    await page.getByLabel('Name', {exact:true}).fill(name);
+    await page.locator('#nf-desc').fill('Use this fixture to verify navigation during refresh.');
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    let requestSeen;
+    const seen = new Promise(resolve => { requestSeen = resolve; });
+    const endpoint = '**/api/skills?scope=all&body=0';
+    const delay = async route => { requestSeen(); await pending; await route.continue(); };
+    await page.route(endpoint, delay);
+    try {
+      await page.getByRole('button', {name:'Create in 1 place', exact:true}).click();
+      await seen;
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.waitForURL(url => url.hash === '#/skills');
+      const refreshed = page.waitForResponse(response => response.url().includes('/api/skills?scope=all&body=0'));
+      release();
+      await refreshed;
+      await page.waitForTimeout(250);
+      assert.equal(new URL(page.url()).hash, '#/skills');
+      assert.equal(await page.locator('.toast').getByText(name + ' created in 1 place.', {exact:true}).count(), 0);
+      assert.equal(await page.locator('#app > .sr-only[aria-live]').textContent(), '');
+    } finally {
+      release();
+      await page.unroute(endpoint, delay);
+      await page.request.delete(`${base}/api/skills/${name}?scope=claude-code&purge=1`);
+    }
+  });
+  await test('Permanent deletion confirms on the Skills screen', async () => {
+    const name = 'permanent-feedback-browser';
+    const created = await page.request.post(base + '/api/skills?scope=claude-code', {
+      data:{name, description:'Use this fixture to verify deletion feedback.', body:'Fixture body.'},
+    });
+    assert.equal(created.status(), 201);
+    try {
+      await go('skill/' + name);
+      await page.getByText('Permanent removal', {exact:true}).click();
+      await page.getByRole('button', {name:'Delete permanently', exact:true}).click();
+      const dialog = page.getByRole('dialog', {name:/Permanently delete/});
+      await dialog.locator('input[type=checkbox]').check();
+      await dialog.getByRole('button', {name:'Delete permanently', exact:true}).click();
+      await page.waitForURL(url => url.hash === '#/skills');
+      await page.locator('.toast').getByText('Selected copies permanently deleted.', {exact:true}).waitFor();
+      assert.equal(await page.locator('#app > .sr-only[aria-live]').textContent(), 'Selected copies permanently deleted.');
+    } finally {
+      await page.request.delete(`${base}/api/skills/${name}?scope=claude-code&purge=1`);
+    }
   });
   await test('Markdown readers render tables, nested lists and safe content',async()=>{
     try {
@@ -2713,26 +2770,42 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     }
   });
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
-    for(const width of [320,768,1280])for(const mode of ['light','dark']){
-      await page.setViewportSize({width,height:900});await go('tools/settings');await page.getByLabel('Theme',{exact:true}).selectOption(mode);
-      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/doctor','tools/settings','tools/source-update','tools/ai-settings','skills','trash','settings/tracking','settings/tracking/add-agent']){
-        await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`${route} ${width} ${mode}`);
-        if (route.startsWith('tools/')) {
-          const nav = page.getByRole('navigation',{name:'Tools navigation'});
-          if(width<=860){
-            assert(await nav.getByRole('link',{name:'All tools',exact:true}).isVisible());
-            assert.equal(await nav.getByRole('link').count(),1);
-          }else{
-            const active = nav.locator('[aria-current="page"]');
-            assert(await active.evaluate(link => {
-              const tab = link.getBoundingClientRect(), nav = link.closest('nav').getBoundingClientRect();
-              return tab.top >= nav.top - 1 && tab.bottom <= nav.bottom + 1 && nav.bottom <= innerHeight;
-            }), `active tool is clipped on ${route} at ${width}px`);
+    for (const width of [320,768,1280]) {
+      // Each theme has its own browser preferences and makes only read requests.
+      const outcomes = await Promise.allSettled(['light','dark'].map(async mode => {
+        const themeContext = await browser.newContext({viewport:{width,height:900}, colorScheme:mode});
+        try {
+          const view = await themeContext.newPage();
+          view.setDefaultTimeout(5000);
+          view.on('pageerror', error => exceptions.push(error.message));
+          await go('tools/settings', view);
+          await view.getByLabel('Theme',{exact:true}).selectOption(mode);
+          for (const route of ['tools','tools/install','tools/profiles','tools/instances','tools/templates','tools/quality',
+            'tools/workspaces','tools/doctor','tools/settings','tools/source-update','tools/ai-settings','skills','trash',
+            'settings/tracking','settings/tracking/add-agent']) {
+            await go(route, view);
+            assert.equal(await view.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `${route} ${width} ${mode}`);
+            if (!route.startsWith('tools/')) continue;
+            const nav = view.getByRole('navigation',{name:'Tools navigation'});
+            if (width <= 860) {
+              assert(await nav.getByRole('link',{name:'All tools',exact:true}).isVisible());
+              assert.equal(await nav.getByRole('link').count(),1);
+            } else {
+              const active = nav.locator('[aria-current="page"]');
+              assert(await active.evaluate(link => {
+                const tab = link.getBoundingClientRect(), nav = link.closest('nav').getBoundingClientRect();
+                return tab.top >= nav.top - 1 && tab.bottom <= nav.bottom + 1 && nav.bottom <= innerHeight;
+              }), `active tool is clipped on ${route} at ${width}px`);
+            }
           }
-        }
-      }
+        } finally { await themeContext.close(); }
+      }));
+      for (const outcome of outcomes) if (outcome.status === 'rejected') throw outcome.reason;
     }
-    await page.setViewportSize({width:1280,height:900});await go('tools');await page.screenshot({path:path.join(root,'final-tools-desktop.png')});
+    await page.setViewportSize({width:1280,height:900});
+    await go('tools');
+    await theme('dark');
+    await page.screenshot({path:path.join(root,'final-tools-desktop.png')});
   });
   await test('Stop tracking an agent leaves its files alone and Undo brings its column back', async () => {
     const f=file('.codex','same-everywhere'), bytes=fs.readFileSync(f);

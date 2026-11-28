@@ -49,8 +49,8 @@ open. The checked-in boards were compared by markup, copy, and widths.
 | Finding | Disposition |
 | --- | --- |
 | Browser smoke waits for the retired view | Fixed in `7b69ebe`. The populated probe dismisses the welcome card and checks the Paper table and its Needs attention count. |
-| Bulk tags, profile assignment and exact-copy tools are unreachable | The maintainer chose Advanced → Add skills → Skill copies. The page restores checked file actions, tag filtering and editing, and adding selections to profiles. A followed link stays read-only. |
-| Create and permanent removal confirmations disappear | Pending. |
+| Bulk tags, profile assignment and exact-copy tools are unreachable | Fixed in `e7879f0`. The maintainer chose Advanced → Add skills → Skill copies. The page restores checked file actions, tag filtering and editing, and adding selections to profiles. A followed link stays read-only. |
+| Create and permanent removal confirmations disappear | Fixed in `fix(webui): keep confirmations through action redirects`. An action's confirmation stays visible and in the live region on its destination. A manual screen change clears old success feedback. |
 | Remaining Paper review findings | Pending. |
 
 ## Scope and evidence

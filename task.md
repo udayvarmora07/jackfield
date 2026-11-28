@@ -28,7 +28,7 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Restore the browser smoke checks on the Paper Skills table.
 - [x] Restore the selected-copy tools under Advanced and verify linked-copy
   guards, tag and profile changes, and reviewed removal with Undo.
-- [ ] Keep confirmations through navigation triggered by their own actions.
+- [x] Keep confirmations through navigation triggered by their own actions.
 - [ ] Fix the remaining Paper recovery, copy and layout findings. Verify hosted
   CI after the follow-up commits.
 - [ ] Maintainer review of S9. Confirm any future change to the approved page

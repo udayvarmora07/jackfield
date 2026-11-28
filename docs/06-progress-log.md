@@ -7,6 +7,14 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper write confirmations
+
+**[NOTE]** Create and permanent removal confirmations stay visible and in
+the live region on the route opened by the action. Leaving a screen clears
+its old feedback. A late success stays with its original visit, while a late
+write failure is still announced. Chromium covers creation, permanent
+removal, manual navigation and navigation during the post-write file check.
+
 ## 2026-11-28 — Advanced Skill copies
 
 **[NOTE]** The maintainer chose Advanced → Add skills → Skill copies for bulk

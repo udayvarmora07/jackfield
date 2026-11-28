@@ -1973,7 +1973,32 @@ const app = createApp({
         },
       });
     },
-    openPermanentDelete() {const skill=this.skill;if(!skill)return;this.openDialog({title:`Permanently delete “${skill.name}”?`,danger:true,confirm:"Delete permanently",lines:["This removes the selected copies without moving them to trash. There is no Undo or trash restore for this action."],picks:skill.copies.filter(c=>!c.readOnly&&c.record.addressable!==false&&c.state!=="link"&&this.agentOf(c.scope).writable).map(c=>({id:c.scope,label:this.agentOf(c.scope).name,path:shortPath(c.path)})),chosen:[],onConfirm:async d=>{this.busy=true;try{for(const scope of d.chosen)await api(`/api/skills/${encodeURIComponent(skill.name)}?scope=${encodeURIComponent(scope)}&purge=1`,{method:"DELETE"});await this.refresh();this.toast("Selected copies permanently deleted.");if(!this.m.byName.get(skill.name))Router.go("#/skills");}catch(e){await this.refresh();this.toast(e.message,{err:true});}finally{this.busy=false;}}});},
+    openPermanentDelete() {
+      const skill = this.skill;
+      if (!skill) return;
+      this.openDialog({
+        title: `Permanently delete “${skill.name}”?`, danger: true, confirm: "Delete permanently",
+        lines: ["This removes the selected copies without moving them to trash. There is no Undo or trash restore for this action."],
+        picks: skill.copies.filter(c => !c.readOnly && c.record.addressable !== false && c.state !== "link" && this.agentOf(c.scope).writable)
+          .map(c => ({ id: c.scope, label: this.agentOf(c.scope).name, path: shortPath(c.path) })),
+        chosen: [],
+        onConfirm: async d => {
+          const visit = this.screenVisit;
+          this.busy = true;
+          try {
+            for (const scope of d.chosen) await api(`/api/skills/${encodeURIComponent(skill.name)}?scope=${encodeURIComponent(scope)}&purge=1`, { method: "DELETE" });
+            await this.refresh();
+            if (visit !== this.screenVisit) return;
+            const destination = !this.m.byName.get(skill.name) ? "#/skills" : null;
+            this.toast("Selected copies permanently deleted.", { keepAt: destination });
+            if (destination) Router.go(destination);
+          } catch (e) {
+            await this.refresh();
+            this.toast(e.message, { err: true });
+          } finally { this.busy = false; }
+        },
+      });
+    },
 
     /* ----- create, recovery, theme, help ----- */
     authorInput(estimate) {
@@ -2012,14 +2037,16 @@ const app = createApp({
       }));
       if (prompts.length) {
         try { await api("/api/ai/prompt-sets", { method: "POST", body: JSON.stringify({ scope: d.form.scope, prompts }) }); }
-        catch (error) { this.toast("Skill created. Test cases could not be saved. " + this.friendly(error.message), { err: true }); }
+        catch (error) { return "Skill created. Test cases could not be saved. " + this.friendly(error.message); }
       }
     },
     async newSkillCreated({ name, count }) {
-      const origin = this.route.href;
+      const visit = this.screenVisit;
       await this.refresh();
-      this.toast(`${name} created in ${plural(count, "place")}.`);
-      if (this.route.href === origin && this.m?.byName.has(name)) Router.go(Router.skillHref(name));
+      if (visit !== this.screenVisit) return;
+      const destination = this.m?.byName.has(name) ? Router.skillHref(name) : null;
+      this.toast(`${name} created in ${plural(count, "place")}.`, { keepAt: destination });
+      if (destination) Router.go(destination);
     },
     openCreate(prefill = {}) {
       const first = this.createTargets.find((x) => !x.library) || this.createTargets[0];
@@ -2028,17 +2055,22 @@ const app = createApp({
         title: "New skill", form: { name: prefill.name || "", desc: prefill.description || "", scope: target ? target.id : first ? first.id : "global", category:prefill.category || "",version:prefill.version || "",license:prefill.license || "",compatibility:prefill.compatibility || "",allowed_tools:prefill.allowed_tools || "",body:typeof prefill.body === "string" ? prefill.body : "## When to use\n\nDescribe the situations where an agent should use this skill.\n\n## Steps\n\n1. \n",template:"" }, confirm: "Create skill",
         author: { brief: "", context: "", estimate: null, key: "", result: null, revision: "", cases: [], pending: false, error: "" },
         onConfirm: async (d) => {
-          const f = d.form; this.busy = true;
+          const f = d.form, visit = this.screenVisit; this.busy = true;
           try {
             await api("/api/skills?scope=" + encodeURIComponent(f.scope), { method: "POST",
               body: JSON.stringify({ name: f.name.trim(), description: f.desc.trim(), category:f.category,version:f.version,license:f.license,compatibility:f.compatibility,allowed_tools:f.allowed_tools,body:f.body.replaceAll("{name}",f.name.trim()) }) });
             this.dialog=null;
             this.$refs.newSkill?.finish();
-            await this.saveAuthorCases(d, f.name.trim());
+            const warning = await this.saveAuthorCases(d, f.name.trim());
             await this.refresh();
-            this.toast(`${f.name.trim()} created in ${this.agentOf(f.scope).name}.`);
-            Router.go(Router.skillHref(f.name.trim()));
-          } catch (e) { d.error=this.friendly(e.message);this.live=d.error; } finally { this.busy = false; }
+            const destination = visit === this.screenVisit ? Router.skillHref(f.name.trim()) : null;
+            if (destination) this.toast(`${f.name.trim()} created in ${this.agentOf(f.scope).name}.`, { keepAt: destination });
+            if (warning) this.toast(warning, { err: true, keepAt: destination });
+            if (destination) Router.go(destination);
+          } catch (e) {
+            if (visit !== this.screenVisit) this.toast(e.message, { err: true });
+            else { d.error = this.friendly(e.message); this.live = d.error; }
+          } finally { this.busy = false; }
         },
       });
       const dialog = this.dialog;

@@ -272,7 +272,7 @@
       toast(text, opts = {}) {
         if (opts.err) text = this.friendly(text);
         const t = { id: ++this.toastSeq, text, err: !!opts.err, undo: opts.undo || null,
-          undoAt: opts.undoAt, trackingUndo: !!opts.trackingUndo,
+          keepAt: opts.keepAt || opts.undoAt, trackingUndo: !!opts.trackingUndo,
           onUndo: opts.onUndo || null, undoText: opts.undoText || "Undone" };
         if (t.undo) {
           this.toasts.filter((note) => note.undo).forEach((note) => clearTimeout(note.timer));
@@ -298,8 +298,10 @@
         this.screenVisit++;
         this.live = "";
         for (const note of this.toasts) {
-          if (note.undoAt === href) note.undoAt = null;
-          else this.dismissToast(note);
+          if (note.keepAt === href) {
+            note.keepAt = null;
+            this.live = note.text + (note.undo ? " Undo is available." : "");
+          } else this.dismissToast(note);
         }
       },
       async runUndo(t) {
