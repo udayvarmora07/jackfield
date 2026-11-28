@@ -33,7 +33,7 @@
       @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()"
       @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
     <jf-skills-screen v-else-if="route.page === 'skills' && !route.view && route.screen !== 'new'" :rows="tableRows" :agents="tableColumns"
-      :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError"
+      :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError" :working="tableWorking"
       :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.agent && !route.only && !route.screen"
       :agents-found="!!tracking?.agents.some((agent) => agent.folder_status === 'ok')"
       :busy="busy" :projects="tracking?.projects || []" :showing="tracking?.showing || ''" :changed-rows="changedRows"
@@ -52,7 +52,7 @@
       @retry-comparison="ensureBodies(attentionReads)"></jf-attention>
     <jf-trash-screen v-else-if="route.page === 'recovery'" :rows="mergedTrash" :trash-errors="mergedTrashErrors"
       :trash-loading="loading || trashLoading || agentTrashLoading"
-      :can-empty="!!trash.length && !trashError && !trashLoading" :busy="busy" :restored="restoredTrash"
+      :can-empty="!!trash.length && !trashError && !trashLoading" :library-trash-error="!!trashError" :library-trash-count="trash.length" :busy="busy" :restored="restoredTrash"
       :recent="recoveryRecent" :history-error="historyError"
       :export-pending="exportPending" :export-error="exportError" :last-download="recoveryLastDownload"
       :import-file-name="importFile?.name || ''" :import-force="importForce" :import-full="importFull"
@@ -281,7 +281,7 @@
 
     <!-- ========== SKILLS ========== -->
     <jf-new-skill v-else-if="route.screen === 'new'" :key="route.template" ref="newSkill" :agents="createTargets" :scopes="scopes"
-      :records="records" :template="route.template || ''" @created="newSkillCreated($event)" @refresh="refresh()" @ai="openCreate($event)"></jf-new-skill>
+      :records="records" :template="route.template || ''" :friendly="friendly" @created="newSkillCreated($event)" @refresh="refresh()" @ai="openCreate($event)"></jf-new-skill>
     <div class="page" v-else-if="route.page === 'skills'">
       <div class="shelf-head">
         <div><h1 class="h1" id="h1" tabindex="-1">Skills</h1>
@@ -451,15 +451,12 @@
                 <p v-else-if="readerKey && !readerError" class="jf-reader-hint">Checking files…</p>
                 <p v-else>File details are unavailable for this copy.</p>
               </section>
-              <section v-if="refCopy?.tokens || readerView?.claude_listing">
+              <section v-if="readerView?.claude_listing">
                 <h2 class="sm-cap">Size</h2>
-                <p v-if="refCopy?.tokens">About {{ fmt(refCopy.tokens) }} tokens in this file.</p>
-                <template v-if="readerView?.claude_listing">
-                  <p v-if="readerView.claude_listing.listing === 'hidden'">Uses 0% of the estimated personal skill list space.</p>
-                  <p v-else-if="readerView.claude_listing.budget_chars > 0">{{ readerListingSpace(readerView.claude_listing) }}</p>
-                  <p v-else>The Claude skill list estimate is unavailable.</p>
-                  <p class="jf-reader-hint">{{ readerView.claude_listing.basis }}</p>
-                </template>
+                <p v-if="readerView.claude_listing.listing === 'hidden'">Uses 0% of the estimated personal skill list space.</p>
+                <p v-else-if="readerView.claude_listing.budget_chars > 0">{{ readerListingSpace(readerView.claude_listing) }}</p>
+                <p v-else>The Claude Code skill list estimate is unavailable.</p>
+                <p class="jf-reader-hint">This estimate covers personal skills in Claude Code.</p>
               </section>
               <section>
                 <h2 class="sm-cap">History</h2>
@@ -541,10 +538,10 @@
             <label v-for="place in edit.places" :key="place.scope" class="jf-editor-place">
               <input type="checkbox" class="sm-check" :value="place.scope" v-model="edit.targets" :disabled="busy || (editPlaceChanged(place.scope) && !edit.targets.includes(place.scope))">
               <span>
-                <jf-agent :agent="place.agent"></jf-agent>
+                <span class="jf-editor-place-heading"><jf-agent :agent="place.agent"></jf-agent>
+                  <jf-status v-if="!editPlaceChanged(place.scope) && !place.copy" status="missing"></jf-status></span>
                 <small v-if="editPlaceChanged(place.scope)">This place changed on disk.</small>
                 <template v-else-if="!place.copy">
-                  <jf-status status="missing"></jf-status><br>
                   <span class="sm-hint">{{ edit.targets.includes(place.scope) ? 'A new copy will be added here.' : 'No copy here. Tick to add one.' }}</span>
                 </template>
                 <small v-else-if="editPlaces.get(place.scope).copy.hash !== edit.copy.hash">Different copy. Selecting it replaces its description, instructions and editable metadata.</small>
@@ -734,8 +731,7 @@
           <p>Restore keeps the supporting files and on/off state. It uses the original folder when Jackfield recorded it. Older copies return to the place’s usual skill folder. If the destination is occupied, both copies stay where they are.</p>
           <dl class="recovery-entry">
             <div><dt>Restore to</dt><dd>{{ dialog.recovery.scopeLabel }}</dd></div>
-            <div v-if="dialog.recovery.when"><dt>Saved folder date</dt><dd>{{ dialog.recovery.when }}<template v-if="dialog.recovery.copyLabel">, {{ dialog.recovery.copyLabel }}</template></dd></div>
-            <div><dt>Saved folder</dt><dd><code translate="no">{{ dialog.recovery.trash_path }}</code></dd></div>
+            <div v-if="dialog.recovery.when || dialog.recovery.copyLabel"><dt>Saved copy</dt><dd>{{ [dialog.recovery.when, dialog.recovery.copyLabel].filter(Boolean).join(' · ') }}</dd></div>
           </dl>
           <p class="state-note err" role="alert" tabindex="-1" ref="restoreError" v-if="dialog.error">{{ dialog.error }}</p>
         </template>

@@ -23,8 +23,10 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Apply the fix-now changes in @docs/62-redesign-review-2026-11-28.md:
   disclosure chevrons, first launch, classic-view redirects, Doctor and Why
   findings, and feedback scoped to the current visit.
-- [ ] Resolve the before-launch findings from the same review. Maintainer
-  review of S9 is still pending.
+- [x] Apply the before-launch review fixes to the shipped screens and record
+  what could be reproduced in @docs/62-redesign-review-2026-11-28.md.
+- [ ] Maintainer review of S9. Confirm any future change to the approved page
+  widths during design acceptance.
 - [ ] Remaining open questions Q6–Q7, Q9–Q11 in
   @docs/redesign-build/09-open-questions-and-risks.md.
 - [x] Phase 0 implementation and local checks · Foundations: tokens pipeline, `system.css`, fonts + OFL, logo,

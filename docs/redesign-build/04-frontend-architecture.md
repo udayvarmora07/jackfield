@@ -231,6 +231,8 @@ them and are not used inside them, which keeps the APG grid pattern simple.
   and "Only problems" work on the whole list. 1,000 skills × 8 columns = 8,000
   squares at most when fully expanded; each square is one button with no
   per-square watchers (compute rows once per list change, `markRaw` records).
+  The table and Needs attention reuse one set of square statuses per row.
+  Working indicators affect only rendered cells while the write is pending.
 - Placeholders appear only after 300 ms, so fast loads never flash.
 - Budgets checked by `tests/test_performance_frontend.py` and the e2e job:
   table interactive under 1.5 s with 1,000 fixture skills on CI hardware; a

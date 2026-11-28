@@ -49,7 +49,7 @@
       const kind = String(s.kind || "");
       if (s.exists === false || (kind !== "agent" && kind !== "global" && kind !== "project")) continue;
       out.push({
-        id: s.id, name: kind === "global" ? "Your library" : s.id === "agents" ? "Shared skills folder" : (s.label || s.id), kind,
+        id: s.id, name: scopeName(s.id, s.label, kind), kind,
         initials: initialsOf(s.label || s.id), mark: markFor(s.id), path: shortPath(s.path || ""),
         limit: WINDOW_BY_CONSUMER[s.consumer || s.id] || DEFAULT_WINDOW,
         library: kind === "global", writable: s.writable !== false && s.availability !== "read-only",
@@ -87,7 +87,7 @@
     const bodyLoaded = Object.prototype.hasOwnProperty.call(record, "body") && typeof record.body === "string";
     return {
       name: String(record.name || ""),
-      scope: record.scope, label: record.scope_label || record.scope,
+      scope: record.scope, label: scopeName(record.scope, record.scope_label),
       state: broken ? "broken" : linked ? "link" : state === "disabled" ? "off" : "on",
       kind: broken || linked ? state : "", hash: broken || linked ? "" : String(record.content_hash || ""),
       tokens: record.tokens || 0, path: record.physical_path || record.path || "",
@@ -252,7 +252,15 @@
     return "on";
   }
 
-  function squareStatus(row, agent, busy, agents) {
+  function squareEvidence(row, agents) {
+    const columns = agents || row.squareAgents || [];
+    const unknown = columns.some((column) => squareCopies(row, column).some(
+      (copy) => copy.state !== "broken" && copy.state !== "link" && !copy.hash));
+    const camps = unknown ? [] : squareCamps(row, columns);
+    return { unknown, camps, total: camps.reduce((n, group) => n + group.length, 0) };
+  }
+
+  function squareStatusFromEvidence(row, agent, busy, evidence) {
     const id = typeof agent === "string" ? agent : agent.id;
     if (busy && busy.has(`${row.name}:${id}`)) return "working";
     const copies = squareCopies(row, agent);
@@ -261,10 +269,8 @@
     const hashes = new Set(copies.map((c) => c.hash));
     if (hashes.size !== 1) return "unknown";
     if (hashes.has("")) return copies.every((c) => c.state === "off") ? "off" : "unknown";
-    const columns = agents || row.squareAgents || [];
-    if (columns.some((column) => squareCopies(row, column).some((c) => c.state !== "broken" && c.state !== "link" && !c.hash))) return "unknown";
-    const camps = squareCamps(row, agents);
-    const total = camps.reduce((n, group) => n + group.length, 0);
+    const { unknown, camps, total } = evidence;
+    if (unknown) return "unknown";
     if (camps.length === 2 && camps[0].length === camps[1].length) {
       return camps[0][0].hash === copies[0].hash ? "version-1" : "version-2";
     }
@@ -275,9 +281,19 @@
     return statuses.includes("settings") ? "settings" : statuses.includes("unknown") ? "unknown" : "on";
   }
 
-  function rowVerdict(row, agents, busy) {
+  function squareStatus(row, agent, busy, agents) {
+    return squareStatusFromEvidence(row, agent, busy, squareEvidence(row, agents));
+  }
+
+  function squareStatuses(row, agents, busy) {
     const columns = agents || row.squareAgents || [];
-    const states = columns.map((agent) => squareStatus(row, agent, busy, columns));
+    const evidence = squareEvidence(row, columns);
+    return columns.map((agent) => squareStatusFromEvidence(row, agent, busy, evidence));
+  }
+
+  function rowVerdict(row, agents, busy, statuses) {
+    const columns = agents || row.squareAgents || [];
+    const states = statuses || squareStatuses(row, columns, busy);
     const find = (key) => columns[states.indexOf(key)];
     if (find("unreadable")) return `${find("unreadable").name}’s file can’t be read`;
     if (find("different")) return `${find("different").name} has a different copy`;
@@ -293,13 +309,14 @@
     return `Same copy in ${plural(on, "place")}`;
   }
 
-  function attentionItems(rows, agents, busy) {
+  function attentionItems(rows, agents, busy, statusesByRow) {
     const items = [];
     for (const row of rows || []) {
       const columns = agents || row.squareAgents || [];
       let split = false;
-      for (const agent of columns) {
-        const type = squareStatus(row, agent, busy, columns);
+      const statuses = statusesByRow?.get(row) || squareStatuses(row, columns, busy);
+      for (const [index, agent] of columns.entries()) {
+        const type = statuses[index];
         if (type === "version-1" || type === "version-2") split = true;
         if (type === "unreadable" || type === "different") {
           items.push({ id: `${row.name}:${agent.id}:${type}`, type, name: row.name, agent, row });
@@ -555,20 +572,20 @@
     ] },
     { key: "inspect", label: "Inspect and maintain", items: [
       { id: "quality", name: "Quality", text: "Find broken documents, weak descriptions and copies that drifted apart.", commandLabel: "Quality and validation" },
-      { id: "workspaces", name: "Workspaces", text: "See where each agent looks for skills and what a project adds.", commandLabel: "Workspaces" },
+      { id: "workspaces", name: "Where agents look", text: "See where each agent looks for skills and which folders exist.", commandLabel: "Where agents look" },
       { id: "doctor", name: "Doctor", text: "Check the library index and skill folders for problems." },
       { id: "settings", name: "Settings", text: "Theme, text size, number format and index maintenance.", commandLabel: "Settings and index maintenance" },
     ] },
     { key: "ai", label: "AI assist (your own key)", items: [
-      { id: "ai-settings", name: "AI settings", text: "Connect Anthropic, an OpenAI-compatible service or a local model, and set spending caps.", commandLabel: "AI settings" },
+      { id: "ai-settings", name: "Connection", text: "Choose an AI service, set spending caps, and test that it answers.", commandLabel: "AI connection" },
       { id: "ai-ask", name: "Ask your library", text: "Ask which of your skills fits a task, in plain words. Only names and descriptions are sent.", commandLabel: "AI ask your library" },
       { id: "ai-draft", name: "Draft a skill", text: "Turn a brief into a skill, then validate and test it against the skills already in a scope.", commandLabel: "Draft a skill" },
       { id: "ai-concise", name: "Shorten a skill", text: "Propose a concise primary document and new references, then review the exact folder update.", commandLabel: "Shorten a skill" },
       { id: "ai-profile", name: "Suggest a profile", text: "Use project metadata to suggest an editable profile from existing skills.", commandLabel: "Suggest a profile" },
       { id: "ai-trigger", name: "Trigger test", text: "Simulate which skill your configured model selects from names and descriptions.", commandLabel: "AI trigger test" },
       { id: "ai-improve", name: "Improve a description", text: "Get rewrites that are re-tested and recommended only when they measurably help.", commandLabel: "AI improve description" },
-      { id: "ai-budget", name: "Fit the listing budget", text: "Propose shorter descriptions and compare their simulated selection rates.", commandLabel: "AI fit listing budget" },
-      { id: "ai-evals", name: "Does it help?", text: "Run a skill's eval cases with and without it, graded by its own assertions.", commandLabel: "AI eval runner" },
+      { id: "ai-budget", name: "Fit the listing budget", text: "Try shorter descriptions and compare how often your model picks each skill in a simulation.", commandLabel: "AI fit listing budget" },
+      { id: "ai-evals", name: "Does it help?", text: "Run the same requests with and without a skill, then compare results against its test checks.", commandLabel: "AI eval runner" },
       { id: "ai-ablate", name: "Does it earn its place?", text: "Test a skill or one section by removing it; removal is proposed when results are not worse.", commandLabel: "AI ablate and retire" },
       { id: "ai-conflicts", name: "Contradiction check", text: "Find lines in CLAUDE.md and AGENTS.md that may disagree with each other or your skills.", commandLabel: "Contradiction check" },
       { id: "ai-overlap", name: "Overlap check", text: "Find skills that compete for the same requests or give conflicting instructions.", commandLabel: "AI overlap check" },
@@ -587,14 +604,14 @@
   const toolsById = (...ids) => ids.map((id) => toolById.get(id));
   const advancedGroups = Object.freeze([
     advancedGroup("add", "Add skills", "Bring in skills from outside, or start from a pattern.", [
-      ["", toolsById("install", "templates", "profiles", "source-update")],
+      ["", [toolById.get("install"), Object.freeze({ ...toolById.get("templates"), text: "Starting layouts for new skills. Add your own." }),
+        Object.freeze({ ...toolById.get("profiles"), text: "Named sets of skills you can turn on together." }), toolById.get("source-update")]],
     ]),
     advancedGroup("inspect", "Check my setup", "Find out what’s wrong and why.", [
-      ["", [toolById.get("quality"), Object.freeze({ ...toolById.get("workspaces"), name: "Where agents look" }),
-        toolById.get("doctor")]],
+      ["", toolsById("quality", "workspaces", "doctor")],
     ]),
     advancedGroup("ai", "AI assist", "Uses your own AI service. You see what’s sent first, every time.", [
-      ["", [Object.freeze({ ...toolById.get("ai-settings"), name: "Connection" })]],
+      ["", toolsById("ai-settings")],
       ["Write", toolsById("ai-draft", "ai-improve", "ai-profile", "ai-port", "ai-ask")],
       ["Test", toolsById("ai-trigger", "ai-evals", "ai-ablate")],
       ["Shorten", toolsById("ai-concise", "ai-budget")],
@@ -688,8 +705,15 @@
 
   /* The mark for an agent the table may not list (What to track shows
    * untracked and custom agents too). Custom agents get a neutral badge. */
+  function scopeName(id, label, kind) {
+    if (id === "global" || kind === "global") return "Your library";
+    if (id === "agents") return "Shared folder";
+    return label || id;
+  }
+
   function agentMark(id, label) {
-    return { id, name: label || id, initials: initialsOf(label || id), mark: markFor(id) };
+    const name = scopeName(id, label);
+    return { id, name, initials: initialsOf(name), mark: markFor(id) };
   }
 
   function hasOffCopy(skill, scope = "all") {
@@ -697,8 +721,8 @@
   }
 
   window.SkillsV2Model = Object.freeze({
-    agentMark, hasOffCopy, plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
-    tableAgents, squareCamps, squareStatus, rowVerdict, attentionItems,
+    agentMark, scopeName, hasOffCopy, plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
+    tableAgents, squareCamps, squareStatus, squareStatuses, rowVerdict, attentionItems,
     toolGroups: Object.freeze(toolGroups), toolItems, toolIds, advancedGroups,
     diffLines, changes, documentPreview, plainLine, renderDoc, stripFrontmatter, documentBaseline, consumerDiscovery,
   });

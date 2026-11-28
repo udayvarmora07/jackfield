@@ -150,11 +150,15 @@
 .jf-editor .jf-reader-body { grid-template-columns: minmax(0, 840px) minmax(260px, var(--panel)); }
 .jf-editor-places { gap: var(--space-2); }
 .jf-editor-place { display: flex; align-items: flex-start; gap: var(--space-2); min-height: var(--touch); padding-block: var(--space-2); border-bottom: 1px solid var(--line-subtle); }
-.jf-editor-place > span { min-width: 0; }
+.jf-editor-place > span { flex: 1; min-width: 0; }
+.jf-editor-place-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
 .jf-editor-place input { flex: none; margin-block-start: var(--space-1); }
 .jf-editor-place small { display: block; margin-block-start: var(--space-1); color: var(--warn); }
 .jf-create { max-width: 1280px; }
 .jf-create .jf-reader-body { grid-template-columns: minmax(0, 640px) minmax(260px, 520px); }
+.jf-create .jf-editor-place .jf-agent { display: flex; align-items: flex-start; }
+.jf-create .jf-editor-place .jf-agent-text { flex: 1; }
+.jf-create .jf-editor-place .jf-agent-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jf-create fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .jf-create fieldset > .sm-label { margin-top: var(--space-5); }
 .jf-create #nf-name { width: 100%; }
@@ -163,6 +167,9 @@
 .jf-create-layouts { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .jf-create-layouts .sm-btn { min-height: var(--touch); }
 .jf-create-template { display: grid; gap: var(--space-1); margin-block: var(--space-3); }
+.jf-create-confirm { margin-block: var(--space-3); padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+.jf-create-confirm p { margin: 0 0 var(--space-3); }
+.jf-create-confirm button { min-height: var(--touch); margin-inline-end: var(--space-2); }
 .jf-create-preview ul { margin: 0; padding-inline-start: var(--space-4); }
 .jf-create-preview pre { max-height: 40vh; overflow: auto; overflow-wrap: anywhere; }
 @media (max-width: 900px) {
@@ -170,12 +177,15 @@
   .jf-reader-body, .jf-editor .jf-reader-body, .jf-create .jf-reader-body { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
 }
 @media (max-width: 600px) {
+  .jf-grid-checkbox { display: inline-flex; align-items: center; justify-content: center; min-width: var(--touch); min-height: var(--touch); }
   .jf-skill-reader, .jf-why-screen { padding-bottom: calc(var(--space-10) + var(--touch)); }
   .jf-reader-heading { position: static; gap: var(--space-2); }
   .jf-reader-title { flex-basis: 100%; }
   .jf-reader-heading .sm-btn { min-height: var(--touch); }
   .jf-reader-places { grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); }
   .jf-editor .jf-reader-heading { position: sticky; top: calc(var(--touch) + var(--space-3)); }
+  .jf-reader-title nav a, .jf-why-breadcrumb a { display: inline-flex; align-items: center; min-width: var(--touch); min-height: var(--touch); }
+  .jf-editor .ed-toolbar button { min-width: var(--touch); min-height: var(--touch); }
 }
 
 #app .jf-palette-backdrop { display: flex; justify-content: center; align-items: flex-start; padding-top: 88px; }
@@ -346,6 +356,14 @@
   .jf-skills-phone-agent { display: block; }
   .jf-skills-toolbar button, .jf-skills-toolbar select, .jf-skills-toolbar input { min-height: var(--touch); }
 }
+.jf-toolbar-picker { position: relative; }
+.jf-toolbar-picker > summary::before { content: none; }
+.jf-toolbar-picker > summary { display: flex; align-items: center; gap: var(--space-2); }
+.jf-chevron { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.jf-toolbar-choices { display: grid; position: absolute; z-index: 4; min-width: 100%; padding: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-panel); }
+.jf-sort-picker .jf-toolbar-choices { right: 0; }
+.jf-toolbar-choices button { min-height: var(--touch); padding: 0 var(--space-3); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink); text-align: start; white-space: nowrap; cursor: pointer; }
+.jf-toolbar-choices button:hover, .jf-toolbar-choices button[aria-pressed="true"] { background: var(--raise); }
 .jf-project-picker { position: relative; }
 .jf-project-picker > summary { cursor: pointer; }
 .jf-project-choices { display: grid; gap: var(--space-1); position: absolute; z-index: 4; min-width: 12rem; max-width: min(20rem, 85vw); max-height: 50vh; overflow: auto; padding: var(--space-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
@@ -446,6 +464,7 @@
 .jf-attention-list { overflow: hidden; }
 .jf-attention-items { max-height: min(34rem, 65vh); overflow: auto; }
 .jf-attention-list ul, .jf-attention-targets { list-style: none; margin: 0; padding: 0; }
+.jf-attention-list .jf-attention-more { margin: var(--space-2) var(--space-4); min-height: var(--touch); }
 .jf-attention-caption {
   margin: 0;
   color: var(--mute);
@@ -545,7 +564,7 @@
 .jf-trash-entry-origin { grid-area: origin; min-width: 0; }
 .jf-trash-entry-time { grid-area: time; }
 .jf-trash-entry-action { grid-area: action; justify-self: end; }
-.jf-trash-recent { grid-template-columns: minmax(0, 1fr) 90px; }
+.jf-trash-recent { grid-template-columns: minmax(0, 1fr) auto; }
 .jf-trash-message, .jf-trash-note, .jf-trash-error { margin: 0; padding: var(--space-3) var(--space-5); }
 .jf-trash-restored { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
 .jf-trash-restored a { display: inline-flex; align-items: center; min-height: var(--control); }

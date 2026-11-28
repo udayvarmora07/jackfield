@@ -544,7 +544,7 @@
       <p v-if="busy" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Working… model calls can take a minute.</p>
 
       <template v-if="page==='ai-settings'">
-        <h1 class="h1" id="h1" tabindex="-1">AI settings</h1>
+        <h1 class="h1" id="h1" tabindex="-1">Connection</h1>
         <p class="lede">Connect your own model to test and improve how agents pick your skills. Off until you choose a provider.</p>
         <section class="card tp-panel" aria-labelledby="ai-conn-h">
           <header class="tp-panel-h"><h2 id="ai-conn-h">Model connection</h2>
@@ -594,7 +594,7 @@
             <li><b>Check what would be sent</b><span>Every run first shows exactly what leaves this computer and its token estimate. Nothing is sent at this step.</span></li>
             <li><b>Send and review</b><span>Results are shown beside your own files; nothing is changed until you apply it.</span></li>
           </ol>
-          <div class="tp-acts"><a class="btn btn-ink" href="#/advanced/ai-settings">Open AI settings</a></div></section>
+          <div class="tp-acts"><a class="btn btn-ink" href="#/advanced/ai-settings">Open Connection</a></div></section>
       </template>
 
       <template v-else-if="page==='ai-trigger'">
@@ -990,7 +990,7 @@
             <div class="tp-set-row"><label for="ai-cfv"><b>Votes per pair</b><small>Each pair is always asked in both orders. A third vote catches answers that flip between runs; every vote must agree.</small></label><select id="ai-cfv" class="field" v-model.number="conflictsVotes" @change="conflictsEstimate=null"><option :value="2">2 (both orders)</option><option :value="3">3 (both orders and a repeat)</option></select></div>
           </div>
           <div v-if="configured && conflictsReport.candidates.length && !previewCurrent('conflictsEstimate', conflictEstimateBody())" class="tp-acts"><button class="btn btn-line" :disabled="busy" @click="estimateConflictJudge()">Ask your model to judge…</button></div>
-          <p v-else-if="!configured && conflictsReport.candidates.length" class="tp-fine">To have a model judge these pairs, <a href="#/advanced/ai-settings">connect one in AI settings</a>.</p>
+          <p v-else-if="!configured && conflictsReport.candidates.length" class="tp-fine">To have a model judge these pairs, <a href="#/advanced/ai-settings">choose one in Connection</a>.</p>
           <div v-if="previewCurrent('conflictsEstimate', conflictEstimateBody()) && conflictsEstimate.status==='estimate'" class="ai-confirm" role="region" aria-label="Before sending">
             <p v-for="(line,i) in conflictsEstimate.egress" :key="i" class="tp-fine">{{ line }}</p>
             <p class="tp-fine">At most about {{ fmt(conflictsEstimate.run.estimated_input_tokens) }} tokens to {{ conflictsEstimate.run.model }}.</p>

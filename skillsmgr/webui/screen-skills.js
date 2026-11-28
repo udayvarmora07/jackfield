@@ -1,6 +1,8 @@
 /* Skills table and keyboard navigation. Disk operations stay in the app. */
 "use strict";
 
+const WORKING_CELL = Object.freeze({ status: "working", label: "Working…", actionable: false });
+
 window.Jackfield.register((app) => {
   app.component("jf-skills-screen", {
     props: {
@@ -19,6 +21,7 @@ window.Jackfield.register((app) => {
       projects: { type: Array, default: () => [] },
       showing: { default: null },
       changedRows: { type: Array, default: () => [] },
+      working: { type: Array, default: () => [] },
       attentionCount: Number,
       attentionDetail: String,
       sheetViewport: Boolean,
@@ -48,12 +51,13 @@ window.Jackfield.register((app) => {
         const candidates = this.onlyAttention ? this.rows.filter((row) => row.attention) : this.rows;
         return window.Jackfield.palette.closeName(this.query, candidates);
       },
+      validPlace() { return this.agents.some((agent) => agent.id === this.place) ? this.place : ""; },
       currentAgent() {
-        const place = this.place || (this.narrow ? this.selected?.agent || this.phonePlace : null);
+        const place = this.validPlace || (this.narrow ? this.selected?.agent || this.phonePlace : null);
         return this.agents.find((agent) => agent.id === place) || this.agents[0];
       },
       columns() {
-        if (!this.narrow && !this.place) return this.agents;
+        if (!this.narrow && !this.validPlace) return this.agents;
         return this.currentAgent ? [this.currentAgent] : [];
       },
       batchAgent() {
@@ -101,8 +105,14 @@ window.Jackfield.register((app) => {
       this.setViewport(this.media);
       this.media.addEventListener("change", this.setViewport);
       this.extendToSelection();
+      document.addEventListener("pointerdown", this.dismissOutside);
+      document.addEventListener("focusin", this.dismissOutside);
     },
-    beforeUnmount() { this.media.removeEventListener("change", this.setViewport); },
+    beforeUnmount() {
+      this.media.removeEventListener("change", this.setViewport);
+      document.removeEventListener("pointerdown", this.dismissOutside);
+      document.removeEventListener("focusin", this.dismissOutside);
+    },
     methods: {
       setViewport(media) { this.narrow = media.matches; },
       compareRows(a, b) {
@@ -130,7 +140,10 @@ window.Jackfield.register((app) => {
         if (this.narrow) this.phoneTools = true;
         this.$nextTick(() => this.$refs.filter?.focus());
       },
-      cell(row, agent) { return row.cells[agent.id] || { status: "unknown", label: "Unknown" }; },
+      cell(row, agent) {
+        return this.working.includes(row.name + ":" + agent.id) ? WORKING_CELL :
+          row.cells[agent.id] || { status: "unknown", label: "Unknown" };
+      },
       selectedCell(row, agent) { return this.selected?.name === row.name && this.selected?.agent === agent.id; },
       choose(row, agent, focusPanel = false, primary = false) {
         this.panelFocus = false;
@@ -185,9 +198,28 @@ window.Jackfield.register((app) => {
         this.checked = this.checked.includes(name) ? this.checked.filter((row) => row !== name) : [...this.checked, name];
       },
       closePanel() { this.$emit("close-panel"); this.panelFocus = false; this.focusCell(); },
+      dismissOutside(event) {
+        if (!(event.target instanceof Element)) return;
+        if (event.target.closest(".jf-grid-menu")?.dataset.agent !== this.menu) this.menu = null;
+        for (const picker of this.$el.querySelectorAll(".jf-project-picker, .jf-toolbar-picker")) {
+          if (!picker.contains(event.target)) picker.open = false;
+        }
+      },
+      chooseToolbar(ref, key, value) {
+        this[key] = value;
+        if (key === "place" && this.selected && value && this.selected.agent !== value) this.$emit("close-panel");
+        const picker = this.$refs[ref];
+        picker.open = false;
+        picker.querySelector("summary").focus();
+      },
+      closeToolbar(event) {
+        const picker = event.currentTarget;
+        picker.open = false;
+        picker.querySelector("summary").focus();
+      },
       closeMenu(event) {
         this.menu = null;
-        event.currentTarget.parentElement.querySelector("button")?.focus();
+        event.currentTarget.querySelector("button")?.focus();
       },
       trackingAction(action, id) {
         this.menu = null;
@@ -253,7 +285,7 @@ window.Jackfield.register((app) => {
           <jf-attention-banner :count="attentionCount" :detail="attentionDetail" :pressed="onlyAttention" @toggle="onlyAttention = !onlyAttention"></jf-attention-banner>
           <div v-if="narrow" class="jf-skills-toolbar jf-skills-phone-tools">
             <label class="jf-skills-phone-agent">Showing
-              <select class="sm-btn" aria-label="Showing agent" :value="currentAgent?.id" @change="selectPlace">
+              <select class="sm-btn" aria-label="Showing place" :value="currentAgent?.id" @change="selectPlace">
                 <option v-for="agent in agents" :key="agent.id" :value="agent.id">{{ agent.name }}</option>
               </select>
             </label>
@@ -264,16 +296,21 @@ window.Jackfield.register((app) => {
             <label class="jf-skills-filter"><span class="sr-only">Filter skills</span>
               <input ref="filter" v-model="query" placeholder="Filter by name or what it does" type="search"><kbd aria-hidden="true">/</kbd>
             </label>
-            <label class="jf-skills-desktop-agent"><span class="sr-only">Place</span>
-              <select class="sm-btn" :value="place" @change="selectPlace"><option value="">All places</option>
-                <option v-for="agent in agents" :key="agent.id" :value="agent.id">{{ agent.name }}</option>
-              </select>
-            </label>
-            <label><span class="sr-only">Sort</span><select class="sm-btn" v-model="sort">
-              <option value="name">A to Z</option><option value="size">Largest first</option><option value="places">In most places</option>
-            </select></label>
+            <details ref="placePicker" class="jf-toolbar-picker jf-skills-desktop-agent" @keydown.esc.stop="closeToolbar($event)">
+              <summary class="sm-btn" :aria-label="'Place: ' + (validPlace ? currentAgent.name : 'All places')">{{ validPlace ? currentAgent.name : 'All places' }}<svg class="jf-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+              <div class="jf-toolbar-choices" role="group" aria-label="Place">
+                <button type="button" :aria-pressed="!validPlace" @click="chooseToolbar('placePicker', 'place', '')">All places</button>
+                <button v-for="agent in agents" :key="agent.id" type="button" :aria-pressed="validPlace === agent.id" @click="chooseToolbar('placePicker', 'place', agent.id)">{{ agent.name }}</button>
+              </div>
+            </details>
+            <details ref="sortPicker" class="jf-toolbar-picker jf-sort-picker" @keydown.esc.stop="closeToolbar($event)">
+              <summary class="sm-btn" :aria-label="'Sort: ' + ({name:'A to Z', size:'Largest first', places:'In most places'}[sort])">{{ {name:'A to Z', size:'Largest first', places:'In most places'}[sort] }}<svg class="jf-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+              <div class="jf-toolbar-choices" role="group" aria-label="Sort">
+                <button v-for="option in [{id:'name', label:'A to Z'}, {id:'size', label:'Largest first'}, {id:'places', label:'In most places'}]" :key="option.id" type="button" :aria-pressed="sort === option.id" @click="chooseToolbar('sortPicker', 'sort', option.id)">{{ option.label }}</button>
+              </div>
+            </details>
             <details v-if="projects.length" ref="projectPicker" class="jf-project-picker"
-              @keydown.esc.stop="closeProjectPicker(true)" @focusout="!$event.currentTarget.contains($event.relatedTarget) && closeProjectPicker()">
+              @keydown.esc.stop="closeProjectPicker(true)">
               <summary class="sm-btn">Project: {{ showing ? showing.split('/').filter(Boolean).at(-1) : 'None' }}</summary>
               <div class="jf-project-choices">
                 <button class="sm-btn" type="button" :disabled="busy" :aria-pressed="!showing" @click="showProject('')">None</button>
@@ -314,13 +351,12 @@ window.Jackfield.register((app) => {
             <thead><tr><th scope="col">Skill</th>
               <th v-for="(agent, ai) in columns" :key="agent.id" scope="col" class="jf-grid-agent jf-grid-phone-current">
                 <jf-agent :agent="agent" :title="agent.path"></jf-agent>
-                <div class="jf-grid-menu">
+                <div class="jf-grid-menu" :data-agent="agent.id" @keydown.esc.stop="closeMenu($event)">
                   <button type="button" :aria-label="agent.name + ' options'" :aria-expanded="menu === agent.id"
                     :tabindex="focusRow === -1 && focusCol === ai + 1 ? 0 : -1" data-grid-row="-1" :data-grid-col="ai + 1"
                     @focus="focusRow = -1; focusCol = ai + 1" @keydown="keyGrid($event, null, agent, -1, ai + 1)"
-                    @click="menu = menu === agent.id ? null : agent.id">▾</button>
-                  <div v-if="menu === agent.id" @keydown.esc.stop="closeMenu($event)"
-                    @focusout="!$event.currentTarget.parentElement.contains($event.relatedTarget) && (menu = null)">
+                    @click="menu = menu === agent.id ? null : agent.id"><svg class="jf-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+                  <div v-if="menu === agent.id">
                     <p v-if="agent.kind === 'shared'">Shown while Claude Code and Codex read it. It has no switch of its own.</p>
                     <template v-else-if="agent.kind !== 'project'">
                       <button type="button" :disabled="busy || !agent.canStop" @click="trackingAction('stop', agent.id)">Stop tracking {{ agent.name }}…</button>
@@ -335,7 +371,7 @@ window.Jackfield.register((app) => {
             <tbody><tr v-for="(row, ri) in visibleRows" :key="row.name" :aria-rowindex="ri + (narrow ? 1 : 2)"
               :aria-selected="checked.includes(row.name)" :class="{ 'is-changed': changedRows.includes(row.name) }">
               <th scope="row" class="jf-grid-skill">
-                <input type="checkbox" tabindex="-1" v-model="checked" :value="row.name" :aria-label="'Select ' + row.name">
+                <label class="jf-grid-checkbox"><input type="checkbox" tabindex="-1" v-model="checked" :value="row.name" :aria-label="'Select ' + row.name"></label>
                 <button type="button" :tabindex="focusRow === ri && focusCol === 0 ? 0 : -1" :data-grid-row="ri" data-grid-col="0"
                   :aria-keyshortcuts="'Shift+Space'" @focus="focusRow = ri; focusCol = 0" @keydown="keyGrid($event, row, null, ri, 0)"
                   @click="$emit('open-skill', row.name)">{{ row.name }}</button>

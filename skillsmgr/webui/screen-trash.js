@@ -4,11 +4,12 @@
 window.Jackfield.register((app) => {
   const places = { library: "Your library", trash: "Library trash", templates: "Templates", catalog: "Catalog" };
   const actions = { add: "Add", replace: "Replace", skip: "Skip" };
+  const PAGE_SIZE = 50;
 
   app.component("jf-trash-screen", {
     props: {
       rows: { type: Array, default: () => [] }, trashErrors: { type: Array, default: () => [] },
-      trashLoading: Boolean, canEmpty: Boolean, busy: Boolean, restored: Object,
+      trashLoading: Boolean, canEmpty: Boolean, libraryTrashError: Boolean, libraryTrashCount: Number, busy: Boolean, restored: Object,
       recent: { type: Array, default: () => [] }, historyError: String,
       exportPending: Boolean, exportError: String, lastDownload: String,
       importFileName: String, importForce: Boolean, importFull: Boolean, importPending: Boolean,
@@ -16,11 +17,20 @@ window.Jackfield.register((app) => {
     },
     emits: ["restore", "retry-trash", "empty", "download", "pick-import", "set-force", "set-full",
       "preview", "apply", "cancel-preview", "retry-history"],
-    data: () => ({ dropDepth: 0, places, actions }),
+    data: () => ({ dropDepth: 0, trashLimit: PAGE_SIZE, recentLimit: PAGE_SIZE, places, actions }),
     computed: {
       disabled() { return this.busy || this.exportPending || this.importPending; },
       partial() { return this.trashLoading || this.trashErrors.length > 0; },
+      emptyReason() {
+        if (this.trashLoading) return "Wait until Trash has been read.";
+        if (this.libraryTrashError) return "Library trash could not be read. Retry trash first.";
+        if (!this.libraryTrashCount) return "Library trash is empty. Agent trash is not emptied here.";
+        if (this.disabled) return "Wait for the current operation to finish.";
+        return "";
+      },
       hasPlanChanges() { return this.importPlan?.entries?.some((entry) => entry.action === "add" || entry.action === "replace"); },
+      nextTrashCount() { return Math.min(PAGE_SIZE, this.rows.length - this.trashLimit); },
+      nextRecentCount() { return Math.min(PAGE_SIZE, this.recent.length - this.recentLimit); },
     },
     watch: {
       importPlan(plan) {
@@ -41,6 +51,11 @@ window.Jackfield.register((app) => {
         this.$emit("cancel-preview");
         this.$nextTick(() => (this.$refs.previewButton || this.$refs.chooseFile)?.focus());
       },
+      showMore(limit, list) {
+        const offset = this[limit];
+        this[limit] += PAGE_SIZE;
+        this.$nextTick(() => this.$refs[list]?.children[offset]?.focus());
+      },
     },
     template: `<div class="jf-trash-screen">
       <header class="jf-trash-heading">
@@ -51,17 +66,18 @@ window.Jackfield.register((app) => {
         <section class="jf-trash-card" aria-labelledby="rec-trash">
           <header class="jf-trash-card-header">
             <h2 id="rec-trash" tabindex="-1">Trash <span v-if="rows.length || !partial">· {{ rows.length }}{{ partial ? ' shown' : '' }}</span></h2>
-            <button type="button" class="sm-btn sm-btn--quiet" :disabled="disabled || !canEmpty || trashLoading" @click="$emit('empty')">
+            <button type="button" class="sm-btn sm-btn--quiet" :disabled="disabled || !canEmpty || trashLoading" :aria-describedby="emptyReason ? 'jf-empty-reason' : null" @click="$emit('empty')">
               <ic name="trash" cls="i-s"></ic>Empty library trash…
             </button>
           </header>
+          <p v-if="emptyReason" id="jf-empty-reason" class="sm-hint jf-trash-message">{{ emptyReason }}</p>
           <div v-if="restored" class="jf-trash-message jf-trash-restored">
             <p role="status">{{ restored.message || ('Restored ' + restored.name + ' to ' + restored.scopeLabel + '.') }}</p>
             <jf-status v-if="restored.status" :status="restored.status"></jf-status>
             <a v-if="restored.href" :href="restored.href">Show restored copy</a>
           </div>
-          <ul v-if="rows.length" class="jf-trash-rows" role="list">
-            <li v-for="row in rows" :key="row.id" class="jf-trash-row jf-trash-entry">
+          <ul v-if="rows.length" ref="trashRows" class="jf-trash-rows" role="list">
+            <li v-for="row in rows.slice(0, trashLimit)" :key="row.id" tabindex="-1" class="jf-trash-row jf-trash-entry">
               <span class="jf-trash-entry-name"><strong translate="no">{{ row.name }}</strong><span v-if="row.detail" class="sm-hint">{{ row.detail }}</span></span>
               <span class="jf-trash-entry-origin">
                 <jf-agent v-if="row.agent" :agent="{ ...row.agent, name: 'From ' + row.scopeLabel, path: '' }"></jf-agent>
@@ -74,6 +90,7 @@ window.Jackfield.register((app) => {
               </button>
             </li>
           </ul>
+          <p v-if="nextTrashCount > 0" class="jf-trash-message"><button type="button" class="sm-btn" @click="showMore('trashLimit', 'trashRows')">Show {{ nextTrashCount }} more {{ nextTrashCount === 1 ? 'trash item' : 'trash items' }}</button> <span class="sm-hint">Showing {{ trashLimit }} of {{ rows.length }}</span></p>
           <p v-if="trashLoading" class="jf-trash-message" role="status">Reading Trash…</p>
           <p v-else-if="!rows.length && !trashErrors.length" class="jf-trash-message">Trash is empty. Removed skills and copies replaced by a fix appear here.</p>
           <div v-if="trashErrors.length" class="jf-trash-error">
@@ -85,11 +102,12 @@ window.Jackfield.register((app) => {
 
         <section class="jf-trash-card" aria-labelledby="rec-history">
           <header class="jf-trash-card-header"><h2 id="rec-history" tabindex="-1">Recent changes</h2><span class="sm-hint">Today and yesterday</span></header>
-          <ul v-if="recent.length" class="jf-trash-rows" role="list">
-            <li v-for="event in recent" :key="event.id" class="jf-trash-row jf-trash-recent">
+          <ul v-if="recent.length" ref="recentRows" class="jf-trash-rows" role="list">
+            <li v-for="event in recent.slice(0, recentLimit)" :key="event.id" tabindex="-1" class="jf-trash-row jf-trash-recent">
               <span>{{ event.text }}</span><span class="sm-hint">{{ event.when }}</span>
             </li>
           </ul>
+          <p v-if="nextRecentCount > 0" class="jf-trash-message"><button type="button" class="sm-btn" @click="showMore('recentLimit', 'recentRows')">Show {{ nextRecentCount }} more {{ nextRecentCount === 1 ? 'change' : 'changes' }}</button> <span class="sm-hint">Showing {{ recentLimit }} of {{ recent.length }}</span></p>
           <div v-if="historyError" class="jf-trash-error">
             <p role="alert">{{ historyError }}</p>
             <button type="button" class="sm-btn" :disabled="disabled" @click="$emit('retry-history')">Retry recent changes</button>

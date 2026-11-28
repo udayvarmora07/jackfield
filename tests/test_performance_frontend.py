@@ -18,6 +18,32 @@ def run_frontend(script: str) -> dict:
 
 class FrontendPerformanceBehaviorTests(unittest.TestCase):
 
+    def test_square_evidence_is_computed_once_per_row_at_large_inventory(self):
+        result = run_frontend(r'''
+const fs = require('node:fs'), vm = require('node:vm');
+const context = vm.createContext({window:{}});
+vm.runInContext(fs.readFileSync('skillsmgr/webui/model.js','utf8'), context);
+const model = context.window.SkillsV2Model;
+const agents = ['claude-code','codex','opencode','agents'].map(id => ({id,name:id}));
+let copyReads = 0;
+const rows = Array.from({length:10000}, (_, i) => {
+  const name = `skill-${i}`;
+  const copies = agents.map(({id}, index) => ({scope:id, path:`/${id}/${name}`,
+    hash:index === 1 ? 'different' : 'same', state:'on'}));
+  return {name, get squareCopies() { copyReads++; return copies; }};
+});
+const states = new Map(rows.map(row => [row, model.squareStatuses(row, agents)]));
+const before = copyReads;
+const problems = model.attentionItems(rows, agents, null, states);
+const verdicts = rows.map(row => model.rowVerdict(row, agents, null, states.get(row)));
+console.log(JSON.stringify({before, after:copyReads, problems:problems.length,
+  matching:verdicts.every(verdict => verdict === 'codex has a different copy')}));
+''')
+        self.assertLessEqual(result["before"], 120_000)
+        self.assertEqual(result["after"], result["before"])
+        self.assertEqual(result["problems"], 10_000)
+        self.assertTrue(result["matching"])
+
     def test_real_domain_formatters_preserve_locale_output_and_bound_cache(self):
         result = run_frontend(r'''
 const fs = require('fs'), vm = require('vm');

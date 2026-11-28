@@ -211,7 +211,7 @@
       when(iso){if(!iso)return 'Not returned';const d=new Date(iso);if(isNaN(d))return String(iso);try{return new Intl.DateTimeFormat(this.locale==='system'?undefined:this.locale,{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(e){return String(iso)}},
       pl(n,one,many){return window.SkillsV2Model.plural(n,one,many)},
       fmtN(n){if(n==null||n==='')return '—';try{return new Intl.NumberFormat(this.locale==='system'?undefined:this.locale).format(n)}catch(e){return String(n)}},
-      scopeLabel(id){if(!id)return '';const s=this.scopes.find(x=>x.id===id);return id==='global'?'Your library':(s&&s.label)||id;},
+      scopeLabel(id){if(!id)return '';const s=this.scopes.find(x=>x.id===id);return window.SkillsV2Model.scopeName(id,s?.label);},
       sevTone(s){return {error:'bad',warning:'warn',info:'info',unavailable:'off'}[s]||'off';},
       sevIcon(s){return {error:'bad',warning:'warn',info:'info',unavailable:'off'}[s]||'info';},
       memberTone(s){return /observed|active|enabled/.test(s||'')?'ok':/disabled|off/.test(s||'')?'off':/diverg|differ/.test(s||'')?'warn':'bad';},
@@ -937,7 +937,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
       </template>
 
       <template v-else-if="page==='workspaces'">
-        <h1 class="h1" id="h1" tabindex="-1">Workspaces</h1>
+        <h1 class="h1" id="h1" tabindex="-1">Where agents look</h1>
         <p class="lede">Where each agent looks for skills, and what a given project folder adds. This is declared evidence — which copy an agent actually loads stays unknown.</p>
         ${projectPicker('loadWorkspace')}
         <template v-if="workspace">

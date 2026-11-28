@@ -53,6 +53,13 @@ and route changes clear stale reviews and success feedback. The application
 still offers Undo after an automatic post-write redirect when the original
 view is no longer available. See [the review](docs/62-redesign-review-2026-11-28.md).
 
+The before-launch batch adds draft confirmation, larger phone hit areas,
+keyboard-safe Skills controls, explicit replacement sources and library Trash
+reasons. Large Needs attention and Trash lists reveal 50 more at a time.
+The approved desktop boards use centered main widths of 1,440, 1,280 and
+1,040 px for Skills, Needs attention and Trash respectively. Their title
+offsets follow those widths. S9 still awaits the maintainer’s review.
+
 ## Phase 3 · Everyday jobs
 
 | Screen | Behavior |

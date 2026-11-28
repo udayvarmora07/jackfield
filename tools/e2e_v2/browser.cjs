@@ -165,6 +165,80 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await page.locator('.jf-reader-heading').waitFor();
     } finally { await page.unrouteAll({behavior:'wait'}); }
   });
+  await test('Skills place and sort controls handle unknown places and popup focus', async () => {
+    const endpoint = '**/api/tracking';
+    await page.route(endpoint, async route => {
+      const response = await route.fetch();
+      const data = await response.json();
+      data.projects = [{path:home + '/workspace', status:'ok'}];
+      await route.fulfill({response, json:data});
+    });
+    try {
+      await page.setViewportSize({width:1280,height:900});
+      await go('skills?agent=missing-place');
+      const welcome=page.getByRole('button',{name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      const grid=page.getByRole('grid',{name:'Skills table'});
+      assert((await grid.locator('thead th').count()) > 2);
+      const place=page.getByText('All places',{exact:true}).first();
+      await place.click();
+      await page.getByRole('group',{name:'Place'}).getByRole('button',{name:'Codex',exact:true}).click();
+      assert.equal(await grid.locator('thead th').count(), 2);
+      assert((await page.url()).includes('agent=codex'));
+      await page.getByLabel('Place: Codex').click();
+      await page.getByRole('group',{name:'Place'}).getByRole('button',{name:'All places'}).click();
+      if (await welcome.isVisible()) await welcome.click();
+      const sort=page.locator('.jf-toolbar-picker').nth(1).locator('summary');
+      await sort.click();
+      await page.getByRole('group',{name:'Sort'}).getByRole('button',{name:'Largest first'}).click();
+      assert(await sort.isVisible());
+      assert(await sort.evaluate(el=>el===document.activeElement));
+      await sort.press('Enter');
+      await page.keyboard.press('Escape');
+      assert(!(await page.locator('.jf-toolbar-picker[open]').count()));
+      await sort.press('Enter');
+      await page.keyboard.press('Tab');
+      const alphabetical = page.getByRole('group',{name:'Sort'}).getByRole('button',{name:'A to Z'});
+      assert(await alphabetical.evaluate(button => button === document.activeElement));
+      await page.keyboard.press('Enter');
+      assert.equal(await sort.getAttribute('aria-label'), 'Sort: A to Z');
+      const options=page.getByRole('button',{name:'Codex options'});
+      await options.click();
+      const choice=page.getByRole('button',{name:'Stop tracking Codex…'});
+      await choice.waitFor();
+      await choice.evaluate(el => el.dispatchEvent(new FocusEvent('focusout',{bubbles:true,relatedTarget:null})));
+      assert(await choice.isVisible());
+      await page.getByRole('button',{name:'OpenCode options'}).focus();
+      assert.equal(await choice.count(),0);
+      await options.click();
+      await options.focus();
+      await options.press('Escape');
+      assert.equal(await choice.count(),0);
+      await options.click();
+      await page.getByRole('searchbox',{name:'Filter skills'}).click();
+      assert.equal(await choice.count(),0);
+      const picker=page.locator('.jf-project-picker');
+      await picker.locator('summary').click();
+      const none=picker.getByRole('button',{name:'None',exact:true});
+      await none.evaluate(el => el.dispatchEvent(new FocusEvent('focusout',{bubbles:true,relatedTarget:null})));
+      assert(await none.isVisible());
+      await page.getByRole('searchbox',{name:'Filter skills'}).click();
+      assert.equal(await picker.getAttribute('open'),null);
+      await page.setViewportSize({width:390,height:844});
+      await go('skills?agent=missing-place');
+      assert(await page.getByRole('combobox',{name:'Showing place'}).inputValue());
+      assert.equal(await page.locator('.jf-grid tbody tr').first().locator('td').count(),1);
+      await page.getByRole('button',{name:'Filter and sort'}).click();
+      const phoneSort=page.locator('.jf-sort-picker summary');
+      await phoneSort.click();
+      assert(await page.getByRole('group',{name:'Sort'}).evaluate(el => {
+        const rect=el.getBoundingClientRect(); return rect.left>=0 && rect.right<=innerWidth;
+      }));
+    } finally {
+      await page.unroute(endpoint);
+      await page.setViewportSize({width:1280,height:900});
+    }
+  });
   await test('Four primary places navigate and identify the current page', async () => {
     try {
       for (const width of [1280, 390]) {
@@ -385,6 +459,141 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await discard.getByRole('button', {name:/Discard/}).click();
     await page.waitForURL(url => url.hash === '#/skills');
     await create.waitFor({state:'hidden'});
+  });
+  await test('Batch 2 New skill protects instructions and formats errors', async () => {
+    const list = url => url.pathname === '/api/templates';
+    const detail = url => url.pathname === '/api/templates/fixture';
+    const listHandler = route => route.fulfill({json:{templates:['fixture']}});
+    const detailHandler = route => route.fulfill({json:{body:'# Stored fixture'}});
+    await page.route(list, listHandler); await page.route(detail, detailHandler);
+    try {
+      await go('new');
+      const create = page.locator('.jf-create'), body = create.getByLabel('Instructions', {exact:true});
+      await create.getByRole('button', {name:'Checklist', exact:true}).click();
+      assert.match(await body.inputValue(), /Checklist/);
+      await body.fill('Keep my instructions');
+      await create.getByRole('button', {name:'Blank', exact:true}).click();
+      let guard = create.getByRole('group', {name:'Replace instructions?'});
+      await guard.getByRole('button', {name:'Keep editing'}).click();
+      assert.equal(await body.inputValue(), 'Keep my instructions');
+      const select = create.getByLabel('Stored template');
+      await select.selectOption('fixture');
+      await guard.getByRole('button', {name:'Keep editing'}).click();
+      assert.equal(await select.inputValue(), '');
+      await select.selectOption('fixture');
+      await guard.getByRole('button', {name:'Replace instructions'}).click();
+      await page.waitForFunction(() => document.querySelector('#nf-body').value === '# Stored fixture');
+      await body.fill('Changed again');
+      await create.getByRole('button', {name:'Blank', exact:true}).click();
+      await guard.getByRole('button', {name:'Replace instructions'}).click();
+      assert.equal(await body.inputValue(), '# {name}\n');
+      const preview = url => url.pathname === '/api/skills' && url.searchParams.has('preview');
+      const fail = route => route.fulfill({status:500,json:{error:'PermissionError /private/fixture/secret'}});
+      await page.route(preview, fail);
+      try {
+        await create.getByLabel('Name', {exact:true}).fill('error-test');
+        await create.getByLabel('What it does and when to use it').fill('Use to test errors.');
+        await create.getByText(/The operation could not be completed/).waitFor();
+        assert.doesNotMatch(await create.innerText(), /PermissionError|\/private\/fixture/);
+      } finally { await page.unroute(preview, fail); }
+      await create.getByRole('button', {name:'Retry preview'}).click();
+      const button = create.getByRole('button', {name:'Create in 1 place'});
+      await page.waitForFunction(el => !el.disabled, await button.elementHandle());
+      const write = url => url.pathname === '/api/skills' && url.searchParams.has('scope');
+      await page.route(write, fail);
+      try {
+        await button.click();
+        await create.getByText(/The operation could not be completed/).waitFor();
+        assert.doesNotMatch(await create.innerText(), /PermissionError|\/private\/fixture/);
+      } finally { await page.unroute(write, fail); }
+    } finally { await page.unroute(list, listHandler); await page.unroute(detail, detailHandler); }
+  });
+  await test('Batch 2 starter selection cancels an earlier pending template', async () => {
+    const list = url => url.pathname === '/api/templates';
+    const detail = url => url.pathname === '/api/templates/slow-fixture';
+    let release, started;
+    const gate = new Promise(resolve => { release = resolve; });
+    const requested = new Promise(resolve => { started = resolve; });
+    const listHandler = route => route.fulfill({json:{templates:['slow-fixture']}});
+    const detailHandler = async route => { started(); await gate; await route.fulfill({json:{body:'# Late template'}}); };
+    await page.route(list, listHandler); await page.route(detail, detailHandler);
+    try {
+      await go('new');
+      const create = page.locator('.jf-create'), body = create.getByLabel('Instructions', {exact:true});
+      await body.fill('Keep this draft');
+      await create.getByLabel('Stored template').selectOption('slow-fixture');
+      const guard = create.getByRole('group', {name:'Replace instructions?'});
+      await guard.getByRole('button', {name:'Replace instructions'}).click();
+      await requested;
+      await create.getByRole('button', {name:'Checklist', exact:true}).click();
+      await guard.getByRole('button', {name:'Keep editing'}).click();
+      release();
+      await page.waitForResponse(r => new URL(r.url()).pathname === '/api/templates/slow-fixture');
+      assert.equal(await body.inputValue(), 'Keep this draft');
+      assert(await body.isEnabled());
+      assert.equal(await create.getByLabel('Stored template').inputValue(), '');
+    } finally { release(); await page.unroute(list, listHandler); await page.unroute(detail, detailHandler); }
+  });
+  await test('Batch 2 default template and failed replacement preserve the draft', async () => {
+    const list = url => url.pathname === '/api/templates';
+    const detail = url => url.pathname.startsWith('/api/templates/');
+    const listHandler = route => route.fulfill({json:{templates:['default-fixture','failed-fixture']}});
+    const detailHandler = route => new URL(route.request().url()).pathname.endsWith('/default-fixture')
+      ? route.fulfill({json:{body:'# Default template'}})
+      : route.fulfill({status:500,json:{error:'Fixture read failed'}});
+    await page.route(list, listHandler); await page.route(detail, detailHandler);
+    try {
+      await go('new?template=default-fixture');
+      const create = page.locator('.jf-create'), body = create.getByLabel('Instructions', {exact:true});
+      await page.waitForFunction(() => document.querySelector('#nf-body').value === '# Default template');
+      await body.fill('Keep after failure');
+      const select = create.getByLabel('Stored template');
+      await select.selectOption('failed-fixture');
+      await create.getByRole('button', {name:'Replace instructions'}).click();
+      await create.getByText('This template couldn’t be read.').waitFor();
+      assert.equal(await body.inputValue(), 'Keep after failure');
+      assert.equal(await select.inputValue(), 'default-fixture');
+      assert(await body.isEnabled());
+    } finally { await page.unroute(list, listHandler); await page.unroute(detail, detailHandler); }
+  });
+  await test('Batch 2 editor touch targets and place rows remain usable', async () => {
+    for (const width of [390, 600]) {
+      await page.setViewportSize({width, height:900});
+      await go('new');
+      const place = page.locator('.jf-create .jf-editor-place').nth(1);
+      await place.waitFor();
+      const checkbox = await place.locator('input').boundingBox(), mark = await place.locator('.jf-agent-mark').boundingBox(), name = await place.locator('.jf-agent-name').boundingBox();
+      assert(Math.abs(checkbox.y - name.y) < 12 && Math.abs(mark.y - name.y) < 12, 'place controls must align with the name');
+      assert.equal(await place.locator('.jf-agent-path').evaluate(e => getComputedStyle(e).whiteSpace), 'nowrap');
+      await go('skills/sole-copy/edit');
+      const editor = page.locator('.jf-editor');
+      await editor.getByRole('heading', {name:'Save to'}).waitFor();
+      for (const element of await editor.locator('.jf-reader-title nav a, .ed-toolbar button').all()) {
+        const box = await element.boundingBox(); assert(box.width >= 44 && box.height >= 44, `small target: ${await element.innerText()}`);
+      }
+      const row = editor.locator('.jf-editor-place').filter({hasText:'Not here'}).first();
+      const agent = await row.locator('.jf-agent').boundingBox(), status = await row.locator('.jf-status').boundingBox();
+      assert(status.x >= agent.x + agent.width || status.y >= agent.y + agent.height, 'status overlaps agent');
+      const check = row.getByRole('checkbox'); const before = await check.isChecked();
+      await row.click({position:{x:10,y:10}});
+      assert.notEqual(await check.isChecked(), before);
+      await go('skills');
+      const welcome = page.getByRole('button', {name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      const checkLabel = page.locator('.jf-grid-checkbox').first();
+      await checkLabel.waitFor();
+      const targetBox = await checkLabel.boundingBox();
+      assert(targetBox.width >= 44 && targetBox.height >= 44);
+      const rowCheck = checkLabel.getByRole('checkbox');
+      const checked = await rowCheck.isChecked();
+      await checkLabel.click({position:{x:5,y:5}});
+      assert.notEqual(await rowCheck.isChecked(), checked);
+      await go('skills/sole-copy/why');
+      for (const link of await page.locator('.jf-why-breadcrumb a').all()) {
+        const box = await link.boundingBox(); assert(box.width >= 44 && box.height >= 44);
+      }
+    }
+    await page.setViewportSize({width:1280, height:900});
   });
   await test('New skill previews exact file bytes for two selected places (F4)', async () => {
     const name = 'phase-three-create';
@@ -648,6 +857,13 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     } finally {
       fs.rmSync(fixture, {recursive:true, force:true});
     }
+  });
+  await test('Skill page describes Claude Code list space in plain language', async () => {
+    await go('skill/sole-copy');
+    const details = page.getByRole('complementary', {name:'Details'});
+    await details.getByText('This estimate covers personal skills in Claude Code.', {exact:true}).waitFor();
+    assert.match(await details.innerText(), /estimated skill list space/);
+    assert.doesNotMatch(await details.innerText(), /tokens|skillListingBudgetFraction/);
   });
   await test('Skill page square uses the shared panel and restores phone focus', async () => {
     await page.setViewportSize({width:390,height:844});
@@ -919,8 +1135,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await search.fill('sole-copy');
     await page.getByRole('option', {name:'Show 1 match in Skills'}).click();
     await page.waitForURL(url => url.hash === '#/skills?q=sole-copy');
-    assert.equal(await page.getByRole('searchbox', {name:'Filter skills'}).inputValue(), 'sole-copy');
-    assert(await page.getByRole('button', {name:/sole-copy in Claude Code/}).isVisible());
+    await page.waitForFunction(() => document.querySelector('.jf-skills-filter input')?.value === 'sole-copy');
+    await page.getByRole('button', {name:/sole-copy in Claude Code/}).waitFor();
     await go('skill/sole-copy');
     assert.equal(await page.locator('.tree a').filter({hasText:'.system'}).count(), 0);
     await page.getByRole('button', {name:'Search skills, actions and pages'}).click();
@@ -994,6 +1210,31 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert(squares.length > 1);
     assert.equal(new Set(squares).size, squares.length);
   });
+  await test('Needs attention keeps the selected repair visible and shows large groups in pages', async () => {
+    const inventory = await (await page.request.get(base + '/api/skills?scope=all&body=0')).json();
+    const sample = inventory.filter(record => record.name === 'majority-minor');
+    const rows = Array.from({length:74}, (_, index) => {
+      const name = 'many-problems-' + String(index).padStart(2, '0');
+      return sample.map(record => ({...record, name,
+        path:record.path?.replace('majority-minor', name),
+        physical_path:record.physical_path?.replace('majority-minor', name),
+      }));
+    }).flat();
+    const matches = url => url.pathname === '/api/skills' && url.searchParams.get('scope') === 'all';
+    const inventoryFixture = route => route.fulfill({json:rows});
+    await page.route(matches, inventoryFixture);
+    try {
+      await openAttention('many-problems-73:codex:different');
+      const group = attention.getByRole('region', {name:'To fix · 74', exact:true});
+      const selected = group.locator('[aria-current="true"]');
+      assert.match(await selected.innerText(), /many-problems-73/);
+      assert.equal(await group.getByRole('listitem').count(), 51);
+      await group.getByRole('button', {name:'Show more in To fix', exact:true}).press('Enter');
+      assert.equal(await group.getByRole('listitem').count(), 74);
+      assert.equal(await selected.count(), 1);
+      assert(await group.getByRole('button', {name:/many-problems-50/}).evaluate(button => button === document.activeElement));
+    } finally { await page.unroute(matches, inventoryFixture); }
+  });
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await turnOffCodexFromReader();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
   await test('Reader replacement previews before writing and ignores a repeated confirmation', async () => {
     await go('skill/majority-minor');
@@ -1060,7 +1301,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.route(exactRead, delay);
     try {
       await attention.getByLabel('Compare target').selectOption('agents');
-      assert.match(await comparison.locator('.compare-identities > div').first().innerText(), /Shared skills folder/);
+      assert.match(await comparison.locator('.compare-identities > div').first().innerText(), /Shared folder/);
       assert(await apply.isDisabled());
       release();
       await attention.locator('[data-primary]:enabled').waitFor();
@@ -1110,6 +1351,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       const count = Number(await attentionNav.locator('.sm-nav__count').innerText());
       await expectAttentionCount(count);
       await attention.getByRole('button', {name:/^The shared version/}).click();
+      await attention.locator('.jf-attention-what').getByText(/The replacement comes from Claude Code/).waitFor();
       const apply = attention.getByRole('button', {name:'Use the shared version in Codex', exact:true});
       await attention.locator('[data-primary]:enabled').waitFor();
       const removed = page.waitForResponse(r => attentionWrites(r.request()) &&
@@ -1144,7 +1386,11 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   });
   await test('Needs attention clears failed review controls on a return visit', async () => {
     const endpoint = '**/api/batch/execute';
-    const refuse = route => route.fulfill({status:409, json:{error:'Fixture refused the write'}});
+    let attempts = 0;
+    const refuse = route => {
+      attempts++;
+      return route.fulfill({status:409, json:{error:'Fixture refused the write'}});
+    };
     await page.route(endpoint, refuse);
     try {
       await openAttention('majority-minor:codex:different');
@@ -1152,6 +1398,10 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await attention.locator('[data-primary]:enabled').click();
       const retry = attention.getByRole('button', {name:'Check again', exact:true});
       await retry.waitFor();
+      await attentionHeading.focus();
+      await page.keyboard.press('f');
+      await page.waitForTimeout(250);
+      assert.equal(attempts, 1);
       await page.locator('.tabs a[href="#/skills"]').click();
       await page.waitForURL(url => url.hash === '#/skills');
       await attentionNav.click();
@@ -1429,7 +1679,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert.equal(await noFailure.getByRole('link', {name:'Open skill page'}).getAttribute('href'), '#/skills/share-three');
       fs.renameSync(enabled, disabled);
       await noFailure.getByRole('button', {name:'Check again'}).click();
-      await card.getByRole('heading', {name:'The file is switched off in Shared skills folder'}).waitFor();
+      await card.getByRole('heading', {name:'The file is switched off in Shared folder'}).waitFor();
       await card.getByRole('link', {name:'Open skill page'}).click();
       await page.locator('.jf-reader-heading').waitFor();
     } finally {
@@ -1462,6 +1712,92 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.getByRole('button',{name:'Undo',exact:true}).click();
     await page.locator('.toast').getByText('Undone',{exact:true}).waitFor();
     assert(!fs.existsSync(f));
+  });
+  await test('Trash explains library-only emptying and limits large lists', async () => {
+    const trashRoute = url => url.pathname === '/api/trash' && !url.searchParams.has('scope');
+    const agentTrashRoute = url => url.pathname === '/api/trash' && url.searchParams.has('scope');
+    const historyRoute = url => url.pathname === '/api/history' && url.searchParams.get('limit') === '8';
+    const now = new Date().toISOString();
+    const rows = Array.from({length:103}, (_, i) => ({name:`fixture-trash-${i}`, trash_path:`/fixture/trash/${i}`, trashed_at:now}));
+    const history = Array.from({length:103}, (_, i) => ({id:i+1, action:'create', name:`fixture-history-${i}`, at:now}));
+    try {
+      await page.route(trashRoute, route => route.fulfill({json:rows}));
+      await page.route(agentTrashRoute, route => route.fulfill({json:[]}));
+      await page.route(historyRoute, route => route.fulfill({json:history}));
+      await go('trash');
+      await trashList.getByRole('heading', {name:'Trash · 103'}).waitFor();
+      assert.equal(await trashList.locator('.jf-trash-entry').count(),50);
+      await trashList.getByRole('button',{name:'Show 50 more trash items'}).click();
+      assert.equal(await trashList.locator('.jf-trash-entry').count(),100);
+      await trashList.getByRole('button',{name:'Show 3 more trash items'}).press('Enter');
+      assert.equal(await trashList.locator('.jf-trash-entry').count(),103);
+      assert(await trashList.locator('.jf-trash-entry').nth(100).evaluate(row => row === document.activeElement));
+      const recent = trashScreen.locator('section[aria-labelledby="rec-history"]');
+      assert.equal(await recent.locator('.jf-trash-recent').count(),50);
+      assert(await recent.locator('.jf-trash-recent').first().evaluate(row => {
+        const time = row.lastElementChild.getBoundingClientRect();
+        const inset = Number.parseFloat(getComputedStyle(row).paddingInlineEnd);
+        return Math.abs(row.getBoundingClientRect().right - time.right - inset) < 1;
+      }));
+      await recent.getByRole('button',{name:'Show 50 more changes'}).click();
+      assert.equal(await recent.locator('.jf-trash-recent').count(),100);
+      await recent.getByRole('button',{name:'Show 3 more changes'}).press('Enter');
+      assert.equal(await recent.locator('.jf-trash-recent').count(),103);
+      assert(await recent.locator('.jf-trash-recent').nth(100).evaluate(row => row === document.activeElement));
+    } finally {
+      await page.unroute(trashRoute);
+      await page.unroute(agentTrashRoute);
+      await page.unroute(historyRoute);
+    }
+    await page.route(trashRoute, route => route.fulfill({json:[]}));
+    try {
+      await go('trash');
+      await trashList.getByText('Library trash is empty. Agent trash is not emptied here.').waitFor();
+      assert(await trashList.getByRole('button',{name:'Empty library trash…'}).isDisabled());
+    } finally { await page.unroute(trashRoute); }
+    await page.route(trashRoute, route => route.fulfill({status:503,json:{error:'Library unavailable'}}));
+    try {
+      await go('trash');
+      await trashList.getByText('Library trash could not be read. Retry trash first.').waitFor();
+      assert(await trashList.getByRole('button',{name:'Empty library trash…'}).isDisabled());
+    } finally { await page.unroute(trashRoute); }
+  });
+  await test('Trash backup preview distinguishes no changes from full metadata additions', async () => {
+    await go('trash');
+    const downloadPreference = 'jackfield-last-library-backup';
+    const previousDownload = await page.evaluate(key => localStorage.getItem(key), downloadPreference);
+    const backup = trashScreen.locator('section[aria-labelledby="rec-backup"]');
+    const input = backup.locator('#imp-file');
+    const download = async (label, filename) => {
+      const event = page.waitForEvent('download');
+      await backup.getByRole('button',{name:label,exact:true}).click();
+      const saved = path.join(root, filename);
+      await (await event).saveAs(saved);
+      return saved;
+    };
+    const catalog = path.join(root,'data','jackfield','catalog','metadata.json');
+    const savedCatalog = fs.existsSync(catalog) ? fs.readFileSync(catalog) : null;
+    try {
+      const ordinary = await download('Download backup','unchanged.tar.gz');
+      const full = await download('Download full archive','unchanged-full.tar.gz');
+      await input.setInputFiles(ordinary);
+      await backup.getByRole('button',{name:'Preview backup'}).click();
+      await backup.getByText('No entries will change.').waitFor();
+      assert(await backup.getByRole('button',{name:'Load backup',exact:true}).isDisabled());
+      if (savedCatalog) fs.unlinkSync(catalog);
+      await input.setInputFiles(full);
+      await backup.getByLabel('Include library trash, templates, and catalog metadata').check();
+      await backup.getByRole('button',{name:'Preview backup'}).click();
+      const preview = backup.getByRole('region',{name:'Backup preview'});
+      await preview.getByText('Add · Catalog').waitFor();
+      assert(await preview.getByRole('button',{name:'Load backup',exact:true}).isEnabled());
+    } finally {
+      if (savedCatalog) fs.writeFileSync(catalog,savedCatalog);
+      await page.evaluate(([key,value]) => {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }, [downloadPreference, previousDownload]);
+    }
   });
   await test('Trash & backups records a download only after successful handoff', async () => {
     await go('trash');
@@ -1809,9 +2145,9 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert(await table.getByRole('button', {name:'uninspected', exact:true}).isVisible());
       assert(await table.getByRole('button', {name:"uninspected in Codex: Can't read"}).isVisible());
       await table.getByRole('button', {name:'repeated', exact:true}).click();
-      const choices = await page.getByLabel('Read copy').locator('option').allTextContents();
-      assert(choices.some(text => text.includes('/fixture/repeated/one')));
-      assert(choices.some(text => text.includes('/fixture/repeated/two')));
+      const choices = page.getByLabel('Read copy').locator('option');
+      await choices.filter({hasText:'/fixture/repeated/one'}).waitFor({state:'attached'});
+      await choices.filter({hasText:'/fixture/repeated/two'}).waitFor({state:'attached'});
     } finally {
       await page.unroute(list);
     }
@@ -2017,12 +2353,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const copyPicker=page.getByLabel('Read copy');
     await copyPicker.selectOption({label:'Claude Code'});
     assert(await page.getByRole('button',{name:/^Edit/}).isDisabled());
-    await copyPicker.selectOption({label:'Shared skills folder'});
+    await copyPicker.selectOption({label:'Shared folder'});
     await page.getByRole('button',{name:'Edit',exact:true}).click();
     const targets=page.getByRole('complementary',{name:'Save to'});
     assert.equal(await targets.getByRole('checkbox',{name:/Claude Code/}).count(),0);
     assert.equal(await targets.locator('input:checked').count(),1);
-    assert(await targets.getByRole('checkbox',{name:/Shared skills folder/}).isChecked());
+    assert(await targets.getByRole('checkbox',{name:/Shared folder/}).isChecked());
     await page.locator('#ed-body').fill('# Updated by the owner UI\n');
     await page.locator('.savebar button').filter({hasText:'Save'}).click();
     await page.waitForTimeout(500);
@@ -2062,13 +2398,14 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.waitForTimeout(500);
     assert(!fs.existsSync(filePath));
     await go('trash');
-    const older = restoreButton(name, 'Shared skills folder', 'copy 2 of 2');
+    const older = restoreButton(name, 'Shared folder', 'copy 2 of 2');
     await older.waitFor();
-    assert.equal(await restoreButton(name, 'Shared skills folder', 'copy 1 of 2').count(), 1);
+    assert.equal(await restoreButton(name, 'Shared folder', 'copy 1 of 2').count(), 1);
     await older.focus();
     await page.keyboard.press('Enter');
     const review=page.getByRole('dialog',{name:`Restore ${name}?`});
     assert.match(await review.innerText(), /supporting files[\s\S]*copy 2 of 2/);
+    assert.doesNotMatch(await review.innerText(), /skillsmgr-e2e-|\/trash\//);
     const entries=await (await page.request.get(base+'/api/trash?scope=agents')).json();
     const [newer, olderEntry] = entries.filter(row => row.name === name);
     const savedFolder = olderEntry.trash_path;
@@ -2101,7 +2438,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.deepEqual(fs.readFileSync(companion), originalNotes);
     assert(!fs.existsSync(savedFolder));
     assert(fs.existsSync(newer.trash_path));
-    await restoreButton(name, 'Shared skills folder').waitFor();
+    await restoreButton(name, 'Shared folder').waitFor();
     const restored = trashList.getByRole('link', {name:'Show restored copy', exact:true});
     await restored.waitFor();
     const route = new URLSearchParams((await restored.getAttribute('href')).split('?')[1]);
@@ -2186,6 +2523,19 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.getByRole('status').filter({hasText:'0 matching tools'}).waitFor();
     await search.fill('');
     assert(await links.count()>10);
+  });
+  await test('Advanced uses the destination names and explains tests in plain language', async () => {
+    await go('advanced');
+    const screen = page.locator('.jf-advanced');
+    const places = screen.getByRole('link', {name:/^Where agents look/});
+    await places.click();
+    await page.getByRole('heading', {name:'Where agents look', exact:true}).waitFor();
+    await go('advanced');
+    await screen.getByText(/compare how often your model picks each skill/).waitFor();
+    await screen.getByText(/run the same requests with and without a skill/i).waitFor();
+    assert.doesNotMatch(await screen.innerText(), /selection rates|assertions/);
+    await screen.getByRole('link', {name:/^Connection/}).click();
+    await page.getByRole('heading', {name:'Connection', exact:true}).waitFor();
   });
   await test('Advanced group switches guard direct routes and Doctor reads real evidence',async()=>{
     const endpoint=base+'/api/tracking';
@@ -2417,7 +2767,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
           const filterToggle = page.getByRole('button', {name:'Filter and sort'});
           if (!(await filter.isVisible()) && await filterToggle.isVisible()) await filterToggle.click();
           await filter.fill(name);
-          const agentPicker = page.getByRole('combobox', {name:'Showing agent'});
+          const agentPicker = page.getByRole('combobox', {name:'Showing place'});
           if (await agentPicker.isVisible()) await agentPicker.selectOption({label:'Codex'});
           const square = page.getByRole('button', {name:/code-review in Codex: On/i});
           await square.waitFor();
@@ -2465,6 +2815,32 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       }
     });
   }
+  await test('Skills shows a pending change on its own square while keeping other statuses', async () => {
+    const active = file('.codex'), disabled = active + '.disabled';
+    const endpoint = '**/api/batch/execute';
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    const delayToggle = async route => {
+      if (route.request().postDataJSON().operation === 'disable') await pending;
+      await route.continue();
+    };
+    await page.route(endpoint, delayToggle);
+    try {
+      await go('skills?q=same-everywhere');
+      await page.getByRole('button', {name:'same-everywhere in Codex: On', exact:true}).click();
+      await page.locator('.jf-panel').getByRole('button', {name:/^Turn off/}).click();
+      await page.getByRole('button', {name:'same-everywhere in Codex: Working…', exact:true}).waitFor();
+      assert(await page.getByRole('button', {name:'same-everywhere in Claude Code: Off in settings', exact:true}).isVisible());
+      release();
+      await page.getByRole('button', {name:'same-everywhere in Codex: Off', exact:true}).waitFor();
+      await page.locator('.toast').getByRole('button', {name:'Undo', exact:true}).click();
+      await page.getByRole('button', {name:'same-everywhere in Codex: On', exact:true}).waitFor();
+    } finally {
+      release();
+      await page.unroute(endpoint, delayToggle);
+      if (fs.existsSync(disabled) && !fs.existsSync(active)) fs.renameSync(disabled, active);
+    }
+  });
   await test('Phase 2 Shift+Space selects a row without writing', async () => {
     await go('skills');
     const showSkills = page.getByRole('button', {name:'Show my skills'});

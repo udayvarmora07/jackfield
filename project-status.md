@@ -32,12 +32,12 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 ## Last check
 
 2026-11-28 · Step 8, Build in progress. Phases 0–4 landed and passed hosted
-CI. Phase 5 has landed the Advanced directory and Doctor at `3c67c42`, which
-still awaits the maintainer's S9 review. Settings (S11), the tool page (S10)
-and What to track (S14–S19) are not built yet. An in-depth review of the
-build is recorded in
-[the redesign review](docs/62-redesign-review-2026-11-28.md).
-Recommended next step: fix the review's fix-now findings, then review S9 and
-continue Phase 5 with `/build`.
+CI. Both Paper review batches have been applied to the shipped screens.
+The [redesign review](docs/62-redesign-review-2026-11-28.md) records the
+verification and remaining decisions. Advanced and Doctor (S9) still await
+the maintainer’s review. The tool page (S10), Settings (S11), and What to
+track (S14–S19) remain in Phase 5.
+
+Recommended next step is to review S9, then continue Phase 5 with `/build`.
 [Build progress](build-progress.md) ·
 [Status board](project-status.html)

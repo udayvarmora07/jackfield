@@ -109,9 +109,8 @@
     }
     return placesIn(scopes).map((scope) => {
       const agent = window.SkillsV2Model.agentMark(scope.id, scope.label);
-      const label = scope.id === "agents" ? "Shared skills folder" : scope.label || agent.name;
       const report = reports.get(discoveryQuery(scope, project, name));
-      return { ...agent, id: scope.id, name: label, path: scope.path,
+      return { ...agent, path: scope.path,
         hasCopies: (byScope.get(scope.id) || []).length > 0,
         checks: placeChecks(byScope.get(scope.id) || [], scope, report, name) };
     });
@@ -121,10 +120,9 @@
     // A missing copy in another place does not explain a problem with a copy
     // that exists. Keep each place's first failing check, but show real copy
     // failures before optional availability in another place.
-    const ordered = [...places].sort((a, b) =>
-      Number(a.checks[0].word === "No copy here") - Number(b.checks[0].word === "No copy here"));
-    for (const place of ordered) {
-      if (place.checks[0].word === "No copy here" && places.some((item) => item.hasCopies)) continue;
+    const hasCopies = places.some((place) => place.hasCopies);
+    for (const place of places) {
+      if (hasCopies && place.checks[0].word === "No copy here") continue;
       const failed = place.checks.findIndex((cell) => cell.state === "fail");
       if (failed === -1) continue;
       const { path, word } = place.checks[failed];
@@ -217,7 +215,7 @@
             <span aria-current="page">Why isn’t it running?</span>
           </nav>
           <h1 id="h1" ref="heading" tabindex="-1">Why isn’t {{ name }} running?</h1>
-          <p>We check each place from top to bottom. If a step fails, fix it first and check again.</p>
+          <p>We check each place step by step, from top to bottom. Fix the first failed step, then check again.</p>
         </header>
         <section v-if="next" class="jf-why-next" aria-labelledby="jf-why-next-title">
           <span class="jf-agent-mark sm-ag" :data-a="next.place.mark" aria-hidden="true">{{ next.place.initials }}</span>
@@ -263,7 +261,7 @@
         </div>
         <section class="jf-why-unknown" aria-labelledby="jf-why-unknown-title">
           <h2 id="jf-why-unknown-title">Why “Actually loaded” says Unknown</h2>
-          <p>Agents don’t tell other programs which skills they loaded. To check, ask the agent: “Which skills can you use right now?”</p>
+          <p>Agents don’t tell other programs which skills they loaded. Ask the agent itself, for example, “Which skills can you use right now?”</p>
         </section>
         <p class="jf-why-status sm-hint" role="status">{{ status }}</p>
       </div>`,

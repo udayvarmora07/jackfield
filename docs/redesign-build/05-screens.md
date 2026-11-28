@@ -124,8 +124,8 @@ the user to another page.
 folder, including same-name copies in one recursive scope. Details reports
 the main document’s line count and counts for supporting files read during
 the bounded traversal. The personal Claude Code listing-space estimate uses
-observed user settings. It shares the Details panel with the whole-file token
-estimate, library events and available file snapshots.
+observed user settings. It shares the Details panel with library events and
+available file snapshots.
 
 ## S4 · Editor
 
@@ -170,6 +170,9 @@ open and offers Undo for the confirmed writes.
   `POST /api/skills?scope=` per chosen place.
 - **Acceptance:** F4; the preview equals the created files.
 
+**[NOTE]** Picking a new layout or stored template asks before replacing
+edited instructions. A failed or superseded template read preserves the draft.
+
 ## S6 · Why isn't it running?
 
 - **Route:** `#/skills/<name>/why` · **Boards:** A07/D07 · **Replaces:** the
@@ -207,9 +210,11 @@ explain why the skill is unavailable in that place only.
 
 **[NOTE]** Skipped items stay in view for the session and leave the To fix
 count. A verified repair moves the resolved item to Fixed. Undo checks the
-installed tree before restoring its exact prior folder from Trash. Binary
-or ambiguous copies show manual guidance. Selection requires an explicit
-version choice for both differing and evenly split copies.
+installed tree before restoring its exact prior folder from Trash. The review
+names the source of the replacement. Binary or ambiguous copies show manual
+guidance. Selection requires an explicit version choice for both differing and
+evenly split copies. Large groups reveal up to 50 more items at a time and
+keep the current selection visible.
 
 ## S8 · Trash & backups
 
@@ -231,7 +236,9 @@ version choice for both differing and evenly split copies.
 
 **[NOTE]** The maintainer delegated the scope decision on 2026-11-28. Trash
 lists the library and observed agent folders together. Empty library trash
-and both archive modes apply to library data. Restore uses the recorded
+and both archive modes apply to library data. The empty action explains when
+the library trash is empty or unavailable. Large Trash lists reveal up to 50
+more items at a time. Restore uses the recorded
 original folder or the place's usual skill folder for older agent copies
 without an origin record. If the destination is occupied, both copies stay
 in place. Recent changes shows recorded library history. The history rows

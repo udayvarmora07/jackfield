@@ -30,9 +30,13 @@ const M = sandbox.window.SkillsV2Model, cases = JSON.parse(fs.readFileSync(proce
 const scopes = ['a','b','c'].map(id => ({id, label:id, kind:'agent', exists:true}));
 for (const c of cases) {
  const model = M.build(c.records, scopes), row = model.skills[0], busy = new Set(c.busy || []);
+ const columns = M.tableAgents(model.agents);
+ const statuses = M.squareStatuses(row, columns, busy);
  for (const [id, expected] of Object.entries(c.expected)) {
   const actual = M.squareStatus(row, model.agent(id), busy);
   if (actual !== expected) throw Error(`${c.name} ${id}: ${actual} != ${expected}`);
+  const index = columns.findIndex(column => column.id === id);
+  if (statuses[index] !== actual) throw Error(`${c.name} ${id}: row and individual status differ`);
  }
 }
 '''
@@ -57,6 +61,10 @@ assert.strictEqual(M.squareStatus(row,cols[2]), 'on');
 assert.strictEqual(M.squareStatus(row,cols[1]), 'different');
 assert.strictEqual(M.rowVerdict(row,cols), 'b has a different copy');
 assert.strictEqual(M.attentionItems([row],cols).length, 1);
+const states = M.squareStatuses(row, cols);
+const cached = new Map([[row, states]]);
+assert.strictEqual(M.attentionItems([row],cols,null,cached)[0].agent.id, 'b');
+assert.strictEqual(M.rowVerdict(row,cols,null,states), 'b has a different copy');
 const mixed = M.build([rec('project-claude','a','/one'),rec('project-codex','b','/two')],scopes).skills[0];
 assert.strictEqual(M.squareStatus(mixed,cols[2]), 'unknown');
 assert.strictEqual(M.attentionItems([],cols).length, 0);

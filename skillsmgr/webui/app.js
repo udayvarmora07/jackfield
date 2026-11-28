@@ -524,7 +524,10 @@ const tableMixin = {
         canStop: !!this.trackAgent(column.id)?.tracked && this.trackTrackedCount > 1,
       }));
     },
-    tableProblems() { return Model.attentionItems(this.shelfSkills, this.tableColumns); },
+    tableStatuses() {
+      return new Map(this.shelfSkills.map((row) => [row, Model.squareStatuses(row, this.tableColumns)]));
+    },
+    tableProblems() { return Model.attentionItems(this.shelfSkills, this.tableColumns, null, this.tableStatuses); },
     tableProblemNames() { return new Set(this.tableProblems.map((item) => item.name)); },
     tableAttentionDetail() {
       return this.tableProblems.slice(0, 3).map((item) => {
@@ -534,17 +537,19 @@ const tableMixin = {
     },
     tableBatchLimit() { return TABLE_BATCH_LIMIT; },
     tableRows() {
-      return this.shelfSkills.map((row) => ({
-        name: row.name, description: row.description, category: row.category, tokens: row.tokens, places: row.tools.length,
-        presentIn: row.tools.map((copy) => this.agentOf(copy.scope).name).join(" "),
-        verdict: Model.rowVerdict(row, this.tableColumns), attention: this.tableProblemNames.has(row.name),
-        cells: Object.fromEntries(this.tableColumns.map((agent) => {
-          const key = tableKey(row.name, agent.id);
-          const status = this.tableWorking.includes(key) ? "working" : Model.squareStatus(row, agent);
-          const actionable = ["on", "off", "missing"].includes(status);
-          return [agent.id, { status, label: TABLE_WORDS[status], actionable }];
-        })),
-      }));
+      const columns = this.tableColumns, statusByRow = this.tableStatuses, problems = this.tableProblemNames;
+      return this.shelfSkills.map((row) => {
+        const statuses = statusByRow.get(row);
+        return {
+          name: row.name, description: row.description, category: row.category, tokens: row.tokens, places: row.tools.length,
+          presentIn: row.tools.map((copy) => this.agentOf(copy.scope).name).join(" "),
+          verdict: Model.rowVerdict(row, columns, null, statuses), attention: problems.has(row.name),
+          cells: Object.fromEntries(columns.map((agent, index) => {
+            const status = statuses[index];
+            return [agent.id, { status, label: TABLE_WORDS[status], actionable: ["on", "off", "missing"].includes(status) }];
+          })),
+        };
+      });
     },
     tableSelected() {
       if (this.route.page === "skills" && this.route.view) return null;
@@ -861,7 +866,7 @@ const attentionMixin = {
       const fixed = this.attentionFixed.filter((item) => !active.has(item.id));
       return [["To fix", this.attentionToFix], ["Skipped", skipped], ["Fixed", fixed]]
         .filter(([title, items]) => items.length || (title === "To fix" && skipped.length))
-        .map(([title, items]) => ({ title: title + " · " + items.length, items: items.map((item) => ({
+        .map(([title, items]) => ({ id: title, title: title + " · " + items.length, items: items.map((item) => ({
           id: item.id, name: item.name, agent: item.agent && { ...item.agent, path: "" },
           status: title === "Fixed" ? "on" : item.type === "split" ? "version-1" : item.type,
           label: title === "Fixed" ? "Fixed" : item.type === "split" ? "Two versions" : "",
@@ -947,7 +952,7 @@ const attentionMixin = {
       const comparisons = this.attentionPair ? this.comparisonEvidence(this.attentionPair) : null;
       const canFix = !!option && (this.attentionPair || [option.source]).every((copy) => this.bodyReady(copy));
       const targets = (option?.targets || []).map((target) => ({ label: target.label, path: target.path }));
-      const what = option ? "The current folders go to Trash. The replacement includes the supporting files." +
+      const what = option ? "The replacement comes from " + option.source.label + ". The current folders go to Trash. The replacement includes the supporting files." +
         replacementEffect(option.source, option.targets) : "Choose the version to keep. Jackfield moves the replaced folders to Trash.";
       const manual = fixed || options.length ? "" : copy?.record.decode_error
         ? "This file cannot be read as text. Open the skill for instructions to repair the file."
@@ -1012,7 +1017,7 @@ const attentionMixin = {
     },
     attentionFix() {
       const item = this.attentionItem, option = this.attentionOption;
-      if (!item || !option || this.busy || this.loading || this.loadError || !this.attentionDetail.canFix) return;
+      if (!item || !option || this.busy || this.loading || this.loadError || this.attentionError || !this.attentionDetail.canFix) return;
       const originals = option.targets;
       const issueIds = this.tableProblems.filter(({ name, id, agent }) =>
         name === item.name && (id === item.id || originals.some((copy) => agent && columnScopes(agent).includes(copy.scope))));

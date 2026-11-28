@@ -13,11 +13,12 @@ window.Jackfield.register((app) => {
   const emptyForm = () => ({ name: "", description: "", body: layouts[0].body, template: "", layout: "Blank" });
 
   app.component("jf-new-skill", {
-    props: { agents: Array, scopes: Array, records: Array, template: String },
+    props: { agents: Array, scopes: Array, records: Array, template: String, friendly: Function },
     emits: ["created", "refresh", "ai"],
     data: () => ({ form: emptyForm(), selected: [], baseline: "", templates: [], templateGeneration: 0,
       templateLoading: false, previewGeneration: 0, previewTimer: null, preview: null, previewError: "",
-      writing: false, outcomes: new Map(), submitError: "", finished: false }),
+      writing: false, outcomes: new Map(), submitError: "", finished: false,
+      starterBody: layouts[0].body, pendingStarter: null }),
     computed: {
       name() { return this.form.name.trim(); },
       dirty() { return !this.finished && !!this.baseline && this.draftKey() !== this.baseline; },
@@ -44,7 +45,7 @@ window.Jackfield.register((app) => {
         return { name: this.name, description: this.form.description.trim(), body: this.form.body.replaceAll("{name}", this.name) };
       },
       payloadKey() { return this.payload ? JSON.stringify(this.payload) : ""; },
-      ready() { return !this.writing && this.targets.length > 0 && this.preview?.key === this.payloadKey; },
+      ready() { return !this.writing && !this.pendingStarter && this.targets.length > 0 && this.preview?.key === this.payloadKey; },
       skillHref() { return window.Jackfield.router.skillHref(this.name); },
       canOpen() { return this.existing.size > 0 || [...this.results.values()].some((result) => result.created); },
     },
@@ -66,19 +67,42 @@ window.Jackfield.register((app) => {
         const body = this.form.body;
         try {
           const result = await api("/api/templates");
-          if (generation !== this.templateGeneration) return;
+          if (!this.$refs.name) return;
           this.templates = result.templates || [];
-          if (this.template && this.templates.includes(this.template) && body === this.form.body) {
+          if (generation === this.templateGeneration && this.template && this.templates.includes(this.template) && body === this.form.body) {
             const pristine = !this.dirty;
             this.form.template = this.template;
             await this.readTemplate(this.template, pristine);
           }
         } catch { if (generation === this.templateGeneration) this.submitError = "Stored templates couldn’t be read."; }
       },
-      selectLayout(layout) {
+      chooseStarter(starter) {
         this.templateGeneration++;
         this.templateLoading = false;
-        Object.assign(this.form, { layout: layout.title, template: "", body: layout.body });
+        if (starter.template === "") {
+          this.form.template = "";
+          this.pendingStarter = null;
+          return;
+        }
+        if (this.form.body !== this.starterBody) {
+          this.pendingStarter = starter;
+          this.$nextTick(() => this.$refs.keepInstructions.focus());
+        } else this.applyStarter(starter);
+      },
+      keepInstructions() {
+        this.pendingStarter = null;
+        this.$nextTick(() => this.$refs.body.focus());
+      },
+      applyStarter(starter) {
+        this.pendingStarter = null;
+        if (starter.template !== undefined) {
+          this.readTemplate(starter.template);
+          return;
+        }
+        this.templateGeneration++;
+        this.templateLoading = false;
+        Object.assign(this.form, { layout: starter.title, template: "", body: starter.body });
+        this.starterBody = starter.body;
       },
       async readTemplate(name, setBaseline = false) {
         const generation = ++this.templateGeneration;
@@ -89,8 +113,10 @@ window.Jackfield.register((app) => {
           const result = await api("/api/templates/" + enc(name));
           if (generation !== this.templateGeneration || before !== this.form.body) return;
           const pristine = setBaseline && draft === this.draftKey();
+          this.form.template = name;
           this.form.layout = "";
           this.form.body = stripFrontmatter(result.body || "");
+          this.starterBody = this.form.body;
           if (pristine) this.baseline = this.draftKey();
         } catch { if (generation === this.templateGeneration) this.submitError = "This template couldn’t be read."; }
         finally { if (generation === this.templateGeneration) this.templateLoading = false; }
@@ -109,7 +135,7 @@ window.Jackfield.register((app) => {
           if (generation !== this.previewGeneration) return;
           if (typeof result?.content !== "string") throw new Error("The preview returned no file text.");
           this.preview = { key, content: result.content };
-        } catch (error) { if (generation === this.previewGeneration) this.previewError = error.message; }
+        } catch (error) { if (generation === this.previewGeneration) this.previewError = this.friendly(error.message); }
       },
       async create() {
         if (!this.ready) return;
@@ -123,7 +149,7 @@ window.Jackfield.register((app) => {
               const created = await api("/api/skills?scope=" + enc(place.id), { method: "POST", body });
               if (created?.name !== name) throw new Error("The response couldn’t confirm the new file.");
               results.set(place.id, { created: true });
-            } catch (error) { results.set(place.id, { error: error.message }); }
+            } catch (error) { results.set(place.id, { error: this.friendly(error.message) }); }
             this.outcomes.set(name, new Map(results));
           }
         } finally { this.writing = false; }
@@ -165,21 +191,26 @@ window.Jackfield.register((app) => {
               <p class="sm-hint">Pick one or more. Each folder gets its own copy.</p>
               <label v-for="place in places" :key="place.id" class="jf-editor-place">
                 <input type="checkbox" class="sm-check" v-model="selected" :value="place.id" :disabled="place.existing || !!place.outcome">
-                <span><jf-agent :agent="{ ...place, path: shortPath(place.path) }"></jf-agent><small v-if="place.outcome?.error">{{ place.outcome.error }}</small>
+                <span><jf-agent :agent="{ ...place, path: shortPath(place.path) }" :title="place.path"></jf-agent><small v-if="place.outcome?.error">{{ place.outcome.error }}</small>
                   <small v-else-if="place.outcome?.created">Created</small><small v-else-if="place.existing">Already here</small></span>
               </label>
             </div>
             <p class="sm-label" id="jf-create-layouts-title">Start from</p>
             <div class="jf-create-layouts" role="group" aria-labelledby="jf-create-layouts-title">
-              <button v-for="layout in layouts" :key="layout.title" class="sm-btn" type="button" :aria-pressed="form.layout === layout.title" @click="selectLayout(layout)">{{ layout.title }}</button>
+              <button v-for="layout in layouts" :key="layout.title" class="sm-btn" type="button" :aria-pressed="form.layout === layout.title" @click="chooseStarter(layout)">{{ layout.title }}</button>
             </div>
             <label v-if="templates.length" class="jf-create-template">Stored template
-              <select class="field" v-model="form.template" @change="readTemplate(form.template)">
+              <select class="field" :value="form.template" @change="chooseStarter({ template: $event.target.value }); $event.target.value = form.template">
                 <option value="">Choose a template</option><option v-for="name in templates" :key="name" :value="name">{{ name }}</option>
               </select>
             </label>
             <label class="sm-label" for="nf-body">Instructions</label>
-            <textarea class="sm-textarea sm-textarea--file" id="nf-body" rows="8" v-model="form.body" :disabled="templateLoading"></textarea>
+            <div v-if="pendingStarter" class="jf-create-confirm" role="group" aria-label="Replace instructions?">
+              <p>Replace your instructions with this starting text?</p>
+              <button ref="keepInstructions" type="button" class="sm-btn sm-btn--accent" @click="keepInstructions">Keep editing</button>
+              <button type="button" class="sm-btn" @click="applyStarter(pendingStarter)">Replace instructions</button>
+            </div>
+            <textarea class="sm-textarea sm-textarea--file" ref="body" id="nf-body" rows="8" v-model="form.body" :disabled="templateLoading"></textarea>
             <button type="button" class="sm-btn sm-btn--quiet" @click="$emit('ai', { name: form.name, description: form.description, body: form.body, scope: selected[0] })">Create with AI or add metadata</button>
           </fieldset>
         </form>

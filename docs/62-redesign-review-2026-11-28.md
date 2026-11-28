@@ -11,6 +11,39 @@ the running fixture app or confirmed by reading the code, or **reported**,
 meaning one reviewer saw it and nobody re-checked it independently. This file
 records findings only. It changes no behaviour. Fix work belongs in @task.md.
 
+## Fix results
+
+**[NOTE]** Batch 1 is commit `6e0fa71`. Batch 2 is the commit titled
+`fix(webui): finish Paper before-launch review fixes`. The original
+observations are retained in the following sections.
+
+| Finding | Disposition |
+| --- | --- |
+| Disclosure chevron | Fixed in Batch 1. Browser and stylesheet checks cover size, rotation, reduced motion and the tool-findings exception. |
+| First launch | Fixed in Batch 1. The detected folder paths and welcome card match the approved structure. A delayed inventory read confirms the scanning state. |
+| Classic-view links | Fixed in Batch 1. Old bookmarks resolve to the Paper table, retaining filters. The Skill page's Read copy picker distinguishes same-name folders. Exact tool links survive reload. |
+| Doctor counts and evidence wording | Fixed in Batch 1. The index result names its scope, and broader findings explain their relationship to the two attention counts. A link opens Needs attention when there are issues. |
+| Why opens on a missing copy | Reproduced with three present copies. Fixed in Batch 1. Existing-copy failures take precedence and the Skill page is linked. |
+| State and notices carry over | Reproduced for backup previews, review errors, download announcements and Undo on the Reader → Editor transition. Fixed in Batch 1. Late read results cannot restore the old screen state. Failed writes remain visible after navigation. |
+| Unknown place and `f` shortcut | Fixed in Batch 2. Unknown filters show all places on desktop and a valid place on phones. The shortcut shares the button's error guard. |
+| Needs attention replacement source | Reproduced on a one-step repair. Fixed in Batch 2. The action identifies the source before writing. |
+| New skill errors and starter overwrite | Reproduced with failed writes and edited instructions. Fixed in Batch 2, including late template reads. |
+| Phone targets and New skill / Editor rows | Fixed in Batch 2. The affected touch targets meet 44 px at 390 and 600 px. Folder paths stay readable without crowding the Editor status. |
+| Place, Sort, and column options controls | Fixed in Batch 2. The toolbar and column controls use chevrons, with keyboard access and focus return. |
+| Terminology and copy | Fixed in Batch 2. Mixed destinations are places, tracking refers to agents, and the shared folder uses its board name. Advanced links and headings agree. Why and Trash use plain wording. The Skill page retains the list-space percentage without internal setting names or token counts. |
+| Trash restore path, disabled action, and Recent changes time | Fixed in Batch 2. Restore identifies the saved date and destination, and the button explains why library trash cannot be emptied. The history times align with the card's right inset. |
+| No-op backup | Not reproduced. The existing preview disables Load backup when all entries are skipped. A full archive with a catalog addition remains loadable. Both cases have an automated check. |
+| Title left edges at 1,440 px | Deferred. The approved boards center distinct 1,440, 1,280 and 1,040 px page widths, which yield title positions of 40, 120 and 240 px. Aligning them needs a board decision. |
+| Recent changes only shows library events | Deferred. This is the documented history scope. The empty state names it. |
+| Safari popovers | The real Safari symptom remains unverified. Batch 2 closes popovers on focus or pointer activity outside the active control. Firefox verified dismissal and keyboard operation with a simulated null `relatedTarget`. |
+| 10,000-skill performance and unbounded lists | Fixed in Batch 2. Square evidence is reused per row. Needs attention and Trash render an initial 50 rows and disclose additional batches, moving focus to the new content. |
+
+**[NOTE]** Deferred scope includes Phase 5 S10/S11/S14–S19, the four backend
+hardening notes, the handoff and archive decision, Phase 7 removal and doc
+cleanup, and Phase 8 acceptance. S9 maintainer review remains open. The
+screen-reader, physical-phone, actual Safari, and pixel-overlay checks remain
+open. The checked-in boards were compared by markup, copy, and widths.
+
 ## Scope and evidence
 
 **[NOTE]** Sources: the approved boards in `designs/final/`, @DESIGN.md,

@@ -2,13 +2,24 @@
 "use strict";
 
 window.Jackfield.register((app) => {
+  const PAGE_SIZE = 50;
   app.component("jf-attention", {
     props: {
       groups: { type: Array, default: () => [] }, detail: Object, loading: Boolean,
       error: [String, Object], checked: Object, count: Number, busy: Boolean,
     },
     emits: ["select", "choose", "fix", "skip", "recheck", "compare", "retry-comparison"],
+    data: () => ({ groupLimits: {} }),
     computed: {
+      visibleGroups() {
+        return this.groups.map((group) => {
+          const limit = this.groupLimits[group.id] || PAGE_SIZE;
+          const items = group.items.slice(0, limit);
+          const selected = group.items.findIndex((item) => item.id === this.detail?.id);
+          if (selected >= limit) items.push(group.items[selected]);
+          return { ...group, items, nextCount: Math.min(PAGE_SIZE, group.items.length - items.length) };
+        });
+      },
       countLabel() {
         if (this.count) return `${this.count} to go`;
         return this.groups.some((group) => group.title.startsWith("Skipped")) ? "0 to fix" : "All clear";
@@ -37,6 +48,14 @@ window.Jackfield.register((app) => {
         return `Last checked ${date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.`;
       },
     },
+    methods: {
+      showMore(group, event) {
+        const offset = this.groupLimits[group] || PAGE_SIZE;
+        const list = event.currentTarget.previousElementSibling;
+        this.groupLimits[group] = offset + PAGE_SIZE;
+        this.$nextTick(() => list.querySelectorAll("button")[offset]?.focus());
+      },
+    },
     template: `<div class="jf-attention">
       <header class="jf-attention-heading">
         <h1 id="h1" tabindex="-1">Needs attention</h1>
@@ -45,7 +64,7 @@ window.Jackfield.register((app) => {
       <div class="jf-attention-grid" :class="{ 'has-problems': groups.length > 0 }">
         <nav v-if="groups.length" class="jf-attention-list" aria-label="Problems">
           <div class="jf-attention-items">
-            <section v-for="group in groups" :key="group.title" :aria-label="group.title">
+            <section v-for="group in visibleGroups" :key="group.id" :aria-label="group.title">
               <h2 class="jf-attention-caption">{{ group.title }}</h2>
               <ul role="list">
                 <li v-for="item in group.items" :key="item.id">
@@ -58,6 +77,8 @@ window.Jackfield.register((app) => {
                   </button>
                 </li>
               </ul>
+              <button v-if="group.nextCount" type="button" class="sm-btn jf-attention-more"
+                :aria-label="'Show more in ' + group.id" @click="showMore(group.id, $event)">Show {{ group.nextCount }} more</button>
             </section>
           </div>
           <p class="jf-attention-keys"><kbd class="sm-kbd">J</kbd> <kbd class="sm-kbd">K</kbd> next and previous · <kbd class="sm-kbd">F</kbd> fix</p>

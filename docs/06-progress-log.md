@@ -7,6 +7,29 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper review fixes, Batch 2
+
+**[NOTE]** New skill confirms before replacing edited instructions and
+explains failed previews and creates. The Editor and phone touch targets
+follow the approved rows. The Skills table uses chevron controls and falls
+back to all desktop places for unknown filters. Needs attention names the
+replacement source and blocks the fix shortcut after an error. Needs
+attention and Trash reveal long lists in batches. The Skill page, Advanced,
+Why and Trash use the approved terms and explain their evidence in plain
+language. See @docs/62-redesign-review-2026-11-28.md for dispositions.
+
+**[NOTE]** A Node benchmark of square statuses and row verdicts for 10,000
+synthetic skills measured 340 ms before and 98 ms after, using medians of
+five timed runs per revision. The browser now renders the Working indicator
+on visible cells while retaining its existing status and verdict data until
+the filesystem refresh. This benchmark measures model work only.
+
+**[NOTE]** The final tree passed 2,561 tests on each of Python 3.11–3.14
+(13 skipped on 3.11–3.13 and 12 on 3.14), all 124 Chromium checks,
+the focused Firefox popup check, both smokes, documentation, tokens,
+complexity, and Ruff. Synthetic screenshots cover both themes at 390,
+1,280, 1,440 and 1,920 px.
+
 ## 2026-11-28 — Paper review fixes, Batch 1
 
 **[NOTE]** First launch shows the detected folders and the A16 welcome card.
@@ -20,6 +43,10 @@ links to Needs attention when there are items. Why checks existing copies
 first and links to the Skill page. Trash receipts, backup reviews, Needs
 attention errors, and success notices clear on navigation. In-flight write
 failures still appear when they finish. See @docs/62-redesign-review-2026-11-28.md.
+
+**[NOTE]** Commit `6e0fa71` passed 2,560 tests on each of Python 3.11–3.14
+(13 skipped on 3.11–3.13 and 12 on 3.14), 113 Chromium browser checks,
+both smokes, documentation, tokens, complexity, and Ruff.
 
 ## 2026-11-28 — Redesign review at Phase 5
 
