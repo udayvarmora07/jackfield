@@ -456,7 +456,12 @@ class AgentScopeTrashTests(unittest.TestCase):
             and "cannot be restored in-app" in path.read_text("utf-8")
         ]
         self.assertEqual(offenders, [])
-        self.assertIn("Agent trash", (root / "index.html").read_text("utf-8"))
+        index = (root / "index.html").read_text("utf-8")
+        screen = (root / "screen-trash.js").read_text("utf-8")
+        self.assertIn(':rows="mergedTrash"', index)
+        self.assertIn('@restore="reviewTrashRow($event)"', index)
+        self.assertIn("$emit('restore', row.id)", screen)
+        self.assertIn("Empty library trash", screen)
 
 
 if __name__ == "__main__":

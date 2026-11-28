@@ -267,14 +267,13 @@ function getJson(path) { return new Promise((resolve, reject) => { const req=htt
     if (!filtered || !filtered.some(label => /Trash & backups/.test(label))) errors.push('Palette did not find Trash & backups for "trash": ' + JSON.stringify(filtered));
     await evalValue(`(() => { document.querySelector('#command-q').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`);
     let landed = null;
-    // After a failed first scan every page states the failure instead of its own content.
-    const expectedHeading = (scenario === 'scope-failure' || scenario === 'inventory-failure') ? /^(Recovery|Couldn.t read your skills)$/ : /^Recovery$/;
+    const expectedHeading = 'Trash & backups';
     for (let attempt = 0; attempt < 30; attempt += 1) {
       landed = await evalValue(`(() => ({hash:location.hash, heading:document.querySelector('#h1') ? document.querySelector('#h1').innerText.trim() : '', dialog:!!document.querySelector('.dlg .palette')}))()`);
-      if (landed && landed.hash === '#/trash' && expectedHeading.test(landed.heading) && !landed.dialog) break;
+      if (landed && landed.hash === '#/trash' && landed.heading === expectedHeading && !landed.dialog) break;
       await pause(50);
     }
-    if (!landed || landed.hash !== '#/trash' || !expectedHeading.test(landed.heading) || landed.dialog) errors.push('Enter in the palette did not open Trash & backups and close the palette: ' + JSON.stringify(landed));
+    if (!landed || landed.hash !== '#/trash' || landed.heading !== expectedHeading || landed.dialog) errors.push('Enter in the palette did not open Trash & backups and close the palette: ' + JSON.stringify(landed));
   }
 
   // Search remains open and does not navigate while a user types.

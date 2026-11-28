@@ -23,8 +23,8 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 - Agent tracking shipped in the current UI (`78cc21b`). Paper implementation
   is tracked in [the build record](build-progress.md).
 - Q3 settled the token decision. The gate reads `design/tokens.json` and
-  `DESIGN.md` explains how to use the system. Q5 is open for Phase 4 and Q2 is
-  open for Phase 5.
+  `DESIGN.md` explains how to use the system. Q5 records the browser-local
+  backup date. Q2 is open for Phase 5.
   See the [decision register](docs/redesign-build/09-open-questions-and-risks.md).
 - The local handoff package predates Jackfield branding, design system v13 and
   the final boards. The approved sources and build spec take precedence.
@@ -35,9 +35,9 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 17 CI jobs passed for that commit. The four-artifact review corrections
 are included with the Phase 3 work to date.
 
-Phase 3 now has implementations of the Skill page, Editor, New skill
-and “Why isn’t it running?” The maintainer approved the Editor with Save to
-missing places and Undo. Phase 3 integration and hosted CI come next.
+Phase 3 landed at `614bc4b` and passed all 17 GitHub CI jobs.
+Needs attention and Trash & backups are approved and passed local
+verification. Hosted CI is the remaining Phase 4 integration gate.
 [Build progress](build-progress.md)
-[Build plan](docs/redesign-build/07-build-plan.md#phase-3--everyday-jobs) ·
+[Build plan](docs/redesign-build/07-build-plan.md#phase-4--upkeep) ·
 [Status board](project-status.html)

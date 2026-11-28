@@ -160,7 +160,7 @@
     install: (app) => registrations.forEach((register) => register(app)),
     // Vue makes this contribution reactive as part of the one root data object.
     createState: () => ({
-      refreshGen: 0, m: null, loading: true, loadError: "", history: [], historyError: "",
+      refreshGen: 0, m: null, loading: true, loadError: "", history: [], historyError: "", checkedAt: 0,
       records: [], scopes: [], busy: false, toasts: [], live: "", toastSeq: 0,
       tableWorking: [], tableError: null, diskChanges: [], changedRows: [], highlightsTimer: null,
     }),
@@ -189,6 +189,7 @@
           }
           this.scopes=markRaw(scopes);this.records=markRaw(records);
           this.m = markRaw(Model.build(records, scopes, { suggested: 100 }));
+          this.checkedAt = Date.now();
           /* What to track only decorates the pages (the server already filters).
            * Its report counts every agent folder, so it starts after the skills
            * have arrived instead of competing with them, and nothing waits on it. */
@@ -231,24 +232,26 @@
             }
             try { undo = await recordCopyUndo(this, result); } catch { undo = null; }
           }
-          let message = target.message;
+          let message = target.onVerified?.() || target.message;
           if (result?.skipped) message = `${result.copiesMade.length} copies changed. ${result.skipped} could not be changed.`;
           if (result && !undo) message += " Undo isn’t available for these copies.";
           if (result?.unavailable || (result && !undo && target.originals.length)) message += " Check Trash for previous copies.";
           const reader = origin.page === "skill" && !origin.screen;
-          if (this.route.page === "skills" || (reader && this.route.page === "skill" &&
+          const attention = origin.page === "inbox" && this.route.page === "inbox";
+          if (attention || this.route.page === "skills" || (reader && this.route.page === "skill" &&
               this.route.name === origin.name && !this.route.screen)) {
             const selected = this.tableSelection;
             if (selected && this.tableSheetOpen && target.keys.includes(selected.name + ":" + selected.agent)) {
               if (this.route.page === "skill") this.closeReaderSquare();
               else this.tableClose();
             }
-            this.toast(message, { undo, err: !!result?.skipped });
+            this.toast(message, { undo, onUndo: target.onUndo, err: !!result?.skipped });
           }
         } catch (error) {
           await this.refresh();
           this.tableError = { key: target.keys[0], reason: this.friendly(error.message),
             details: error.cause ? this.friendly(error.cause.message) : "", verify: wrote || !!error.verify };
+          if (target.onError?.(this.tableError)) return;
           this.live = this.tableError.reason;
           const selected = this.tableSelection;
           if (!selected || selected.name + ":" + selected.agent !== this.tableError.key) {

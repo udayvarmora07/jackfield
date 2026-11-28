@@ -52,8 +52,8 @@ and ask the maintainer before adding a route (AGENTS.md "ASK before"). Any
 | Move to Trash | `DELETE /api/skills/<name>?scope=&purge=0` | `POST /api/trash/<name>?scope=` |
 | Delete forever | `DELETE /api/skills/<name>?scope=&purge=1` | None: say so first |
 | Restore | `POST /api/trash/<name>[?scope=]` (+ `trash_path`) | Move to Trash again |
-| Empty trash | `POST /api/trash/purge` | None: say so first |
-| Backup / load | `GET /api/export[?full=1]`, `PUT /api/import?filename=&force=&full=` | Load shows its plan first |
+| Empty library trash | `POST /api/trash/purge` | The confirmation explains that the deletion is permanent |
+| Library backup / load | `GET /api/export[?full=1]`, `PUT /api/import?filename=&force=&full=&preview=1`, then the same import with `plan_id` in place of `preview` | Load requires a reviewed plan |
 | Tracking | `PUT /api/tracking` (whole document, `revision`) | PUT the previous document |
 | Check a folder | `POST /api/tracking/check-folder` | Read-only |
 | AI tools | the existing `/api/ai/*` routes | Per tool (snapshot provenance for applied edits) |
@@ -102,7 +102,7 @@ files, directory entries and permissions under the destination write lock.
 |---|---|---|
 | Agents without a settings reader (Cursor, custom agents) | Square rules 7–8 cannot fire; they show On with "settings aren't checked" in the panel (Q1, decided 2026-11-27) | No (frontend rule) |
 | "Actually loaded" | Always Unknown with the fixed explanation (S6) | No |
-| "Recent changes" undo for older history rows | Offer Undo only where a snapshot id exists in `/api/history?snapshots=1`; others are read-only lines | No |
-| "Last one: 20 Nov" for backups | The app does not record backup downloads today; omit the line unless a local preference stores the last download time (browser `localStorage`, per browser) | No; if a server record is wanted, it is new scope (ask) |
+| Undo for a Recent changes row | Library history rows have no exact snapshot or operation identifier. The history list is read-only. Known text snapshots can be restored under History and text snapshots. | No |
+| Latest library backup date and size | Store the date and size in browser `localStorage` after Jackfield gives the download to the browser. | No |
 | Text size and date format | Browser preferences (`preferences.js`), as today | No |
 | A cheap "has anything changed" call | Use the existing list call with `body=0`; add nothing | No; a fingerprint route would need approval |

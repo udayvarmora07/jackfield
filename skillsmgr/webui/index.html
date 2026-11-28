@@ -18,7 +18,7 @@
 <body>
 <div id="app" class="sm-root" v-cloak>
   <a class="skip" href="#main" :inert="!!dialog || tableSheetOpen" @click.prevent="skipToContent()">Skip to content</a>
-  <jf-nav :active-place="activePlace" :attention="tableProblemNames.size" :theme-label="themeLabel" :skills-hero="tableHero"
+  <jf-nav :active-place="activePlace" :attention="attentionToFix.length" :theme-label="themeLabel" :skills-hero="tableHero"
     :theme-icon="themeIcon" :blocked="!!dialog || tableSheetOpen" @search="openCommands()" @theme="cycleTheme()" @help="openHelp()"></jf-nav>
 
   <main id="main" ref="main" tabindex="-1" :inert="!!dialog">
@@ -38,6 +38,28 @@
       @confirm-stop="tableConfirmStop()" @look-again="refresh({ showChanges: true })"
       @open-folder="tableFolder()" @why="tableOpenSkill('why')" @cancel-preview="tableCancelPreview()"
       @batch="tableBatch($event)" @refresh="refresh({ showChanges: true })"></jf-skills-screen>
+    <jf-attention v-else-if="route.page === 'inbox'" :groups="attentionGroups" :detail="attentionDetail"
+      :count="attentionToFix.length" :busy="busy" :loading="loading" :error="loadError || attentionError" :checked="attentionChecked"
+      @select="attentionSelect($event)" @choose="attentionChoose($event)" @fix="attentionFix()" @skip="attentionSkip()"
+      @recheck="attentionRecheck()" @compare="attentionCompare = $event"
+      @retry-comparison="ensureBodies(attentionReads)"></jf-attention>
+    <jf-trash-screen v-else-if="route.page === 'recovery'" :rows="mergedTrash" :trash-errors="mergedTrashErrors"
+      :trash-loading="loading || trashLoading || agentTrashLoading"
+      :can-empty="!!trash.length && !trashError && !trashLoading" :busy="busy" :restored="restoredTrash"
+      :recent="recoveryRecent" :history-error="historyError"
+      :export-pending="exportPending" :export-error="exportError" :last-download="recoveryLastDownload"
+      :import-file-name="importFile?.name || ''" :import-force="importForce" :import-full="importFull"
+      :import-pending="importPending" :import-error="importReject || importError" :import-plan="importPlan" :import-result="recoveryImportResult"
+      @restore="reviewTrashRow($event)" @retry-trash="retryTrash()" @empty="openPurge()" @download="exportBackup($event)"
+      @pick-import="pickImport($event)" @set-force="changeImportOption('importForce', $event)"
+      @set-full="changeImportOption('importFull', $event)" @preview="previewImport()" @apply="doImport()"
+      @cancel-preview="clearImportReview()" @retry-history="refresh()">
+      <details class="jf-trash-card jf-trash-more">
+        <summary>History and text snapshots</summary>
+        <tool-center page="recovery-extra" :records="records" :scopes="scopes" :target="toolTarget"
+          @changed="refresh()" @inspect="inspectRecord($event)"></tool-center>
+      </details>
+    </jf-trash-screen>
     <div class="page" v-else-if="loading && !m">
       <h1 class="h1" id="h1" tabindex="-1">Looking at your agents…</h1>
       <p class="lede">Reading the skill folders on this computer.</p>
@@ -94,15 +116,15 @@
         <aside class="side">
           <div class="card">
             <h2>Needs a look</h2>
-            <p class="sub" v-if="queue.length">{{ plural(queue.length, 'item') }} in Inbox</p>
+            <p class="sub" v-if="queue.length">{{ plural(queue.length, 'item') }} to review</p>
             <template v-if="queue.length">
               <div class="look" v-for="(p, i) in queue.slice(0, 3)" :key="p.id">
                 <span :class="['look-ic', p.key]"><ic :name="p.key === 'info' ? 'info' : p.key"></ic></span>
-                <div><b>{{ p.title }}</b><p>{{ p.text }}</p><a class="btn btn-line btn-sm" href="#/attention" @click="front = p.id" :aria-label="'Review in Inbox: ' + p.title">Review</a></div>
+                <div><b>{{ p.title }}</b><p>{{ p.text }}</p><a class="btn btn-line btn-sm" :href="reviewProblemHref(p)" :aria-label="'Review in Needs attention: ' + p.title">Review</a></div>
               </div>
-              <a class="see-all" href="#/attention" v-if="queue.length > 3">Open inbox ({{ queue.length }}) <ic name="arrow" cls="i-s"></ic></a>
+              <a class="see-all" href="#/attention" v-if="queue.length > 3">Open Needs attention ({{ queue.length }}) <ic name="arrow" cls="i-s"></ic></a>
             </template>
-            <div class="look" v-else><span class="look-ic" style="background:var(--ok-bg);color:var(--ok)"><ic name="check"></ic></span><div><b>Inbox is clear</b><p>Skipped items return after reload.</p></div></div>
+            <div class="look" v-else><span class="look-ic" style="background:var(--ok-bg);color:var(--ok)"><ic name="check"></ic></span><div><b>Nothing to review</b><p>Check the Skills table for changes.</p></div></div>
           </div>
           <listing-budgets :records="records" :locale="formatLocale"></listing-budgets>
         </aside>
@@ -298,7 +320,7 @@
       </div>
       <div class="instance-filters"><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><div class="seg" role="group" aria-label="Card density" v-if="libraryView==='shelf'"><button type="button" :aria-pressed="density==='comfortable'" @click="density='comfortable'">Comfortable</button><button type="button" :aria-pressed="density==='compact'" @click="density='compact'">Compact</button></div><a v-if="query.trim()" class="link map-carry" href="#/skills?view=map" @click.exact.left.prevent="findInMap()">Find name in Sync map</a><span class="count" aria-live="polite">{{ visible.length === shelfTotal ? fmt(shelfTotal) + (shelfTotal === 1 ? ' skill' : ' skills') : 'Showing ' + fmt(visible.length) + ' of ' + fmt(shelfTotal) }}</span><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading" title="Re-read every skill folder from disk">{{ loading ? 'Refreshing…' : 'Refresh files' }}</button></div>
       <p class="state-note err" role="alert" v-if="catalogError">Tags and profiles are unavailable: {{catalogError}} <button class="btn btn-line btn-sm" @click="loadCatalog()">Retry</button></p>
-      <div class="ribbon" v-if="careCount && filter !== 'care'"><ic name="warn"></ic><b>{{ plural(careCount, 'skill needs', 'skills need') }} review</b><div class="ribbon-actions"><button type="button" class="link" @click="filter = 'care'; capReset()">Show only these</button><a class="btn btn-line btn-sm" href="#/attention">Review in Inbox</a></div></div>
+      <div class="ribbon" v-if="careCount && filter !== 'care'"><ic name="warn"></ic><b>{{ plural(careCount, 'skill needs', 'skills need') }} review</b><div class="ribbon-actions"><button type="button" class="link" @click="filter = 'care'; capReset()">Show only these</button><a class="btn btn-line btn-sm" href="#/attention">Review in Needs attention</a></div></div>
       <library-tools v-if="libraryView==='instances'" :records="records" :scopes="scopes" :names="visibleNames" :agent-filter="agentFilter" :catalog="catalog" @changed="refresh()" @inspect="openRecord($event)" @source="openSource($event)" @removed="removedBatch($event)"></library-tools>
       <template v-else-if="groups.length">
         <section class="cat" v-for="g in groups" :key="g.id" role="group" :aria-label="grouping === 'letter' && sortBy === 'name' ? 'Skills starting with ' + g.id : g.id">
@@ -373,7 +395,7 @@
             </div>
               <section class="inline-note reader-comparison" aria-labelledby="reader-comparison-title" v-if="skill.status.key === 'warn' && cmp">
                 <h2 id="reader-comparison-title">Copies differ</h2>
-                <p v-if="skill.ref.ambiguous">The copies are split evenly. <a class="link" href="#/attention" @click.exact.left.prevent="openInboxFor(skill.name)">Choose a reference in Inbox</a> to sync them.</p>
+                <p v-if="skill.ref.ambiguous">The copies are split evenly. <a class="link" href="#/attention" @click.exact.left.prevent="openInboxFor(skill.name)">Choose a version in Needs attention</a> to sync them.</p>
                 <p v-else>The document differs from {{ agentOf(cmp.scope).name }}’s copy. Sync also copies supporting files and the on/off state.</p>
                 <div class="reader-comparison-controls">
                   <label v-if="readerCompareCopies.length > 1">Compare with <select class="field reader-compare-select" :value="bodyKey(cmp)" @change="compareWith = $event.target.value"><option v-for="c in readerCompareCopies" :key="bodyKey(c)" :value="bodyKey(c)">{{ agentOf(c.scope).name }}<template v-if="readerCompareCopies.some(other => other !== c && other.scope === c.scope)"> — {{ c.path }}</template></option></select></label>
@@ -632,142 +654,24 @@
         <template v-else>
           <p :class="['pill', mapSel.key]">{{ tagFor(mapSel) }}</p>
           <div class="mlist" v-if="mapSel.broken.length"><div class="mrow" v-for="s in mapSel.broken.slice(0, 8)" :key="s.name"><span class="bad"><ic name="bad"></ic></span><span><b>{{ s.name }}</b><small>{{ brokenShort(s, mapSel.id) }}</small></span><a class="btn btn-soft btn-sm" :href="'#/skills/' + enc(s.name)">Open</a></div>
-            <div class="mrow" v-if="mapSel.broken.length > 8"><span></span><span><small>and {{ mapSel.broken.length - 8 }} more. See the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/attention">Inbox</a></div></div>
+            <div class="mrow" v-if="mapSel.broken.length > 8"><span></span><span><small>and {{ mapSel.broken.length - 8 }} more. See Needs attention.</small></span><a class="btn btn-soft btn-sm" href="#/attention">Needs attention</a></div></div>
           <div class="mlist" v-if="mapSel.differing.length">
             <template v-for="s in mapSel.differing.slice(0, 12)" :key="s.name">
-              <div class="mrow"><input type="checkbox" :checked="mapPicked.includes(s.name)" :disabled="busy || !mapSyncable(s, mapSel.id)" :aria-label="'Make ' + s.name + ' match'" @change="togglePick(s.name)"><span><b>{{ s.name }}</b><small>{{ s.ref.ambiguous ? 'Choose a source in the Inbox' : !mapSyncable(s, mapSel.id) ? 'Review this copy in Skills' : 'Document differs from the reference' }}</small></span><button type="button" class="peek" :aria-expanded="peek === s.name" :aria-controls="peek === s.name ? 'map-comparison' : null" @click="togglePeek(s)" :aria-label="(peek === s.name ? 'Hide' : 'Show') + ' changes in ' + s.name">{{ peek === s.name ? 'Hide' : 'Compare' }}</button></div>
+              <div class="mrow"><input type="checkbox" :checked="mapPicked.includes(s.name)" :disabled="busy || !mapSyncable(s, mapSel.id)" :aria-label="'Make ' + s.name + ' match'" @change="togglePick(s.name)"><span><b>{{ s.name }}</b><small>{{ s.ref.ambiguous ? 'Choose a version in Needs attention' : !mapSyncable(s, mapSel.id) ? 'Review this copy in Skills' : 'Document differs from the reference' }}</small></span><button type="button" class="peek" :aria-expanded="peek === s.name" :aria-controls="peek === s.name ? 'map-comparison' : null" @click="togglePeek(s)" :aria-label="(peek === s.name ? 'Hide' : 'Show') + ' changes in ' + s.name">{{ peek === s.name ? 'Hide' : 'Compare' }}</button></div>
               <div v-if="peek === s.name" id="map-comparison" class="map-comparison">
                 <copy-comparison v-if="mapComparisonEvidence" :evidence="mapComparisonEvidence" from-label="Selected copy" to-label="Reference copy" :reload="() => ensureBodies(mapComparePair)"></copy-comparison>
-                <p v-else-if="s.ref.ambiguous" class="sub">Choose a source to compare these versions. <a class="link" href="#/attention" @click.exact.left.prevent="openInboxFor(s.name)">Open in Inbox</a></p>
+                <p v-else-if="s.ref.ambiguous" class="sub">Choose a source to compare these versions. <a class="link" href="#/attention" @click.exact.left.prevent="openInboxFor(s.name)">Open in Needs attention</a></p>
                 <p v-else class="sub">Choose an exact copy to inspect. <a class="link" :href="'#/skills/' + enc(s.name)">See skill copies</a></p>
               </div>
             </template>
-            <div class="mrow" v-if="mapSel.differing.length > 12"><span></span><span><small>and {{ mapSel.differing.length - 12 }} more. Use the Inbox.</small></span><a class="btn btn-soft btn-sm" href="#/attention">Inbox</a></div></div>
-          <p class="backup" v-if="mapSel.differing.length"><ic name="undo" cls="i-s"></ic>Sync copies the on/off state and supporting files too. Undo restores the text and on/off state. If supporting files change, find the previous folder in Recovery.</p>
+            <div class="mrow" v-if="mapSel.differing.length > 12"><span></span><span><small>and {{ mapSel.differing.length - 12 }} more. See Needs attention.</small></span><a class="btn btn-soft btn-sm" href="#/attention">Needs attention</a></div></div>
+          <p class="backup" v-if="mapSel.differing.length"><ic name="undo" cls="i-s"></ic>Sync copies the on/off state and supporting files too. Undo restores the text and on/off state. If supporting files change, find the previous folder in Trash &amp; backups.</p>
           <div class="cta" v-if="mapSel.differing.slice(0, 12).some((s) => mapSyncable(s, mapSel.id))"><button type="button" class="btn btn-ink btn-lg" :disabled="!mapSelected.length || busy" @click="syncPicked()">{{ mapSelected.length ? 'Make ' + plural(mapSelected.length, 'skill') + ' match in ' + mapSel.agent.name : 'Select skills to sync' }}</button></div>
-          <div class="cta" v-else-if="mapSel.differing.length"><a class="btn btn-line btn-lg" href="#/attention">Choose which copies to keep in the Inbox</a></div>
+          <div class="cta" v-else-if="mapSel.differing.length"><a class="btn btn-line btn-lg" href="#/attention">Choose which copies to keep in Needs attention</a></div>
         </template>
       </aside>
     </div>
 
-    <!-- ========== RECOVERY ========== -->
-    <div class="page" v-else-if="route.page === 'recovery'">
-      <h1 class="h1" id="h1" tabindex="-1">Recovery</h1>
-      <p class="lede">Restore removed copies, move your library with a backup, or revisit earlier edits.</p>
-      <section-jumps :sections="[['rec-trash', 'Trash'], ['rec-agent-trash', 'Agent trash'], ['rec-backup', 'Download backup'], ['rec-import', 'Load backup'], ['rec-history', 'History']]"></section-jumps>
-      <div class="rec-grid">
-        <section class="card rec-card" aria-labelledby="rec-trash">
-          <h2 id="rec-trash" tabindex="-1">Trash <span class="rec-count num" v-if="trash.length">{{ fmt(trash.length) }}</span></h2>
-          <p class="sub">Skills removed from your library.</p>
-          <ul class="rec-list" v-if="trash.length">
-            <li v-for="t in trash" :key="t.trash_path"><span><b>{{ t.name }}</b><small>{{ fmtSize(t.size_bytes) }}, last changed {{ fmtDate(t.modified) }}</small></span>
-              <button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="restoreTrash(t)">Restore</button></li>
-          </ul>
-          <p class="rec-empty" v-else-if="trashLoading" role="status">Reading global trash…</p><p class="rec-empty" v-else-if="!trashError">The trash is empty.</p><p class="state-note err" v-if="trashError" role="alert">{{trashError}} <button class="btn btn-line btn-sm" @click="loadTrash()">Retry</button></p>
-          <div class="rec-acts" v-if="trash.length"><button type="button" class="btn btn-danger btn-sm" :disabled="busy" @click="openPurge()"><ic name="trash" cls="i-s"></ic>Empty the trash</button></div>
-        </section>
-        <section class="card rec-card" aria-labelledby="rec-agent-trash">
-          <h2 id="rec-agent-trash" tabindex="-1" ref="agentTrashHeading">Agent trash <span class="rec-count num" v-if="agentTrash.length">{{ fmt(agentTrash.length) }}</span></h2>
-          <p class="sub">Removed skills and previous copies saved by Sync, newest first. <template v-if="agentTrash.length">Set aside any copy at the original location before restoring a folder.</template></p>
-          <ul class="rec-list" v-if="agentTrash.length">
-            <li v-for="t in agentTrash" :key="t.trash_path"><span><b>{{ t.name }}</b><small>{{ t.scopeLabel }}, {{ fmtSize(t.size_bytes) }}, removed {{ fmtDate(t.trashed_at) }}<template v-if="t.copyLabel">, {{ t.copyLabel }}</template></small></span>
-              <button type="button" class="btn btn-line btn-sm" :aria-label="agentRestoreLabel(t)" :disabled="busy" @click="reviewAgentTrash(t)">Review restore</button></li>
-          </ul>
-          <p class="rec-empty" v-else-if="agentTrashLoading" role="status">Reading agent trash…</p>
-          <p class="rec-empty" v-else-if="!agentTrashErrors.length">No skill copies are waiting in agent trash.</p>
-          <div class="recovery-read-error" v-if="agentTrashErrors.length">
-            <ul role="alert"><li v-for="e in agentTrashErrors" :key="e.scope"><b>{{ agentOf(e.scope).name }}.</b> {{ e.message }}</li></ul>
-            <button type="button" class="btn btn-line btn-sm" :disabled="agentTrashLoading" @click="retryAgentTrash()">{{ agentTrashLoading ? 'Reading…' : 'Retry agent trash' }}</button>
-          </div>
-        </section>
-        <section class="card rec-card" aria-labelledby="rec-backup">
-          <h2 id="rec-backup" tabindex="-1">Backup</h2>
-          <p class="sub">Download the skills in your library. For library skills plus global trash, templates and catalog metadata, download the full archive.</p>
-          <div class="rec-acts"><button type="button" class="btn btn-ink" :disabled="busy" @click="exportBackup(false)"><ic name="arrow" cls="i-s"></ic>Download a backup</button>
-            <button type="button" class="btn btn-line" :disabled="busy" @click="exportBackup(true)">Download full archive</button></div>
-          <p class="sub">Skills stored only in agent folders need their own backup.</p>
-          <p class="state-note" v-if="exportPending" role="status">Preparing backup…</p>
-          <p class="state-note err" v-if="exportError" role="alert">{{ exportError }}</p>
-        </section>
-        <section class="card rec-card" aria-labelledby="rec-import">
-          <h2 id="rec-import" tabindex="-1">Load from a backup</h2>
-          <p class="sub">Load skills into your library. Select “Replace matching entries” to overwrite existing entries.</p>
-          <!-- Dropzone (visual spec: Untitled UI FileUploadDropzone, MIT; written for
-               this app). The native input stays inside the label, so click,
-               keyboard and screen readers need no script; drag-drop is extra. -->
-          <label class="smdz" :class="{ 'is-over': dropDepth > 0 }" @dragenter.prevent="dropDepth++" @dragover.prevent @dragleave="dropDepth = Math.max(0, dropDepth - 1)" @drop.prevent="dropDepth = 0; pickImport($event.dataTransfer.files)">
-            <input class="smdz-input" id="imp-file" type="file" accept=".tar.gz,.tgz,.tar,.zip" :disabled="busy" @change="pickImport($event.target.files)">
-            <ic name="upload" cls="smdz-ico"></ic>
-            <span class="smdz-title"><span class="smdz-link">Choose a backup file</span> <span class="smdz-or">or drag it here</span></span>
-            <span class="smdz-hint">.tar.gz, .tgz, .tar or .zip</span>
-            <span class="smdz-status" role="status">{{ importReject || (importFile ? importFile.name + ' is ready to load.' : '') }}</span>
-          </label>
-          <label class="hl-row"><input type="checkbox" v-model="importForce" :disabled="busy"> Replace matching entries</label>
-          <label class="hl-row"><input type="checkbox" v-model="importFull" :disabled="busy"> Full manager archive: include global trash, templates and catalog metadata</label>
-          <div class="rec-acts"><button type="button" class="btn btn-ink" :disabled="!importFile || busy" @click="doImport()">Load skills</button></div>
-          <p class="state-note err import-outcome" v-if="importError" role="alert">{{ importError }}</p>
-          <div class="state-note import-outcome" v-if="importResult">
-            <p role="status">{{ archiveImportSummary(importResult) }}</p>
-            <details v-if="importResult.skipped?.length || importResult.skipped_full?.length">
-              <summary>Skipped entries</summary>
-              <ul><li v-for="entry in (importResult.skipped || []).concat(importResult.skipped_full || [])">{{ entry }}</li></ul>
-            </details>
-          </div>
-        </section>
-      </div>
-      <tool-center page="recovery-extra" :records="records" :scopes="scopes" :target="toolTarget" @changed="refresh()" @inspect="inspectRecord($event)"></tool-center>
-    </div>
-
-    <!-- ========== INBOX ========== -->
-    <div class="inbox" v-else-if="route.page === 'inbox'">
-      <div class="card empty" style="padding:72px 24px" v-if="!queue.length">
-        <span class="ic"><ic name="check"></ic></span><h1 class="h1" id="h1" tabindex="-1">Inbox is clear</h1>
-        <p>{{ done ? 'You fixed ' + plural(done, 'item') + '. ' : '' }}Skipped items return after reload.</p>
-        <div class="empty-acts"><a class="btn btn-ink" href="#/skills">Go to Skills</a><a class="btn btn-line" href="#/skills">Browse skills</a></div></div>
-      <template v-else>
-        <h1 class="h1" id="h1" tabindex="-1">Inbox</h1>
-        <div class="prog"><span class="bars" aria-hidden="true"><i v-for="n in progressBars" :key="n" :class="n <= Math.min(done, progressBars) ? 'done' : n === Math.min(done, progressBars - 1) + 1 ? 'now' : ''"></i></span><span>{{ done }} fixed, {{ queue.length }} to go</span></div>
-        <h2 class="label">Next up</h2>
-        <article class="card focus" aria-labelledby="focus-t">
-          <span :class="['pill', cur.key === 'info' ? '' : cur.key]" :style="cur.key === 'info' ? 'background:var(--sunken);color:var(--ink-2)' : null"><ic :name="cur.key === 'info' ? 'info' : cur.key"></ic>{{ cur.key === 'bad' ? cur.short : cur.key === 'warn' ? 'Copies differ' : cur.space ? 'Suggestion' : cur.noteOnly ? 'Not a skill' : 'For your information' }}</span>
-          <h2 id="focus-t">{{ cur.title }}</h2>
-          <p class="why">{{ cur.text }}<template v-if="cur.space"> Here are its largest skills:</template></p>
-          <p class="sub" v-if="cur.key === 'warn' || (cur.key === 'bad' && cur.fixable)">Sync copies the on/off state and supporting files too. Undo restores the text and on/off state. If supporting files change, find the previous folder in Recovery.</p>
-          <template v-if="cur.key === 'warn'">
-            <fieldset class="srcpick" v-if="curSkill.ref.groups.length">
-              <legend>Which copy should everyone use?</legend>
-              <label v-for="g in curSkill.ref.groups" :key="g[0].hash"><input type="radio" name="src" :value="g[0].scope" v-model="srcChoice"> {{ join(g.map((c) => agentOf(c.scope).name)) }}<span class="kbd-hint" v-if="g[0].hash === curSkill.ref.hash && !curSkill.ref.ambiguous"> · held by the most places</span></label>
-            </fieldset>
-            <ul class="sync-targets" v-if="curSyncTargets.length" aria-label="Copies that will be overwritten">
-              <li v-for="c in curSyncTargets" :key="c.scope"><b>{{ agentOf(c.scope).name }}</b><code v-if="c.path">{{ c.path }}</code></li>
-            </ul>
-            <div class="inbox-comparison" v-if="inboxComparisonEvidence">
-              <label class="comparison-target" v-if="curSyncTargets.length > 1">Compare target
-                <select class="field" :value="inboxComparePair[0].scope" @change="inboxComparisonScope = $event.target.value">
-                  <option v-for="c in curSyncTargets" :key="c.scope" :value="c.scope">{{ agentOf(c.scope).name }}</option>
-                </select>
-              </label>
-              <copy-comparison :evidence="inboxComparisonEvidence" from-label="Current target" to-label="Sync source" :reload="() => ensureBodies(inboxComparePair)"></copy-comparison>
-            </div>
-          </template>
-          <div class="big-list" v-if="cur.space">
-            <div class="big-row" v-for="s in curBig" :key="s.name"><span><b>{{ s.name }}</b><small>About {{ fmt(words(s.tokens)) }} words</small></span>
-              <a class="link" :href="'#/skills/' + enc(s.name)" :aria-label="'Open ' + s.name">Open</a><button type="button" class="btn btn-line btn-sm" :disabled="busy" @click="turnOffIn(s, cur.agent)">Turn off in {{ agentOf(cur.agent).name }}</button></div></div>
-          <div class="f-acts">
-            <button type="button" class="btn btn-ink btn-lg" data-primary :disabled="busy || (cur.key === 'warn' && !curSyncTargets.length)" @click="fixCurrent()">{{ cur.key === 'warn' ? curSyncLabel : cur.action }}</button>
-            <button type="button" class="btn btn-soft btn-lg" @click="skipCurrent()">Skip for now</button>
-            <a class="link" v-if="cur.skill" :href="'#/skills/' + enc(cur.skill)">Open skill</a>
-            <span class="keys"><span><kbd>Enter</kbd> {{ cur.key === 'info' ? 'Done' : 'Fix' }}</span><span><kbd>S</kbd> Skip</span></span>
-          </div>
-        </article>
-        <template v-if="queue.length > 1">
-          <h2 class="label">Still to do</h2>
-          <div class="queue"><button type="button" class="qi" :class="{ skipped: skipped.includes(p.id) }" v-for="p in queue.slice(1, 26)" :key="p.id" @click="front = p.id; focusH1()"><span :class="['k', p.key]"><ic :name="p.key === 'info' ? 'info' : p.key"></ic></span><b>{{ p.title }}</b><small>{{ skipped.includes(p.id) ? 'Skipped' : p.short }}</small></button></div>
-          <p class="sub" style="margin-top:10px" v-if="queue.length > 26">and {{ queue.length - 26 }} more after these.</p>
-        </template>
-        <p class="sub inbox-foot">Work through the list from the top; fixed items leave it. Skipped items come back after a reload.</p>
-      </template>
-    </div>
     </template>
   </main>
 
@@ -820,10 +724,10 @@
           </div>
         </template>
         <template v-if="dialog.recovery">
-          <p>This restores the selected skill folder, including its supporting files and on/off state. The original location must be free.</p>
+          <p>Restore keeps the supporting files and on/off state. It uses the original folder when Jackfield recorded it. Older copies return to the place’s usual skill folder. If the destination is occupied, both copies stay where they are.</p>
           <dl class="recovery-entry">
             <div><dt>Restore to</dt><dd>{{ dialog.recovery.scopeLabel }}</dd></div>
-            <div><dt>Saved</dt><dd>{{ fmtDate(dialog.recovery.trashed_at) }}<template v-if="dialog.recovery.copyLabel">, {{ dialog.recovery.copyLabel }}</template></dd></div>
+            <div v-if="dialog.recovery.when"><dt>Saved folder date</dt><dd>{{ dialog.recovery.when }}<template v-if="dialog.recovery.copyLabel">, {{ dialog.recovery.copyLabel }}</template></dd></div>
             <div><dt>Saved folder</dt><dd><code translate="no">{{ dialog.recovery.trash_path }}</code></dd></div>
           </dl>
           <p class="state-note err" role="alert" tabindex="-1" ref="restoreError" v-if="dialog.error">{{ dialog.error }}</p>
@@ -1029,6 +933,8 @@
 <script src="screen-skills.js"></script>
 <script src="screen-new.js"></script>
 <script src="screen-why.js"></script>
+<script src="screen-attention.js"></script>
+<script src="screen-trash.js"></script>
 <script src="palette.js"></script>
 <script src="library-tools.js"></script>
 <script src="ai-center.js"></script>

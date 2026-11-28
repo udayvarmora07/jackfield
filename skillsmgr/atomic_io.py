@@ -533,12 +533,13 @@ def rename_new_directory(source: Path, destination: Path) -> None:
         raise OSError(error, os.strerror(error), destination)
 
 
-def move_trash_tree(source: Path, destination: Path) -> None:
+def move_trash_tree(source: Path, destination: Path, *, exclusive: bool = False) -> None:
     """Move to an exact unoccupied path, including between mounted volumes."""
     if os.path.lexists(destination):
         raise FileExistsError(f"the destination is occupied: {destination}")
+    publish = rename_new_directory if exclusive else os.rename
     try:
-        os.rename(source, destination)
+        publish(source, destination)
     except OSError as exc:
         if exc.errno != errno.EXDEV:
             raise
@@ -550,7 +551,7 @@ def move_trash_tree(source: Path, destination: Path) -> None:
             # Verify names and bytes before anything is published or retired.
             if tree_content_hash(staged) != tree_content_hash(source):
                 raise OSError(errno.EIO, f"the copy of {source} did not match the original")
-            os.rename(staged, destination)
+            publish(staged, destination)
         # The destination now holds the complete tree. Remove the old path
         # atomically, then clean up the parked copy outside the live layout.
         # If the original cannot be parked, withdraw the published copy so

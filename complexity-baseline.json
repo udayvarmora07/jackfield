@@ -731,7 +731,7 @@
       "lineno": 261
     },
     "skillsmgr/archive.py::restore_full_payload": {
-      "complexity": 12,
+      "complexity": 11,
       "end_lineno": 811,
       "lineno": 766
     },
@@ -4796,7 +4796,7 @@
       "lineno": 2280
     },
     "skillsmgr/store.py::Store.import_": {
-      "complexity": 30,
+      "complexity": 20,
       "end_lineno": 2316,
       "lineno": 2203
     },

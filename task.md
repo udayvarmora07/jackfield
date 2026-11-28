@@ -20,7 +20,7 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Refresh `project-status.md` and `project-status.html` against the approved
   design sources and build spec (2026-11-27). The latest board points to
   Phase 3, starting with the Skill page.
-- [ ] Remaining open questions Q2, Q5–Q7, Q9–Q11 in
+- [ ] Remaining open questions Q2, Q6–Q7, Q9–Q11 in
   @docs/redesign-build/09-open-questions-and-risks.md (Q2 blocks phase 5).
 - [x] Phase 0 implementation and local checks · Foundations: tokens pipeline, `system.css`, fonts + OFL, logo,
   agent marks, rewritten token gate, `var()` reference test, `DESIGN.md`; the
@@ -38,13 +38,16 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Apply the four-artifact review corrections to shipped behavior, including
   status evidence, tracking revisions and recovery, copy previews, tablet
   focus, Undo timing, the small favicon and acceptance coverage.
-- [/] Phase 3 · Everyday jobs. The Skill page, Editor, New skill and diagnosis
+- [x] Phase 3 · Everyday jobs. The Skill page, Editor, New skill and diagnosis
   screens are implemented. The Skill page now reads the selected
   folder’s live document and shows file and listing estimates. The Editor
   now saves to empty writable places with guarded Undo. The maintainer
-  approved the Editor. Phase integration and hosted CI are pending.
+  approved the Editor, and commit `614bc4b` passed all 17 GitHub CI jobs.
   See @build-progress.md.
-- [ ] Phase 4 · Upkeep: S7 Needs attention, S8 Trash & backups.
+- [/] Phase 4 · Upkeep: S7 Needs attention approved. S8 Trash & backups
+  uses a merged Trash list, library archives and checked archive previews.
+  Both screens are approved and local verification passed. Hosted CI is the
+  remaining integration gate.
 - [ ] Phase 5 · Advanced S9, tool template S10 for all 21 tools, Settings S11,
   What to track S14–S19 restyled.
 - [ ] Phase 6 · Phone layouts.

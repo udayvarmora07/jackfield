@@ -37,9 +37,11 @@ Jackfield name and mark. Their project sources are in `branding/jackfield/`.
   All 17 [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46011057550)
   passed on that commit. The four-artifact review corrections are recorded
   in [the progress log](docs/06-progress-log.md).
-- [ ] Phase 3 · The Skill page, Editor, New skill and diagnosis screens are
-  implemented. See the remaining acceptance items below.
-- [ ] Phases 4–8 · Remaining screens, migration cleanup and acceptance.
+- [x] Phase 3 · The Skill page, Editor, New skill and diagnosis landed on
+  `main` as `614bc4b`. All 17
+  [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46056334181) passed.
+- [ ] Phase 4 · Needs attention and Trash & backups are approved. Hosted CI is the integration gate.
+- [ ] Phases 5–8 · Remaining screens, migration cleanup and acceptance.
 
 ## Phase 3 · Everyday jobs
 
@@ -98,9 +100,55 @@ installs passed. Bandit passed on the modified Python modules. The full scan
 reported a low-severity finding in the existing seeded bootstrap calculation.
 The preceding Phase 3 commit `6ee6641` passed all 17
 [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46051136005).
-The maintainer approved the updated Editor on 2026-11-28. Phase 3 is ready
-for integration after local verification. Hosted CI for this update and a
-physical phone check remain pending.
+The maintainer approved the updated Editor on 2026-11-28. It landed on
+`main` and passed hosted CI. A physical phone check remains pending.
+
+## Phase 4 · Needs attention
+
+The maintainer approved this screen on 2026-11-28.
+
+The navigation badge and To fix group count individual issues in the tracked
+places. Skipped issues remain available in the review. Fix previews the
+selected version, exact destinations and on/off changes. Jackfield moves
+replaced folders to Trash and records Fixed after re-reading the copies.
+Undo checks the installed tree before restoring the prior folder. Unreadable
+binary files and ambiguous folders keep manual guidance.
+
+Compared the implemented screen with A08 and D08 at 390, 1280, 1440 and
+1920 px in both themes. The build uses observed folder names and document
+excerpts in the choices. It shows the checked comparison and affected paths
+after selecting a version. At phone width it uses the shared bottom tabs and
+stacks the list and detail. The real-phone check remains part of acceptance.
+
+The local Python 3.11–3.14 suites each ran 2,544 tests successfully, with
+12–13 platform-dependent skips. All 101 headless Chromium checks passed,
+including F7, exact folder Undo, and the responsive checks. The wheel and
+source distribution passed clean-install checks.
+
+## Phase 4 · Trash & backups
+
+The maintainer delegated the scope and restore-conflict decisions. Restore
+uses a unified list for library and agent copies and re-reads the exact
+restored folder. Older agent copies without an origin record go to the
+place's usual skill folder. An occupied destination leaves the live and saved
+copies in place. The archive controls and Empty library trash are scoped
+to the library. Backup preview shows additions, replacements and skips.
+Load rechecks the reviewed archive bytes, options and destinations. An
+addition cannot replace a folder that appears during the load. The last
+download start and size are stored in the browser after handoff. Recent
+changes shows library history and the separate disclosure keeps text
+snapshot recovery available.
+
+The A09/D09 comparison uses synthetic entries in both themes at 390, 1280,
+1440 and 1920 pixels. It uses Jackfield's existing bottom navigation at
+phone widths. Physical phone testing remains part of the acceptance work.
+
+Local verification completed on Linux. The 2,557-test suite passed on Python
+3.11–3.14 with platform-specific skips. All 103 Chromium checks passed,
+including F7 and F8. Headed Chrome passed at 200% and 400% zoom. Store and Web
+smoke tests, HTTP contracts, the classic browser harness, and clean wheel and
+source distribution installs also passed. The maintainer approved the screen
+and continued to Phase 4 integration.
 
 ## Findings checked in Phase 0
 

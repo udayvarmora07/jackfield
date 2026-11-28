@@ -1831,6 +1831,8 @@ class WebAppHandler(BaseHTTPRequestHandler):
         qs = parse_qs(urlparse(self.path).query, keep_blank_values=True)
         ctype = self.headers.get("Content-Type", "")
         if ctype.lower().startswith("multipart/form-data"):
+            if "preview" in qs or "plan_id" in qs:
+                raise StoreError("Archive preview is not available for folder uploads")
             boundary_m = re.search(r"boundary=([^;]+)", ctype)
             if not boundary_m:
                 self._send_error(400, "multipart boundary missing")
@@ -1842,11 +1844,17 @@ class WebAppHandler(BaseHTTPRequestHandler):
             filename = os.path.basename(
                 qs.get("filename", ["skills-import.tar.gz"])[0] or "skills-import.tar.gz"
             )
-            if not filename.endswith((".tar.gz", ".tgz", ".tar", ".zip")):
+            if not filename.lower().endswith((".tar.gz", ".tgz", ".tar", ".zip")):
                 self._send_error(400, "unsupported archive type (use .tar.gz/.tgz/.tar/.zip)")
                 return
             force = _flag(qs, "force")
             full = _flag(qs, "full")
+            preview = _preview_skill_create(qs)
+            plan_values = qs.get("plan_id")
+            if plan_values is not None and (len(plan_values) != 1 or not re.fullmatch(r"[a-f0-9]{64}", plan_values[0])):
+                raise StoreError("plan_id must be a SHA-256 hash")
+            if preview and plan_values is not None:
+                raise StoreError("Choose either preview or checked import")
             raw = self._read_body()
             if not raw:
                 self._send_error(400, "empty archive body")
@@ -1854,7 +1862,8 @@ class WebAppHandler(BaseHTTPRequestHandler):
             target = Path(tempfile.mkdtemp(prefix="skillsmgr-webui-")) / filename
             try:
                 target.write_bytes(raw)
-                result = self.store.import_(target, force=force, full=full)
+                result = self.store.import_(target, force=force, full=full, preview=preview,
+                                            plan_id=plan_values[0] if plan_values else None)
             finally:
                 shutil.rmtree(target.parent, ignore_errors=True)
             self._send_json(result)

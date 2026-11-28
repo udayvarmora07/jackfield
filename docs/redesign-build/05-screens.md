@@ -199,9 +199,15 @@ the other settings sources the screen offers a recheck and explains the block.
 - **States:** empty ("Nothing left to fix" + what was checked + "Last checked
   just now." + Check again); not fixable in the app (says so, shows the manual
   step); skipped; fixed + Undo.
-- **API:** derived `attentionItems`; fixes call `POST /api/sync {force:true}`;
-  Check again re-reads.
+- **API:** derived `attentionItems`. Fix uses checked batch previews and
+  execution for the reviewed source and folders. Check again re-reads files.
 - **Acceptance:** F7; the header count equals the list's To fix count.
+
+**[NOTE]** Skipped items stay in view for the session and leave the To fix
+count. A verified repair moves the resolved item to Fixed. Undo checks the
+installed tree before restoring its exact prior folder from Trash. Binary
+or ambiguous copies show manual guidance. Selection requires an explicit
+version choice for both differing and evenly split copies.
 
 ## S8 · Trash & backups
 
@@ -212,13 +218,25 @@ the other settings sources the screen offers a recheck and explains the block.
   undoable where the backend allows); Backups: Download a backup (size, last
   one) and Load a backup ("You'll see what would change in each place before
   anything is written.").
-- **States:** empty trash; restore blocked (replace or keep both?); bad backup
-  (one message); load results with reasons.
+- **States:** empty trash; restore blocked with both copies preserved; bad
+  backup; reviewed load and results with reasons.
 - **API:** `GET /api/trash` (+ `?scope=`), `POST /api/trash/<n>` (restore),
   `POST /api/trash/purge`, `GET /api/history`, `GET /api/export[?full=1]`,
-  `PUT /api/import?filename=&force=&full=`.
+  `PUT /api/import?filename=&force=&full=` with `preview=1` for review and
+  the returned `plan_id` to apply.
 - **Acceptance:** Empty trash says it cannot be undone before acting; every
   restore re-reads and shows the restored square.
+
+**[NOTE]** The maintainer delegated the scope decision on 2026-11-28. Trash
+lists the library and observed agent folders together. Empty library trash
+and both archive modes apply to library data. Restore uses the recorded
+original folder or the place's usual skill folder for older agent copies
+without an origin record. If the destination is occupied, both copies stay
+in place. Recent changes shows recorded library history. The history rows
+do not identify exact snapshots, so recovering a snapshot is a separate
+action under History and text snapshots. The backup plan lists the observed
+library changes and requires another preview if its evidence changes. The
+most recent successful download start and its size are saved per browser.
 
 ## S9 · Advanced
 

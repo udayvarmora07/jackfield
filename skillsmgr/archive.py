@@ -25,7 +25,7 @@ from . import __version__
 from . import path_safety
 from .errors import StoreError
 from .sidecar_binding import MANAGER_SIDECARS
-from .atomic_io import is_sha256_hex, strict_regular_tree_files, tree_content_hash, tree_hash_matches
+from .atomic_io import is_sha256_hex, strict_regular_tree_files, tree_content_hash, tree_hash_matches, rename_new_directory
 from .diagnostics import diagnose as _diagnose
 from .documents import ACTIVE_DOCUMENT, DISABLED_DOCUMENT, DOCUMENT_NAMES
 from .file_reads import read_regular_file_with_stat
@@ -791,6 +791,8 @@ def commit_staged_skill(
     *,
     replace: bool,
     upsert,
+    checked_action=None,
+    check_destination=None,
 ) -> tuple[bool, str | None]:
     """Install under the caller's destination lock and retain blocked rollbacks."""
     dest_exists = os.path.lexists(dest)
@@ -805,7 +807,7 @@ def commit_staged_skill(
         transaction = _stage_replacement(source, dest, copytree=shutil.copytree, copyfile=shutil.copyfile, rmtree=shutil.rmtree)
         if expected_hash and not tree_hash_matches(transaction / "new", expected_hash):
             raise ArchiveError(f"content hash mismatch for '{dest.name}'")
-        _publish_replacement(dest, transaction, dest_exists, move=os.replace)
+        _publish_checked(dest, transaction, dest_exists, checked_action, check_destination, os.replace)
         if expected_hash and not tree_hash_matches(dest, expected_hash):
             raise ArchiveError(f"committed content hash mismatch for '{dest.name}'")
         upsert(dest.name)
@@ -849,6 +851,32 @@ def check_full_destination(source: Path, dest: Path, *, replace: bool) -> bool:
     return exists
 
 
+def _publish_new(source: Path, dest: Path) -> None:
+    """Install a reviewed absent entry without replacing a newly appeared one."""
+    if source.is_dir():
+        rename_new_directory(source, dest)
+    else:
+        os.link(source, dest, follow_symlinks=False)
+        try:
+            source.unlink()
+        except BaseException as exc:
+            try:
+                if os.path.samefile(source, dest):
+                    dest.unlink()
+            except OSError as cleanup:
+                raise ArchiveError(f"could not withdraw published file {dest}; inspect it before retrying") from cleanup
+            raise exc
+
+
+def _publish_checked(dest: Path, transaction: Path, exists: bool, action, check, move) -> None:
+    if check is not None:
+        check(dest)
+    if action == "add":
+        _publish_new(transaction / "new", dest)
+    else:
+        _publish_replacement(dest, transaction, exists, move=move)
+
+
 def _publish_replacement(dest: Path, transaction: Path, dest_exists: bool, *, move) -> None:
     if dest_exists:
         move(dest, transaction / "old")
@@ -875,6 +903,14 @@ def _rollback_replacements(
     return retained
 
 
+def _full_destination_action(kind, label, source, dest, replace, checked_entries):
+    action = checked_entries.get((kind, label)) if checked_entries is not None else None
+    if action == "skip":
+        return action, False, True
+    exists = check_full_destination(source, dest, replace=replace)
+    return action, exists, exists and not replace
+
+
 def restore_full_payload(
     entries: list[tuple[str, str, Path, Path]],
     *,
@@ -884,6 +920,8 @@ def restore_full_payload(
     rmtree=None,
     copytree=None,
     copyfile=None,
+    checked_entries=None,
+    check_destination=None,
 ) -> tuple[list[str], list[str], list[str], bool]:
     """Install validated full-import payloads as one all-or-nothing transaction.
 
@@ -903,13 +941,13 @@ def restore_full_payload(
     installed: list[tuple[Path, Path]] = []
     try:
         for kind, label, source, dest in entries:
-            dest_exists = check_full_destination(source, dest, replace=replace)
-            if dest_exists and not replace:
+            action, dest_exists, should_skip = _full_destination_action(kind, label, source, dest, replace, checked_entries)
+            if should_skip:
                 skipped.append(f"{kind}/{label}")
                 continue
             transaction = _stage_replacement(source, dest, copytree=copytree, copyfile=copyfile, rmtree=rmtree)
             installed.append((dest, transaction))
-            _publish_replacement(dest, transaction, dest_exists, move=move)
+            _publish_checked(dest, transaction, dest_exists, action, check_destination, move)
             restored[kind].append(label)
         if reconcile_trash is not None:
             reconcile_trash(restored["trash"])

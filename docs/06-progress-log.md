@@ -7,6 +7,36 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper Trash & backups
+
+**[NOTE]** The maintainer approved Needs attention and delegated the scope
+and restore-conflict choices. Trash & backups shows a unified library and
+agent list. Restore addresses the exact saved copy and preserves it when
+the destination is occupied. Permanent emptying applies to the library.
+Checked library imports preserve the reviewed action for each entry and
+keep existing folders when an addition's destination becomes occupied.
+The download date and size are shown after browser handoff and stored per
+browser.
+
+**[NOTE]** Local verification passed on Linux with Python 3.11–3.14,
+including 103 Chromium checks and headed zoom at 200% and 400%. The
+maintainer approved Trash & backups for Phase 4 integration.
+
+## 2026-11-28 — Paper Needs attention
+
+**[NOTE]** The redesigned screen uses the same per-place issues for To fix
+and the navigation count. Review shows the exact folders and document
+comparison before checked replacement. Skipped issues remain selectable.
+Verified repairs appear under Fixed, and Undo checks the installed tree
+before restoring the prior folder. Binary and ambiguous copies keep manual
+guidance.
+
+## 2026-11-28 — Phase 3 passed hosted CI
+
+**[NOTE]** Commit `614bc4b` landed as a fast-forward on `main`. All 17 GitHub
+CI jobs passed, including the cross-platform suites and the browser run.
+[GitHub CI run](https://github.com/udayvarmora07/jackfield/actions/runs/46056334181).
+
 ## 2026-11-28 — Editor approved for Phase 3 integration
 
 **[NOTE]** The maintainer approved the Editor checkpoint. A failed staging

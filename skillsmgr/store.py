@@ -10,6 +10,8 @@ skills via :meth:`Store.resync` / :meth:`Store.db_rebuild`.
 from __future__ import annotations
 
 import json
+import hashlib
+import stat
 import os
 import re
 import shutil
@@ -22,7 +24,7 @@ import zipfile
 import zlib
 import gzip
 from contextlib import closing, contextmanager, nullcontext
-from functools import partial
+from functools import partial, wraps
 from pathlib import Path
 
 from . import paths
@@ -518,7 +520,7 @@ def _trash_source(trash_dir: Path, name: str, trash_path: str | None) -> Path:
 def _restoring_trash_copy(name: str, source: Path, skill_dir: Path):
     """Return a moved tree to its exact trash path if indexing fails."""
     try:
-        _move_trash_tree(source, skill_dir)
+        _move_trash_tree(source, skill_dir, exclusive=True)
     except OSError as exc:
         raise StoreError(f"cannot restore '{name}' from {source}: {exc}") from exc
     try:
@@ -796,7 +798,8 @@ def _record_imported_skill(store: "Store", name: str) -> None:
 
 
 def _restore_full_entries(
-    store: "Store", entries: list[tuple[str, str, Path, Path]], *, replace: bool
+    store: "Store", entries: list[tuple[str, str, Path, Path]], *, replace: bool,
+    checked_entries=None, check_destination=None
 ) -> tuple[list[str], list[str], list[str], bool]:
     """Serialize with library and trash mutations, template creation and catalog edits."""
     with (
@@ -807,8 +810,185 @@ def _restore_full_entries(
         _driver_errors("reconciling imported trash"),
     ):
         return _archive.restore_full_payload(
-            entries, replace=replace, reconcile_trash=partial(_record_restored_trash, store)
+            entries, replace=replace, reconcile_trash=partial(_record_restored_trash, store),
+            checked_entries=checked_entries, check_destination=check_destination
         )
+
+
+def _plan_unlisted_skills(store: "Store", tmp: Path, planned: list, planned_names: set, skipped: list, checked: bool) -> None:
+    for source in sorted((tmp / "skills").iterdir()):
+        if not source.is_dir():
+            continue
+        try:
+            name = validate_skill_name(source.name)
+        except ValueError:
+            skipped.append(source.name)
+            continue
+        if name in planned_names:
+            raise StoreError(f"duplicate skill in archive: {name!r}")
+        planned_names.add(name)
+        if not _archive.has_skill_document(source):
+            skipped.append(source.name)
+            continue
+        _archive.validate_imported_skill(source, name)
+        if not checked:
+            _safe_skill_path(store.skills_dir, name)
+        planned.append((name, source, {"name": name})
+        )
+
+
+
+def _plan_import_skills(store: "Store", tmp: Path, skills: list[dict], skipped: list[str], checked: bool) -> list:
+    planned: list[tuple[str, Path, dict]] = []
+    planned_names: set[str] = set()
+    for entry in skills:
+        name = entry["name"]
+        if name in planned_names:
+            raise StoreError(f"duplicate skill in archive manifest: {name!r}")
+        planned_names.add(name)
+        source = tmp / "skills" / name
+        if not source.is_dir():
+            raise StoreError(f"archive manifest skill path is missing: {name!r}")
+        if not _archive.has_skill_document(source):
+            raise StoreError(f"archive manifest skill has no SKILL.md: {name!r}")
+        _archive.validate_imported_skill(source, name)
+        if not checked:
+            _safe_skill_path(store.skills_dir, name)
+        planned.append((name, source, entry))
+
+    if not skills and (tmp / "skills").is_dir():
+        _plan_unlisted_skills(store, tmp, planned, planned_names, skipped, checked)
+
+    if skills and (tmp / "skills").is_dir():
+        unexpected = sorted(
+            p.name for p in (tmp / "skills").iterdir()
+            if p.is_dir() and p.name not in planned_names
+        )
+        if unexpected:
+            raise StoreError(
+                f"archive contains skills missing from manifest: {unexpected[0]!r}"
+            )
+
+    return planned
+
+
+def _checked_archive_lock(func):
+    """Hold every full-import mutation lock across review and checked apply."""
+    @wraps(func)
+    def run(store, archive, force=False, full=False, *, preview=False, plan_id=None):
+        if preview or plan_id is None:
+            return func(store, archive, force=force, full=full, preview=preview)
+        with (mutation_lock(index_lock_path(store.skills_dir)),
+              mutation_lock(_trash_lock_dir(store.trash_dir)),
+              mutation_lock(store.templates_dir),
+              mutation_lock(catalog_path(store.data_dir))):
+            return func(store, archive, force=force, full=full, preview=preview, plan_id=plan_id)
+    return run
+
+
+def _import_destination_evidence(path: Path, *, presence_only: bool = False) -> dict:
+    """Describe an exact target without following links; fail closed on unsafe trees."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return {"type": "missing"}
+    if presence_only:
+        return {"type": "occupied", "mode": stat.S_IFMT(info.st_mode)}
+    if stat.S_ISLNK(info.st_mode):
+        return {"type": "link", "target": os.readlink(path)}
+    if stat.S_ISDIR(info.st_mode):
+        from .batch import _batch_tree_hash
+        return {"type": "directory", "hash": _batch_tree_hash(path)}
+    if stat.S_ISREG(info.st_mode):
+        from .file_reads import read_regular_file
+        return {"type": "file", "mode": stat.S_IMODE(info.st_mode),
+                "hash": hashlib.sha256(read_regular_file(path, 16 * 1024 * 1024, follow_symlinks=False)).hexdigest()}
+    raise StoreError("cannot safely review a special-file import destination")
+
+
+def _import_review(skills_dir: Path, archive: Path, force: bool, full: bool, planned: list, full_entries: list, skipped: list, archive_hash: str) -> dict:
+    entries, evidence = [], []
+    for name, source, entry in planned:
+        dest = skills_dir.resolve() / name
+        state = _import_destination_evidence(dest, presence_only=not force)
+        exists = state["type"] != "missing"
+        compatible = not exists or _archive._compatible_destination(source, dest)
+        action = "add" if not exists else "replace" if force and compatible else "skip"
+        row = {"name": name, "place": "library", "action": action}
+        if action == "skip":
+            row["reason"] = "already exists" if not force else "destination is not an unlinked skill directory"
+        elif entry.get("content_hash") and not _archive.tree_hash_matches(source, entry["content_hash"]):
+            row.update(action="skip", reason="archive content hash mismatch")
+        entries.append(row)
+        evidence.append([str(dest), state])
+    for kind, label, source, dest in full_entries:
+        state = _import_destination_evidence(dest, presence_only=not force)
+        exists = state["type"] != "missing"
+        row = {"name": label, "place": kind, "action": "add" if not exists else "replace" if force else "skip"}
+        if row["action"] == "skip":
+            row["reason"] = "already exists"
+        entries.append(row)
+        evidence.append([str(dest), state])
+    entries.extend({"name": name, "place": "library", "action": "skip", "reason": "invalid or missing skill document"} for name in skipped)
+    payload = {"archive": archive_hash, "force": force, "full": full, "entries": entries, "evidence": evidence}
+    plan_id = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return {"plan_id": plan_id, "entries": entries, "source": archive.name, "force": force, "full": full,
+            "_evidence": dict(evidence)}
+
+
+def _named_skill_entry(root: Path, name: str) -> Path:
+    try:
+        name = validate_skill_name(name)
+    except ValueError as exc:
+        raise StoreError(str(exc)) from exc
+    return root.resolve() / name
+
+
+def _check_reviewed_destination(evidence: dict, dest: Path) -> None:
+    expected = evidence[str(dest)]
+    if _import_destination_evidence(dest, presence_only=expected.get("type") == "occupied") != expected:
+        raise StoreError("An import destination changed after review. Review the archive again.")
+
+
+def _apply_import_skills(store: "Store", planned: list, force: bool, checked, guard, imported: list, skipped: list) -> None:
+    record_import = partial(_record_imported_skill, store)
+    for name, source, entry in planned:
+        action = checked.get(("library", name)) if checked is not None else None
+        if action == "skip":
+            skipped.append(name)
+            continue
+        try:
+            dest = path_safety.contained_entry(store.skills_dir, name)
+            with _skill_and_index_locks(store.skills_dir, dest):
+                committed, reason = _archive.commit_staged_skill(
+                    source, dest, entry.get("content_hash"),
+                    replace=force, upsert=record_import, checked_action=action,
+                    check_destination=guard,
+                )
+        except Exception as exc:
+            committed, reason = False, str(exc)
+        if committed:
+            imported.append(name)
+        else:
+            skipped.append(f"{name}: {reason}" if reason else name)
+
+
+def _snapshot_import_archive(source: Path, tmp: Path) -> tuple[Path, str]:
+    """Bind the plan to exactly the bounded bytes subsequently extracted."""
+    from .file_reads import read_regular_file
+    try:
+        payload = read_regular_file(source, _archive.MAX_ARCHIVE_COMPRESSED_BYTES)
+        snapshot = tmp / ".archive-input"
+        snapshot.write_bytes(payload)
+    except (OSError, ValueError) as exc:
+        raise StoreError(f"could not read the archive safely: {exc}") from exc
+    return snapshot, hashlib.sha256(payload).hexdigest()
+
+
+def _review_archive_input(archive: Path, tmp: Path, preview: bool, plan_id: str | None):
+    if preview or plan_id is not None:
+        return _snapshot_import_archive(archive, tmp)
+    return archive, ""
 
 
 def _extract_import_archive(archive: Path, dest: Path) -> None:
@@ -1887,8 +2067,8 @@ class Store:
     def restore(self, name: str, snapshot: str | None = None, *, trash_path: str | None = None,
                 expected: tuple[str, str] | None = None) -> dict:
         """Restore the selected trash entry (newest by default), or roll back a snapshot."""
-        skill_dir = _safe_skill_path(self.skills_dir, name)
         if snapshot is not None:
+            skill_dir = _safe_skill_path(self.skills_dir, name)
             content = read_snapshot(self.data_dir, "global", name, snapshot)
             md_file = skill_dir / "SKILL.md"
             if not md_file.is_file():
@@ -1916,6 +2096,7 @@ class Store:
                         _diagnose(f"snapshot rollback failed for {name!r}", rollback_exc)
                     raise
             return {"name": name, "snapshot": snapshot}
+        skill_dir = _named_skill_entry(self.skills_dir, name)
         # The whole read-then-move sequence runs under the trash lock so a
         # concurrent purge_trash() cannot delete the candidate we picked
         # between listing it and moving it (STORE-5).
@@ -2213,18 +2394,22 @@ class Store:
         """Alias of :meth:`export` for backup semantics."""
         return self.export(dest=dest, full=full)
 
-    def import_(self, archive: str | Path, force: bool = False, full: bool = False) -> dict:
+    @_checked_archive_lock
+    def import_(self, archive: str | Path, force: bool = False, full: bool = False, *,
+                preview: bool = False, plan_id: str | None = None) -> dict:
         """Install skills and optionally restore full-library data."""
         archive = Path(archive).expanduser()
         if not archive.is_file():
             raise StoreError(f"archive not found: {archive}")
-        self._init_db()
+        if not preview and plan_id is None:
+            self._init_db()
         tmp = Path(tempfile.mkdtemp(prefix="skillsmgr-import-"))
         imported: list[str] = []
         skipped: list[str] = []
         try:
+            archive_input, archive_hash = _review_archive_input(archive, tmp, preview, plan_id)
             try:
-                _extract_import_archive(archive, tmp)
+                _extract_import_archive(archive_input, tmp)
             except (tarfile.TarError, zipfile.BadZipFile, EOFError, zlib.error, gzip.BadGzipFile, NotImplementedError, UnicodeError) as exc:
                 # Truncated gzip/tar streams surface as EOFError, zlib.error,
                 # or gzip.BadGzipFile rather than tarfile.TarError; every
@@ -2241,55 +2426,25 @@ class Store:
                 raise StoreError("archive is not a full export; re-export with --full")
             _archive.sanitize_import_tree(tmp, skills)
             full_entries = _plan_full_restore(self, tmp, manifest, replace=force) if full else []
-            planned: list[tuple[str, Path, dict]] = []
-            planned_names: set[str] = set()
-            for entry in skills:
-                name = entry["name"]
-                if name in planned_names:
-                    raise StoreError(f"duplicate skill in archive manifest: {name!r}")
-                planned_names.add(name)
-                source = tmp / "skills" / name
-                if not source.is_dir():
-                    raise StoreError(f"archive manifest skill path is missing: {name!r}")
-                if not _archive.has_skill_document(source):
-                    raise StoreError(f"archive manifest skill has no SKILL.md: {name!r}")
-                _archive.validate_imported_skill(source, name)
-                _safe_skill_path(self.skills_dir, name)
-                planned.append((name, source, entry))
+            planned = _plan_import_skills(self, tmp, skills, skipped, preview or plan_id is not None)
 
-            if not skills and (tmp / "skills").is_dir():
-                for source in sorted((tmp / "skills").iterdir()):
-                    if not source.is_dir():
-                        continue
-                    try:
-                        name = validate_skill_name(source.name)
-                    except ValueError:
-                        skipped.append(source.name)
-                        continue
-                    if name in planned_names:
-                        raise StoreError(f"duplicate skill in archive: {name!r}")
-                    planned_names.add(name)
-                    if not _archive.has_skill_document(source):
-                        skipped.append(source.name)
-                        continue
-                    _archive.validate_imported_skill(source, name)
-                    _safe_skill_path(self.skills_dir, name)
-                    planned.append((name, source, {"name": name})
-                    )
-
-            if skills and (tmp / "skills").is_dir():
-                unexpected = sorted(
-                    p.name for p in (tmp / "skills").iterdir()
-                    if p.is_dir() and p.name not in planned_names
-                )
-                if unexpected:
-                    raise StoreError(
-                        f"archive contains skills missing from manifest: {unexpected[0]!r}"
-                    )
+            review = None
+            if preview or plan_id is not None:
+                if full:
+                    _archive.verify_full_skill_hashes(planned)
+                review = _import_review(self.skills_dir, archive, force, full, planned, full_entries, skipped, archive_hash)
+                if preview:
+                    review.pop("_evidence")
+                    return review
+                if plan_id != review["plan_id"]:
+                    raise StoreError("The archive preview is stale. Review it again before loading.")
+                self._init_db()
 
             # All archive and content validation is complete before this first
             # destination deletion/copy, so force cannot partially apply an
             # archive that fails later preflight checks.
+            checked = {(row["place"], row["name"]): row["action"] for row in review["entries"]} if review else None
+            guard = partial(_check_reviewed_destination, review["_evidence"]) if review else None
             restored_trash: list[str] = []
             restored_templates: list[str] = []
             skipped_full: list[str] = []
@@ -2299,23 +2454,9 @@ class Store:
                 # A full-payload failure raises without an import result. Finish
                 # that rollback group before independently committing any skills.
                 restored_trash, restored_templates, skipped_full, restored_catalog = _restore_full_entries(
-                    self, full_entries, replace=force
+                    self, full_entries, replace=force, checked_entries=checked, check_destination=guard
                 )
-            record_import = partial(_record_imported_skill, self)
-            for name, source, entry in planned:
-                try:
-                    dest = path_safety.contained_entry(self.skills_dir, name)
-                    with _skill_and_index_locks(self.skills_dir, dest):
-                        committed, reason = _archive.commit_staged_skill(
-                            source, dest, entry.get("content_hash"),
-                            replace=force, upsert=record_import,
-                        )
-                except Exception as exc:
-                    committed, reason = False, str(exc)
-                if committed:
-                    imported.append(name)
-                else:
-                    skipped.append(f"{name}: {reason}" if reason else name)
+            _apply_import_skills(self, planned, force, checked, guard, imported, skipped)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
         result = {

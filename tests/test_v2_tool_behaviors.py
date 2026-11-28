@@ -51,7 +51,7 @@ class ToolBehaviorTests(unittest.TestCase):
           const older=[h.loadTrash(),h.loadAgentTrash(),h.loadCatalog()];
           const newer=[h.loadTrash(),h.loadAgentTrash(),h.loadCatalog()];
           reads[3].resolve([{name:'current-global'}]);
-          reads[4].resolve([{name:'current-agent'}]);
+          reads[4].resolve([{name:'current-agent',trash_path:'/trash/current-agent'}]);
           reads[5].resolve({tags:{skill:['current']},profiles:{}});
           await Promise.all(newer);
           reads[0].resolve([{name:'old-global'}]);
@@ -62,7 +62,10 @@ class ToolBehaviorTests(unittest.TestCase):
             errors:[h.trashError,h.agentTrashErrors,h.catalogError],loading:[h.trashLoading,h.agentTrashLoading]};
         """)
         self.assertEqual(out['trash'], [{'name': 'current-global'}])
-        self.assertEqual(out['agentTrash'], [{'name': 'current-agent', 'scopeLabel': 'Codex'}])
+        self.assertEqual(out['agentTrash'], [{
+            'name': 'current-agent', 'trash_path': '/trash/current-agent',
+            'scope': 'codex', 'scopeLabel': 'Codex', 'canRestore': True,
+        }])
         self.assertEqual(out['tags'], {'skill': ['current']})
         self.assertEqual(out['errors'], ['', [], ''])
         self.assertEqual(out['loading'], [False, False])

@@ -804,7 +804,7 @@ class BodyLazyLoadTests(unittest.TestCase):
 
     def test_a_dropped_backup_must_look_like_an_archive(self):
         out = self._app_with_api("""
-        const M=ctx.options.methods;const c={importFile:null,importReject:''};
+        const M=ctx.options.methods;const c={importFile:null,importReject:'',clearImportReview:M.clearImportReview};
         const r={};
         M.pickImport.call(c,[{name:'notes.txt'}]);r.bad=[c.importFile,c.importReject];
         M.pickImport.call(c,[{name:'Backup.TAR.GZ'}]);r.good=[c.importFile&&c.importFile.name,c.importReject];
@@ -814,11 +814,10 @@ class BodyLazyLoadTests(unittest.TestCase):
         self.assertIn("not a backup file", out["bad"][1])
         self.assertEqual(out["good"], ["Backup.TAR.GZ", ""])  # case-insensitive
         self.assertEqual(out["none"], [None, ""])
-        html = (V2 / "index.html").read_text(encoding="utf-8")
-        # The native input keeps its id inside the dropzone label (browser suites
-        # and keyboard users drive it directly).
-        zone = html[html.index('<label class="smdz"'):]
-        self.assertLess(zone.index('id="imp-file" type="file"'), zone.index("</label>"))
+        screen = (V2 / "screen-trash.js").read_text(encoding="utf-8")
+        self.assertRegex(screen, r'id="imp-file"[^>]*type="file"')
+        self.assertIn('@click="$refs.file.click()"', screen)
+        self.assertIn('@drop.prevent="dropFiles"', screen)
 
     def test_startup_list_request_omits_document_bodies(self):
         state = (V2 / "state.js").read_text(encoding="utf-8")
@@ -826,6 +825,8 @@ class BodyLazyLoadTests(unittest.TestCase):
 
     def test_archive_receipt_keeps_server_details_and_blocks_file_changes_during_upload(self):
         out = self._app_with_stub("""
+        if(url.includes('preview=1')) return {plan_id:'reviewed',entries:[{name:'good',action:'add',place:'library'}]};
+        if(!url.includes('plan_id=reviewed')) throw new Error('A reviewed plan is required');
         return {imported:['good'], skipped:['failed: Recovery files retained at /fixture/backup'],
           skipped_full:['templates/existing.md'], restored_trash:['copy'],
           restored_templates:['one.md','two.md'], restored_catalog:true};""", """
@@ -833,18 +834,24 @@ class BodyLazyLoadTests(unittest.TestCase):
         const file={name:'receipt.tar.gz'};
         ctx.document={getElementById(){return null;}};
         const c={importFile:file,importFull:true,importForce:true,busy:false,
+          archiveImportRequest:methods.archiveImportRequest,clearImportReview:methods.clearImportReview,
           refresh:async()=>{},friendly:message=>message,archiveImportSummary:methods.archiveImportSummary};
+        await methods.doImport.call(c);
+        const callsBeforePreview=calls.length;
+        await methods.previewImport.call(c);
         const ongoing=methods.doImport.call(c);
         methods.pickImport.call(c,[{name:'different.zip'}]);
         const unchanged=c.importFile===file;
         await methods.doImport.call(c);
         await ongoing;
         return {result:c.importResult, summary:methods.archiveImportSummary(c.importResult),
-          unchanged,busy:c.busy,file:c.importFile,announced:c.live,calls};""")
+          unchanged,busy:c.busy,file:c.importFile,announced:c.live,calls,callsBeforePreview};""")
         self.assertTrue(out["unchanged"])
         self.assertFalse(out["busy"])
         self.assertIsNone(out["file"])
-        self.assertEqual(len(out["calls"]), 1)
+        self.assertEqual(out["callsBeforePreview"], 0)
+        self.assertEqual(out["calls"], ["/api/import?filename=receipt.tar.gz&force=1&full=1&preview=1",
+                                       "/api/import?filename=receipt.tar.gz&force=1&full=1&plan_id=reviewed"])
         self.assertEqual(out["summary"], "1 skill imported. Restored 1 trash entry, 2 templates, catalog metadata. 2 skipped.")
         self.assertEqual(out["announced"], out["summary"])
         self.assertEqual(out["result"]["skipped"], ["failed: Recovery files retained at /fixture/backup"])

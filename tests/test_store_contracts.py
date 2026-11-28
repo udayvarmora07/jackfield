@@ -7,7 +7,7 @@ they do not mock the Store implementation or depend on a user's data directory.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
+from contextlib import closing, contextmanager
 import errno
 import io
 import json
@@ -21,6 +21,7 @@ import zipfile
 from pathlib import Path
 from unittest import mock
 
+from skillsmgr import atomic_io
 from skillsmgr.frontmatter import dump_frontmatter
 from skillsmgr.store import (
     SkillNotFound,
@@ -580,15 +581,8 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
         live = self.store.skills_dir / "demo"
         (live / "companion.bin").write_bytes(b"\x00\xff")
         trash_path = Path(self.store.remove("demo")["trash_path"])
-        real_rename = os.rename
-
-        def across_volumes(source, destination):
-            if {Path(source), Path(destination)} == {trash_path, live}:
-                raise OSError(errno.EXDEV, "fixture cross-volume rename")
-            return real_rename(source, destination)
-
         with (
-            mock.patch("skillsmgr.store.os.rename", side_effect=across_volumes),
+            self._cross_volume_rename(trash_path, live),
             mock.patch.object(self.store, "_history", side_effect=sqlite3.OperationalError("fixture error")),
         ):
             with self.assertRaisesRegex(StoreError, "fixture error"):
@@ -657,8 +651,15 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
             with self.assertRaisesRegex(StoreError, "no trashed copy of 'demo' found"):
                 self.store.restore("demo")
 
+    @contextmanager
     def _cross_volume_rename(self, trash_path, live, *, refuse_park=False):
+        real_publish = atomic_io.rename_new_directory
         real_rename = os.rename
+
+        def publish(source, destination):
+            if {Path(source), Path(destination)} == {trash_path, live}:
+                raise OSError(errno.EXDEV, "fixture cross-volume publication")
+            return real_publish(source, destination)
 
         def rename(source, destination):
             pair = {Path(source), Path(destination)}
@@ -668,7 +669,11 @@ class TestStoreSnapshotsAndArchives(StoreContractCase):
                 raise PermissionError(errno.EACCES, "fixture park refused")
             return real_rename(source, destination)
 
-        return mock.patch("skillsmgr.store.os.rename", side_effect=rename)
+        with (
+            mock.patch("skillsmgr.atomic_io.rename_new_directory", side_effect=publish),
+            mock.patch("skillsmgr.atomic_io.os.rename", side_effect=rename),
+        ):
+            yield
 
     def test_restore_across_volumes_copies_verifies_and_retires_the_original(self):
         self.store.create("demo", "A useful skill", body="Selected copy")

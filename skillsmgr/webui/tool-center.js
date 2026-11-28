@@ -995,7 +995,7 @@ ${scanPanel('sourceReview.external_scan')}
       </template>
 
       <template v-else-if="page==='recovery-extra'">
-        <div class="tp-sec-h tp-gap tp-history-head"><h2 id="rec-history" tabindex="-1">History and text snapshots</h2><a class="tp-link" href="#/advanced/source-update">Whole-folder snapshots →</a></div>
+        <div class="tp-sec-h tp-gap tp-history-head"><h2 id="rec-text-history" tabindex="-1">History and text snapshots</h2><a class="tp-link" href="#/advanced/source-update">Whole-folder snapshots →</a></div>
         <p class="tp-fine">Text rollback restores an older skill document only; supporting files and the on/off state are not restored.</p>
         <form class="tp-inline" @submit.prevent="loadHistory">
           <label class="tp-field">Skill name <input class="field" v-model="historyName" placeholder="All skills" list="tp-names"></label>

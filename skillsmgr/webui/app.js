@@ -811,20 +811,252 @@ const tableMixin = {
   },
 };
 const statusIsSplit = (status) => status === "version-1" || status === "version-2";
+const LAST_LIBRARY_DOWNLOAD = "jackfield-last-library-backup";
+
+function savedLibraryDownload() {
+  try {
+    const record = JSON.parse(localStorage.getItem(LAST_LIBRARY_DOWNLOAD));
+    if (Number.isFinite(record?.at) && record.at > 0 && Number.isFinite(new Date(record.at).getTime()) &&
+        Number.isFinite(record.size) && record.size > 0) return record;
+  } catch { /* Storage can be blocked or contain an obsolete value. */ }
+  return null;
+}
+
+const trashKey = (scope, path) => JSON.stringify([scope, path]);
+
+function historyLabel(entry) {
+  const labels = { create: "Created", add: "Added", edit: "Edited", import: "Loaded",
+    trash: "Moved to Trash", restore: "Restored", enable: "Turned on", disable: "Turned off",
+    purge: "Deleted permanently" };
+  if (entry.action.startsWith("restore --snapshot")) return "Restored a saved version of " + entry.name;
+  return Object.hasOwn(labels, entry.action) ? labels[entry.action] + " · " + entry.name : "";
+}
+
+function attentionTitle(item) {
+  if (item.type === "split") return item.name + " has two versions, evenly split";
+  if (item.type === "unreadable") return item.agent.name + " can’t read its copy of " + item.name;
+  return item.agent.name + " has a different copy of " + item.name;
+}
+
+function attentionOption(id, label, fixLabel, source, targets) {
+  return { id, label, fixLabel, source, targets };
+}
+
+const attentionMixin = {
+  data() {
+    return { attentionSkipped: [], attentionFixed: [], attentionChoice: null, attentionCompare: "", attentionError: "" };
+  },
+  computed: {
+    attentionItems() {
+      return [...this.tableProblems].sort((a, b) => Number(b.type === "unreadable") - Number(a.type === "unreadable"));
+    },
+    attentionToFix() {
+      const skipped = new Set(this.attentionSkipped);
+      return this.attentionItems.filter((item) => !skipped.has(item.id));
+    },
+    attentionGroups() {
+      const skippedIds = new Set(this.attentionSkipped);
+      const skipped = this.attentionItems.filter((item) => skippedIds.has(item.id));
+      const active = new Set(this.tableProblems.map((item) => item.id));
+      const fixed = this.attentionFixed.filter((item) => !active.has(item.id));
+      return [["To fix", this.attentionToFix], ["Skipped", skipped], ["Fixed", fixed]]
+        .filter(([title, items]) => items.length || (title === "To fix" && skipped.length))
+        .map(([title, items]) => ({ title: title + " · " + items.length, items: items.map((item) => ({
+          id: item.id, name: item.name, agent: item.agent && { ...item.agent, path: "" },
+          status: title === "Fixed" ? "on" : item.type === "split" ? "version-1" : item.type,
+          label: title === "Fixed" ? "Fixed" : item.type === "split" ? "Two versions" : "",
+        })) }));
+    },
+    attentionItem() {
+      const id = this.route.item;
+      const live = this.tableProblems.find((item) => item.id === id);
+      if (live) return live;
+      const historic = this.attentionFixed.find((item) => item.id === id);
+      if (historic) return historic;
+      const legacy = /^(warn|bad):(.+)$/.exec(id || "");
+      if (legacy) {
+        const item = this.tableProblems.find((item) => item.name === legacy[2] &&
+          (legacy[1] === "bad" ? item.type === "unreadable" : item.type !== "unreadable"));
+        if (item) return item;
+      }
+      return this.attentionToFix[0] || this.attentionItems[0] || null;
+    },
+    attentionItemIsFixed() {
+      return !!this.attentionItem && this.attentionFixed.some(({ id }) => id === this.attentionItem.id) &&
+        !this.tableProblems.some((item) => item.id === this.attentionItem.id);
+    },
+    attentionOptions() {
+      const item = this.attentionItem;
+      if (!item || this.attentionItemIsFixed) return [];
+      const usable = (option) => tableSource(option.source) && this.canReplaceTableCopies(option.targets);
+      const groups = Model.squareCamps(item.row, this.tableColumns);
+      if (item.type === "split") {
+        return groups.map((group, index) => {
+          const version = "Version " + (index + 1);
+          return attentionOption(String(index + 1), version, "Keep " + version.toLowerCase(),
+            group.find(tableSource), groups.filter((other) => other !== group).flat());
+        }).filter(usable);
+      }
+      const { copy, source, writable } = tableChoice(item.row, item.agent, this.tableColumns);
+      if (!writable || !tableWritable(copy) || copy.record.decode_error) return [];
+      if (item.type === "unreadable") {
+        return [attentionOption("readable", "", "Replace with the readable copy", source, [copy])].filter(usable);
+      }
+      const name = item.agent.name;
+      return [
+        attentionOption("shared", "The shared version", "Use the shared version in " + name, source, [copy]),
+        attentionOption("current", name + "’s version", "Use " + name + "’s version everywhere", copy,
+          groups.flat().filter((other) => other.hash !== copy.hash)),
+      ].filter(usable);
+    },
+    attentionOption() {
+      const item = this.attentionItem;
+      if (item?.type === "unreadable") return this.attentionOptions[0];
+      const chosen = this.attentionChoice;
+      if (!chosen || chosen.issue !== item?.id) return null;
+      return this.attentionOptions.find((option) => this.attentionOptionKey(option) === chosen.key) || null;
+    },
+    attentionPair() {
+      const option = this.attentionOption;
+      if (!option || this.attentionItem.type === "unreadable") return null;
+      const target = option.targets.find((copy) => copy.scope === this.attentionCompare) || option.targets[0];
+      return [target, option.source];
+    },
+    attentionReads() {
+      const sources = this.attentionOptions.map((option) => option.source);
+      return this.attentionPair ? [...sources, this.attentionPair[0]] : sources;
+    },
+    attentionReadKey() {
+      if (this.route.page !== "inbox") return "";
+      return JSON.stringify([this.checkedAt, this.attentionReads.map((copy) => this.bodyKey(copy))]);
+    },
+    attentionChecked() {
+      return this.checkedAt ? { skills: this.shelfSkills.length, places: this.tableColumns.length, at: this.checkedAt } : null;
+    },
+    attentionDetail() {
+      const item = this.attentionItem;
+      if (!item) return null;
+      const fixed = this.attentionItemIsFixed;
+      const option = this.attentionOption;
+      const copy = item.agent && oneColumnCopy(item.row, item.agent);
+      const agent = item.agent && { ...item.agent, path: "" };
+      const options = this.attentionOptions.map(({ id, label, source, targets }) => ({
+        id, label, sub: "Copies to replace in " + join(targets.map((target) => target.label)) + ".",
+        snippet: this.bodyReady(source) ? stripFrontmatter(this.bodyOf(source)).trim().split("\n").slice(0, 3).join("\n") : "",
+      }));
+      const comparisons = this.attentionPair ? this.comparisonEvidence(this.attentionPair) : null;
+      const canFix = !!option && (this.attentionPair || [option.source]).every((copy) => this.bodyReady(copy));
+      const targets = (option?.targets || []).map((target) => ({ label: target.label, path: target.path }));
+      const what = option ? "The current folders go to Trash. The replacement includes the supporting files." +
+        replacementEffect(option.source, option.targets) : "Choose the version to keep. Jackfield moves the replaced folders to Trash.";
+      const manual = fixed || options.length ? "" : copy?.record.decode_error
+        ? "This file cannot be read as text. Open the skill for instructions to repair the file."
+        : "Jackfield can’t safely identify the folders to replace. Open the skill to check the copies.";
+      return { id: item.id, title: attentionTitle(item), status: fixed ? "on" : item.type,
+        label: fixed ? "Fixed" : item.type === "split" ? "Two versions" : undefined,
+        line: fixed ? "Jackfield checked the new copies." : this.attentionLine(item),
+        agent, options: item.type === "unreadable" ? [] : options,
+        selectedOption: option?.id, fixLabel: option?.fixLabel || "Choose a version first", what: manual || fixed ? "" : what,
+        skillHref: Router.skillHref(item.name), fixed, skipped: this.attentionSkipped.includes(item.id),
+        canFix, needsChoice: item.type !== "unreadable" && !option, manual, targets,
+        readError: item.type === "unreadable" && option ? this.bodyErrorOf(option.source) : "",
+        reading: item.type === "unreadable" && !!option && !this.bodyReady(option.source),
+        comparePairs: this.attentionPair ? targets.map(({ label }, index) => ({ id: option.targets[index].scope, label })) : [],
+        compareTarget: this.attentionPair?.[0].scope, comparisonEvidence: comparisons,
+      };
+    },
+  },
+  methods: {
+    attentionOptionKey(option) {
+      const evidence = (copy) => [this.bodyKey(copy), copyFileState(copy)];
+      return JSON.stringify([option.id, evidence(option.source), option.targets.map(evidence)]);
+    },
+    attentionLine(item) {
+      if (item.type === "split") return "Choose which version the tracked places should use.";
+      if (item.type === "unreadable") return "The file in " + item.agent.name + " is damaged, so the agent may not load this skill.";
+      return item.agent.name + " has its own version. Other places share a different copy.";
+    },
+    attentionSelect(id) {
+      const href = Router.routeHref("attention", { item: id });
+      Router.replace(href);
+      this.route = Router.parseRoute(href);
+      this.attentionChoice = null;
+      this.attentionCompare = "";
+      this.attentionError = "";
+      this.$nextTick(() => (document.getElementById("attention-detail-heading") || document.getElementById("h1"))?.focus());
+    },
+    attentionChoose(id) {
+      const option = this.attentionOptions.find((row) => row.id === id);
+      if (!option || this.busy) return;
+      this.attentionCompare = "";
+      this.attentionChoice = { issue: this.attentionItem.id, key: this.attentionOptionKey(option) };
+    },
+    attentionMove(step) {
+      const items = this.attentionGroups.flatMap((group) => group.items);
+      const index = items.findIndex((item) => item.id === this.attentionItem?.id);
+      const next = items[index + step];
+      if (next) this.attentionSelect(next.id);
+    },
+    attentionSkip() {
+      const item = this.attentionItem;
+      if (!item || this.busy || this.attentionItemIsFixed || this.attentionSkipped.includes(item.id)) return;
+      this.attentionSkipped = [...this.attentionSkipped, item.id];
+      this.attentionSelect(this.attentionToFix[0]?.id || item.id);
+    },
+    attentionRecheck() {
+      this.attentionError = "";
+      return this.refresh();
+    },
+    attentionFix() {
+      const item = this.attentionItem, option = this.attentionOption;
+      if (!item || !option || this.busy || this.loading || this.loadError || !this.attentionDetail.canFix) return;
+      const originals = option.targets;
+      const issueIds = this.tableProblems.filter(({ name, id, agent }) =>
+        name === item.name && (id === item.id || originals.some((copy) => agent && columnScopes(agent).includes(copy.scope))));
+      const skipped = this.attentionSkipped;
+      const selection = this.route.item;
+      this.attentionError = "";
+      return this.change("copy", { sources: [option.source], scopes: originals.map((copy) => copy.scope), originals,
+        keys: originals.map((copy) => tableKey(copy.name, copy.scope)), message: "Fixed " + item.name + ".",
+        onVerified: () => {
+          const resolved = issueIds.filter((issue) => !this.tableProblems.some((live) => live.id === issue.id));
+          const nowFixed = new Set(resolved.map(({ id }) => id));
+          this.attentionFixed = [...this.attentionFixed.filter((row) => !nowFixed.has(row.id)), ...resolved];
+          this.attentionSkipped = this.attentionSkipped.filter((id) => !nowFixed.has(id));
+          if (this.route.page === "inbox" && this.route.item === selection && nowFixed.has(item.id)) {
+            this.attentionSelect(this.attentionToFix[0]?.id || this.attentionItems[0]?.id || null);
+          }
+          if (!nowFixed.has(item.id)) return "Copies changed. Check the remaining issues.";
+        },
+        onUndo: () => {
+          const live = new Set(this.tableProblems.map(({ id }) => id));
+          this.attentionFixed = this.attentionFixed.filter(({ id }) => !live.has(id));
+          this.attentionSkipped = [...new Set([...this.attentionSkipped, ...skipped.filter((id) => live.has(id))])];
+          if (this.route.page === "inbox" && live.has(item.id)) this.attentionSelect(item.id);
+        },
+        onError: (failure) => {
+          if (this.route.page !== "inbox") return false;
+          this.attentionError = failure;
+          return true;
+        },
+      });
+    },
+  },
+};
 
 const app = createApp({
   data() {
-    return { ...Jack.createState(), ...trackingMixin.data(), ...tableMixin.data(), historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
+    return { ...Jack.createState(), ...trackingMixin.data(), ...tableMixin.data(), ...attentionMixin.data(), historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
       route: Router.current(), routeAction: "", catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0,
-      exportPending: false, exportError: "",
+      exportPending: false, exportError: "", libraryDownload: savedLibraryDownload(),
       query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name",
-      front: null, skipped: [], dismissed: [], done: 0, srcChoice: "", inboxComparisonScope: "",
       bodies: {}, bodyInflight: {}, bodyErrors: {},
       treeQuery: "", edit: null, highlight: true, compareWith: "", leadOpen: false,
       mapSelId: "", mapPicked: [], peek: null,
       mapQuery: "", mapReviewOnly: false, mapPage: 0, mapSkillName: "", mapOrigin: null,
-      trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, importFile: null, importReject: "", importError: "", dropDepth: 0, importForce: false,
+      trash: [], agentTrash: [], agentTrashErrors: [], agentTrashLoading: false, restoredTrash: null,
+      importFile: null, importReject: "", importError: "", importForce: false, importPlan: null, importPending: false,
       theme: savedPreference("skillsmgr-theme",THEMES,"system"),formatLocale:savedPreference("skillsmgr-locale",["system","en-US","en-GB","en-IN"],"system"),
       dialog: null, skillHistory: [], opener: null,
       readerResult: null, readerGeneration: 0,
@@ -834,6 +1066,54 @@ const app = createApp({
   computed: {
     ...trackingMixin.computed,
     ...tableMixin.computed,
+    ...attentionMixin.computed,
+    mergedTrash() {
+      const library = this.trash.map((row) => ({ ...row, scope: "global", scopeLabel: "Your library", canRestore: true }));
+      const rows = [...library, ...this.agentTrash];
+      const counts = new Map(), positions = new Map();
+      const key = (row) => trashKey(row.scope, row.name);
+      const observedDate = (row) => row.trashed_at || row.modified;
+      rows.sort((a, b) => String(observedDate(b) || "").localeCompare(String(observedDate(a) || "")) ||
+        a.name.localeCompare(b.name) || a.scope.localeCompare(b.scope));
+      for (const row of rows) counts.set(key(row), (counts.get(key(row)) || 0) + 1);
+      return rows.map((row) => {
+        const position = (positions.get(key(row)) || 0) + 1;
+        positions.set(key(row), position);
+        const count = counts.get(key(row));
+        const copyLabel = count > 1 ? `copy ${position} of ${count}` : "";
+        return { ...row, copyLabel, id: trashKey(row.scope, row.trash_path),
+          agent: { ...Model.agentMark(row.scope, row.scopeLabel), name: row.scopeLabel },
+          detail: [copyLabel, row.size_bytes > 0 ? this.fmtSize(row.size_bytes) : ""].filter(Boolean).join(" · "),
+          when: row.trashed_at ? this.fmtDate(row.trashed_at) : row.modified ? "Last changed " + this.fmtDate(row.modified) : "",
+          restoreLabel: this.agentRestoreLabel({ ...row, copyLabel }),
+        };
+      });
+    },
+    mergedTrashErrors() {
+      const library = this.trashError ? [{ scope: "global", label: "Your library", message: this.trashError }] : [];
+      return library.concat(this.agentTrashErrors.map((error) => ({ ...error, label: this.agentOf(error.scope).name })));
+    },
+    recoveryRecent() {
+      const today = new Date(), yesterday = new Date(today);
+      today.setHours(0, 0, 0, 0);
+      yesterday.setDate(today.getDate() - 1);
+      yesterday.setHours(0, 0, 0, 0);
+      return this.history.flatMap((entry, index) => {
+        const date = new Date(entry.at);
+        if (!Number.isFinite(date.getTime()) || date < yesterday || typeof entry.action !== "string") return [];
+        const text = historyLabel(entry);
+        return text ? [{ id: entry.id || index, text, when: date >= today ? "Today" : "Yesterday" }] : [];
+      });
+    },
+    recoveryLastDownload() {
+      return this.libraryDownload ? "Last download started " + this.fmtDate(this.libraryDownload.at) +
+        " · " + this.fmtSize(this.libraryDownload.size) : "";
+    },
+    recoveryImportResult() {
+      const result = this.importResult;
+      return result ? { summary: this.archiveImportSummary(result),
+        reasons: [...(result.skipped || []), ...(result.skipped_full || [])] } : null;
+    },
     tableHero() { return this.route.page === "skills" && !this.route.view; },
     activePlace() {
       return { inbox: "#/attention", recovery: "#/trash", tools: "#/advanced", tracking: "#/advanced" }[this.route.page]
@@ -1093,46 +1373,7 @@ const app = createApp({
       return copy && skill.ref.holders[0] ? [copy, skill.ref.holders[0]] : null;
     },
     mapComparisonEvidence() { return this.comparisonEvidence(this.mapComparePair); },
-    queue() {
-      if (!this.m) return [];
-      const all = this.m.problems.filter((p) => !this.dismissed.includes(p.id));
-      const rest = all.filter((p) => !this.skipped.includes(p.id));
-      const sk = this.skipped.map((id) => all.find((p) => p.id === id)).filter(Boolean);
-      const list = [...rest, ...sk];
-      const i = list.findIndex((p) => p.id === this.front);
-      if (i > 0) list.unshift(...list.splice(i, 1));
-      return list;
-    },
-    cur() { return this.queue[0] || null; },
-    curSkill() { return this.cur && this.cur.skill && this.m ? this.m.byName.get(this.cur.skill) : null; },
-    curSyncCopies() { return this.cur?.key === "warn" ? (this.curSkill?.copies || []) : []; },
-    curSyncSource() {
-      const sources = this.curSyncCopies.filter((c) => c.scope === this.srcChoice);
-      return sources.length === 1 && sources[0].hash ? sources[0] : null;
-    },
-    curSyncTargets() {
-      if (!this.curSyncSource) return [];
-      const counts = new Map();
-      for (const copy of this.curSyncCopies) counts.set(copy.scope, (counts.get(copy.scope) || 0) + 1);
-      return this.curSyncCopies.filter((c) => counts.get(c.scope) === 1 && !c.readOnly && this.agentOf(c.scope).writable &&
-        c.state !== "broken" && c.hash && c.hash !== this.curSyncSource.hash);
-    },
-    curSyncLabel() {
-      if (!this.curSyncSource) return "Choose a source copy";
-      if (!this.curSyncTargets.length) return "No writable targets";
-      const target = this.curSyncTargets.length === 1 ? this.agentOf(this.curSyncTargets[0].scope).name : `${this.curSyncTargets.length} copies`;
-      return `Sync ${target} from ${this.agentOf(this.curSyncSource.scope).name}`;
-    },
-    inboxComparePair() {
-      const target = this.curSyncTargets.find((c) => c.scope === this.inboxComparisonScope) || this.curSyncTargets[0];
-      return target && this.curSyncSource ? [target, this.curSyncSource] : null;
-    },
-    inboxComparisonEvidence() { return this.comparisonEvidence(this.inboxComparePair); },
-    curBig() {
-      if (!this.cur || this.cur.key !== "info" || !this.m) return [];
-      const inf = this.m.info(this.cur.agent);
-      return inf ? [...inf.on].sort((a, b) => b.tokens - a.tokens).slice(0, 4) : [];
-    },
+    queue() { return this.m?.problems || []; },
     themeLabel() { return { system: "follows your computer", light: "light", dark: "dark" }[this.theme]; },
     themeIcon() { return PATHS[{ system: "auto", light: "sun", dark: "moon" }[this.theme]]; },
     createTargets() {
@@ -1159,13 +1400,11 @@ const app = createApp({
       const f = this.dialog && this.dialog.form;
       return !f || !f.name.trim() || !f.desc.trim() || !!this.formErrors.name || !!this.formErrors.desc;
     },
-    progressBars() { return Math.min(this.done + this.queue.length, 12); },
   },
   watch: {
     libraryView(value) {try{localStorage.setItem("skillsmgr-v2-library-view",value);}catch(e){}},
     density(value) {try{localStorage.setItem("skillsmgr-v2-density",value);}catch(e){}},
-    cur: { immediate: true, handler(c) { this.srcChoice = c && c.key === "warn" && this.m && this.m.byName.get(c.skill) ? (this.m.byName.get(c.skill).ref.ambiguous ? "" : (this.m.byName.get(c.skill).ref.holders[0] || {}).scope || "") : ""; if (c && c.key === "warn" && this.curSkill) this.ensureBodies(this.curSkill.copies); } },
-    "cur.id"() { this.inboxComparisonScope = ""; },
+    attentionReadKey() { if (this.route.page === "inbox") this.ensureBodies(this.attentionReads); },
     "route.name"() { this.compareWith = ""; this.leadOpen = false; this.loadSkillHistory(); this.primeBodies(); },
     "route.page"(page) { if (page !== "map") this.mapOrigin = null; },
     readerKey() { this.loadReaderView(); },
@@ -1178,6 +1417,7 @@ const app = createApp({
     ...Jack.stateActions,
     ...trackingMixin.methods,
     ...tableMixin.methods,
+    ...attentionMixin.methods,
     enc: encodeURIComponent, agentMark: Model.agentMark, plural, join, words, titleCase, shortPath, renderDoc,
     fmt(n) {return Domain.numberFormatter(this.formatLocale==="system"?undefined:this.formatLocale).format(Number(n));},
     /* The informative end of a long folder path ("…/.claude/skills"); the full
@@ -1442,7 +1682,6 @@ const app = createApp({
       if (!this.m) return;
       const page = this.route && this.route.page;
       if (page === "skill" && this.skill && this.route.screen !== "why") return this.ensureBodies(this.skill.copies);
-      if (page === "inbox" && this.curSkill) return this.ensureBodies(this.curSkill.copies);
       if (page === "map") return this.ensureBodies(this.mapComparePair);
       if (this.tableHero && this.tableMode) return this.ensureBodies(this.tableComparisonCopies);
       return undefined;
@@ -1625,7 +1864,7 @@ const app = createApp({
         await this.refresh();
         const message = r.synced.length ? `${label} ${join(r.synced.map((id) => this.agentOf(id).name))}.` : "Nothing was changed.";
         this.toast(message + this.skipText(r.skipped) + Domain.syncRecoveryNotice([r]) +
-          (r.manualRecovery ? " Text Undo is unavailable. Check Recovery or your backup." : ""),
+          (r.manualRecovery ? " Text Undo is unavailable. Check Trash & backups or your backup." : ""),
         { err: !r.synced.length, undo: r.synced.length ? undo : null, onUndo,
           undoText: "Undone. Text and on/off state restored. Supporting files are unchanged." });
         return r.synced.length ? r : null;
@@ -1694,7 +1933,7 @@ const app = createApp({
       if (!copies.length) return;
       this.openDialog({
         title: `Move “${s.name}” to the trash?`, danger: true, confirm: "Move to trash",
-        lines: ["Choose the places to remove it from. Each agent keeps its own trash folder, and every copy you remove here can be restored from Recovery or with Undo."],
+        lines: ["Choose the places to remove it from. Each agent keeps its own trash folder, and every copy you remove here can be restored from Trash & backups or with Undo."],
         picks: copies.map((copy) => ({ id: copy.scope, label: this.agentOf(copy.scope).name, path: shortPath(copy.path) })),
         chosen: copies.length === 1 ? [copies[0].scope] : [],
         onConfirm: async (d) => {
@@ -1837,58 +2076,45 @@ const app = createApp({
       this.trashLoading = true;
       try {
         const rows = await api("/api/trash");
+        if (!Array.isArray(rows)) throw new Error("The library trash list could not be read.");
         if (gen !== this.trashGen) return;
         this.trash = rows; this.trashError = "";
       } catch (e) { if (gen === this.trashGen) this.trashError = this.friendly(e.message); }
       finally { if (gen === this.trashGen) this.trashLoading = false; }
     },
-    async restoreTrash(t) {
-      if (this.busy) return;
-      this.busy = true;
-      try { await this.restoreTrashed(t.name, "global", t.trash_path); await this.refresh(); this.toast(`${t.name} restored to your library.`); }
-      catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; }
-    },
     /* Both Recovery rows and Undo address the listed trash entry. */
-    async restoreTrashed(name, scope, trashPath) {
+    restoreTrashed(name, scope, trashPath) {
       const url = `/api/trash/${encodeURIComponent(name)}?scope=${encodeURIComponent(scope || "global")}`;
-      await api(url, { method: "POST", body: trashPath ? JSON.stringify({ trash_path: trashPath }) : undefined });
+      return api(url, { method: "POST", body: trashPath ? JSON.stringify({ trash_path: trashPath }) : undefined });
     },
     async loadAgentTrash() {
       const gen = ++this.agentTrashGen;
-      const agents = (this.m ? this.m.agents : []).filter((a) => !a.library && a.writable);
+      const agents = (this.m ? this.m.agents : []).filter((a) => !a.library);
       this.agentTrashLoading = true;
       const rows = [], errors = [];
       await Promise.all(agents.map(async (a) => {
         try {
           const list = await api("/api/trash?scope=" + encodeURIComponent(a.id));
-          for (const row of Array.isArray(list) ? list : []) rows.push({ ...row, scopeLabel: a.name });
+          if (!Array.isArray(list)) throw new Error("This trash list could not be read.");
+          for (const row of list) rows.push({ ...row, scope: a.id, scopeLabel: a.name, canRestore: a.writable });
         } catch (e) { errors.push({ scope: a.id, message: this.friendly(e.message) }); }
       }));
       if (gen !== this.agentTrashGen) return;
-      rows.sort((a, b) => String(b.trashed_at).localeCompare(String(a.trashed_at)) || a.name.localeCompare(b.name));
-      const counts = new Map(), positions = new Map();
-      const keyOf = (row) => JSON.stringify([row.scope, row.name]);
-      for (const row of rows) {
-        const key = keyOf(row);
-        counts.set(key, (counts.get(key) || 0) + 1);
-      }
-      for (const row of rows) {
-        const key = keyOf(row), position = (positions.get(key) || 0) + 1;
-        positions.set(key, position);
-        if (counts.get(key) > 1) row.copyLabel = `copy ${position} of ${counts.get(key)}`;
-      }
+      errors.sort((a, b) => a.scope.localeCompare(b.scope));
       this.agentTrash = rows; this.agentTrashErrors = errors; this.agentTrashLoading = false;
     },
-    async retryAgentTrash() {
-      if (this.agentTrashLoading) return;
-      await this.loadAgentTrash();
-      if (!this.agentTrashErrors.length) this.$refs.agentTrashHeading?.focus();
+    async retryTrash() {
+      if (this.trashLoading || this.agentTrashLoading) return;
+      await Promise.all([this.loadTrash(), this.loadAgentTrash()]);
+      if (!this.mergedTrashErrors.length && this.route.page === "recovery") document.getElementById("rec-trash")?.focus();
     },
     agentRestoreLabel(row) {
       const target = `Review restore for ${row.name} in ${row.scopeLabel}`;
       return row.copyLabel ? `${target}, ${row.copyLabel}` : target;
     },
-    reviewAgentTrash(row) {
+    reviewTrashRow(id) {
+      const row = this.mergedTrash.find((item) => item.id === id);
+      if (!row?.canRestore || !row.trash_path || this.busy) return;
       this.openDialog({
         title: `Restore ${row.name}?`,
         recovery: row,
@@ -1901,17 +2127,31 @@ const app = createApp({
       const dialog = this.dialog;
       this.busy = true;
       try {
-        await this.restoreTrashed(t.name, t.scope, t.trash_path);
+        const result = await this.restoreTrashed(t.name, t.scope, t.trash_path);
         this.dialog = null;
         await this.refresh();
-        this.toast(`${t.name} restored to ${t.scopeLabel}.`);
-        this.$refs.agentTrashHeading?.focus();
+        this.restoredTrash = this.confirmRestoredTrash(t, result);
+        if (this.route.page === "recovery") document.getElementById("rec-trash")?.focus();
       } catch (e) {
         if (this.dialog === dialog) {
           dialog.error = this.friendly(e.message);
           this.$nextTick(() => this.$refs.restoreError?.focus());
         }
       } finally { this.busy = false; }
+    },
+    confirmRestoredTrash(row, result) {
+      const skill = this.loadError ? null : this.m?.byName.get(row.name);
+      const path = result?.path;
+      const copies = skill?.squareCopies.filter((copy) => copy.scope === row.scope && (!path || copy.path === path)) || [];
+      if (copies.length !== 1) return { name: row.name, scopeLabel: row.scopeLabel, status: "unknown",
+        message: "The restore finished. Refresh files to check the restored copy." };
+      const [copy] = copies;
+      const column = this.tableColumns.find((place) => columnScopes(place).includes(row.scope));
+      const status = column ? Model.squareStatus(skill, column, null, this.tableColumns)
+        : copy.state === "broken" ? "unreadable" : ["on", "off"].includes(copy.state) ? copy.state : "unknown";
+      const href = Router.skillHref(row.name, "", { scope: row.scope, copy: copy.path,
+        sel: column ? tableKey(row.name, column.id) : undefined });
+      return { name: row.name, scopeLabel: row.scopeLabel, status, href, message: `${row.name} restored to ${row.scopeLabel}.` };
     },
     /* A reviewed batch removal reports the trash path of every copy it moved;
      * the toast keeps those exact paths so Undo restores each one it removed. */
@@ -1923,8 +2163,18 @@ const app = createApp({
       });
     },
     openPurge() {
-      this.openDialog({ title: "Empty the trash?", danger: true, confirm: "Delete permanently", lines: [`${plural(this.trash.length, "skill")} will be deleted permanently. This cannot be undone.`],
-        onConfirm: async () => { this.busy = true; try { await api("/api/trash/purge", { method: "POST" }); await this.loadTrash(); this.toast("The trash was emptied."); } catch (e) { this.toast(e.message, { err: true }); } finally { this.busy = false; } } });
+      if (this.busy || this.trashLoading || this.trashError || !this.trash.length) return;
+      this.openDialog({ title: "Empty library trash?", danger: true, confirm: "Delete permanently",
+        lines: ["All copies in your library trash will be deleted permanently. This cannot be undone."],
+        onConfirm: async () => {
+          this.busy = true;
+          try {
+            await api("/api/trash/purge", { method: "POST" });
+            await this.refresh();
+            this.toast("Library trash emptied.");
+          } catch (e) { this.toast(e.message, { err: true }); }
+          finally { this.busy = false; }
+        } });
     },
     async exportBackup(full) {
       if (this.busy) return;
@@ -1932,8 +2182,17 @@ const app = createApp({
       try {
         const { blob, filename } = await Domain.apiBlob("/api/export" + (full ? "?full=1" : ""));
         const url = URL.createObjectURL(blob), a = document.createElement("a");
-        a.href = url; a.download = filename || "skills-backup.tar.gz"; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        try {
+          a.href = url; a.download = filename || "skills-backup.tar.gz"; document.body.appendChild(a); a.click();
+        } finally {
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }
+        if (blob.size > 0) {
+          this.libraryDownload = { at: Date.now(), size: blob.size };
+          try { localStorage.setItem(LAST_LIBRARY_DOWNLOAD, JSON.stringify(this.libraryDownload)); }
+          catch { /* The current page can still show the observed download. */ }
+        }
         this.toast("Backup download started.");
       } catch (e) {
         this.exportError = Domain.archiveDownloadError(e);
@@ -1945,21 +2204,54 @@ const app = createApp({
     pickImport(list) {
       if (this.busy) return;
       const file = (list && list[0]) || null;
+      this.clearImportReview();
       if (file && !/\.(tar\.gz|tgz|tar|zip)$/i.test(file.name)) { this.importFile = null; this.importReject = `${file.name} is not a backup file. Choose a .tar.gz, .tgz, .tar or .zip file.`; return; }
       this.importReject = ""; this.importFile = file;
     },
+    clearImportReview() {
+      this.importPlan = null;
+      this.importError = "";
+      this.importResult = null;
+    },
+    changeImportOption(key, value) {
+      if (this.busy) return;
+      this[key] = value;
+      this.clearImportReview();
+    },
+    archiveImportRequest(file, review) {
+      const query = new URLSearchParams({
+        filename: file.name, force: this.importForce ? "1" : "0", full: this.importFull ? "1" : "0", ...review,
+      });
+      return api("/api/import?" + query, { method: "PUT", body: file });
+    },
+    async previewImport() {
+      const file = this.importFile;
+      if (!file || this.busy) return;
+      this.clearImportReview();
+      this.busy = true; this.importPending = true;
+      try {
+        const plan = await this.archiveImportRequest(file, { preview: "1" });
+        if (!plan.plan_id || !Array.isArray(plan.entries)) throw new Error("Jackfield could not read the backup preview.");
+        this.importPlan = plan;
+      } catch (e) { this.importError = this.friendly(e.message); }
+      finally { this.busy = false; this.importPending = false; }
+    },
     archiveImportSummary(result) { return Domain.archiveImportSummary(result); },
     async doImport() {
-      const f = this.importFile; if (!f || this.busy) return;
-      this.busy = true; this.importResult = null; this.importError = "";
+      const file = this.importFile, plan = this.importPlan;
+      if (!file || !plan?.entries.some((entry) => entry.action !== "skip") || this.busy) return;
+      this.busy = true; this.importPending = true;
+      this.importError = ""; this.importResult = null;
       try {
-        const r = await api(`/api/import?filename=${encodeURIComponent(f.name)}&force=${this.importForce ? 1 : 0}&full=${this.importFull ? 1 : 0}`, { method: "PUT", body: f });
+        const r = await this.archiveImportRequest(file, { plan_id: plan.plan_id });
+        this.importPlan = null;
         this.importResult = r;
         this.live = this.archiveImportSummary(r);
         this.importFile = null;
         const input = document.getElementById("imp-file"); if (input) input.value = "";
         await this.refresh();
-      } catch (e) { this.importError = this.friendly(e.message); } finally { this.busy = false; }
+      } catch (e) { this.importPlan = null; this.importError = this.friendly(e.message); }
+      finally { this.busy = false; this.importPending = false; }
     },
     applyTheme() {
       const root = document.documentElement;
@@ -1976,7 +2268,7 @@ const app = createApp({
       this.openDialog({ title: "Keyboard shortcuts", cancel: "Close", keys: [
         [["/"], "Search skills, actions and pages"], [["?"], "Show this list"], [["Esc"], "Close a dialog"],
         [["Ctrl/Cmd", "K"], "Open search"],
-        [["Ctrl", "S"], "Save while editing"], [["Enter"], "Fix the item that needs attention"], [["S"], "Skip it for now"],
+        [["Ctrl", "S"], "Save while editing"], [["J", "K"], "Next or previous issue in Needs attention"], [["F"], "Fix the reviewed issue"],
       ] });
     },
 
@@ -2100,7 +2392,7 @@ const app = createApp({
         const installed = this.editTargets.find((copy) => copy.path === a.target.path && copy.scope === a.target.scope);
         e.copy.hash = installed?.hash || "";
         if (installed) e.initialTargets[installed.scope] = this.bodyKey(installed);
-        this.toast(committed.warning || "AI edit saved. The previous folder is available in Recovery.");
+        this.toast(committed.warning || "AI edit saved. The previous folder is available in Trash & backups.");
         this.$nextTick(() => { this.growArea(); this.$refs.edbody?.focus(); });
       } catch (error) { a.error = this.friendly(error.message); }
       finally { this.busy = false; }
@@ -2331,31 +2623,14 @@ const app = createApp({
       } finally { this.busy = false; }
     },
 
-    /* ----- inbox ----- */
     openInboxFor(skillName) {
-      const issue = this.queue.find((p) => p.skill === skillName && p.key === "warn");
-      if (issue) this.front = issue.id;
-      Router.go("#/attention");
+      const issue = this.tableProblems.find((item) => item.name === skillName && item.type !== "unreadable");
+      Router.go(Router.routeHref("attention", { item: issue?.id }));
     },
-    async fixCurrent() {
-      const p = this.cur; if (!p || this.busy) return null;
-      if (p.key === "warn" && !this.curSyncTargets.length) return null;
-      /* Undo of a fix puts the item back in the queue, since the file is back. */
-      const back = () => { if (!this.m.problems.some((item) => item.id === p.id)) return; this.dismissed = this.dismissed.filter((id) => id !== p.id); this.done = Math.max(0, this.done - 1); };
-      let ok = false;
-      if (p.key === "warn") {
-        const tos = this.curSyncTargets.map((c) => c.scope);
-        ok = !!(await this.runSync(p.skill, this.curSyncSource.scope, tos, `${p.skill} now matches in`, back));
-      } else if (p.key === "bad") {
-        if (!p.fixable) return this.fixBad(p);
-        ok = !!(await this.fixBad(p, back));
-      } else {
-        /* A note acknowledged is not a fix: it leaves the queue without counting. */
-        this.dismissed.push(p.id); this.skipped = this.skipped.filter((id) => id !== p.id); if (this.front === p.id) this.front = null;
-        this.toast("Hidden until you reload."); return null;
-      }
-      if (ok) { this.dismissed.push(p.id); this.skipped = this.skipped.filter((id) => id !== p.id); if (this.front === p.id) this.front = null; this.done++; }
-      return null;
+    reviewProblemHref(problem) {
+      if (problem.noteOnly) return Router.routeHref("skills", { view: "instances", q: problem.skill });
+      if (problem.key === "info") return Router.toolHref("quality");
+      return Router.routeHref("attention", { item: problem.id });
     },
     applyRouteOptions(route, previous) {
       if (route.page === "skills") {
@@ -2367,8 +2642,6 @@ const app = createApp({
         }
       } else if (route.page === "map" && route.search != null) {
         this.mapQuery = route.search;
-      } else if (route.page === "inbox" && route.item) {
-        this.front = route.item;
       }
     },
     showRouteScreen() {
@@ -2441,7 +2714,6 @@ const app = createApp({
       if (next.screen !== "new") this.focusH1();
       this.showRouteScreen();
     },
-    skipCurrent() { if (!this.cur) return; const id = this.cur.id; this.skipped = [...this.skipped.filter((x) => x !== id), id]; this.front = null; this.focusH1(); },
   },
   mounted() {
     this.refresh();
@@ -2461,13 +2733,14 @@ const app = createApp({
       if (e.key === "?" && !typing && !onControl && !this.dialog) { e.preventDefault(); this.openHelp(); }
       if (e.key === "/" && !typing && !onControl && !this.dialog && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.openCommands(); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && this.edit) { e.preventDefault(); if (!this.dialog) this.saveEdit(); }
-      if (this.route.page === "inbox" && this.cur && !typing && !this.dialog && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        /* Shortcuts never fire from a link, button or field: Enter on "Open
-         * skill" must open the skill, not run the fix (screen-reader E2E SR-1). */
-        const inScope = !t || t === document.body || (t.closest && t.closest("#main"));
-        if (!onControl && inScope) {
-          if (e.key === "s" || e.key === "S") { e.preventDefault(); this.skipCurrent(); }
-          else if (e.key === "Enter") { e.preventDefault(); this.fixCurrent(); }
+      if (this.route.page === "inbox" && !typing && !onControl && !this.dialog &&
+          !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && !e.isComposing) {
+        const key = e.key.toLowerCase();
+        const inScope = !t || t === document.body || t.closest?.("#main");
+        if (inScope && ["j", "k", "f"].includes(key)) {
+          e.preventDefault();
+          if (key !== "f") this.attentionMove(key === "j" ? 1 : -1);
+          else if (!e.repeat) this.attentionFix();
         }
       }
     });

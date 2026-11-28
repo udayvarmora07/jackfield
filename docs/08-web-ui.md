@@ -715,13 +715,14 @@ the web trigger reports remain model estimates. See
 |---|---|---|
 | GET | `/api/export[?full=1]` | downloads slim or full gzip archive (attachment; global scope only) |
 | PUT | `/api/import?filename=&force=&full=` | raw TAR or ZIP bytes → `Store.import_`. `full=1` restores trash, templates and catalog metadata. |
+| PUT | `/api/import?filename=&force=&full=&preview=1` | Validates raw TAR or ZIP bytes and returns `plan_id` and the planned additions, replacements and skips. The preview leaves managed skill data unchanged. |
+| PUT | `/api/import?filename=&force=&full=&plan_id=` | Applies a reviewed archive after rechecking the archive bytes, options and destination state under the write locks. A stale plan is refused. Each reviewed addition requires an empty destination at publication. |
 | PUT | `/api/import` (multipart/form-data) | webkitdirectory folder upload → Store.add per SKILL.md |
 
 If the backup source changes during export, the server returns `409` with
-`backup_source_changed` and no attachment. Both Recovery pages show that the
-backup is being prepared, prevent another export while it is in progress,
-and tell the user to wait for the changes to finish before retrying. The
-retry message stays beside the download action until the next attempt.
+`backup_source_changed` and no attachment. Trash & backups shows when the
+backup is being prepared and disables the download controls during export.
+The retry message stays beside the download action until the next attempt.
 For `PUT /api/import?full=1`, an invalid or mismatched recorded skill checksum
 returns `400` before any skill, trash entry, template or catalog file is
 restored.

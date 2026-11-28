@@ -30,6 +30,27 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   async function go(route) { route = ({home:'skills?view=agents', map:'skills?view=map'})[route] || route; await page.goto(base+'/?fixture-step='+(++navigation)+'#/'+route); await page.locator('main').waitFor(); await page.waitForLoadState('networkidle'); if (route.startsWith('skill/')) await page.locator('.jf-reader-heading').waitFor(); await page.waitForTimeout(200); }
   async function theme(t) { for (let i=0;i<3 && await page.locator('html').getAttribute('data-theme')!==t;i++) { const button = page.locator('.themebtn:visible').first(); if (await button.count()) await button.click(); else { await page.keyboard.press('Control+k'); await page.getByRole('combobox', {name:'Search skills, actions and pages'}).fill('Switch theme'); await page.getByRole('option', {name:/Switch theme/}).click(); } } assert.equal(await page.locator('html').getAttribute('data-theme'),t); }
   const file=(scope,name='same-everywhere')=>path.join(home,scope,'skills',name,'SKILL.md');
+  const libraryFile = name => path.join(root, 'data', 'jackfield', 'skills', name, 'SKILL.md');
+  const trashScreen = page.locator('.jf-trash-screen');
+  const trashList = trashScreen.locator('section[aria-labelledby="rec-trash"]');
+  const restoreButton = (name, place, copy = '') => trashList.getByRole('button', {
+    name:`Review restore for ${name} in ${place}${copy ? ', ' + copy : ''}`, exact:true,
+  });
+  const attention = page.locator('.jf-attention');
+  const attentionHeading = attention.locator('#attention-detail-heading');
+  const attentionItem = id => attention.locator(`[data-attention-id=${JSON.stringify(id)}]`);
+  const attentionNav = page.locator('.tabs a[href="#/attention"]');
+  const attentionWrites = request => request.method() === 'POST' &&
+    ['/api/sync', '/api/batch/execute'].includes(new URL(request.url()).pathname);
+  async function openAttention(id) {
+    await go(id ? 'attention?item=' + encodeURIComponent(id) : 'attention');
+    await attention.getByRole('heading', {name:'Needs attention', exact:true}).waitFor();
+    if (id) await attentionHeading.waitFor();
+  }
+  async function expectAttentionCount(count) {
+    if (count) await attention.getByRole('heading', {name:`To fix · ${count}`, exact:true}).waitFor();
+    assert.equal(await attentionNav.getAttribute('aria-label'), count ? `Needs attention, ${count} ${count === 1 ? 'item' : 'items'}` : null);
+  }
   async function turnOffCodexFromReader() {
     await page.getByRole('button', {name:'same-everywhere in Codex: On'}).click();
     await page.locator('.jf-panel').getByRole('button', {name:/^Turn off/}).click();
@@ -54,6 +75,49 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         }
       }
     } finally { await page.setViewportSize({width:1280, height:900}); }
+  });
+  await test('Skills notices an external file change and highlights the refreshed row (F8)', async () => {
+    const name = 'phase-four-disk-change';
+    const active = file('.claude', name), disabled = active + '.disabled';
+    const folder = path.dirname(active);
+    const document = `---\nname: ${name}\ndescription: Exercise a disk change in the browser.\n---\n# Original instructions\n`;
+    assert(!fs.existsSync(folder));
+    const view = await browser.newContext({viewport:{width:1440, height:900}});
+    try {
+      fs.mkdirSync(folder);
+      fs.writeFileSync(active, document);
+      const watcher = await view.newPage();
+      watcher.setDefaultTimeout(5000);
+      watcher.on('pageerror', error => exceptions.push(error.message));
+      await watcher.clock.install();
+      await watcher.goto(base + '/#/skills');
+      const welcome = watcher.getByRole('button', {name:'Show my skills', exact:true});
+      const on = watcher.getByRole('button', {name:`${name} in Claude Code: On`, exact:true});
+      await welcome.or(on).first().waitFor();
+      if (await welcome.isVisible()) await welcome.click();
+      await on.waitFor();
+
+      fs.renameSync(active, disabled);
+      await watcher.bringToFront();
+      await watcher.clock.fastForward(15_001);
+      await watcher.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+      const notice = watcher.getByRole('region', {name:/^1 skill changed on disk/});
+      await notice.waitFor();
+      assert(await on.isVisible());
+      await notice.getByRole('button', {name:'Refresh', exact:true}).click();
+      const off = watcher.getByRole('button', {name:`${name} in Claude Code: Off`, exact:true});
+      await off.waitFor();
+      const highlight = watcher.locator('tr.is-changed').filter({has:off});
+      await highlight.waitFor();
+      await notice.waitFor({state:'hidden'});
+      await watcher.clock.fastForward(3501);
+      await highlight.waitFor({state:'hidden'});
+      assert(await off.isVisible());
+      assert.equal(fs.readFileSync(disabled, 'utf8'), document);
+    } finally {
+      await view.close();
+      fs.rmSync(folder, {recursive:true, force:true});
+    }
   });
   await test('Canonical routes replace legacy history and retain query strings', async () => {
     await go('skills');
@@ -530,34 +594,155 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.equal(page.url(), base + '/?window=claude#/skills');
     assert(await page.getByRole('heading',{name:'Skills',exact:true}).isVisible());
   });
-  await test('Unreadable Inbox guidance preserves original bytes',async()=>{ await go('inbox');const f=file('.codex','damaged-one'), bytes=fs.readFileSync(f);if (!(await page.locator('#focus-t').innerText()).includes('damaged-one')) await page.locator('.qi').filter({hasText:'damaged-one'}).click();assert.equal(await page.locator('[data-primary]').innerText(),'Show me how');await page.locator('[data-primary]').click();assert.match(await page.locator('.dlg').innerText(),/original file/);assert.deepEqual(fs.readFileSync(f),bytes);await page.keyboard.press('Escape'); });
-  await test('Home Inbox count equals queue; acknowledging a note is not a fix', async () => {
-    await go('home');
-    const summary = page.locator('.side .card').first().locator('.sub').first();
-    const count = Number((await summary.innerText()).match(/^(\d+) items? in Inbox$/)[1]);
-    await page.locator('.look a').first().click();
-    assert.match(await page.locator('.prog').innerText(), new RegExp(`\\b${count} to go$`));
-    await page.locator('.qi').filter({hasText:'.system'}).click();
-    await page.locator('[data-primary]').click();
-    assert.match(await page.locator('.prog').innerText(), /^0 fixed/);
-    await page.evaluate(() => { location.hash = '#/skills?view=agents'; });
-    assert.equal(await summary.innerText(), `${count-1} items in Inbox`);
+  await test('Needs attention gives manual guidance and preserves unreadable bytes', async () => {
+    const target = file('.codex', 'damaged-one'), before = fs.readFileSync(target);
+    const writes = [];
+    const observe = req => { if (attentionWrites(req)) writes.push(req.url()); };
+    page.on('request', observe);
+    try {
+      await openAttention('damaged-one:codex:unreadable');
+      assert.match(await attentionHeading.innerText(), /damaged-one/);
+      assert.match(await attention.innerText(), /cannot be read as text|by hand|manually/i);
+      assert.equal(await attention.getByRole('button', {name:'Replace with the readable copy'}).count(), 0);
+      await attentionHeading.focus();
+      await page.keyboard.press('f');
+      assert.deepEqual(writes, []);
+      assert.deepEqual(fs.readFileSync(target), before);
+    } finally { page.off('request', observe); }
   });
-  await test('Disabled Enter does not sync a tied copy',async()=>{await go('inbox');await page.locator('.qi').filter({hasText:'split-even'}).click();let f=file('.codex','split-even'), bytes=fs.readFileSync(f),posts=0;const observe=req=>{if(req.method()==='POST'&&req.url().endsWith('/api/sync'))posts++;};page.on('request',observe);assert(await page.locator('[data-primary]').isDisabled());await page.locator('#h1').focus();await page.keyboard.press('Enter');await page.waitForTimeout(300);assert.deepEqual(fs.readFileSync(f),bytes);page.off('request',observe);assert.equal(posts,0);});
-  await test('Keyboard: Enter on Open skill navigates and never runs the fix (SR-1)',async()=>{await go('inbox');if(!(await page.locator('#focus-t').innerText()).includes('damaged-fm'))await page.locator('.qi').filter({hasText:'damaged-fm'}).click();const f=file('.codex','damaged-fm'),bytes=fs.readFileSync(f);let posts=0;const observe=req=>{if(req.method()==='POST'&&req.url().endsWith('/api/sync'))posts++;};page.on('request',observe);try{await page.locator('.f-acts a.link').filter({hasText:'Open skill'}).focus();await page.keyboard.press('Enter');await page.waitForTimeout(500);assert(page.url().includes('#/skills/damaged-fm'),page.url());assert.equal(posts,0);assert.deepEqual(fs.readFileSync(f),bytes);}finally{page.off('request',observe);}});
+  await test('Needs attention requires an explicit version before fixing a tied copy', async () => {
+    const target = file('.codex', 'split-even'), before = fs.readFileSync(target);
+    const writes = [];
+    const observe = req => { if (attentionWrites(req)) writes.push(req.url()); };
+    page.on('request', observe);
+    try {
+      await go('inbox?item=warn%3Asplit-even');
+      await page.waitForURL(url => url.hash.startsWith('#/attention?'));
+      await attentionHeading.waitFor();
+      assert.match(await attentionHeading.innerText(), /split-even/);
+      for (const name of ['Version 1', 'Version 2']) {
+        const choice = attention.getByRole('button', {name:new RegExp('^' + name)});
+        assert.equal(await choice.getAttribute('aria-pressed'), 'false');
+      }
+      assert(await attention.getByRole('button', {name:'Choose a version first', exact:true}).isDisabled());
+      await attentionHeading.focus();
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('f');
+      assert.deepEqual(writes, []);
+      assert.deepEqual(fs.readFileSync(target), before);
+    } finally { page.off('request', observe); }
+  });
+  await test('Needs attention Open skill follows Enter without fixing (SR-1)', async () => {
+    const target = file('.codex', 'damaged-fm'), before = fs.readFileSync(target);
+    const writes = [];
+    const observe = req => { if (attentionWrites(req)) writes.push(req.url()); };
+    page.on('request', observe);
+    try {
+      await openAttention('damaged-fm:codex:unreadable');
+      const open = attention.getByRole('link', {name:'Open skill', exact:true});
+      await open.focus();
+      await page.keyboard.press('f');
+      await page.keyboard.press('Enter');
+      await page.waitForURL(url => url.hash.startsWith('#/skills/damaged-fm'));
+      assert.deepEqual(writes, []);
+      assert.deepEqual(fs.readFileSync(target), before);
+    } finally { page.off('request', observe); }
+  });
+  await test('Needs attention Check again counts two problems on one skill (F7)', async () => {
+    const name = 'majority-minor';
+    const damaged = file('.agents', name), original = fs.readFileSync(damaged);
+    const endpoint = url => url.pathname === '/api/skills' && url.searchParams.get('scope') === 'all' && url.searchParams.get('body') === '0';
+    let includeProblems = false;
+    const restrictInventory = async route => {
+      const response = await route.fetch();
+      const records = await response.json();
+      const names = ['sole-copy', 'same-everywhere', '.system'];
+      if (includeProblems) names.push(name);
+      await route.fulfill({response, json:records.filter(record => names.includes(record.name))});
+    };
+    await page.route(endpoint, restrictInventory);
+    try {
+      await openAttention();
+      await attention.getByRole('heading', {name:'Nothing left to fix', exact:true}).waitFor();
+      assert.match(await attention.innerText(), /We checked .* skills in .* places/);
+      await attention.getByText(/^Last checked /).waitFor();
+      await expectAttentionCount(0);
+      fs.writeFileSync(damaged, Buffer.from([0xff, 0xfe]));
+      includeProblems = true;
+      await attention.getByRole('button', {name:'Check again', exact:true}).click();
+      await expectAttentionCount(2);
+      const issues = attention.getByRole('region', {name:'To fix · 2', exact:true});
+      assert.equal(await issues.locator('[data-attention-id]').count(), 2);
+      await issues.locator('[data-attention-id="majority-minor:codex:different"]').waitFor();
+      await issues.locator('[data-attention-id="majority-minor:agents:unreadable"]').waitFor();
+    } finally {
+      fs.writeFileSync(damaged, original);
+      await page.unroute(endpoint, restrictInventory);
+    }
+  });
+  await test('Needs attention keyboard navigation, Skip and Undo preserve the issue group (F7)', async () => {
+    const name = 'majority-minor', id = `${name}:codex:different`;
+    const target = file('.codex', name), original = fs.readFileSync(target);
+    const writes = [];
+    const observe = req => { if (attentionWrites(req)) writes.push(req.postDataJSON().operation); };
+    page.on('request', observe);
+    try {
+      await openAttention(id);
+      const count = Number(await attentionNav.locator('.sm-nav__count').innerText());
+      await expectAttentionCount(count);
+      const ids = await attention.getByRole('region', {name:`To fix · ${count}`, exact:true})
+        .locator('[data-attention-id]').evaluateAll(items => items.map(item => item.dataset.attentionId));
+      const index = ids.indexOf(id);
+      assert(index >= 0 && ids.length > 1);
+      const forward = index < ids.length - 1;
+      const adjacent = ids[index + (forward ? 1 : -1)];
+      await attentionHeading.focus();
+      await page.keyboard.press(forward ? 'j' : 'k');
+      await page.waitForURL(url => new URLSearchParams(url.hash.split('?')[1]).get('item') === adjacent);
+      await page.keyboard.press(forward ? 'k' : 'j');
+      await page.waitForURL(url => new URLSearchParams(url.hash.split('?')[1]).get('item') === id);
+      await attention.getByRole('button', {name:'Skip for now', exact:true}).click();
+      const skipped = attention.getByRole('region', {name:'Skipped · 1', exact:true});
+      const skippedItem = skipped.locator(`[data-attention-id="${id}"]`);
+      await skippedItem.waitFor();
+      await expectAttentionCount(count - 1);
+      assert.deepEqual(writes, []);
+      assert.deepEqual(fs.readFileSync(target), original);
+      await skippedItem.click();
+      await attention.getByRole('button', {name:'The shared version', exact:true}).click();
+      await attention.locator('[data-primary]:enabled').waitFor();
+      await attentionHeading.focus();
+      await page.keyboard.press('f');
+      const undo = page.locator('.toast').getByRole('button', {name:'Undo', exact:true});
+      await undo.waitFor();
+      await attention.getByRole('region', {name:'Fixed · 1', exact:true}).locator(`[data-attention-id="${id}"]`).waitFor();
+      assert.deepEqual(writes, ['remove', 'sync']);
+      assert.deepEqual(fs.readFileSync(target), fs.readFileSync(file('.claude', name)));
+      await expectAttentionCount(count - 1);
+      await undo.click();
+      await page.locator('.toast').getByText(/^Undone/).waitFor();
+      await skippedItem.waitFor();
+      await expectAttentionCount(count - 1);
+      assert.deepEqual(fs.readFileSync(target), original);
+    } finally {
+      page.off('request', observe);
+      fs.mkdirSync(path.dirname(target), {recursive:true});
+      fs.writeFileSync(target, original);
+    }
+  });
   await test('Skip link keeps the current page and focuses its heading (SR-2)',async()=>{await go('skill/same-everywhere');await page.locator('a.skip').focus();await page.keyboard.press('Enter');await page.waitForTimeout(200);assert(page.url().endsWith('#/skills/same-everywhere'),page.url());assert.equal(await page.evaluate(()=>document.activeElement&&document.activeElement.id),'h1');});
-  await test('Navigation names the Inbox count and stays outside the dialog tab order', async () => {
+  await test('Navigation names the Needs attention count and stays outside the dialog tab order', async () => {
     await go('home');
     const badge = page.locator('.tabs a[href="#/attention"] .sm-nav__count');
     const count = Number(await badge.innerText());
-    assert(count > 1, 'fixture includes multiple Inbox entries');
-    const inbox = page.getByRole('link', {name: `Needs attention, ${count} items`, exact: true});
+    assert(count > 1, 'fixture includes multiple problems');
+    const review = page.getByRole('link', {name: `Needs attention, ${count} items`, exact: true});
     const skipLink = page.getByRole('link', {name: 'Skip to content', exact: true});
     try {
       for (const width of [1280, 390]) {
         await page.setViewportSize({width, height: 900});
-        await inbox.waitFor();
-        assert.equal(await inbox.count(), 1);
+        await review.waitFor();
+        assert.equal(await review.count(), 1);
       }
     } finally {
       await page.setViewportSize({width: 1280, height: 900});
@@ -617,8 +802,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await search.fill('.system');
     assert.equal(await page.locator('#command-list [role="option"]').count(), 0);
     await page.keyboard.press('Escape');
-    await go('inbox');
-    assert(await page.locator('.qi').filter({hasText:'.system'}).isVisible());
+    await openAttention();
+    assert.equal(await attention.locator('[data-attention-id]').filter({hasText:'.system'}).count(), 0);
   });
   await test('Command palette has a desktop pointer entry and restores focus', async () => {
     await page.setViewportSize({width:1366,height:768});
@@ -655,7 +840,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         await page.setViewportSize({width,height:768});
         await go('map');
         await page.getByRole('button', {name:'OpenCode', exact:true}).click();
-        const action = page.getByRole('link', {name:'Choose which copies to keep in the Inbox'});
+        const action = page.getByRole('link', {name:'Choose which copies to keep in Needs attention'});
         await action.scrollIntoViewIfNeeded();
         assert(await action.evaluate(el => {
           const panel = el.closest('.mpanel');
@@ -701,37 +886,57 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         await highlight.check();
         assert(await highlight.isChecked());
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-        await comparison.getByRole('link', {name:'Choose a reference in Inbox'}).click();
-        assert.match(await page.locator('#focus-t').innerText(), /split-even/);
+        await comparison.getByRole('link', {name:'Choose a version in Needs attention', exact:true}).click();
+        await page.waitForURL(url => url.hash.startsWith('#/attention?') &&
+          new URLSearchParams(url.hash.split('?')[1]).get('item') === 'split-even:split');
+        await attentionHeading.waitFor();
+        assert.match(await attentionHeading.innerText(), /split-even/);
       }
     } finally {
       await page.setViewportSize({width:1280,height:900});
     }
   });
-  await test('Inbox Sync preview follows the selected source and shows affected locations', async () => {
-    await go('inbox');
-    await page.locator('.qi').filter({hasText:'majority-minor'}).click();
-    const targets = page.getByRole('list', {name:'Copies that will be overwritten'});
+  await test('Needs attention review follows the chosen version and shows affected locations', async () => {
+    await openAttention('majority-minor:codex:different');
+    const shared = attention.getByRole('button', {name:/^The shared version/});
+    const codex = attention.getByRole('button', {name:/^Codex’s version/});
+    assert.equal(await shared.getAttribute('aria-pressed'), 'false');
+    assert.equal(await codex.getAttribute('aria-pressed'), 'false');
+    await shared.click();
+    const targets = attention.getByRole('list', {name:'Copies that will be overwritten'});
     assert.match(await targets.innerText(), /Codex/);
     assert((await targets.innerText()).includes(path.dirname(file('.codex', 'majority-minor'))));
-    await page.getByRole('radio', {name:'Codex'}).check();
-    const comparison = page.getByRole('region', {name:'Document comparison'});
+    await codex.click();
+    const comparison = attention.getByRole('region', {name:'Document comparison'});
     await comparison.locator('.compare-identities > div').last().getByText('Codex', {exact:true}).waitFor();
-    assert.match(await page.locator('[data-primary]').innerText(), /^Sync 3 copies from Codex$/);
+    const apply = attention.getByRole('button', {name:'Use Codex’s version everywhere', exact:true});
+    await apply.waitFor();
     assert.equal(await targets.locator('li').count(), 3);
     assert.doesNotMatch(await targets.innerText(), /Codex/);
-    await page.getByLabel('Compare target').selectOption('agents');
-    assert.match(await comparison.locator('.compare-identities > div').first().innerText(), /Shared skills folder/);
-    assert.match(await comparison.innerText(), /Supporting files haven’t been compared here/);
-    assert.match(await page.locator('[data-primary]').innerText(), /^Sync 3 copies from Codex$/);
+    const exactRead = url => url.pathname === '/api/skills/majority-minor' && url.searchParams.get('scope') === 'agents';
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    const delay = async route => { await pending; await route.continue(); };
+    await page.route(exactRead, delay);
+    try {
+      await attention.getByLabel('Compare target').selectOption('agents');
+      assert.match(await comparison.locator('.compare-identities > div').first().innerText(), /Shared skills folder/);
+      assert(await apply.isDisabled());
+      release();
+      await attention.locator('[data-primary]:enabled').waitFor();
+      await comparison.getByText(/Supporting files haven’t been compared here/).waitFor();
+    } finally {
+      release();
+      await page.unroute(exactRead, delay);
+    }
   });
-  await test('Inbox Sync stays clear of navigation after scrolling', async () => {
+  await test('Needs attention Fix stays clear of navigation after scrolling', async () => {
     try {
       for (const [width, block] of [[1280, 'start'], [390, 'end']]) {
         await page.setViewportSize({width, height:577});
-        await go('inbox');
-        await page.locator('.qi').filter({hasText:'majority-minor'}).click();
-        const visible = await page.locator('[data-primary]').evaluate((button, block) => {
+        await openAttention('majority-minor:codex:different');
+        await attention.getByRole('button', {name:/^The shared version/}).click();
+        const visible = await attention.getByRole('button', {name:'Use the shared version in Codex', exact:true}).evaluate((button, block) => {
           button.focus({preventScroll:true});
           button.scrollIntoView({block, behavior:'instant'});
           const rect = button.getBoundingClientRect();
@@ -741,71 +946,90 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
           return document.activeElement === button && button.contains(hit) &&
             rect.top >= header.bottom && rect.bottom <= (footer.height ? footer.top : innerHeight);
         }, block);
-        assert(visible, `Inbox Sync is obscured at ${width}px`);
+        assert(visible, `Needs attention Fix is obscured at ${width}px`);
       }
     } finally {
       await page.setViewportSize({width:1280, height:900});
     }
   });
-  await test('Delayed double click issues one sync and Undo restores bytes and queue',async()=>{
-    await go('inbox');
-    await page.locator('.qi').filter({hasText:'majority-minor'}).click();
-    const target=file('.codex','majority-minor'), before=fs.readFileSync(target);
+  await test('Needs attention runs one delayed Fix and Undo restores the exact folder and count (F7)', async () => {
+    const name = 'majority-minor', id = `${name}:codex:different`;
+    const target = file('.codex', name), before = fs.readFileSync(target);
     const companion = path.join(path.dirname(target), 'target-only.txt');
     fs.writeFileSync(companion, 'previous copy only');
-    let count=0, retained;
-    await page.route('**/api/sync',async route=>{
-      count++;
-      await new Promise(resolve=>setTimeout(resolve,400));
+    const operations = [];
+    const endpoint = '**/api/batch/execute';
+    const delay = async route => {
+      operations.push(route.request().postDataJSON().operation);
+      await new Promise(resolve => setTimeout(resolve, 400));
       await route.continue();
-    });
-    try{
-      const [response]=await Promise.all([
-        page.waitForResponse(r=>r.url()===base+'/api/sync', {timeout:15000}),
-        page.locator('[data-primary]').dblclick({delay:25}),
-      ]);
-      assert.equal(response.status(),200);
-      const {replaced_to_trash: moved} = await response.json();
-      assert.equal(fs.readFileSync(path.join(moved.codex, 'target-only.txt'), 'utf8'), 'previous copy only');
-      const scopeTrash = path.join(home, '.codex', 'trash');
-      assert.equal(path.dirname(moved.codex), scopeTrash);
-      retained = moved.codex;
-      await page.locator('.toast').filter({hasText:/Recovery/}).waitFor();
-      assert.notDeepEqual(fs.readFileSync(target),before);
-      await page.locator('.toast button').filter({hasText:'Undo'}).last().click();
-      await page.locator('.toast').filter({hasText:'Undone'}).waitFor();
-      assert.equal(count,1);
-      assert.deepEqual(fs.readFileSync(target),before);
-      assert.match(await page.locator('main').innerText(),/majority-minor/);
-      assert.match(await page.locator('.prog').innerText(),/^0 fixed/);
-    }finally{
-      await page.unrouteAll({behavior:'wait'});
+    };
+    await page.route(endpoint, delay);
+    try {
+      await openAttention(id);
+      const count = Number(await attentionNav.locator('.sm-nav__count').innerText());
+      await expectAttentionCount(count);
+      await attention.getByRole('button', {name:/^The shared version/}).click();
+      const apply = attention.getByRole('button', {name:'Use the shared version in Codex', exact:true});
+      await attention.locator('[data-primary]:enabled').waitFor();
+      const removed = page.waitForResponse(r => attentionWrites(r.request()) &&
+        r.request().postDataJSON().operation === 'remove');
+      await apply.evaluate(button => { button.click(); button.click(); });
+      const response = await removed;
+      assert(response.ok());
+      const removedCopy = (await response.json()).results[0];
+      const retained = removedCopy.trash_path;
+      assert.equal(path.dirname(retained), path.join(home, '.codex', 'trash'));
+      assert.equal(fs.readFileSync(path.join(retained, 'target-only.txt'), 'utf8'), 'previous copy only');
+      const undo = page.locator('.toast').getByRole('button', {name:'Undo', exact:true});
+      await undo.waitFor();
+      assert.deepEqual(operations, ['remove', 'sync']);
+      await expectAttentionCount(count - 1);
+      await attention.getByRole('heading', {name:'Fixed · 1', exact:true}).waitFor();
+      assert.deepEqual(fs.readFileSync(target), fs.readFileSync(file('.claude', name)));
+      await undo.click();
+      await page.locator('.toast').getByText(/^Undone/).waitFor();
+      assert.deepEqual(fs.readFileSync(target), before);
+      assert.equal(fs.readFileSync(companion, 'utf8'), 'previous copy only');
+      assert(!fs.existsSync(retained));
+      await expectAttentionCount(count);
+      await attentionItem(id).waitFor();
+      await attention.getByRole('heading', {name:/^Fixed ·/}).waitFor({state:'hidden'});
+    } finally {
+      await page.unroute(endpoint, delay);
+      fs.mkdirSync(path.dirname(target), {recursive:true});
+      fs.writeFileSync(target, before);
       fs.rmSync(companion, {force:true});
-      if (retained) fs.rmSync(retained, {recursive:true, force:true});
     }
   });
   await test('Stale file toggle reports error without resurrecting fixture',async()=>{await go('skill/same-everywhere');const f=file('.codex'),old=fs.readFileSync(f);fs.unlinkSync(f);try{await turnOffCodexFromReader();await page.waitForTimeout(600);assert(!fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));await page.locator('.jf-panel').getByRole('alert').waitFor();}finally{fs.writeFileSync(f,old);}});
   await test('Native setting evidence is partial and file switch Undo preserves files',async()=>{await go('skill/same-everywhere');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/partial/i);assert.match(t,/loading is unknown/i);assert.match(t,/Declared setting: off/);assert.match(t,/Declared setting: deny/);const f=file('.codex');await turnOffCodexFromReader();await page.waitForTimeout(500);assert(fs.existsSync(f+'.disabled'));await page.locator('.toast button').filter({hasText:'Undo'}).last().click();await page.waitForTimeout(600);assert(fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));});
   await test('Native invalid and unavailable settings render without exposing values',async()=>{let config=path.join(home,'.config/opencode/opencode.json'),saved=fs.readFileSync(config),claude=path.join(home,'.claude/settings.json'),oldClaude=fs.readFileSync(claude);fs.writeFileSync(config,'{"private":"fixture-secret",');fs.writeFileSync(claude,JSON.stringify({skillOverrides:{'majority-minor':'invalid-fixture-value'}}));try{await go('skill/majority-minor');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/invalid/);assert.match(t,/unavailable/);assert.doesNotMatch(t,/fixture-secret|invalid-fixture-value/);}finally{fs.writeFileSync(config,saved);fs.writeFileSync(claude,oldClaude);}});
   await test('Discard navigation, dialog focus trap and cancellation',async()=>{await go('skill/same-everywhere');await page.getByRole('button',{name:'Edit',exact:true}).click();assert(await page.locator('#ed-desc').evaluate(e=>e===document.activeElement));await page.locator('.ed-area').fill('Unsaved browser fixture');await page.locator('.tabs a').filter({hasText:'Skills'}).click();await page.locator('.dlg').waitFor();for(let i=0;i<10;i++){await page.keyboard.press('Tab');assert(await page.evaluate(()=>document.querySelector('.dlg').contains(document.activeElement)));}await page.getByRole('button',{name:'Keep editing'}).click();assert(await page.locator('.ed-area').isVisible());await page.locator('.tabs a').filter({hasText:'Skills'}).click();await page.getByRole('button',{name:'Discard changes'}).click();await page.waitForTimeout(300);assert(page.url().endsWith('#/skills'));});
-  await test('Global Recovery restores a trashed fixture', async () => {
+  await test('Trash & backups restores a library folder from the merged list', async () => {
+    const target = libraryFile('library-fixture'), original = fs.readFileSync(target);
     await go('skill/library-fixture');
     await page.getByRole('button', {name:'Move to Trash', exact:true}).click();
     assert.equal(await page.locator('.pick input:checked').count(), 1);
     await page.locator('.dlg-f .btn-danger').click();
     await page.waitForURL(url => url.hash === '#/skills');
-    const target = path.join(root, 'data/jackfield/skills/library-fixture/SKILL.md');
     assert(!fs.existsSync(target));
     await go('recovery');
-    const item = page.locator('[aria-labelledby="rec-trash"]').getByRole('listitem').filter({hasText:'library-fixture'});
-    assert.match(await item.innerText(), /last changed/);
-    await item.getByRole('button', {name:'Restore', exact:true}).click();
-    await item.waitFor({state:'hidden'});
-    assert(fs.existsSync(target));
+    assert.equal(new URL(page.url()).hash, '#/trash');
+    const restore = restoreButton('library-fixture', 'Your library');
+    await restore.click();
+    const review = page.getByRole('dialog', {name:'Restore library-fixture?', exact:true});
+    assert(!fs.existsSync(target));
+    await review.getByRole('button', {name:'Restore folder', exact:true}).click();
+    await restore.waitFor({state:'hidden'});
+    assert.deepEqual(fs.readFileSync(target), original);
+    const restored = trashList.getByRole('link', {name:'Show restored copy', exact:true});
+    await restored.waitFor();
+    assert.match(await restored.getAttribute('href'), /scope=global/);
   });
-  await test('Global Recovery restores the selected copy of a skill named purge', async () => {
+  await test('Trash & backups restores the exact library copy of a skill named purge', async () => {
     const trashed = [];
-    const installed = path.join(root, 'data', 'jackfield', 'skills', 'purge');
+    const installed = path.dirname(libraryFile('purge'));
     try {
       for (const [i, body] of ['Older content.', 'Newer content.'].entries()) {
         const created = await page.request.post(base+'/api/skills', {data:{name:'purge', description:'Recovery test fixture.', body}});
@@ -815,13 +1039,20 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         trashed.push((await removed.json()).trash_path);
         fs.utimesSync(trashed[i], 1700000000 + i * 60, 1700000000 + i * 60);
       }
-      await go('recovery');
-      const copies = page.locator('[aria-labelledby="rec-trash"]').getByRole('listitem')
-        .filter({has:page.getByText('purge', {exact:true})}).getByRole('button', {name:'Restore', exact:true});
-      assert.equal(await copies.count(), 2);
-      await copies.first().click();
-      await page.getByText('purge restored to your library.', {exact:true}).first().waitFor();
-      assert.match(fs.readFileSync(path.join(installed, 'SKILL.md'), 'utf8'), /Older content\./);
+      await go('trash');
+      await restoreButton('purge', 'Your library', 'copy 1 of 2').waitFor();
+      await restoreButton('purge', 'Your library', 'copy 2 of 2').click();
+      const review = page.getByRole('dialog', {name:'Restore purge?', exact:true});
+      const restoring = page.waitForResponse(r => {
+        const url = new URL(r.url());
+        return r.request().method() === 'POST' && url.pathname === '/api/trash/purge' && url.searchParams.get('scope') === 'global';
+      });
+      await review.getByRole('button', {name:'Restore folder', exact:true}).click();
+      const response = await restoring;
+      assert(response.ok());
+      assert.equal(response.request().postDataJSON().trash_path, trashed[0]);
+      await review.waitFor({state:'hidden'});
+      assert.match(fs.readFileSync(libraryFile('purge'), 'utf8'), /Older content\./);
       assert(!fs.existsSync(trashed[0]));
       assert(fs.existsSync(trashed[1]));
     } finally {
@@ -829,25 +1060,49 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     }
   });
   for (const [name,sourceDisabled,targetDisabled] of [['target-disabled',false,true],['source-disabled',true,false]]) {
-    await test(`Sync Undo restores ${name} bytes and disabled state`,async()=>{
-      await go('inbox');let focus=await page.locator('#focus-t').innerText();if(!focus.includes(name))await page.locator('.qi').filter({hasText:name}).click();
-      const target=file('.codex',name), prior=target+(targetDisabled?'.disabled':'');const source=file('.claude',name)+(sourceDisabled?'.disabled':'');const old=fs.readFileSync(prior),sourceBytes=fs.readFileSync(source);
-      await page.locator('.srcpick label').filter({hasText:'Claude Code'}).locator('input').check();await page.locator('[data-primary]').click();await page.waitForTimeout(700);
-      const current=fs.existsSync(target)?target:target+'.disabled';assert.deepEqual(fs.readFileSync(current),sourceBytes);await page.locator('.toast button').filter({hasText:'Undo'}).last().click();await page.waitForTimeout(900);
-      assert(fs.existsSync(prior));assert(!fs.existsSync(target+(targetDisabled?'':'.disabled')));assert.deepEqual(fs.readFileSync(prior),old);
+    await test(`Needs attention Undo restores ${name} bytes and disabled state`, async () => {
+      const target = file('.codex', name), prior = target + (targetDisabled ? '.disabled' : '');
+      const installed = target + (sourceDisabled ? '.disabled' : '');
+      const source = file('.claude', name) + (sourceDisabled ? '.disabled' : '');
+      const old = fs.readFileSync(prior), sourceBytes = fs.readFileSync(source);
+      try {
+        await openAttention(name + ':split');
+        await attention.getByRole('button', {name:/^Version [12]$/}).filter({hasText:'claude original text'}).click();
+        await attention.locator('[data-primary]:enabled').click();
+        const undo = page.locator('.toast').getByRole('button', {name:'Undo', exact:true});
+        await undo.waitFor();
+        assert.deepEqual(fs.readFileSync(installed), sourceBytes);
+        assert(!fs.existsSync(prior), 'fix should install the chosen copy’s disabled state');
+        await undo.click();
+        await page.locator('.toast').getByText(/^Undone/).waitFor();
+        assert(!fs.existsSync(installed));
+        assert.deepEqual(fs.readFileSync(prior), old);
+      } finally {
+        fs.rmSync(installed, {force:true});
+        fs.mkdirSync(path.dirname(prior), {recursive:true});
+        fs.writeFileSync(prior, old);
+      }
     });
   }
-  await test('Malformed text Inbox repair and Undo reappear',async()=>{
-    await go('inbox');
-    if (!(await page.locator('#focus-t').innerText()).includes('damaged-fm')) await page.locator('.qi').filter({hasText:'damaged-fm'}).click();
-    const f=file('.codex','damaged-fm'), before=fs.readFileSync(f);
-    await page.locator('[data-primary]').click();
-    await page.getByRole('button',{name:'Undo',exact:true}).last().waitFor();
-    assert.notDeepEqual(fs.readFileSync(f),before);
-    await page.getByRole('button',{name:'Undo',exact:true}).last().click();
-    await page.waitForFunction(()=>document.querySelector('#focus-t')?.textContent.includes('damaged-fm') || [...document.querySelectorAll('.qi')].some(e=>e.textContent.includes('damaged-fm')));
-    assert.deepEqual(fs.readFileSync(f),before);
-    assert.match(await page.locator('.prog').innerText(),/^0 fixed/);
+  await test('Needs attention repairs malformed text and Undo brings its problem back', async () => {
+    const name = 'damaged-fm', id = `${name}:codex:unreadable`;
+    const target = file('.codex', name), before = fs.readFileSync(target);
+    try {
+      await openAttention(id);
+      await attention.getByRole('button', {name:'Replace with the readable copy', exact:true}).click();
+      const undo = page.locator('.toast').getByRole('button', {name:'Undo', exact:true});
+      await undo.waitFor();
+      await attention.getByRole('region', {name:'Fixed · 1', exact:true}).locator('[data-attention-id]').waitFor();
+      assert.deepEqual(fs.readFileSync(target), fs.readFileSync(file('.claude', name)));
+      await undo.click();
+      await page.locator('.toast').getByText(/^Undone/).waitFor();
+      await attentionItem(id).waitFor();
+      assert.deepEqual(fs.readFileSync(target), before);
+      await attention.getByRole('heading', {name:/^Fixed ·/}).waitFor({state:'hidden'});
+    } finally {
+      fs.mkdirSync(path.dirname(target), {recursive:true});
+      fs.writeFileSync(target, before);
+    }
   });
   await test('Create, editor focus, safe Markdown, save and Undo',async()=>{
     await go('skills');
@@ -985,9 +1240,11 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.locator('.toast').getByText('Undone',{exact:true}).waitFor();
     assert(!fs.existsSync(f));
   });
-  await test('Backup conflict explains retry and leaves the full download available',async()=>{
-    await go('recovery');
-    const backup=page.getByRole('region',{name:'Backup',exact:true});
+  await test('Trash & backups records a download only after successful handoff', async () => {
+    await go('trash');
+    const backup = trashScreen.locator('section[aria-labelledby="rec-backup"]');
+    const lastDownload = backup.getByText(/^Last download started/);
+    assert.equal(await lastDownload.count(), 0);
     const full=backup.getByRole('button',{name:'Download full archive'});
     const pattern=/\/api\/export\?full=1$/;
     let release, downloads=0;
@@ -1002,45 +1259,127 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await full.click();
       await backup.getByRole('status').getByText('Preparing backup…').waitFor();
       assert(await full.isDisabled());
-      assert(await backup.getByRole('button',{name:'Download a backup'}).isDisabled());
+      assert(await backup.getByRole('button',{name:'Download backup', exact:true}).isDisabled());
       release();
       const alert=backup.getByRole('alert');
       await alert.waitFor();
       assert.match(await alert.innerText(),/Wait for changes to finish/);
       assert.doesNotMatch(await alert.innerText(),/private|HTTP 409/);
       assert.equal(downloads,0);
+      assert.equal(await lastDownload.count(), 0);
       await page.unroute(pattern);
       const success=page.waitForEvent('download');
       await full.click();
       assert.equal((await success).suggestedFilename(),'full-export.tar.gz');
       await alert.waitFor({state:'detached'});
+      await lastDownload.waitFor();
+      const date = await lastDownload.innerText();
+      await page.reload();
+      await lastDownload.waitFor();
+      assert.equal(await lastDownload.innerText(), date);
     } finally {
       release();
       await page.unroute(pattern);
       page.off('download',countDownload);
     }
   });
-  await test('Backup download/import and invalid archive error',async()=>{
-    await go('recovery');
-    const download=page.waitForEvent('download');
-    await page.getByRole('button',{name:'Download a backup',exact:true}).click();
-    const saved=path.join(root,'fixture-backup.tar.gz');await (await download).saveAs(saved);
-    assert(fs.statSync(saved).size>0);
-    await page.locator('#imp-file').setInputFiles(saved);
-    await page.getByRole('button',{name:'Load skills',exact:true}).click();
-    const outcome=page.locator('.import-outcome');
-    await outcome.getByRole('status').waitFor();
-    assert.match(await outcome.innerText(),/0 skills imported\. \d+ skipped\./);
-    await outcome.getByText('Skipped entries',{exact:true}).click();
-    assert((await outcome.getByRole('listitem').count())>0);
-    const bad=path.join(root,'bad-archive.tar.gz');fs.writeFileSync(bad,'not an archive');
-    // The first import's refresh still holds the (disabled) picker for a moment; a person can't pick then either.
-    await page.waitForFunction(()=>!document.getElementById('imp-file').disabled);
-    await page.locator('#imp-file').setInputFiles(bad);
-    await page.getByRole('button',{name:'Load skills',exact:true}).click();
-    await outcome.waitFor();
-    const text=await outcome.innerText();
-    assert.match(text,/not a backup archive/);assert.doesNotMatch(text,/ReadError|Traceback|[/]tmp[/]/);
+  await test('Trash & backups previews an archive before loading and explains invalid archives', async () => {
+    const name = 'phase-four-archive-load';
+    const installed = libraryFile(name);
+    const companion = path.join(path.dirname(installed), 'notes.txt');
+    const companionBytes = Buffer.from('Archived supporting file.\r\n');
+    const collision = libraryFile('library-fixture');
+    const collisionBefore = fs.readFileSync(collision);
+    const seeded = await page.request.post(base + '/api/skills', {
+      data:{name, description:'Private archive review fixture.', body:'# A skill to restore\n'},
+    });
+    assert.equal(seeded.status(), 201);
+    const original = fs.readFileSync(installed);
+    fs.writeFileSync(companion, companionBytes);
+    await go('trash');
+    const download = page.waitForEvent('download');
+    await trashScreen.getByRole('button', {name:'Download backup', exact:true}).click();
+    const saved = path.join(root, 'fixture-backup.tar.gz');
+    await (await download).saveAs(saved);
+    assert(fs.statSync(saved).size > 0);
+    const removed = await page.request.delete(base + '/api/skills/' + name + '?scope=global');
+    assert(removed.ok());
+
+    const section = trashScreen.locator('section[aria-labelledby="rec-backup"]');
+    const input = section.locator('#imp-file');
+    const preview = section.getByRole('button', {name:'Preview backup', exact:true});
+    const load = section.getByRole('button', {name:'Load backup', exact:true});
+    const isImport = req => req.method() === 'PUT' && new URL(req.url()).pathname === '/api/import';
+    const requests = [];
+    const observe = req => { if (isImport(req)) requests.push(new URL(req.url()).searchParams); };
+    page.on('request', observe);
+    try {
+      await input.setInputFiles(saved);
+      await preview.click();
+      await load.waitFor();
+      const plan = section.getByRole('region', {name:'Backup preview', exact:true});
+      const add = plan.getByRole('listitem').filter({has:page.getByText(name, {exact:true})});
+      const skip = plan.getByRole('listitem').filter({has:page.getByText('library-fixture', {exact:true})});
+      assert.match(await add.innerText(), /Add.*library/i);
+      assert.match(await skip.innerText(), /Skip.*library/i);
+      await skip.getByText('already exists', {exact:true}).waitFor();
+      assert(await plan.getByRole('heading').evaluate(heading => heading === document.activeElement));
+      assert.deepEqual(requests.map(q => q.get('preview')), ['1']);
+      assert(!fs.existsSync(installed));
+      assert.deepEqual(fs.readFileSync(collision), collisionBefore);
+
+      await section.getByRole('button', {name:'Cancel preview', exact:true}).click();
+      await load.waitFor({state:'hidden'});
+      assert(await preview.evaluate(button => button === document.activeElement));
+      assert.equal(requests.length, 1);
+      assert(!fs.existsSync(installed));
+      await input.setInputFiles(saved);
+      await preview.click();
+      await load.waitFor();
+      const commitResponse = () => page.waitForResponse(response => isImport(response.request()) &&
+        !!new URL(response.url()).searchParams.get('plan_id'));
+      const external = Buffer.concat([original, Buffer.from('\nCreated outside Jackfield after preview.\n')]);
+      fs.mkdirSync(path.dirname(installed));
+      fs.writeFileSync(installed, external);
+      try {
+        const stale = commitResponse();
+        await load.click();
+        assert(!(await stale).ok());
+        await section.getByRole('alert').filter({hasText:/preview is stale|preview.*again/i}).waitFor();
+        assert.deepEqual(fs.readFileSync(installed), external);
+        assert(!fs.existsSync(companion));
+        assert.deepEqual(fs.readFileSync(collision), collisionBefore);
+      } finally {
+        fs.unlinkSync(installed);
+        fs.rmdirSync(path.dirname(installed));
+      }
+
+      await input.setInputFiles(saved);
+      await preview.click();
+      await load.waitFor();
+      const committed = commitResponse();
+      await load.click();
+      assert((await committed).ok());
+      assert.deepEqual(requests.map(q => q.get('preview')), ['1', '1', null, '1', null]);
+      assert(requests[2].get('plan_id'));
+      assert(requests[4].get('plan_id'));
+      assert.deepEqual(fs.readFileSync(installed), original);
+      assert.deepEqual(fs.readFileSync(companion), companionBytes);
+      assert.deepEqual(fs.readFileSync(collision), collisionBefore);
+      await section.getByText(/1 skill imported/).waitFor();
+      await section.getByText('Skipped entries', {exact:true}).click();
+      await section.getByText('library-fixture', {exact:true}).waitFor();
+
+      const bad = path.join(root, 'bad-archive.tar.gz');
+      fs.writeFileSync(bad, 'not an archive');
+      await page.waitForFunction(() => !document.getElementById('imp-file').disabled);
+      await input.setInputFiles(bad);
+      await preview.click();
+      const error = await section.getByRole('alert').innerText();
+      assert.match(error, /not a backup archive/);
+      assert.doesNotMatch(error, /ReadError|Traceback|[/]tmp[/]/);
+      assert(!(await load.isVisible()));
+    } finally { page.off('request', observe); }
     await page.route('**/api/scopes',route=>route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({error:'Traceback /home/private/secret PermissionError'})}));
     try{await go('home');assert.doesNotMatch(await page.locator('main').innerText(),/Traceback|PermissionError|[/]home[/]private/);}finally{await page.unrouteAll({behavior:'wait'});}
   });
@@ -1287,7 +1626,25 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       for (const filename of additions) fs.rmSync(path.dirname(filename), {recursive:true, force:true});
     }
   });
-  await test('Responsive layouts in both themes',async()=>{for(const [label,w,h] of [['desktop',1280,900],['phone',390,844]])for(const t of ['light','dark']){await page.setViewportSize({width:w,height:h});await go('home');await theme(t);for(const r of ['home','skills','skill/same-everywhere','map','inbox','recovery']){await go(r);assert.equal(await page.locator('html').getAttribute('data-theme'),t);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1),false,`${label} ${t} ${r}`);await page.screenshot({path:path.join(root,`${label}-${t}-${r.replace('/','-')}.png`)});}}});
+  await test('Responsive layouts in both themes', async () => {
+    const viewport = page.viewportSize();
+    try {
+      for (const [label, width, height] of [['desktop', 1280, 900], ['phone', 390, 844]]) {
+        for (const mode of ['light', 'dark']) {
+          await page.setViewportSize({width, height});
+          await go('home');
+          await theme(mode);
+          for (const route of ['home', 'skills', 'skill/same-everywhere', 'map', 'attention', 'trash']) {
+            await go(route);
+            assert.equal(await page.locator('html').getAttribute('data-theme'), mode);
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1),
+              false, `${label} ${mode} ${route}`);
+            await page.screenshot({path:path.join(root, `${label}-${mode}-${route.replace('/', '-')}.png`)});
+          }
+        }
+      }
+    } finally { await page.setViewportSize(viewport); }
+  });
   await test('Phone dark Sync map sampled text contrast',async()=>{
     await page.setViewportSize({width:390,height:844});await go('map');await theme('dark');
     const samples=await page.locator('.map-table .map-state').evaluateAll(rows=>rows.map(row=>{
@@ -1332,7 +1689,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       const sample=await page.evaluate(()=>({dpr:devicePixelRatio,width:innerWidth,client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
       assert(Math.abs(sample.dpr/baseline-percent/100)<0.05,JSON.stringify({percent,baseline,...sample}));
       assert(sample.scroll<=sample.client+1,JSON.stringify(sample));samples.push({percent,...sample});
-      for(const route of ['home','skills','skill/same-everywhere','map','inbox','recovery']){
+      for(const route of ['home','skills','skill/same-everywhere','map','attention','trash']){
         await go(route);
         await page.screenshot({path:path.join(root,`browser-zoom-${percent}-${route.replace('/','-')}.png`)});
         const overflow=await page.evaluate(()=>[...document.querySelectorAll('main *')].filter(e=>{const b=e.getBoundingClientRect();return b.width>0 && b.right>document.documentElement.clientWidth+1;}).map(e=>({tag:e.tagName,cls:e.className,text:e.innerText?.slice(0,80),width:e.getBoundingClientRect().width,right:e.getBoundingClientRect().right})));
@@ -1436,12 +1793,15 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     assert.match(fs.readFileSync(path.join(target,'SKILL.md'),'utf8'),/Updated by the owner UI/);
     assert.match(fs.readFileSync(path.join(link,'SKILL.md'),'utf8'),/Updated by the owner UI/);
   });
-  await test('Agent trash offers Undo and identifies the exact previous copy',async()=>{
+  await test('Trash & backups restores an exact agent folder and preserves both on conflict', async () => {
     const name='browser-agent-trash';
     const created=await page.request.post(base+'/api/skills?scope=agents',{data:{name,description:'Agent trash browser fixture.',body:'# Trash fixture\n'}});
     assert(created.ok(),await created.text());
     const filePath=path.join(home,'.agents','skills',name,'SKILL.md');
     const original=fs.readFileSync(filePath);
+    const companion = path.join(path.dirname(filePath), 'notes.txt');
+    const originalNotes = Buffer.from('The first revision has its own notes.\r\n');
+    fs.writeFileSync(companion, originalNotes);
     await go('skill/'+name);
     await page.getByRole('button',{name:'Move to Trash',exact:true}).click();
     await page.locator('.dlg-f .btn-danger').click();
@@ -1451,6 +1811,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.waitForTimeout(500);
     assert(fs.existsSync(filePath));
     assert.deepEqual(fs.readFileSync(filePath),original);
+    assert.deepEqual(fs.readFileSync(companion), originalNotes);
 
     await go('skill/'+name);
     await page.getByRole('button',{name:'Move to Trash',exact:true}).click();
@@ -1464,31 +1825,32 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.locator('.dlg-f .btn-danger').click();
     await page.waitForTimeout(500);
     assert(!fs.existsSync(filePath));
-    await go('recovery');
-    const agentTrash=page.locator('section[aria-labelledby="rec-agent-trash"]');
-    const reviewLabel=`Review restore for ${name} in Shared skills folder`;
-    const older=agentTrash.getByRole('button',{name:reviewLabel+', copy 2 of 2',exact:true});
+    await go('trash');
+    const older = restoreButton(name, 'Shared skills folder', 'copy 2 of 2');
     await older.waitFor();
-    assert.equal(await agentTrash.getByRole('button',{name:reviewLabel+', copy 1 of 2',exact:true}).count(),1);
+    assert.equal(await restoreButton(name, 'Shared skills folder', 'copy 1 of 2').count(), 1);
     await older.focus();
     await page.keyboard.press('Enter');
     const review=page.getByRole('dialog',{name:`Restore ${name}?`});
     assert.match(await review.innerText(), /supporting files[\s\S]*copy 2 of 2/);
-    const savedFolder=await review.locator('code').innerText();
     const entries=await (await page.request.get(base+'/api/trash?scope=agents')).json();
-    assert.equal(savedFolder,entries.filter(row=>row.name===name)[1].trash_path);
+    const [newer, olderEntry] = entries.filter(row => row.name === name);
+    const savedFolder = olderEntry.trash_path;
+    assert.deepEqual(fs.readFileSync(path.join(savedFolder, 'notes.txt')), originalNotes);
     assert(!fs.existsSync(filePath));
     await page.keyboard.press('Escape');
     assert(await older.evaluate(b=>b===document.activeElement));
     await older.click();
     fs.mkdirSync(path.dirname(filePath));
-    fs.writeFileSync(filePath, original);
+    const occupied = Buffer.from('---\nname: browser-agent-trash\ndescription: Occupied browser fixture.\n---\n# Live copy\n');
+    fs.writeFileSync(filePath, occupied);
     try {
       await review.getByRole('button',{name:'Restore folder',exact:true}).click();
       assert.match(await review.getByRole('alert').innerText(), /already exists/);
-      assert.equal(await review.locator('code').innerText(), savedFolder);
-      assert.deepEqual(fs.readFileSync(filePath), original);
-      assert(fs.existsSync(savedFolder));
+      assert.deepEqual(fs.readFileSync(filePath), occupied);
+      assert.deepEqual(fs.readFileSync(path.join(savedFolder, 'SKILL.md')), original);
+      assert.deepEqual(fs.readFileSync(path.join(savedFolder, 'notes.txt')), originalNotes);
+      assert(fs.existsSync(newer.trash_path));
     } finally {
       fs.unlinkSync(filePath);
       fs.rmdirSync(path.dirname(filePath));
@@ -1498,24 +1860,30 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const response=await restore;
     assert(response.ok());
     assert.equal(response.request().postDataJSON().trash_path,savedFolder);
-    await page.waitForTimeout(300);
-    assert(fs.existsSync(filePath));
+    await review.waitFor({state:'hidden'});
     assert.deepEqual(fs.readFileSync(filePath),original);
-    await agentTrash.getByRole('button',{name:reviewLabel,exact:true}).waitFor();
+    assert.deepEqual(fs.readFileSync(companion), originalNotes);
+    assert(!fs.existsSync(savedFolder));
+    assert(fs.existsSync(newer.trash_path));
+    await restoreButton(name, 'Shared skills folder').waitFor();
+    const restored = trashList.getByRole('link', {name:'Show restored copy', exact:true});
+    await restored.waitFor();
+    const route = new URLSearchParams((await restored.getAttribute('href')).split('?')[1]);
+    assert.equal(route.get('scope'), 'agents');
+    assert.equal(route.get('copy'), path.dirname(filePath));
   });
-  await test('Recovery labels an unreadable agent scope and retries its listing', async () => {
+  await test('Trash & backups labels an unreadable agent scope and retries its listing', async () => {
     const matches = url => url.pathname==='/api/trash' && url.searchParams.get('scope')==='codex';
     const fail = route => route.fulfill({status:503, contentType:'application/json', body:'{"error":"Fixture trash unavailable"}'});
     await page.route(matches, fail);
-    const section = page.locator('section[aria-labelledby="rec-agent-trash"]');
     try {
-      await go('recovery');
-      assert.match(await section.getByRole('alert').innerText(), /Codex.*Fixture trash unavailable/);
+      await go('trash');
+      assert.match(await trashList.getByRole('alert').innerText(), /Codex.*Fixture trash unavailable/);
     } finally { await page.unroute(matches, fail); }
-    await section.getByRole('button',{name:'Retry agent trash'}).focus();
+    await trashList.getByRole('button', {name:'Retry trash', exact:true}).focus();
     await page.keyboard.press('Enter');
-    await section.getByRole('alert').waitFor({state:'hidden'});
-    assert.equal(await page.evaluate(()=>document.activeElement.id),'rec-agent-trash');
+    await trashList.getByRole('alert').waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'rec-trash');
   });
   await test('V2 tool read failure stays visible and a retry recovers',async()=>{
     await page.route('**/api/catalog',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Fixture catalog unavailable'})}));
@@ -1575,29 +1943,24 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await search.fill('');
     assert(await links.count()>10);
   });
-  await test('Recovery and Quality jumps focus headings without changing the route',async()=>{
+  await test('Quality jumps focus headings without changing the route', async () => {
     await page.setViewportSize({width:320,height:780});
-    for(const [route,targets] of [
-      ['recovery',[['Load backup','rec-import'],['History','rec-history']]],
-      ['tools/quality',[['Findings','tp-findings'],['Diagnostics','tp-diagnostics']]],
-    ]){
-      await go(route);
-      const url=page.url();
-      const jumps=page.getByRole('group',{name:'On this page'});
-      for(const [label,id] of targets){
-        await jumps.getByRole('button',{name:label,exact:true}).press('Enter');
-        assert.equal(page.url(),url);
-        assert(await page.locator('#'+id).evaluate(heading=>{
-          const top=heading.getBoundingClientRect().top;
-          return heading===document.activeElement && top>=document.querySelector('.top').getBoundingClientRect().bottom && top<innerHeight/2;
-        }),id);
-      }
+    await go('tools/quality');
+    const url = page.url();
+    const jumps = page.getByRole('group', {name:'On this page'});
+    for (const [label, id] of [['Findings', 'tp-findings'], ['Diagnostics', 'tp-diagnostics']]) {
+      await jumps.getByRole('button', {name:label, exact:true}).press('Enter');
+      assert.equal(page.url(), url);
+      assert(await page.locator('#' + id).evaluate(heading => {
+        const top = heading.getBoundingClientRect().top;
+        return heading === document.activeElement && top >= document.querySelector('.top').getBoundingClientRect().bottom && top < innerHeight / 2;
+      }), id);
     }
   });
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
     for(const width of [320,768,1280])for(const mode of ['light','dark']){
       await page.setViewportSize({width,height:900});await go('tools/settings');await page.getByLabel('Theme',{exact:true}).selectOption(mode);
-      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','tools/ai-settings','skills','recovery','settings/tracking','settings/tracking/add-agent']){
+      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','tools/ai-settings','skills','trash','settings/tracking','settings/tracking/add-agent']){
         await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`${route} ${width} ${mode}`);
         if (route.startsWith('tools/')) {
           const nav = page.getByRole('navigation',{name:'Tools navigation'});
@@ -1675,6 +2038,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await attention.click();
     await page.waitForURL(url => url.hash === '#/attention');
     assert.equal(await attention.getAttribute('aria-label'), label);
+    await expectAttentionCount(Number(label.match(/\d+/)[0]));
   });
   await test('Review fixes: tablet sheet, split comparison and tracking confirmation', async () => {
     await page.setViewportSize({width:768, height:900});
@@ -1998,6 +2362,51 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       });
     }, cases);
     assert.deepEqual(failures, []);
+  });
+  await test('Trash & backups empties only library trash after confirmation', async () => {
+    const name = 'phase-four-empty-trash';
+    const trashed = [];
+    for (const scope of ['global', 'codex']) {
+      const created = await page.request.post(base + '/api/skills?scope=' + scope, {
+        data:{name, description:'Private purge fixture.', body:`# ${scope} only\n`},
+      });
+      assert.equal(created.status(), 201);
+      const removed = await page.request.delete(`${base}/api/skills/${name}?scope=${scope}`);
+      assert(removed.ok());
+      trashed.push((await removed.json()).trash_path);
+    }
+    const [library, agent] = trashed;
+    const original = fs.readFileSync(path.join(agent, 'SKILL.md'));
+    const purgeRequest = request => request.method() === 'POST' && request.url() === base + '/api/trash/purge';
+    let purges = 0;
+    const observe = request => { if (purgeRequest(request)) purges++; };
+    page.on('request', observe);
+    try {
+      await go('trash');
+      const libraryRestore = restoreButton(name, 'Your library');
+      const agentRestore = restoreButton(name, 'Codex');
+      await libraryRestore.waitFor();
+      await agentRestore.waitFor();
+      const empty = trashList.getByRole('button', {name:'Empty library trash…', exact:true});
+      await empty.click();
+      const confirm = page.getByRole('dialog', {name:/Empty.*library trash/i});
+      assert.match(await confirm.innerText(), /permanent|cannot be undone/i);
+      await confirm.getByRole('button', {name:'Cancel', exact:true}).click();
+      await confirm.waitFor({state:'hidden'});
+      assert.equal(purges, 0);
+      assert(fs.existsSync(library));
+      assert(fs.existsSync(agent));
+      await empty.click();
+      const purge = page.waitForResponse(response => purgeRequest(response.request()));
+      await confirm.getByRole('button', {name:'Delete permanently', exact:true}).click();
+      assert((await purge).ok());
+      await libraryRestore.waitFor({state:'hidden'});
+      await agentRestore.waitFor();
+      assert.equal(purges, 1);
+      assert(!fs.existsSync(library));
+      assert.deepEqual(fs.readFileSync(path.join(agent, 'SKILL.md')), original);
+      assert.equal(await page.locator('.toast').getByRole('button', {name:'Undo', exact:true}).count(), 0);
+    } finally { page.off('request', observe); }
   });
   await test('No uncaught page errors',async()=>assert.deepEqual(exceptions,[]));
   record('Coverage limit','NOTE','Actual browser zoom is checked only in headed Chrome. Screen-reader and perceptual review require a person.');
