@@ -20,6 +20,10 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Refresh `project-status.md` and `project-status.html` against the approved
   design sources and build spec (2026-11-27). The latest board points to
   Phase 3, starting with the Skill page.
+- [ ] Fix the review findings in @docs/62-redesign-review-2026-11-28.md
+  (fix-now list first: chevron override, first launch, classic-view links,
+  Doctor pill, Why opening, state carried over between routes). Maintainer review of S9 is
+  still pending.
 - [ ] Remaining open questions Q6–Q7, Q9–Q11 in
   @docs/redesign-build/09-open-questions-and-risks.md.
 - [x] Phase 0 implementation and local checks · Foundations: tokens pipeline, `system.css`, fonts + OFL, logo,

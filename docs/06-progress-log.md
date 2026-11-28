@@ -7,6 +7,24 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Redesign review at Phase 5
+
+**[NOTE]** Five parallel read-only reviews covered design fidelity, UX,
+frontend code, backend data safety, and process and docs. They checked the
+build at `3c67c42`. Findings are in @docs/62-redesign-review-2026-11-28.md.
+The fix-now items are:
+
+- the 6 px disclosure chevron caused by the classic `styles.css` override;
+- the first-launch screen not matching A16;
+- links into classic views (Exact instances, Agents overview, Sync map);
+- Doctor's index pill contradicting its own findings;
+- Why isn't it running? opening on a non-problem;
+- state carrying over between routes.
+
+The backend found no data-loss path and no locked-constraint change. On
+Python 3.12 the suite ran 2,557 tests, OK, 13 skipped. Python 3.11, 3.13 and
+3.14 and the Chromium e2e were not re-run.
+
 ## 2026-11-28 — Paper Advanced directory
 
 **[NOTE]** The maintainer approved Q2. Advanced groups existing tools by

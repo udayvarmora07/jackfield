@@ -8,6 +8,7 @@
 
 | Doc | Covers | Load when |
 |---|---|---|
+| @docs/62-redesign-review-2026-11-28.md | In-depth review of the Paper build at Phase 5: design fidelity, UX, frontend, backend data safety, process; ranked fix-now and before-launch findings | Before Phase 5–8 fix work or the acceptance `/ux-review` |
 | @docs/61-redesign-build-spec-2026-11-27.md | Build spec for the approved redesign (design system v13, one Skills table, four places): sources, tokens, components, architecture, screens, API mapping, phases 0–8, tests, open questions (detail in `docs/redesign-build/`) | Before any redesign build work in `skillsmgr/webui/` |
 | [V2 parity design and migration](superpowers/specs/2026-11-06-v2-feature-parity-design.md) | Source inventory, visual contract, research and linked implementation/acceptance plan | Understanding the completed v2 migration and default switch |
 | @docs/38-worktree-cleanup-2026-11-09.md | Audited merged-only branch/worktree cleanup, preservation decisions and recovery records | Before deleting remaining branches or recovering archived checkouts |

@@ -31,13 +31,13 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 
 ## Last check
 
-2026-11-28 · Step 8, Build in progress. Phase 2 landed at `78cfedd` and all
-17 CI jobs passed for that commit. The four-artifact review corrections
-are included with the Phase 3 work to date.
-
-Phase 3 landed at `614bc4b` and passed all 17 GitHub CI jobs.
-Phase 4 landed at `382364b` and passed all 17 GitHub CI jobs. The Advanced
-directory passed local verification and is ready for the Phase 5 screen review.
-[Build progress](build-progress.md)
-[Build plan](docs/redesign-build/07-build-plan.md#phase-5--advanced-settings-what-to-track) ·
+2026-11-28 · Step 8, Build in progress. Phases 0–4 landed and passed hosted
+CI. Phase 5 has landed the Advanced directory and Doctor at `3c67c42`, which
+still awaits the maintainer's S9 review. Settings (S11), the tool page (S10)
+and What to track (S14–S19) are not built yet. An in-depth review of the
+build is recorded in
+[the redesign review](docs/62-redesign-review-2026-11-28.md).
+Recommended next step: fix the review's fix-now findings, then review S9 and
+continue Phase 5 with `/build`.
+[Build progress](build-progress.md) ·
 [Status board](project-status.html)
