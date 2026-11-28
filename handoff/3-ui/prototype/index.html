@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prototype start</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{--bg:#F6F6F3;--surface:#FFFFFF;--line:#ECECE9;--ink:#191917;--ink-2:#3B3B37;--mute:#666660;--accent:#2D58D0;--warn:#8A4700}
+@media (prefers-color-scheme:dark){:root{--bg:#121211;--surface:#1A1A19;--line:#2C2C2A;--ink:#EDEDEA;--ink-2:#CFCFCA;--mute:#B0B0A9;--accent:#8CAEFF;--warn:#F2B866}}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 "IBM Plex Sans",system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:40px 16px 80px}
+h1{font-size:30px;line-height:1.12;font-weight:600;letter-spacing:-.02em;margin:0 0 8px}
+h2{font-size:17px;font-weight:600;margin:32px 0 8px}
+p,li{color:var(--ink-2)}
+a{color:var(--accent);text-underline-offset:3px}
+ol{padding-left:22px}
+li{margin:4px 0}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th,td{text-align:left;padding:9px 12px;border-top:1px solid var(--line)}
+th{font-size:12px;font-weight:600;color:var(--mute);border-top:0}
+</style>
+</head>
+<body>
+<main>
+<p><a href="../../index.html">← Back to the overview</a></p>
+<h1>Clickable prototype</h1>
+<p>The 14 approved screens, exactly as they were approved on the canvas, linked along the main flows. It works offline: open any file straight from this folder. The moon button on desktop screens switches light and dark.</p>
+
+<div class="note">
+<strong>What is real here:</strong> links between pages, the theme switch, and a few in-place states. Buttons that act in place (Turn off, Save, Fix) show their Undo state, or do nothing. They don't go anywhere, because in the product they don't either. The search palette (screen 13) has no link into it: open it from the list below.
+</div>
+
+<h2>Flows to try</h2>
+<ol>
+<li><strong>Turn a skill off for one agent (the success task).</strong> <a href="A01-Skills.dc.html">Skills table</a>: the side panel shows code-review in Codex. Choose “Turn off in Codex”, then try “Why isn't it running?”.</li>
+<li><strong>Read, then edit a skill.</strong> Skills table → side panel “Open skill” → <a href="A04-Skill-Page.dc.html">Skill page</a> → Edit → <a href="A05-Editor.dc.html">Editor</a> (look at the Save-to card).</li>
+<li><strong>Create a skill.</strong> Skills table → New skill → <a href="A06-New-Skill.dc.html">New skill</a> with its live preview.</li>
+<li><strong>Fix what needs attention.</strong> Skills table banner → “Fix one by one” → <a href="A08-Needs-Attention.dc.html">Needs attention</a> → Open skill.</li>
+<li><strong>Advanced and settings.</strong> <a href="A10-Advanced.dc.html">Advanced</a> → Shorten → <a href="A11-Tool-Page.dc.html">tool page</a> → AI settings → <a href="A12-Settings.dc.html">Settings</a>.</li>
+<li><strong>Recover.</strong> Top bar → <a href="A09-Trash-Backups.dc.html">Trash &amp; backups</a>.</li>
+</ol>
+
+<h2>Every screen</h2>
+<table>
+<thead><tr><th>#</th><th>Screen</th><th>Light</th><th>Dark</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>S1 Skills table + S2 side panel (hero)</td><td><a href="A01-Skills.dc.html">A01</a></td><td><a href="D01-Skills.dc.html">D01</a></td></tr>
+<tr><td>2</td><td>Skills table on a phone (390px). Best viewed in a narrow window</td><td><a href="A02-Skills-Phone.dc.html">A02</a></td><td><a href="D02-Skills-Phone.dc.html">D02</a></td></tr>
+<tr><td>3</td><td>Skills table states: first launch, loading, no agents, changed on disk</td><td><a href="A03-Skills-States.dc.html">A03</a></td><td><a href="D03-Skills-States.dc.html">D03</a></td></tr>
+<tr><td>4</td><td>S3 Skill page</td><td><a href="A04-Skill-Page.dc.html">A04</a></td><td><a href="D04-Skill-Page.dc.html">D04</a></td></tr>
+<tr><td>5</td><td>S4 Editor</td><td><a href="A05-Editor.dc.html">A05</a></td><td><a href="D05-Editor.dc.html">D05</a></td></tr>
+<tr><td>6</td><td>S5 New skill</td><td><a href="A06-New-Skill.dc.html">A06</a></td><td><a href="D06-New-Skill.dc.html">D06</a></td></tr>
+<tr><td>7</td><td>S6 Why isn't it running?</td><td><a href="A07-Why-Not-Running.dc.html">A07</a></td><td><a href="D07-Why-Not-Running.dc.html">D07</a></td></tr>
+<tr><td>8</td><td>S7 Needs attention</td><td><a href="A08-Needs-Attention.dc.html">A08</a></td><td><a href="D08-Needs-Attention.dc.html">D08</a></td></tr>
+<tr><td>9</td><td>S8 Trash &amp; backups</td><td><a href="A09-Trash-Backups.dc.html">A09</a></td><td><a href="D09-Trash-Backups.dc.html">D09</a></td></tr>
+<tr><td>10</td><td>S9 Advanced</td><td><a href="A10-Advanced.dc.html">A10</a></td><td><a href="D10-Advanced.dc.html">D10</a></td></tr>
+<tr><td>11</td><td>S10 Tool page template (Shorten)</td><td><a href="A11-Tool-Page.dc.html">A11</a></td><td><a href="D11-Tool-Page.dc.html">D11</a></td></tr>
+<tr><td>12</td><td>S11 Settings</td><td><a href="A12-Settings.dc.html">A12</a></td><td><a href="D12-Settings.dc.html">D12</a></td></tr>
+<tr><td>13</td><td>S12 Search / command palette</td><td><a href="A13-Search.dc.html">A13</a></td><td><a href="D13-Search.dc.html">D13</a></td></tr>
+<tr><td>14</td><td>S13 Not found</td><td><a href="A14-Not-Found.dc.html">A14</a></td><td><a href="D14-Not-Found.dc.html">D14</a></td></tr>
+</tbody>
+</table>
+
+<h2>How it runs</h2>
+<p>Each <code>.dc.html</code> file is a canvas template. <code>support.js</code> is the canvas runtime (it bundles React, MIT licence), copied from the canvas artifact so the screens render without an account or internet. Fonts come from <code>fonts/</code> (IBM Plex, SIL OFL 1.1) in place of Google Fonts. Apart from that one link, the screens are unchanged from canvas version 36. This is a design prototype, not product code: the build uses the vendored Vue app in <code>skillsmgr/webui/</code>.</p>
+</main>
+</body>
+</html>

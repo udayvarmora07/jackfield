@@ -1,0 +1,404 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design system sheet</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="components/bundle.css">
+<style>@font-face{font-family:"IBM Plex Sans";src:url("../3-ui/prototype/fonts/IBMPlexSans-400-latin.woff2") format("woff2");font-weight:100 700}
+@font-face{font-family:"IBM Plex Mono";src:url("../3-ui/prototype/fonts/IBMPlexMono-400-latin.woff2") format("woff2");font-weight:400}
+@font-face{font-family:"IBM Plex Mono";src:url("../3-ui/prototype/fonts/IBMPlexMono-500-latin.woff2") format("woff2");font-weight:500}
+@font-face{font-family:"IBM Plex Mono";src:url("../3-ui/prototype/fonts/IBMPlexMono-600-latin.woff2") format("woff2");font-weight:600}
+body{margin:0;background:#E9E9E5;font-family:"IBM Plex Sans",system-ui,sans-serif;color:#191917}
+.wrap{max-width:1560px;margin:0 auto;padding:24px}
+.card{background:#fff;border:1px solid #ddd;border-radius:14px;margin:0 0 16px;padding:14px 16px;overflow:hidden}
+.card h2{margin:0;font-size:15px;font-weight:600} .card>p{margin:2px 0 10px;font-size:12.5px;color:#666660}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px} .col{overflow:hidden;border-radius:10px;border:1px solid #ECECE9}
+.col .sm-root{min-height:100%}
+.cv{max-width:100%}
+</style></head><body><div class="wrap">
+<p style="margin:0 0 14px;font-size:13px;color:#555">Skills Manager design system, version 11 (2026-11-25). Each component in light (left) and dark (right). Built for the handoff from the design system's own component previews, <code>tokens.css</code> and <code>components/bundle.css</code>.</p>
+<section class="card wide"><style>
+
+.cv{position:relative;width:960px;height:320px;background:var(--bg);overflow:hidden;font-family:var(--font-sans)}
+.c-acc{fill:var(--accent)}.c-ink{fill:var(--ink)}.c-warn{fill:var(--warn-mark)}.c-soft{fill:var(--accent-soft)}
+.r-xl{rx:var(--radius-xl)}.r-lg{rx:var(--radius-lg)}.r-xs{rx:var(--radius-xs)}
+.name{position:absolute;left:40px;bottom:52px;margin:0;font-size:64px;line-height:.95;font-weight:600;letter-spacing:-.03em;color:var(--ink)}
+.tag{position:absolute;left:40px;bottom:24px;margin:0;font-size:14px;line-height:20px;color:var(--mute)}
+</style><div class="sm-root"><div class="cv">
+<!--
+  blocks: accent 288x112 (r radius-xl), ink 160x112 (r radius-xl), warn-mark 56x56 (r radius-lg, a state colour kept small), accent-soft 432x112 field.
+  arrangement: top-band skeleton (name too wide for the 440px zone), blocks flush left to right with space-2 (8px) gaps.
+  pattern: "geometric, modular, dense UI" -> tiles like the table's squares and the 3x3 logo; README: "a calm table of truth", squares are the core component.
+  scales: tile 24px = space-6, pitch 32 = space-6 + space-2, tile corners radius-xs, some tiles merged two-wide (56px) like table cells.
+-->
+<svg width="960" height="112" viewBox="0 0 960 112" aria-hidden="true" style="position: absolute; left: 0; top: 0">
+  <rect class="c-acc r-xl" x="0" y="0" width="288" height="112"/>
+  <rect class="c-ink r-xl" x="296" y="0" width="160" height="112"/>
+  <rect class="c-warn r-lg" x="464" y="0" width="56" height="56"/>
+  <rect class="c-soft r-xl" x="528" y="0" width="432" height="112"/>
+  <g>
+    <rect class="c-acc r-xs" x="544" y="8" width="24" height="24"/><rect class="c-acc r-xs" x="576" y="8" width="24" height="24"/><rect class="c-ink r-xs" x="608" y="8" width="24" height="24"/><rect class="c-acc r-xs" x="640" y="8" width="56" height="24"/><rect class="c-acc r-xs" x="704" y="8" width="24" height="24"/><rect class="c-acc r-xs" x="736" y="8" width="24" height="24"/><rect class="c-ink r-xs" x="768" y="8" width="24" height="24"/><rect class="c-acc r-xs" x="800" y="8" width="24" height="24"/><rect class="c-acc r-xs" x="832" y="8" width="56" height="24"/><rect class="c-acc r-xs" x="896" y="8" width="24" height="24"/><rect class="c-acc r-xs" x="928" y="8" width="24" height="24"/>
+    <rect class="c-acc r-xs" x="544" y="44" width="24" height="24"/><rect class="c-ink r-xs" x="576" y="44" width="24" height="24"/><rect class="c-acc r-xs" x="608" y="44" width="24" height="24"/><rect class="c-acc r-xs" x="640" y="44" width="24" height="24"/><rect class="c-warn r-xs" x="672" y="44" width="24" height="24"/><rect class="c-acc r-xs" x="704" y="44" width="56" height="24"/><rect class="c-acc r-xs" x="768" y="44" width="24" height="24"/><rect class="c-acc r-xs" x="800" y="44" width="24" height="24"/><rect class="c-ink r-xs" x="832" y="44" width="24" height="24"/><rect class="c-acc r-xs" x="864" y="44" width="24" height="24"/><rect class="c-acc r-xs" x="896" y="44" width="56" height="24"/>
+    <rect class="c-acc r-xs" x="544" y="80" width="56" height="24"/><rect class="c-acc r-xs" x="608" y="80" width="24" height="24"/><rect class="c-ink r-xs" x="640" y="80" width="24" height="24"/><rect class="c-acc r-xs" x="672" y="80" width="24" height="24"/><rect class="c-acc r-xs" x="704" y="80" width="24" height="24"/><rect class="c-acc r-xs" x="736" y="80" width="24" height="24"/><rect class="c-acc r-xs" x="768" y="80" width="56" height="24"/><rect class="c-acc r-xs" x="832" y="80" width="24" height="24"/><rect class="c-ink r-xs" x="864" y="80" width="24" height="24"/><rect class="c-acc r-xs" x="896" y="80" width="24" height="24"/><rect class="c-acc r-xs" x="928" y="80" width="24" height="24"/>
+  </g>
+</svg>
+<h1 class="name">Skills Manager<br>design system</h1>
+<p class="tag">A calm table of truth for every agent’s skills.</p>
+</div></div></section><section class="card"><h2>Navigation</h2><p>Desktop top bar and phone tab bar</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 0 0 20px">
+  <header class="sm-nav">
+    <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px">
+      <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style="color: var(--ink)"><rect x="1" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="14" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="1" y="7.5" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="7.5" width="5" height="5" rx="1.3" fill="var(--accent)"/><rect x="14" y="7.5" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="1" y="14" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="14" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="14" y="14" width="5" height="5" rx="1.3" fill="currentColor"/></svg>
+      Skills Manager
+    </a>
+    <nav aria-label="Main" style="display: flex; gap: 26px">
+      <a class="sm-nav__link" href="#" aria-current="page">Skills</a>
+      <a class="sm-nav__link" href="#">Needs attention <span class="sm-nav__count">3</span></a>
+      <a class="sm-nav__link" href="#">Trash &amp; backups</a>
+      <a class="sm-nav__link" href="#">Advanced</a>
+    </nav>
+  </header>
+  <div style="width: 390px; margin: 20px auto 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden">
+    <nav class="sm-tabs" aria-label="Main (phone)">
+      <a class="sm-tab" href="#" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Skills</a>
+      <a class="sm-tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>Attention</a>
+      <a class="sm-tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Trash</a>
+      <a class="sm-tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Advanced</a>
+    </nav>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 0 0 20px">
+  <header class="sm-nav">
+    <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px">
+      <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style="color: var(--ink)"><rect x="1" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="14" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="1" y="7.5" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="7.5" width="5" height="5" rx="1.3" fill="var(--accent)"/><rect x="14" y="7.5" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="1" y="14" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="14" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="14" y="14" width="5" height="5" rx="1.3" fill="currentColor"/></svg>
+      Skills Manager
+    </a>
+    <nav aria-label="Main" style="display: flex; gap: 26px">
+      <a class="sm-nav__link" href="#" aria-current="page">Skills</a>
+      <a class="sm-nav__link" href="#">Needs attention <span class="sm-nav__count">3</span></a>
+      <a class="sm-nav__link" href="#">Trash &amp; backups</a>
+      <a class="sm-nav__link" href="#">Advanced</a>
+    </nav>
+  </header>
+  <div style="width: 390px; margin: 20px auto 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden">
+    <nav class="sm-tabs" aria-label="Main (phone)">
+      <a class="sm-tab" href="#" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Skills</a>
+      <a class="sm-tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>Attention</a>
+      <a class="sm-tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Trash</a>
+      <a class="sm-tab" href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Advanced</a>
+    </nav>
+  </div>
+</div></div></div></section><section class="card"><h2>StatusMark</h2><p>Shape + word, never colour alone</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 24px 20px; display: flex; flex-wrap: wrap; gap: 28px">
+  <span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span>
+  <span class="sm-status is-off"><span class="sm-mk" aria-hidden="true"></span>Off</span>
+  <span class="sm-status is-settings"><span class="sm-mk" aria-hidden="true"></span>Off in settings</span>
+  <span class="sm-status is-different"><span class="sm-mk" aria-hidden="true"></span>Different</span>
+  <span class="sm-status is-unreadable"><span class="sm-mk" aria-hidden="true"></span>Can't read</span>
+  <span class="sm-status is-missing"><span class="sm-mk" aria-hidden="true"></span>Not here</span>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 24px 20px; display: flex; flex-wrap: wrap; gap: 28px">
+  <span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span>
+  <span class="sm-status is-off"><span class="sm-mk" aria-hidden="true"></span>Off</span>
+  <span class="sm-status is-settings"><span class="sm-mk" aria-hidden="true"></span>Off in settings</span>
+  <span class="sm-status is-different"><span class="sm-mk" aria-hidden="true"></span>Different</span>
+  <span class="sm-status is-unreadable"><span class="sm-mk" aria-hidden="true"></span>Can't read</span>
+  <span class="sm-status is-missing"><span class="sm-mk" aria-hidden="true"></span>Not here</span>
+</div></div></div></section><section class="card"><h2>Square</h2><p>A table row: skill, verdict and five squares, one selected</p><style>.r{display:grid;grid-template-columns:minmax(220px,2.4fr) repeat(5,minmax(110px,1fr));background:var(--surface);border-bottom:1px solid var(--line-subtle)}</style><div class="pair"><div class="col"><div class="sm-root" style="padding: 16px">
+  <div style="border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface)">
+    <div class="r">
+      <div style="padding: 12px 20px"><div style="font-weight: 600">debugging-and-error-recovery</div><div style="color: var(--mute); font-size: 13px; margin-top: 2px">Find the root cause before changing code.</div><div style="color: var(--warn); font-size: 12px; font-weight: 500; margin-top: 4px">Codex has a different copy</div></div>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in Claude Code: On"><span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span></button>
+      <button type="button" class="sm-square" aria-pressed="true" aria-label="debugging-and-error-recovery in Codex: Different"><span class="sm-status is-different"><span class="sm-mk" aria-hidden="true"></span>Different</span></button>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in OpenCode: Off in settings"><span class="sm-status is-settings"><span class="sm-mk" aria-hidden="true"></span>Off in settings</span></button>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in Shared folder: Off"><span class="sm-status is-off"><span class="sm-mk" aria-hidden="true"></span>Off</span></button>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in This project: Not here"><span class="sm-status is-missing"><span class="sm-mk" aria-hidden="true"></span>Not here</span></button>
+    </div>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 16px">
+  <div style="border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface)">
+    <div class="r">
+      <div style="padding: 12px 20px"><div style="font-weight: 600">debugging-and-error-recovery</div><div style="color: var(--mute); font-size: 13px; margin-top: 2px">Find the root cause before changing code.</div><div style="color: var(--warn); font-size: 12px; font-weight: 500; margin-top: 4px">Codex has a different copy</div></div>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in Claude Code: On"><span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span></button>
+      <button type="button" class="sm-square" aria-pressed="true" aria-label="debugging-and-error-recovery in Codex: Different"><span class="sm-status is-different"><span class="sm-mk" aria-hidden="true"></span>Different</span></button>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in OpenCode: Off in settings"><span class="sm-status is-settings"><span class="sm-mk" aria-hidden="true"></span>Off in settings</span></button>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in Shared folder: Off"><span class="sm-status is-off"><span class="sm-mk" aria-hidden="true"></span>Off</span></button>
+      <button type="button" class="sm-square" aria-label="debugging-and-error-recovery in This project: Not here"><span class="sm-status is-missing"><span class="sm-mk" aria-hidden="true"></span>Not here</span></button>
+    </div>
+  </div>
+</div></div></div></section><section class="card"><h2>AttentionBanner</h2><p>Only when something needs attention</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px">
+  <div class="sm-banner">
+    <div style="flex: 1 1 380px; min-width: 0">
+      <div class="sm-banner__title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>3 skills need your attention</div>
+      <div class="sm-banner__detail">Codex and OpenCode each have a different copy of one skill, and Codex can’t read its copy of security-review.</div>
+    </div>
+    <button type="button" class="sm-btn" aria-pressed="false">Show only these</button>
+    <button type="button" class="sm-btn sm-btn--dark">Fix one by one</button>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px">
+  <div class="sm-banner">
+    <div style="flex: 1 1 380px; min-width: 0">
+      <div class="sm-banner__title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>3 skills need your attention</div>
+      <div class="sm-banner__detail">Codex and OpenCode each have a different copy of one skill, and Codex can’t read its copy of security-review.</div>
+    </div>
+    <button type="button" class="sm-btn" aria-pressed="false">Show only these</button>
+    <button type="button" class="sm-btn sm-btn--dark">Fix one by one</button>
+  </div>
+</div></div></div></section><section class="card"><h2>SidePanel</h2><p>The answer to one square, before acting</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px">
+  <aside class="sm-panel" aria-label="code-review in Codex">
+    <div style="display: flex; align-items: center; gap: 9px"><span class="sm-ag" aria-hidden="true" data-a="CX">CX</span><span style="font-size: 13px; color: var(--ink-2); font-weight: 500">Codex</span></div>
+    <h2 class="sm-panel__name">code-review</h2>
+    <div class="sm-panel__path">~/.codex/skills/code-review</div>
+    <p class="sm-panel__line">Codex can use this skill.</p>
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px">
+      <span class="sm-pill sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-faint)" role="img" aria-label="becomes"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <span class="sm-pill sm-status is-off"><span class="sm-mk" aria-hidden="true"></span>Off</span>
+    </div>
+    <button type="button" class="sm-btn sm-btn--primary">Turn off in Codex <span style="font: 500 11px/1 var(--font-mono); opacity: .75">Space</span></button>
+    <p class="sm-panel__what">The file is renamed so Codex skips it. Nothing is deleted, and you can undo it.</p>
+    <div style="border-top: 1px solid var(--line-subtle); margin-top: 20px; padding-top: 14px">
+      <div style="font-size: 12px; font-weight: 600; color: var(--mute); letter-spacing: .02em; margin-bottom: 6px">Other places</div>
+      <div style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2)"><span class="sm-ag" data-a="Claude Code" aria-hidden="true"></span>Claude Code</span><span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2)"><span class="sm-ag" data-a="OpenCode" aria-hidden="true"></span>OpenCode</span><span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2)"><span class="sm-ag" data-a="This project" aria-hidden="true"></span>This project</span><span class="sm-status is-missing"><span class="sm-mk" aria-hidden="true"></span>Not here</span></div>
+    </div>
+    <div style="display: flex; gap: 18px; margin-top: 16px; font-size: 14px; font-weight: 500"><a href="#">Open skill</a><a href="#">Why isn’t it running?</a></div>
+  </aside>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px">
+  <aside class="sm-panel" aria-label="code-review in Codex">
+    <div style="display: flex; align-items: center; gap: 9px"><span class="sm-ag" aria-hidden="true" data-a="CX">CX</span><span style="font-size: 13px; color: var(--ink-2); font-weight: 500">Codex</span></div>
+    <h2 class="sm-panel__name">code-review</h2>
+    <div class="sm-panel__path">~/.codex/skills/code-review</div>
+    <p class="sm-panel__line">Codex can use this skill.</p>
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px">
+      <span class="sm-pill sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-faint)" role="img" aria-label="becomes"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <span class="sm-pill sm-status is-off"><span class="sm-mk" aria-hidden="true"></span>Off</span>
+    </div>
+    <button type="button" class="sm-btn sm-btn--primary">Turn off in Codex <span style="font: 500 11px/1 var(--font-mono); opacity: .75">Space</span></button>
+    <p class="sm-panel__what">The file is renamed so Codex skips it. Nothing is deleted, and you can undo it.</p>
+    <div style="border-top: 1px solid var(--line-subtle); margin-top: 20px; padding-top: 14px">
+      <div style="font-size: 12px; font-weight: 600; color: var(--mute); letter-spacing: .02em; margin-bottom: 6px">Other places</div>
+      <div style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2)"><span class="sm-ag" data-a="Claude Code" aria-hidden="true"></span>Claude Code</span><span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2)"><span class="sm-ag" data-a="OpenCode" aria-hidden="true"></span>OpenCode</span><span class="sm-status is-on"><span class="sm-mk" aria-hidden="true"></span>On</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2)"><span class="sm-ag" data-a="This project" aria-hidden="true"></span>This project</span><span class="sm-status is-missing"><span class="sm-mk" aria-hidden="true"></span>Not here</span></div>
+    </div>
+    <div style="display: flex; gap: 18px; margin-top: 16px; font-size: 14px; font-weight: 500"><a href="#">Open skill</a><a href="#">Why isn’t it running?</a></div>
+  </aside>
+</div></div></div></section><section class="card"><h2>UndoBar</h2><p>After every change</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 24px 20px">
+  <div class="sm-undo" role="status">
+    <span>Turned off code-review in Codex.</span>
+    <button type="button">Undo</button>
+    <button type="button" class="sm-undo__x" aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 24px 20px">
+  <div class="sm-undo" role="status">
+    <span>Turned off code-review in Codex.</span>
+    <button type="button">Undo</button>
+    <button type="button" class="sm-undo__x" aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+</div></div></div></section><section class="card"><h2>Button</h2><p>Primary, accent, default, pressed, dark, quiet, icon</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+    <div style="width: 300px"><button type="button" class="sm-btn sm-btn--primary">Turn off in Codex <span style="font: 500 11px/1 var(--font-mono); opacity: .75">Space</span></button></div>
+    <button type="button" class="sm-btn sm-btn--accent sm-btn--page">Edit</button>
+    <button type="button" class="sm-btn sm-btn--page">New skill</button>
+    <button type="button" class="sm-btn sm-btn--accent">Save to 3 places</button>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+    <button type="button" class="sm-btn" aria-pressed="true">Show only these</button>
+    <button type="button" class="sm-btn sm-btn--dark">Fix one by one</button>
+    <button type="button" class="sm-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Restore</button>
+    <button type="button" class="sm-btn sm-btn--quiet"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Move to Trash</button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Switch theme"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button type="button" class="sm-btn sm-btn--accent" disabled>Create in 2 places</button>
+    <span style="font-size: 13px; color: var(--mute)">Fix the name to continue.</span>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+    <div style="width: 300px"><button type="button" class="sm-btn sm-btn--primary">Turn off in Codex <span style="font: 500 11px/1 var(--font-mono); opacity: .75">Space</span></button></div>
+    <button type="button" class="sm-btn sm-btn--accent sm-btn--page">Edit</button>
+    <button type="button" class="sm-btn sm-btn--page">New skill</button>
+    <button type="button" class="sm-btn sm-btn--accent">Save to 3 places</button>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+    <button type="button" class="sm-btn" aria-pressed="true">Show only these</button>
+    <button type="button" class="sm-btn sm-btn--dark">Fix one by one</button>
+    <button type="button" class="sm-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Restore</button>
+    <button type="button" class="sm-btn sm-btn--quiet"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Move to Trash</button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Switch theme"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button type="button" class="sm-btn sm-btn--accent" disabled>Create in 2 places</button>
+    <span style="font-size: 13px; color: var(--mute)">Fix the name to continue.</span>
+  </div>
+</div></div></div></section><section class="card"><h2>Segmented</h2><p>Two or three views of one thing</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
+  <div class="sm-seg" role="group" aria-label="View"><button type="button" class="sm-btn" aria-pressed="true">Read</button><button type="button" class="sm-btn" aria-pressed="false">File text</button></div>
+  <div class="sm-seg" role="group" aria-label="Content view"><button type="button" class="sm-btn" aria-pressed="false">Write</button><button type="button" class="sm-btn" aria-pressed="true">Preview</button></div>
+  <div class="sm-seg" role="group" aria-label="Theme"><button type="button" class="sm-btn" aria-pressed="false" data-i="Light">Light</button><button type="button" class="sm-btn" aria-pressed="false" data-i="Dark">Dark</button><button type="button" class="sm-btn" aria-pressed="true" data-i="Match my computer">Match my computer</button></div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
+  <div class="sm-seg" role="group" aria-label="View"><button type="button" class="sm-btn" aria-pressed="true">Read</button><button type="button" class="sm-btn" aria-pressed="false">File text</button></div>
+  <div class="sm-seg" role="group" aria-label="Content view"><button type="button" class="sm-btn" aria-pressed="false">Write</button><button type="button" class="sm-btn" aria-pressed="true">Preview</button></div>
+  <div class="sm-seg" role="group" aria-label="Theme"><button type="button" class="sm-btn" aria-pressed="false" data-i="Light">Light</button><button type="button" class="sm-btn" aria-pressed="false" data-i="Dark">Dark</button><button type="button" class="sm-btn" aria-pressed="true" data-i="Match my computer">Match my computer</button></div>
+</div></div></div></section><section class="card"><h2>Field</h2><p>Filter field, form field with live rules, description, Save-to checkbox</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <label class="sm-field" style="width: 320px"><span class="sm-sr">Filter skills</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="color: var(--mute)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input placeholder="Filter by name or what it does"></label>
+    <label class="sm-field" style="width: 320px"><span class="sm-sr">Filter skills</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="color: var(--mute)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input value="review"></label>
+    <label style="display: flex; align-items: center; gap: 12px; width: 320px; padding: 12px 0; border-top: 1px solid var(--line-subtle)"><input type="checkbox" class="sm-checkbox" checked><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 500">Codex</span><span class="sm-hint">Will be updated.</span></span></label>
+    <label style="display: flex; align-items: center; gap: 12px; width: 320px; padding: 12px 0; border-top: 1px solid var(--line-subtle)"><input type="checkbox" class="sm-checkbox"><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 500">OpenCode</span><span style="font-size: 13px; color: var(--warn)">Has its own version, so it is left out. Tick to replace it.</span></span></label>
+  </div>
+  <div style="width: 360px">
+    <label class="sm-label" for="pv-name">Name</label>
+    <p class="sm-hint" style="margin: 4px 0 8px">The folder name every agent sees.</p>
+    <label class="sm-field" style="border-color: var(--bad)"><span class="sm-sr">Name</span><input id="pv-name" value="explain code" aria-invalid="true"></label>
+    <ul style="list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px">
+      <li class="sm-rule is-fail"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="sm-sr">Not yet: </span>Small letters, numbers and dashes only</li>
+      <li class="sm-rule is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg><span class="sm-sr">Done: </span>Up to 64 characters (12 used)</li>
+      <li class="sm-rule is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg><span class="sm-sr">Done: </span>No other skill has this name</li>
+    </ul>
+    <p style="margin: 10px 0 16px"><button type="button" class="sm-btn" style="height: 32px; font-weight: 600">Use “explain-code” instead</button></p>
+    <label class="sm-label" for="pv-desc">What it does and when to use it</label>
+    <textarea id="pv-desc" class="sm-textarea" rows="2" style="margin-top: 8px">Explain what a piece of code does in plain words, step by step.</textarea>
+    <p class="sm-hint" style="margin: 6px 0 0">64 of 1,024 characters</p>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <label class="sm-field" style="width: 320px"><span class="sm-sr">Filter skills</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="color: var(--mute)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input placeholder="Filter by name or what it does"></label>
+    <label class="sm-field" style="width: 320px"><span class="sm-sr">Filter skills</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="color: var(--mute)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input value="review"></label>
+    <label style="display: flex; align-items: center; gap: 12px; width: 320px; padding: 12px 0; border-top: 1px solid var(--line-subtle)"><input type="checkbox" class="sm-checkbox" checked><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 500">Codex</span><span class="sm-hint">Will be updated.</span></span></label>
+    <label style="display: flex; align-items: center; gap: 12px; width: 320px; padding: 12px 0; border-top: 1px solid var(--line-subtle)"><input type="checkbox" class="sm-checkbox"><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 500">OpenCode</span><span style="font-size: 13px; color: var(--warn)">Has its own version, so it is left out. Tick to replace it.</span></span></label>
+  </div>
+  <div style="width: 360px">
+    <label class="sm-label" for="pv-name">Name</label>
+    <p class="sm-hint" style="margin: 4px 0 8px">The folder name every agent sees.</p>
+    <label class="sm-field" style="border-color: var(--bad)"><span class="sm-sr">Name</span><input id="dk-pv-name" value="explain code" aria-invalid="true"></label>
+    <ul style="list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px">
+      <li class="sm-rule is-fail"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="sm-sr">Not yet: </span>Small letters, numbers and dashes only</li>
+      <li class="sm-rule is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg><span class="sm-sr">Done: </span>Up to 64 characters (12 used)</li>
+      <li class="sm-rule is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg><span class="sm-sr">Done: </span>No other skill has this name</li>
+    </ul>
+    <p style="margin: 10px 0 16px"><button type="button" class="sm-btn" style="height: 32px; font-weight: 600">Use “explain-code” instead</button></p>
+    <label class="sm-label" for="pv-desc">What it does and when to use it</label>
+    <textarea id="dk-pv-desc" class="sm-textarea" rows="2" style="margin-top: 8px">Explain what a piece of code does in plain words, step by step.</textarea>
+    <p class="sm-hint" style="margin: 6px 0 0">64 of 1,024 characters</p>
+  </div>
+</div></div></div></section><section class="card"><h2>Chip</h2><p>Pick one or more places</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px">
+  <p id="pv-where" class="sm-label" style="margin: 0 0 10px">Add it to</p>
+  <div role="group" aria-labelledby="pv-where" style="display: flex; flex-wrap: wrap; gap: 8px">
+    <button type="button" class="sm-chip" aria-pressed="true"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="Claude Code" aria-hidden="true"></span>Claude Code</button>
+    <button type="button" class="sm-chip" aria-pressed="true"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="Codex" aria-hidden="true"></span>Codex</button>
+    <button type="button" class="sm-chip" aria-pressed="false"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="OpenCode" aria-hidden="true"></span>OpenCode<span style="font-size: 12px; color: var(--warn)">· different copy</span></button>
+    <button type="button" class="sm-chip" aria-pressed="false"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="Shared folder" aria-hidden="true"></span>Shared folder</button>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px">
+  <p id="dk-pv-where" class="sm-label" style="margin: 0 0 10px">Add it to</p>
+  <div role="group" aria-labelledby="pv-where" style="display: flex; flex-wrap: wrap; gap: 8px">
+    <button type="button" class="sm-chip" aria-pressed="true"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="Claude Code" aria-hidden="true"></span>Claude Code</button>
+    <button type="button" class="sm-chip" aria-pressed="true"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="Codex" aria-hidden="true"></span>Codex</button>
+    <button type="button" class="sm-chip" aria-pressed="false"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="OpenCode" aria-hidden="true"></span>OpenCode<span style="font-size: 12px; color: var(--warn)">· different copy</span></button>
+    <button type="button" class="sm-chip" aria-pressed="false"><span class="sm-chip__box" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span><span class="agm" data-a="Shared folder" aria-hidden="true"></span>Shared folder</button>
+  </div>
+</div></div></div></section><section class="card"><h2>Keycap</h2><p>Keyboard hints and agent monograms</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; font-size: 12.5px; color: var(--mute)">
+  <div style="display: flex; gap: 18px; flex-wrap: wrap">
+    <span><span class="sm-kbd">↑</span> <span class="sm-kbd">↓</span> <span class="sm-kbd">←</span> <span class="sm-kbd">→</span> move between squares</span>
+    <span><span class="sm-kbd">Space</span> turn on or off</span>
+    <span><span class="sm-kbd">/</span> search</span>
+  </div>
+  <div style="display: flex; gap: 14px; align-items: center; color: var(--ink); font-size: 13px; font-weight: 600">
+    <span style="display: flex; gap: 8px; align-items: center"><span class="sm-ag" aria-hidden="true" data-a="CC">CC</span>Claude Code</span>
+    <span style="display: flex; gap: 8px; align-items: center"><span class="sm-ag" aria-hidden="true" data-a="CX">CX</span>Codex</span>
+    <span style="display: flex; gap: 8px; align-items: center"><span class="sm-ag" aria-hidden="true" data-a="OC">OC</span>OpenCode</span>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; font-size: 12.5px; color: var(--mute)">
+  <div style="display: flex; gap: 18px; flex-wrap: wrap">
+    <span><span class="sm-kbd">↑</span> <span class="sm-kbd">↓</span> <span class="sm-kbd">←</span> <span class="sm-kbd">→</span> move between squares</span>
+    <span><span class="sm-kbd">Space</span> turn on or off</span>
+    <span><span class="sm-kbd">/</span> search</span>
+  </div>
+  <div style="display: flex; gap: 14px; align-items: center; color: var(--ink); font-size: 13px; font-weight: 600">
+    <span style="display: flex; gap: 8px; align-items: center"><span class="sm-ag" aria-hidden="true" data-a="CC">CC</span>Claude Code</span>
+    <span style="display: flex; gap: 8px; align-items: center"><span class="sm-ag" aria-hidden="true" data-a="CX">CX</span>Codex</span>
+    <span style="display: flex; gap: 8px; align-items: center"><span class="sm-ag" aria-hidden="true" data-a="OC">OC</span>OpenCode</span>
+  </div>
+</div></div></div></section><section class="card"><h2>ChecksGrid</h2><p>Checks × places, with Unknown as its own answer</p><style>.g{display:grid;grid-template-columns:minmax(160px,1.4fr) repeat(3,minmax(110px,1fr))}.g>div{padding:11px 14px;border-top:1px solid var(--line-subtle);display:flex;align-items:center}.g>div+div{border-left:1px solid var(--line-subtle)}.g>.h{border-top:0;font:600 13px/1.2 var(--font-sans)}</style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px">
+  <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; max-width: 640px">
+    <div class="g">
+      <div class="h" style="color: var(--mute); font-size: 12px">Check</div><div class="h">Claude Code</div><div class="h">Codex</div><div class="h">This project</div>
+      <div style="font-weight: 600">Found</div><div><span class="sm-chk is-ok"><span class="sm-chk__ic" aria-hidden="true"></span>Yes</span></div><div><span class="sm-chk is-ok"><span class="sm-chk__ic" aria-hidden="true"></span>Yes</span></div><div><span class="sm-chk is-fail"><span class="sm-chk__ic" aria-hidden="true"></span>No copy here</span></div>
+      <div style="font-weight: 600">Settings allow it</div><div><span class="sm-chk is-fail"><span class="sm-chk__ic" aria-hidden="true"></span>Turned off</span></div><div><span class="sm-chk is-ok"><span class="sm-chk__ic" aria-hidden="true"></span>Yes</span></div><div><span class="sm-chk is-skip"><span class="sm-chk__ic" aria-hidden="true"></span>—</span></div>
+      <div style="font-weight: 600">Actually loaded</div><div><span class="sm-chk is-skip"><span class="sm-chk__ic" aria-hidden="true"></span>—</span></div><div><span class="sm-chk is-unknown"><span class="sm-chk__ic" aria-hidden="true">?</span>Unknown</span></div><div><span class="sm-chk is-skip"><span class="sm-chk__ic" aria-hidden="true"></span>—</span></div>
+    </div>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px">
+  <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; max-width: 640px">
+    <div class="g">
+      <div class="h" style="color: var(--mute); font-size: 12px">Check</div><div class="h">Claude Code</div><div class="h">Codex</div><div class="h">This project</div>
+      <div style="font-weight: 600">Found</div><div><span class="sm-chk is-ok"><span class="sm-chk__ic" aria-hidden="true"></span>Yes</span></div><div><span class="sm-chk is-ok"><span class="sm-chk__ic" aria-hidden="true"></span>Yes</span></div><div><span class="sm-chk is-fail"><span class="sm-chk__ic" aria-hidden="true"></span>No copy here</span></div>
+      <div style="font-weight: 600">Settings allow it</div><div><span class="sm-chk is-fail"><span class="sm-chk__ic" aria-hidden="true"></span>Turned off</span></div><div><span class="sm-chk is-ok"><span class="sm-chk__ic" aria-hidden="true"></span>Yes</span></div><div><span class="sm-chk is-skip"><span class="sm-chk__ic" aria-hidden="true"></span>—</span></div>
+      <div style="font-weight: 600">Actually loaded</div><div><span class="sm-chk is-skip"><span class="sm-chk__ic" aria-hidden="true"></span>—</span></div><div><span class="sm-chk is-unknown"><span class="sm-chk__ic" aria-hidden="true">?</span>Unknown</span></div><div><span class="sm-chk is-skip"><span class="sm-chk__ic" aria-hidden="true"></span>—</span></div>
+    </div>
+  </div>
+</div></div></div></section><section class="card"><h2>Compare</h2><p>Now / Suggested, and choosing which version wins</p><style>.cap{margin:0 0 6px;font:600 12px/16px var(--font-sans);letter-spacing:.02em;color:var(--mute)}</style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px; display: flex; flex-direction: column; gap: 22px; max-width: 760px">
+  <div class="sm-compare">
+    <div class="sm-compare__side"><p class="cap">Now</p><p style="margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2)">Review a diff for bugs, risky patterns and missing tests before you commit. Use after finishing a change and before opening a pull request.</p></div>
+    <div class="sm-compare__side sm-compare__side--new"><p class="cap" style="color: var(--accent)">Suggested</p><p style="margin: 0; font-size: 14px; line-height: 1.55">Review a diff for bugs and missing tests before you commit or open a pull request.</p></div>
+  </div>
+  <div>
+    <p class="cap" style="margin-bottom: 10px">Which version should every place use?</p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap">
+      <button type="button" class="sm-choice" aria-pressed="true"><span style="font-size: 14px; font-weight: 600">The shared version</span><span style="font-size: 13px; color: var(--mute)">Used in 3 places. Codex’s change goes to Trash.</span><pre class="sm-choice__snip">3. Add a print statement near the
+   failure and run it again.</pre></button>
+      <button type="button" class="sm-choice" aria-pressed="false"><span style="font-size: 14px; font-weight: 600">Codex’s version</span><span style="font-size: 13px; color: var(--mute)">Changed 18 Nov. The other 3 places get it.</span><pre class="sm-choice__snip">3. Add a breakpoint near the failure
+   and step through it.</pre></button>
+    </div>
+  </div>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px; display: flex; flex-direction: column; gap: 22px; max-width: 760px">
+  <div class="sm-compare">
+    <div class="sm-compare__side"><p class="cap">Now</p><p style="margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2)">Review a diff for bugs, risky patterns and missing tests before you commit. Use after finishing a change and before opening a pull request.</p></div>
+    <div class="sm-compare__side sm-compare__side--new"><p class="cap" style="color: var(--accent)">Suggested</p><p style="margin: 0; font-size: 14px; line-height: 1.55">Review a diff for bugs and missing tests before you commit or open a pull request.</p></div>
+  </div>
+  <div>
+    <p class="cap" style="margin-bottom: 10px">Which version should every place use?</p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap">
+      <button type="button" class="sm-choice" aria-pressed="true"><span style="font-size: 14px; font-weight: 600">The shared version</span><span style="font-size: 13px; color: var(--mute)">Used in 3 places. Codex’s change goes to Trash.</span><pre class="sm-choice__snip">3. Add a print statement near the
+   failure and run it again.</pre></button>
+      <button type="button" class="sm-choice" aria-pressed="false"><span style="font-size: 14px; font-weight: 600">Codex’s version</span><span style="font-size: 13px; color: var(--mute)">Changed 18 Nov. The other 3 places get it.</span><pre class="sm-choice__snip">3. Add a breakpoint near the failure
+   and step through it.</pre></button>
+    </div>
+  </div>
+</div></div></div></section><section class="card"><h2>Document</h2><p>Rendered skill and its exact file text</p><style></style><div class="pair"><div class="col"><div class="sm-root" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+  <div class="sm-doc" style="flex: 1 1 360px; max-width: 520px">
+    <p>Write a test that fails for the right reason before you change any code.</p>
+    <h2 style="margin-top: 0">Steps</h2>
+    <ol>
+      <li>Write one small test for the next behavior. Run it and watch it fail.</li>
+      <li>Write the simplest code that makes it pass.</li>
+    </ol>
+    <p>The test comes first and fails, because <code>slug()</code> doesn’t exist yet.</p>
+    <pre>def test_slug_drops_spaces():
+    assert slug("Code Review") == "code-review"</pre>
+  </div>
+  <pre class="sm-filetext" style="flex: 1 1 300px; max-width: 420px">---
+name: test-driven-development
+description: Write the failing test first, then the
+  smallest code that makes it pass.
+---
+
+## Steps
+
+1. Write one small test for the next behavior.
+2. Write the simplest code that makes it pass.</pre>
+</div></div><div class="col"><div class="sm-root dark" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+  <div class="sm-doc" style="flex: 1 1 360px; max-width: 520px">
+    <p>Write a test that fails for the right reason before you change any code.</p>
+    <h2 style="margin-top: 0">Steps</h2>
+    <ol>
+      <li>Write one small test for the next behavior. Run it and watch it fail.</li>
+      <li>Write the simplest code that makes it pass.</li>
+    </ol>
+    <p>The test comes first and fails, because <code>slug()</code> doesn’t exist yet.</p>
+    <pre>def test_slug_drops_spaces():
+    assert slug("Code Review") == "code-review"</pre>
+  </div>
+  <pre class="sm-filetext" style="flex: 1 1 300px; max-width: 420px">---
+name: test-driven-development
+description: Write the failing test first, then the
+  smallest code that makes it pass.
+---
+
+## Steps
+
+1. Write one small test for the next behavior.
+2. Write the simplest code that makes it pass.</pre>
+</div></div></div></section></div></body></html>

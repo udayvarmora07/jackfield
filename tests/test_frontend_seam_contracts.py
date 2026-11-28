@@ -43,7 +43,7 @@ class DomainSeamOwnershipTests(unittest.TestCase):
         scripts = re.findall(r'<script src="([^"]+)"', _read(webui / "index.html"))
         seams = ("domain.js", "model.js", "state.js", "router.js", "ui-core.js",
                  "ui-table.js", "ui-doc.js", "screen-not-found.js", "screen-skills.js", "screen-attention.js",
-                 "screen-trash.js", "palette.js", "app.js")
+                 "screen-trash.js", "screen-advanced.js", "palette.js", "app.js")
         self.assertEqual([name for name in scripts if name in seams], list(seams))
         for name in seams[2:]:
             source = _read(webui / name)

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search and command palette</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+body{margin:0}
+.sm-root{--bg:#F6F6F3;--surface:#FFFFFF;--raise:#F5F5F3;--line:#ECECE9;--line-subtle:#F3F3F1;--ink:#191917;--ink-2:#3B3B37;--mute:#666660;--text-faint:#6E6E67;--mark-faint:#9A9A93;--accent:#2D58D0;--on-accent:#FFFFFF;--accent-soft:#EDF1FC;--warn:#8A4700;--shadow-toast:0 12px 32px rgba(0,0,0,.22);--font-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--radius-xs:5px;--radius-sm:9px;--control:36px}
+.sm-root.dark{--bg:#121211;--surface:#1A1A19;--raise:#222220;--line:#2C2C2A;--line-subtle:#242422;--ink:#EDEDEA;--ink-2:#CFCFCA;--mute:#B0B0A9;--text-faint:#9A9A93;--mark-faint:#77776F;--accent:#8CAEFF;--on-accent:#0C1430;--accent-soft:#1C2540;--warn:#F2B866}
+.sm-root{position:relative;min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font-sans);font-size:14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.sm-root a{color:var(--accent)}
+.sm-root button:focus-visible,.sm-root a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sm-kbd{font:500 11px/1 var(--font-mono);color:var(--mute);border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--radius-xs);padding:2px 5px;background:var(--surface)}
+.sm-nav{display:flex;align-items:center;gap:32px;min-height:60px;padding:0 40px;border-bottom:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+.sm-nav__link{display:inline-block;color:var(--mute);font:500 14px/1 var(--font-sans);padding:22px 0 20px;border-bottom:1.5px solid transparent}
+.sm-nav__link.cur{color:var(--ink);border-bottom-color:var(--ink)}
+.sm-hint{font:400 13px/1.5 var(--font-sans);color:var(--mute)}
+.sm-cap{margin:0;font:600 12px/16px var(--font-sans);letter-spacing:.02em;color:var(--mute)}
+.res{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:8px 14px;border:0;border-radius:11px;background:transparent;text-align:left;cursor:pointer;font:inherit;color:inherit;box-sizing:border-box}
+.res:hover{background:var(--raise)}
+.res[aria-selected="true"]{background:var(--accent-soft)}
+.res .ic{width:28px;height:28px;border-radius:9px;background:var(--raise);border:1px solid var(--line);display:grid;place-items:center;flex:none;color:var(--ink-2)}
+.ghost{height:14px;border-radius:5px;background:var(--raise)}
+
+/* Icons (2026-11-25): agent marks and state icons drawn as masks so they follow the theme colour. */
+span.ag[data-a],span.sm-ag[data-a]{flex:none;width:20px;height:20px;box-sizing:border-box;font-size:0!important;line-height:0;color:var(--ink-2,var(--ink2))}
+span.ag[data-a]::before,span.sm-ag[data-a]::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-a="CC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="OC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="CX"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="SH"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="PJ"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+.chk.ok .ic::before,.chk.no .ic::before{content:"";width:10px;height:10px;background:currentColor;-webkit-mask:var(--chi) center/contain no-repeat;mask:var(--chi) center/contain no-repeat}
+.chk.ok .ic{--chi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}.chk.no .ic{--chi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E")}
+</style>
+</helmet>
+<div class="sm-root {{ theme }}">
+  <div aria-hidden="true" inert="">
+    <header class="sm-nav">
+      <span style="display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px">
+        <svg width="18" height="18" viewBox="0 0 20 20" style="fill: currentColor"><rect x="1" y="1" width="5" height="5" rx="1.3"/><rect x="7.5" y="1" width="5" height="5" rx="1.3"/><rect x="14" y="1" width="5" height="5" rx="1.3"/><rect x="1" y="7.5" width="5" height="5" rx="1.3"/><rect x="7.5" y="7.5" width="5" height="5" rx="1.3" style="fill: var(--accent)"/><rect x="14" y="7.5" width="5" height="5" rx="1.3"/><rect x="1" y="14" width="5" height="5" rx="1.3"/><rect x="7.5" y="14" width="5" height="5" rx="1.3"/><rect x="14" y="14" width="5" height="5" rx="1.3"/></svg>
+        Skills Manager
+      </span>
+      <span style="display: flex; gap: 26px"><span class="sm-nav__link cur">Skills</span><span class="sm-nav__link">Needs attention <span style="color: var(--warn); font-weight: 600">3</span></span><span class="sm-nav__link">Trash &amp; backups</span><span class="sm-nav__link">Advanced</span></span>
+    </header>
+    <div style="max-width: 1360px; margin: 0 auto; padding: 36px 40px; display: flex; flex-direction: column; gap: 18px">
+      <div class="ghost" style="width: 180px; height: 26px"></div>
+      <div class="ghost" style="width: 100%; height: 86px; border-radius: 14px"></div>
+      <div class="ghost" style="width: 100%; height: 420px; border-radius: 14px"></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(25,25,23,.34); display: flex; justify-content: center; align-items: flex-start; padding: 88px 16px 40px; box-sizing: border-box">
+    <div role="dialog" aria-modal="true" aria-label="Search skills, actions and pages" style="width: 100%; max-width: 640px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-toast); overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 0 18px; border-bottom: 1px solid var(--line)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--mute)" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input aria-label="Search" role="combobox" aria-expanded="true" aria-controls="pal-list" value="{{ q }}" onChange="{{ onQ }}" placeholder="Search skills and actions" autocomplete="off" spellcheck="false" style="flex: 1; height: 56px; border: 0; outline: 0; background: transparent; color: var(--ink); font: 500 17px/1 var(--font-sans)">
+        <span class="sm-kbd">Esc</span>
+      </div>
+      <div id="pal-list" role="listbox" aria-label="Results" style="max-height: 460px; overflow-y: auto; padding: 8px">
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+          <div role="group" aria-label="{{ g.title }}" style="padding-bottom: 6px">
+            <p class="sm-cap" style="padding: 8px 14px 4px">{{ g.title }}</p>
+            <sc-for list="{{ g.items }}" as="r" hint-placeholder-count="3">
+              <button type="button" role="option" class="res" aria-selected="{{ r.sel }}" onClick="{{ r.pick }}">
+                <span class="ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="{{ r.icon }}"/></svg></span>
+                <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere">{{ r.title }}</span><span class="sm-hint" style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.sub }}</span></span>
+                <sc-if value="{{ r.sel }}" hint-placeholder-val="{{ false }}"><span class="sm-kbd">Enter</span></sc-if>
+              </button>
+            </sc-for>
+          </div>
+        </sc-for>
+        <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 24px 14px">
+            <p style="margin: 0 0 6px; font-size: 15px; color: var(--ink)">Nothing matches “{{ q }}”.</p>
+            <p class="sm-hint" style="margin: 0 0 12px">We searched skill names, descriptions, actions and pages.</p>
+            <sc-if value="{{ hasGuess }}" hint-placeholder-val="{{ true }}">
+              <p style="margin: 0; font-size: 14px; color: var(--ink-2)">Did you mean <button type="button" onClick="{{ useGuess }}" style="border: 0; background: none; padding: 0; font: 600 14px/1 var(--font-sans); color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer">{{ guess }}</button>?</p>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+      <div style="display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 18px; border-top: 1px solid var(--line); background: var(--raise); font-size: 12.5px; color: var(--mute)">
+        <span><span class="sm-kbd">↑</span> <span class="sm-kbd">↓</span> move</span>
+        <span><span class="sm-kbd">Enter</span> open</span>
+        <span><span class="sm-kbd">Esc</span> close</span>
+        <span style="margin-left: auto">Open anywhere with <span class="sm-kbd">/</span> or <span class="sm-kbd">Ctrl K</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":900}}'>
+const SKILL = 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z', ACT = 'M13 3L4 14h7l-1 7 9-11h-7z', PAGE = 'M6 3h9l3 3v15H6z';
+const SKILLS = [
+  ['code-review', 'Review a diff for bugs before you commit.'], ['explain-code', 'Explain what a piece of code does in plain words.'], ['debugging-and-error-recovery', 'Find the root cause before changing code.'], ['security-review', 'Check changes for risky patterns.'], ['test-driven-development', 'Write the failing test first.'], ['git-workflow', 'Branches, commits and pull requests, done cleanly.'], ['design-system', 'Lock an approved screen into tokens and components.']
+];
+const ACTIONS = [
+  ['New skill', 'Create a skill in one or more places'], ['Fix problems one by one', '3 skills need your attention'], ['Show only skills with problems', 'Filter the Skills table'], ['Download a backup', 'All 142 skills in one file'], ['Switch theme', 'Light, dark or match my computer']
+];
+const PAGES = [['Skills', 'The table of every skill and agent'], ['Needs attention', '3 to go'], ['Trash & backups', 'Restore removed skills'], ['Advanced', 'Install, Quality, AI assist and more'], ['Settings', 'Theme, text size, AI connection']];
+function dist(a, b) { const m = []; for (let i = 0; i <= a.length; i++) { m[i] = [i]; } for (let j = 0; j <= b.length; j++) { m[0][j] = j; } for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return m[a.length][b.length]; }
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { q: 'code', sel: 0, dark: null }; }
+  renderVals() {
+    const dark = this.state.dark === null ? !!(this.props.dark ?? true) : this.state.dark;
+    const q = this.state.q.trim().toLowerCase();
+    const hit = (a) => !q || (a[0] + ' ' + a[1]).toLowerCase().includes(q);
+    let n = 0; const sel = this.state.sel;
+    const mk = (list, icon, limit) => list.filter(hit).slice(0, limit).map(a => { const k = n++; return { title: a[0], sub: a[1], icon, sel: k === sel ? 'true' : 'false', pick: () => this.setState({ sel: k }) }; });
+    const groups = [{ title: 'Skills', items: mk(SKILLS, SKILL, 5) }, { title: 'Actions', items: mk(ACTIONS, ACT, 3) }, { title: 'Pages', items: mk(PAGES, PAGE, 3) }].filter(g => g.items.length);
+    let guess = '';
+    if (!groups.length && q) { let best = 99; SKILLS.forEach(s => { const parts = s[0].split('-'); parts.concat([s[0]]).forEach(p => { const d = dist(q, p); if (d < best) { best = d; guess = s[0]; } }); }); if (best > 3) guess = ''; }
+    return {
+      theme: dark ? 'dark' : 'light',
+      q: this.state.q, onQ: (e) => this.setState({ q: e.target.value, sel: 0 }),
+      groups, none: groups.length === 0, guess, hasGuess: !!guess,
+      useGuess: () => this.setState({ q: guess, sel: 0 })
+    };
+  }
+}
+</script>
+</body>
+</html>

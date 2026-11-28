@@ -1,0 +1,18 @@
+<!-- @dsCard group="Content" height=380 subtitle="Now / Suggested, and choosing which version wins" -->
+<!doctype html>
+<html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>body{margin:0}.cap{margin:0 0 6px;font:600 12px/16px var(--font-sans);letter-spacing:.02em;color:var(--mute)}</style></head>
+<body><div class="sm-root" style="padding: 20px; display: flex; flex-direction: column; gap: 22px; max-width: 760px">
+  <div class="sm-compare">
+    <div class="sm-compare__side"><p class="cap">Now</p><p style="margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2)">Review a diff for bugs, risky patterns and missing tests before you commit. Use after finishing a change and before opening a pull request.</p></div>
+    <div class="sm-compare__side sm-compare__side--new"><p class="cap" style="color: var(--accent)">Suggested</p><p style="margin: 0; font-size: 14px; line-height: 1.55">Review a diff for bugs and missing tests before you commit or open a pull request.</p></div>
+  </div>
+  <div>
+    <p class="cap" style="margin-bottom: 10px">Which version should every place use?</p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap">
+      <button type="button" class="sm-choice" aria-pressed="true"><span style="font-size: 14px; font-weight: 600">The shared version</span><span style="font-size: 13px; color: var(--mute)">Used in 3 places. Codex’s change goes to Trash.</span><pre class="sm-choice__snip">3. Add a print statement near the
+   failure and run it again.</pre></button>
+      <button type="button" class="sm-choice" aria-pressed="false"><span style="font-size: 14px; font-weight: 600">Codex’s version</span><span style="font-size: 13px; color: var(--mute)">Changed 18 Nov. The other 3 places get it.</span><pre class="sm-choice__snip">3. Add a breakpoint near the failure
+   and step through it.</pre></button>
+    </div>
+  </div>
+</div></body></html>

@@ -1689,7 +1689,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       const sample=await page.evaluate(()=>({dpr:devicePixelRatio,width:innerWidth,client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
       assert(Math.abs(sample.dpr/baseline-percent/100)<0.05,JSON.stringify({percent,baseline,...sample}));
       assert(sample.scroll<=sample.client+1,JSON.stringify(sample));samples.push({percent,...sample});
-      for(const route of ['home','skills','skill/same-everywhere','map','attention','trash']){
+      for(const route of ['home','skills','skill/same-everywhere','map','attention','trash','advanced','advanced/doctor']){
         await go(route);
         await page.screenshot({path:path.join(root,`browser-zoom-${percent}-${route.replace('/','-')}.png`)});
         const overflow=await page.evaluate(()=>[...document.querySelectorAll('main *')].filter(e=>{const b=e.getBoundingClientRect();return b.width>0 && b.right>document.documentElement.clientWidth+1;}).map(e=>({tag:e.tagName,cls:e.className,text:e.innerText?.slice(0,80),width:e.getBoundingClientRect().width,right:e.getBoundingClientRect().right})));
@@ -1921,27 +1921,75 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await evidence.press('Enter');
     await finding.getByRole('region', {name:/^Evidence for /}).waitFor();
   });
-  await test('Tool directory filters by task and stays searchable after opening a tool',async()=>{
+  await test('Advanced lists tools and retains its search after opening one',async()=>{
     await page.setViewportSize({width:390,height:844});
-    await go('tools');
+    await go('advanced');
+    const screen=page.locator('.jf-advanced');
+    await screen.getByRole('heading',{name:'Advanced',exact:true}).waitFor();
+    for(const name of ['Add skills','Check my setup','AI assist','Settings','Write','Test','Shorten','Find conflicts'])
+      assert(await screen.getByRole('heading',{name,exact:true}).isVisible(),name);
+    const links=screen.getByRole('link');
+    for(const id of ['install','profiles','templates','quality','workspaces','source-update','doctor','ai-settings','ai-ask','ai-draft','ai-concise','ai-profile','ai-trigger','ai-improve','ai-budget','ai-evals','ai-ablate','ai-conflicts','ai-overlap','ai-explain','ai-port'])
+      assert.equal(await screen.locator(`a[href="#/advanced/${id}"]`).count(),1,id);
+    assert.equal(await screen.locator('a[href="#/settings"]').count(),1);
+    assert.equal(await screen.locator('a[href="#/settings/tracking"]').count(),1);
     const search=page.getByRole('searchbox',{name:'Find a tool',exact:true});
     await search.fill('  INDEX   maintenance  ');
-    const links=page.locator('.tp-index').getByRole('link');
     assert.equal(await links.count(),1);
     assert.match(await links.innerText(),/Settings/);
     await search.press('Tab');
     assert(await links.evaluate(link=>link===document.activeElement));
     await page.keyboard.press('Enter');
     await page.getByRole('heading',{name:'Settings',exact:true}).waitFor();
-    const nav=page.getByRole('navigation',{name:'Tools navigation'});
-    assert.equal(await nav.getByRole('link').count(),1);
-    await nav.getByRole('link',{name:'All tools',exact:true}).click();
+    await page.goBack();
+    await screen.getByRole('heading',{name:'Advanced',exact:true}).waitFor();
     assert.match(await search.inputValue(),/INDEX/);
+    await screen.getByRole('status').filter({hasText:'1 matching tool'}).waitFor();
     await search.fill('<unmatched>');
     assert.equal(await links.count(),0);
     await page.getByRole('status').filter({hasText:'0 matching tools'}).waitFor();
     await search.fill('');
     assert(await links.count()>10);
+  });
+  await test('Advanced group switches guard direct routes and Doctor reads real evidence',async()=>{
+    const endpoint=base+'/api/tracking';
+    const read=async()=>(await page.request.get(endpoint)).json();
+    const write=async(settings)=>{
+      const response=await page.request.put(endpoint,{headers:{Origin:base},data:settings});
+      assert.equal(response.status(),200,await response.text());
+    };
+    const previous=(await read()).settings;
+    const requests=[];
+    const observe=request=>{const url=new URL(request.url());if(['/api/doctor','/api/catalog','/api/templates','/api/workspaces'].some(p=>url.pathname===p||url.pathname.startsWith(p+'/'))||url.pathname.startsWith('/api/source-updates'))requests.push(url.pathname+url.search);};
+    page.on('request',observe);
+    try {
+      const disabled={...previous,tool_groups:{...previous.tool_groups,'add-skills':false,'check-setup':false,'ai-assist':false}};
+      await write(disabled);
+      await go('advanced');
+      const screen=page.locator('.jf-advanced');
+      assert.equal(await screen.locator('a[href="#/settings"]').count(),1);
+      assert.equal(await screen.locator('a[href="#/advanced/source-update"],a[href="#/advanced/doctor"],a[href="#/advanced/ai-draft"]').count(),0);
+      for (const [tool, group] of [['source-update','Add skills'],['doctor','Check my setup'],
+        ['profiles','Add skills'],['quality','Check my setup']]) {
+        requests.length=0;
+        await go('advanced/'+tool);
+        await page.getByRole('heading',{name:group+' is switched off',exact:true}).waitFor();
+        // The shell loads the catalog at startup. Profiles must not load it a second time.
+        assert(requests.length<=1 && requests.every(url=>url==='/api/catalog'),`${tool}: ${requests.join(', ')}`);
+      }
+      await write({...disabled,revision:(await read()).revision,tool_groups:{...disabled.tool_groups,'check-setup':true}});
+      await go('advanced/doctor');
+      await page.getByRole('heading',{name:'Doctor',exact:true}).waitFor();
+      const response=page.waitForResponse(r=>r.url()===base+'/api/doctor?scope=all&hygiene=1' && r.request().method()==='GET');
+      await page.getByRole('button',{name:'Run Doctor',exact:true}).click();
+      assert.equal((await response).status(),200);
+      await page.getByRole('heading',{name:'Doctor results',exact:true}).waitFor();
+      await go('advanced/source-update');
+      await page.getByRole('heading',{name:'Add skills is switched off',exact:true}).waitFor();
+    } finally {
+      page.off('request',observe);
+      await write({...previous,revision:(await read()).revision});
+    }
   });
   await test('Quality jumps focus headings without changing the route', async () => {
     await page.setViewportSize({width:320,height:780});
@@ -1960,7 +2008,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
     for(const width of [320,768,1280])for(const mode of ['light','dark']){
       await page.setViewportSize({width,height:900});await go('tools/settings');await page.getByLabel('Theme',{exact:true}).selectOption(mode);
-      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/settings','tools/source-update','tools/ai-settings','skills','trash','settings/tracking','settings/tracking/add-agent']){
+      for(const route of ['tools','tools/install','tools/profiles','tools/templates','tools/quality','tools/workspaces','tools/doctor','tools/settings','tools/source-update','tools/ai-settings','skills','trash','settings/tracking','settings/tracking/add-agent']){
         await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`${route} ${width} ${mode}`);
         if (route.startsWith('tools/')) {
           const nav = page.getByRole('navigation',{name:'Tools navigation'});

@@ -581,3 +581,31 @@
   .jf-trash-recent { grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-2); }
   .jf-trash-screen .sm-btn, .jf-trash-restored a, .jf-trash-review-options label, .jf-trash-screen summary { min-height: var(--touch); }
 }
+
+/* S9 Advanced directory. */
+.jf-advanced { max-width: 1280px; margin-inline: auto; padding: 0 var(--space-10) var(--space-10); }
+.jf-advanced-heading { padding: var(--space-8) 0 var(--space-6); }
+.jf-advanced-heading h1 { margin: 0; font: var(--type-title-page-weight) var(--type-title-page-size)/var(--type-title-page-line) var(--font-sans); letter-spacing: var(--type-title-page-tracking); }
+.jf-advanced-heading p { margin: var(--space-2) 0 0; color: var(--ink-2); font-size: var(--type-body-lg-size); line-height: 1.55; }
+.jf-advanced-off { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0 0 var(--space-5); padding: var(--space-4); border-radius: var(--radius-md); background: var(--accent-soft); line-height: 1.5; }
+.jf-advanced-off .i { flex: none; color: var(--accent); }
+.jf-advanced-search { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-6); }
+.jf-advanced-search-field { position: relative; width: min(100%, 380px); }
+.jf-advanced-search-field .i { position: absolute; inset-inline-start: var(--space-3); top: 50%; transform: translateY(-50%); color: var(--mute); pointer-events: none; }
+.jf-advanced-search-field .field { width: 100%; min-height: var(--touch); padding-inline-start: var(--space-10); }
+.jf-advanced-search > p { margin: 0; color: var(--mute); font-size: var(--type-cell-size); }
+.jf-advanced-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--space-5); align-items: start; }
+.jf-advanced-grid-expanded { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.jf-advanced-group { min-width: 0; padding: var(--space-5) var(--space-5) var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-xl); background: var(--surface); }
+.jf-advanced-group h2 { margin: 0 0 var(--space-1); font: var(--type-title-banner-weight) var(--type-title-banner-size)/var(--type-title-banner-line) var(--font-sans); letter-spacing: var(--type-title-banner-tracking); }
+.jf-advanced-group-description { margin: 0 0 var(--space-2); color: var(--mute); font-size: var(--type-cell-size); }
+.jf-advanced-section h3 { margin: var(--space-4) 0 var(--space-1); color: var(--mute); font-size: var(--type-cell-size); font-weight: 600; }
+#app .jf-advanced-tool { display: flex; align-items: flex-start; gap: var(--space-3); margin: 0 calc(-1 * var(--space-2)); padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); color: var(--ink); text-decoration: none; }
+#app .jf-advanced-tool:hover { background: var(--raise); }
+.jf-advanced-icon { display: grid; place-items: center; flex: none; width: var(--space-8); height: var(--space-8); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--raise); color: var(--ink-2); }
+.jf-advanced-icon .i { width: var(--space-4); height: var(--space-4); }
+.jf-advanced-tool strong, .jf-advanced-tool small { display: block; }
+.jf-advanced-tool strong { font-size: var(--type-body-size); font-weight: 600; }
+.jf-advanced-tool small { margin-top: var(--space-1); color: var(--mute); font-size: var(--type-cell-size); line-height: 1.45; }
+.jf-advanced-empty { grid-column: 1 / -1; color: var(--mute); }
+@media (max-width: 600px) { .jf-advanced { padding-inline: var(--space-4); } .jf-advanced-heading h1 { font-size: var(--type-title-panel-size); } .jf-advanced-grid-expanded { grid-template-columns: minmax(0, 1fr); } }

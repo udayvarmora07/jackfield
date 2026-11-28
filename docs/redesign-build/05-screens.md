@@ -248,8 +248,9 @@ most recent successful download start and its size are saved per browser.
   service. You see what's sent first, every time."); Settings (Settings, What to
   track). Switched-off groups are absent; all off shows "Tool groups are
   switched off. Turn them on in What to track."
-- **Every existing tool keeps a home** (BD-10). Proposed mapping, needs the
-  maintainer's OK (open question Q2):
+- **Every existing tool keeps a home** (BD-10). The maintainer approved this
+  mapping in Q2 on 2026-11-28. The Add skills switch now controls Update from
+  folder. Doctor is a standalone report in Check my setup.
 
 | Group | Board rows | Existing tools placed there |
 |---|---|---|

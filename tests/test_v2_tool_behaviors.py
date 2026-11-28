@@ -241,12 +241,17 @@ class ToolBehaviorTests(unittest.TestCase):
           const search=ctx.window.Jackfield.palette.search;
           const choices=search('quality',[],()=>'',M.toolItems,id=>id!=='source-update').flatMap(g=>g.items);
           const groups=ctx.window.SkillsV2ToolCenter.computed.toolGroups.call({});
-          return {routes,ids:M.toolIds,unknown,base,groups,choices};
+          const owner=id=>M.toolGroups.find(g=>g.items.some(item=>item.id===id)).key;
+          const disabled=mount(ctx.window.SkillsV2ToolCenter,{groupsOn:{add:false,inspect:false,ai:false}});
+          return {routes,ids:M.toolIds,unknown,base,groups,choices,
+            owners:[owner('source-update'),owner('doctor')],visible:disabled.toolGroups.flatMap(g=>g.items.map(i=>i.id))};
         """)
         self.assertEqual(out["routes"], out["ids"])
         self.assertEqual(out["unknown"], "missing")
         self.assertEqual(out["base"], "tools")
         self.assertEqual([item["id"] for group in out["groups"] for item in group["items"]], out["ids"])
+        self.assertEqual(out["owners"], ["add", "inspect"])
+        self.assertEqual(out["visible"], ["settings"])
         self.assertNotIn("#/advanced/source-update", [item.get("path") for item in out["choices"]])
         self.assertIn(("Quality and validation", "#/advanced/quality"),
                       [(item["label"], item.get("path")) for item in out["choices"]])

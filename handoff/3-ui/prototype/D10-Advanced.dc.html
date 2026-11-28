@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Advanced</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+body{margin:0}
+.sm-root{--bg:#F6F6F3;--surface:#FFFFFF;--raise:#F5F5F3;--line:#ECECE9;--line-subtle:#F3F3F1;--ink:#191917;--ink-2:#3B3B37;--mute:#666660;--text-faint:#6E6E67;--mark-faint:#9A9A93;--accent:#2D58D0;--on-accent:#FFFFFF;--accent-soft:#EDF1FC;--warn:#8A4700;--font-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--radius-xs:5px;--radius-sm:9px;--control:36px;--touch:44px}
+.sm-root.dark{--bg:#121211;--surface:#1A1A19;--raise:#222220;--line:#2C2C2A;--line-subtle:#242422;--ink:#EDEDEA;--ink-2:#CFCFCA;--mute:#B0B0A9;--text-faint:#9A9A93;--mark-faint:#77776F;--accent:#8CAEFF;--on-accent:#0C1430;--accent-soft:#1C2540;--warn:#F2B866}
+.sm-root{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font-sans);font-size:14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.sm-root a{color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
+.sm-root button:focus-visible,.sm-root a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sm-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:var(--control);padding:0 14px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 14px/1 var(--font-sans);cursor:pointer;box-sizing:border-box;white-space:nowrap}
+.sm-btn:hover{border-color:var(--mark-faint)}
+.sm-btn--icon{width:34px;height:34px;padding:0}
+@media (max-width:640px){.sm-btn--icon{width:var(--touch);height:var(--touch)}}
+.sm-kbd{font:500 11px/1 var(--font-mono);color:var(--mute);border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--radius-xs);padding:2px 5px;background:var(--surface)}
+.sm-nav{display:flex;align-items:center;gap:32px;min-height:60px;padding:0 40px;border-bottom:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+.sm-root .sm-nav__link{display:inline-block;color:var(--mute);text-decoration:none;font:500 14px/1 var(--font-sans);padding:22px 0 20px;border-bottom:1.5px solid transparent}
+.sm-root .sm-nav__link[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+.sm-nav__count{color:var(--warn);font-weight:600;margin-left:5px}
+.sm-search{display:flex;align-items:center;gap:10px;width:280px;max-width:100%;height:34px;padding:0 10px 0 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--mute);font:400 14px/1 var(--font-sans);cursor:pointer}
+.sm-main{margin:0 auto;padding:0 40px 96px;box-sizing:border-box}
+@media (max-width:640px){.sm-nav{padding:0 16px;gap:14px}.sm-main{padding:0 16px 96px}}
+.grp{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px 10px;display:flex;flex-direction:column}
+.sm-root a.tool{display:flex;align-items:flex-start;gap:12px;padding:12px 10px;margin:0 -10px;border-radius:11px;text-decoration:none;color:var(--ink)}
+.sm-root a.tool:hover{background:var(--raise)}
+.tool .ic{width:32px;height:32px;border-radius:9px;background:var(--raise);border:1px solid var(--line);display:grid;place-items:center;flex:none;color:var(--ink-2)}
+.tool .t{display:block;font-size:14px;font-weight:600}
+.tool .d{display:block;font-size:13px;line-height:1.45;color:var(--mute);margin-top:2px}
+.tag{font:500 11.5px/1 var(--font-sans);color:var(--ink-2);background:var(--raise);border:1px solid var(--line);border-radius:999px/* unslop-ignore: design-system radius-pill, used only for labels and counts */;padding:3px 8px;margin-left:6px;vertical-align:1px}
+
+/* Icons (2026-11-25): agent marks and state icons drawn as masks so they follow the theme colour. */
+span.ag[data-a],span.sm-ag[data-a]{flex:none;width:20px;height:20px;box-sizing:border-box;font-size:0!important;line-height:0;color:var(--ink-2,var(--ink2))}
+span.ag[data-a]::before,span.sm-ag[data-a]::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-a="CC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="OC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="CX"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="SH"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="PJ"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+.chk.ok .ic::before,.chk.no .ic::before{content:"";width:10px;height:10px;background:currentColor;-webkit-mask:var(--chi) center/contain no-repeat;mask:var(--chi) center/contain no-repeat}
+.chk.ok .ic{--chi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}.chk.no .ic{--chi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E")}
+</style>
+</helmet>
+<div class="sm-root {{ theme }}">
+  <header class="sm-nav">
+    <a href="D01-Skills.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px; letter-spacing: -0.01em">
+      <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style="fill: currentColor"><rect x="1" y="1" width="5" height="5" rx="1.3"/><rect x="7.5" y="1" width="5" height="5" rx="1.3"/><rect x="14" y="1" width="5" height="5" rx="1.3"/><rect x="1" y="7.5" width="5" height="5" rx="1.3"/><rect x="7.5" y="7.5" width="5" height="5" rx="1.3" style="fill: var(--accent)"/><rect x="14" y="7.5" width="5" height="5" rx="1.3"/><rect x="1" y="14" width="5" height="5" rx="1.3"/><rect x="7.5" y="14" width="5" height="5" rx="1.3"/><rect x="14" y="14" width="5" height="5" rx="1.3"/></svg>
+      Skills Manager
+    </a>
+    <nav aria-label="Main" style="display: flex; gap: 26px; flex-wrap: wrap">
+      <a class="sm-nav__link" href="D01-Skills.dc.html">Skills</a>
+      <a class="sm-nav__link" href="D08-Needs-Attention.dc.html">Needs attention<span class="sm-nav__count">3</span></a>
+      <a class="sm-nav__link" href="D09-Trash-Backups.dc.html">Trash &amp; backups</a>
+      <a class="sm-nav__link" href="D10-Advanced.dc.html" aria-current="page">Advanced</a>
+    </nav>
+    <div style="flex: 1 1 auto"></div>
+    <button type="button" class="sm-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span style="flex: 1; text-align: left">Search skills and actions</span><span class="sm-kbd">/</span></button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Switch theme" onClick="{{ toggleTheme }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Help"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17.3h.01"/></svg></button>
+  </header>
+
+  <main class="sm-main" style="max-width: 1280px">
+    <div style="padding: 32px 0 24px">
+      <h1 style="margin: 0; font-size: 30px; line-height: 1.12; font-weight: 600; letter-spacing: -.02em">Advanced</h1>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: var(--ink-2)">Tools you won’t need every day, grouped by what you want to do.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start">
+      <section class="grp" aria-labelledby="g-add">
+        <h2 id="g-add" style="margin: 0 0 2px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Add skills</h2>
+        <p style="margin: 0 0 8px; font-size: 13px; color: var(--mute)">Bring in skills from outside, or start from a pattern.</p>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></span><span><span class="t">Install</span><span class="d">Add a skill from a folder or a zip file.</span></span></a>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 10v10"/></svg></span><span><span class="t">Templates</span><span class="d">Starting layouts for new skills. Add your own.</span></span></a>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><span><span class="t">Profiles</span><span class="d">Named sets of skills you can turn on together.</span></span></a>
+      </section>
+
+      <section class="grp" aria-labelledby="g-check">
+        <h2 id="g-check" style="margin: 0 0 2px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Check my setup</h2>
+        <p style="margin: 0 0 8px; font-size: 13px; color: var(--mute)">Find out what’s wrong and why.</p>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l5 5L20 6"/></svg></span><span><span class="t">Quality</span><span class="d">Scores each skill’s name, description and length, with tips.</span></span></a>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg></span><span><span class="t">Where agents look</span><span class="d">Every folder each agent reads skills from, and which exist.</span></span></a>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span><span class="t">Doctor</span><span class="d">A full check of Skills Manager itself and its index.</span></span></a>
+      </section>
+
+      <section class="grp" aria-labelledby="g-ai">
+        <h2 id="g-ai" style="margin: 0 0 2px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">AI assist</h2>
+        <p style="margin: 0 0 8px; font-size: 13px; color: var(--mute)">Uses your own AI service. You see what’s sent first, every time.</p>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8M12 8v8"/><circle cx="12" cy="12" r="9"/></svg></span><span><span class="t">Connection</span><span class="d">Choose which AI service to use, and test that it answers.</span></span></a>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></span><span><span class="t">Write</span><span class="d">Draft a new skill from a short idea.</span></span></a>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg></span><span><span class="t">Test</span><span class="d">Check whether a description makes an agent pick the skill.</span></span></a>
+        <a class="tool" href="D11-Tool-Page.dc.html"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h6"/></svg></span><span><span class="t">Shorten</span><span class="d">Make a description shorter so it uses less list space.</span></span></a>
+        <a class="tool" href="#"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/></svg></span><span><span class="t">Find conflicts</span><span class="d">Spot skills that would fight over the same request.</span></span></a>
+      </section>
+
+      <section class="grp" aria-labelledby="g-set">
+        <h2 id="g-set" style="margin: 0 0 2px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Settings</h2>
+        <p style="margin: 0 0 8px; font-size: 13px; color: var(--mute)">How Skills Manager looks and behaves.</p>
+        <a class="tool" href="D12-Settings.dc.html"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></span><span><span class="t">Settings</span><span class="d">Theme, text size, dates, AI connection and upkeep.</span></span></a>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { dark: null }; }
+  renderVals() {
+    const dark = this.state.dark === null ? !!(this.props.dark ?? true) : this.state.dark;
+    return { theme: dark ? 'dark' : 'light', toggleTheme: () => this.setState({ dark: !dark }) };
+  }
+}
+</script>
+</body>
+</html>

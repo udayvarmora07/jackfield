@@ -70,8 +70,8 @@ function savedPreference(key, choices, fallback) {try{const value=localStorage.g
  * and offers Undo by putting the previous document back. Nothing on disk
  * outside tracking.json ever changes from here. */
 const TRACK_GROUPS = [
-  { id: "add-skills", key: "add", name: "Add skills", text: "Install from a registry or folder, profiles and templates." },
-  { id: "check-setup", key: "inspect", name: "Check my setup", text: "Quality checks, where agents look, and updating a copy from a folder." },
+  { id: "add-skills", key: "add", name: "Add skills", text: "Install skills, make profiles and templates, or update a copy from a folder." },
+  { id: "check-setup", key: "inspect", name: "Check my setup", text: "Run quality checks, see where agents look, and diagnose library problems." },
   { id: "ai-assist", key: "ai", name: "AI assist", text: "Write, test, shorten and check skills with your AI service." },
 ];
 const TRACK_RESERVED = ["shared folder", "global", "your library"];
@@ -1050,7 +1050,7 @@ const app = createApp({
       route: Router.current(), routeAction: "", catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0,
       exportPending: false, exportError: "", libraryDownload: savedLibraryDownload(),
-      query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name",
+      query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name", advancedQuery: "",
       bodies: {}, bodyInflight: {}, bodyErrors: {},
       treeQuery: "", edit: null, highlight: true, compareWith: "", leadOpen: false,
       mapSelId: "", mapPicked: [], peek: null,

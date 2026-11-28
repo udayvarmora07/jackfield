@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skills table — Winner</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+body{margin:0}
+.theme-light{--bg:#F6F6F3;--surface:#FFFFFF;--raise:#F5F5F3;--line:#ECECE9;--line2:#F3F3F1;--ink:#191917;--ink2:#3B3B37;--mute:#666660;--faint:#9A9A93;--faint-text:#6E6E67;--acc:#2D58D0;--acc-ink:#FFFFFF;--acc-soft:#EDF1FC;--warn:#8A4700;--warn-mk:#C06A00;--warn-soft:#FFF7EC;--warn-line:#F1DDC0;--bad:#A3261A;--bad-soft:#FDEEEC;--toast:#191917;--toast-ink:#FAFAF9;--shadow:0 1px 2px rgba(25,25,23,.04),0 10px 28px rgba(25,25,23,.07)}
+.theme-dark{--bg:#121211;--surface:#1A1A19;--raise:#222220;--line:#2C2C2A;--line2:#242422;--ink:#EDEDEA;--ink2:#CFCFCA;--mute:#B0B0A9;--faint:#77776F;--faint-text:#9A9A93;--acc:#8CAEFF;--acc-ink:#0C1430;--acc-soft:#1C2540;--warn:#F2B866;--warn-mk:#F2A33C;--warn-soft:#241B10;--warn-line:#4A3517;--bad:#FF9C8F;--bad-soft:#2E1714;--toast:#EDEDEA;--toast-ink:#121211;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35)}
+.root{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.root a{color:var(--acc);text-underline-offset:3px;text-decoration-thickness:1px}
+.root button:focus-visible,.root a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.root label:focus-within{outline:2px solid var(--acc);outline-offset:1px}
+.cell{display:flex;align-items:center;gap:9px;width:100%;height:100%;min-height:64px;padding:0 16px;border:0;border-left:1px solid var(--line2);background:transparent;font:500 13px/1.2 'IBM Plex Sans',sans-serif;color:var(--ink);cursor:pointer;text-align:left;transition:background .12s}
+.cell:hover{background:var(--raise)}
+.root .cell:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.cell.sel{background:var(--acc-soft);box-shadow:inset 0 0 0 1.5px var(--acc)}
+.mk{position:relative;flex:none;width:9px;height:9px;box-sizing:border-box}
+.k-on .mk{border-radius:50%;background:var(--acc)}
+.k-off{color:var(--mute)}.k-off .mk{border-radius:50%;border:1.5px solid var(--faint)}
+.k-set{color:var(--mute)}.k-set .mk{border-radius:50%;border:1.5px dashed var(--mute)}
+.k-diff{color:var(--warn)}.k-diff .mk{width:8px;height:8px;background:var(--warn-mk);transform:rotate(45deg);border-radius:1.5px}
+.k-bad{color:var(--bad)}.k-bad .mk::before,.k-bad .mk::after{content:"";position:absolute;left:3.5px;top:-1px;width:2px;height:11px;background:var(--bad);border-radius:1px;transform:rotate(45deg)}.k-bad .mk::after{transform:rotate(-45deg)}
+.k-none{color:var(--faint-text)}.k-none .mk{width:9px;height:1.5px;background:var(--faint);border-radius:1px}
+.row{display:grid;grid-template-columns:minmax(300px,2.6fr) repeat(5,minmax(116px,1fr));border-bottom:1px solid var(--line2);background:var(--surface)}
+.root .navlink{color:var(--mute);text-decoration:none!important;font-size:14px;font-weight:500;padding:6px 0;border-bottom:1.5px solid transparent}
+.root .navlink:hover{color:var(--ink)}
+.btn{height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 14px/1 'IBM Plex Sans',sans-serif;cursor:pointer}
+.btn:hover{border-color:var(--faint)}
+.btn[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc)}
+.icobtn{width:34px;height:34px;padding:0;display:grid;place-items:center}
+@media (max-width:640px){.icobtn{width:44px;height:44px}}
+.kbd{font:500 11px/1 'IBM Plex Mono',monospace;color:var(--mute);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:2px 5px;background:var(--surface)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:-.01em;color:var(--faint-text)}
+.ag{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--raise);border:1px solid var(--line);font:600 9.5px/1 'IBM Plex Mono',monospace;color:var(--ink2)}
+.pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px/* unslop-ignore: design-system radius-pill, used only for labels and counts */;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500}
+.v-bad{color:var(--bad)}.v-warn{color:var(--warn)}.v-ok{color:var(--mute)}
+
+/* Icons (2026-11-25): agent marks and state icons drawn as masks so they follow the theme colour. */
+span.ag[data-a],span.sm-ag[data-a]{flex:none;width:20px;height:20px;box-sizing:border-box;font-size:0!important;line-height:0;color:var(--ink-2,var(--ink2))}
+span.ag[data-a]::before,span.sm-ag[data-a]::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-a="CC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="OC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="CX"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="SH"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="PJ"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+
+/* Icons pass 2 (2026-11-25): agent marks by name, inline marks, state and choice icons. */
+span.ag[data-a],span.sm-ag[data-a]{display:inline-grid;place-items:center;border-radius:5px;background:var(--raise);border:1px solid var(--line)}
+[data-a="Claude Code"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="Codex"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="OpenCode"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="Shared folder"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="This project"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+span.agm[data-a]{display:inline-block;flex:none;width:14px;height:14px;vertical-align:-2px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-i="Light"]::before,[data-i="Dark"]::before,[data-i="Match my computer"]::before,[data-i="Blank"]::before,[data-i="Step by step"]::before,[data-i="Checklist"]::before{content:"";flex:none;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ii) center/contain no-repeat;mask:var(--ii) center/contain no-repeat}
+[data-i="Light"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Dark"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Match my computer"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='12' rx='2'/%3E%3Cpath d='M8 20h8M12 16v4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Blank"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z'/%3E%3Cpath d='M14 3v5h5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Step by step"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h11M10 12h11M10 18h11M4 5h1.5v4M4 9h3M4 15.5c0-1 3-1.3 3 0 0 1-3 1.6-3 3h3'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Checklist"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 7 2 2 4-4M3 15l2 2 4-4M13 7h8M13 15h8'/%3E%3C/g%3E%3C/svg%3E")}
+.conn::before{content:"";flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:var(--ci) center/contain no-repeat;mask:var(--ci) center/contain no-repeat}
+.conn.failed{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16.5h.01'/%3E%3C/g%3E%3C/svg%3E")}.conn.ok{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/g%3E%3C/svg%3E")}.conn.untested{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/g%3E%3C/svg%3E")}
+details>summary{list-style:none;display:flex;align-items:center;gap:6px;cursor:pointer}details>summary::-webkit-details-marker{display:none}details>summary::before{content:"";width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;transition:transform .12s}details[open]>summary::before{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){details>summary::before{transition:none}}
+</style>
+</helmet>
+<div class="root {{ theme }}">
+  <header style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap; padding: 0 40px; min-height: 60px; border-bottom: 1px solid var(--line); background: var(--bg)">
+    <a href="D01-Skills.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px; letter-spacing: -0.01em">
+      <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="14" y="1" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="1" y="7.5" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="7.5" width="5" height="5" rx="1.3" fill="var(--acc)"/><rect x="14" y="7.5" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="1" y="14" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="7.5" y="14" width="5" height="5" rx="1.3" fill="currentColor"/><rect x="14" y="14" width="5" height="5" rx="1.3" fill="currentColor"/></svg>
+      Skills Manager
+    </a>
+    <nav aria-label="Main" style="display: flex; gap: 26px; flex-wrap: wrap; align-self: stretch; align-items: center">
+      <a class="navlink" href="D01-Skills.dc.html" aria-current="page" style="color: var(--ink); border-bottom-color: var(--ink)">Skills</a>
+      <a class="navlink" href="D08-Needs-Attention.dc.html">Needs attention <span style="color: var(--warn); font-weight: 600; margin-left: 3px">3</span></a>
+      <a class="navlink" href="D09-Trash-Backups.dc.html">Trash &amp; backups</a>
+      <a class="navlink" href="D10-Advanced.dc.html">Advanced</a>
+    </nav>
+    <div style="flex: 1 1 auto"></div>
+    <button type="button" style="display: flex; align-items: center; gap: 10px; width: 280px; max-width: 100%; height: 34px; padding: 0 10px 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; color: var(--mute); font: 400 14px/1 'IBM Plex Sans', sans-serif; cursor: pointer">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span style="flex: 1; text-align: left">Search skills and actions</span>
+      <span class="kbd">/</span>
+    </button>
+    <button type="button" aria-label="Switch theme" class="btn icobtn" onClick="{{ toggleTheme }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button type="button" aria-label="Help" class="btn icobtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17.3h.01"/></svg></button>
+  </header>
+
+  <main style="max-width: 1440px; margin: 0 auto; padding: 36px 40px 96px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 20px">
+      <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap">
+        <h1 style="margin: 0; font-size: 30px; line-height: 1.1; font-weight: 600; letter-spacing: -.02em">Skills</h1>
+        <span style="color: var(--mute); font-size: 15px">142 skills in 5 places</span>
+      </div>
+      <a href="D06-New-Skill.dc.html" class="btn" style="height: 38px; padding: 0 16px; display: flex; align-items: center; gap: 8px; box-sizing: border-box; text-decoration: none; color: var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New skill</a>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 22px; margin-bottom: 20px; background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 14px">
+      <div style="flex: 1 1 460px; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 600; color: var(--warn); letter-spacing: -0.01em"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>3 skills need your attention</div>
+        <div style="font-size: 14px; line-height: 1.5; color: var(--ink2); margin-top: 3px">Codex and OpenCode each have a different copy of one skill, and Codex can’t read its copy of security-review.</div>
+      </div>
+      <button type="button" class="btn" aria-pressed="{{ onlyPressed }}" onClick="{{ toggleOnly }}" style="border-color: var(--warn-line)">Show only these</button>
+      <a href="D08-Needs-Attention.dc.html" class="btn" style="background: var(--ink); color: var(--bg); border-color: var(--ink); display: inline-flex; align-items: center; box-sizing: border-box; text-decoration: none">Fix one by one</a>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px">
+      <label style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; flex: 1 1 280px; max-width: 360px">
+        <span style="position: absolute; left: -9999px/* unslop-ignore: design-system radius-pill, used only for labels and counts */">Filter skills</span>
+        <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Filter by name or what it does" style="flex: 1; background: transparent; border: 0; outline: 0; color: var(--ink); font: 400 14px/1 'IBM Plex Sans', sans-serif">
+      </label>
+      <button type="button" class="btn">All places<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 4px; vertical-align: -2px"><path d="m6 9 6 6 6-6"/></svg></button>
+      <button type="button" class="btn">A to Z<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 4px; vertical-align: -2px"><path d="m6 9 6 6 6-6"/></svg></button>
+      <span style="flex: 1"></span>
+      <span style="font-size: 13px; color: var(--mute)">{{ shown }} of 142</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <div style="flex: 999 1 680px; min-width: 0">
+        <section aria-label="Skills table" style="border: 1px solid var(--line); border-radius: 14px; overflow-x: auto; background: var(--surface)">
+          <div style="min-width: 900px">
+            <div class="row" style="border-bottom: 1px solid var(--line)">
+              <div style="padding: 14px 20px; font-size: 12px; font-weight: 600; color: var(--mute); letter-spacing: .02em">Skill</div>
+              <sc-for list="{{ agents }}" as="a" hint-placeholder-count="5">
+                <div style="padding: 12px 16px; border-left: 1px solid var(--line2); display: flex; align-items: center; gap: 9px; min-width: 0"><span class="ag" aria-hidden="true" data-a="{{ a.mono }}">{{ a.mono }}</span><span style="min-width: 0"><span style="display: block; font-size: 13px; font-weight: 600; color: var(--ink)">{{ a.name }}</span><span class="mono" style="display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ a.path }}</span></span></div>
+              </sc-for>
+            </div>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="12">
+              <div class="row">
+                <div style="padding: 12px 20px; min-width: 0; display: flex; flex-direction: column; justify-content: center">
+                  <div style="font-weight: 600; font-size: 14px; letter-spacing: -0.005em">{{ r.name }}</div>
+                  <div style="color: var(--mute); font-size: 13px; line-height: 1.4; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.desc }}</div>
+                  <div class="{{ r.vcls }}" style="font-size: 12px; margin-top: 4px; font-weight: 500">{{ r.verdict }}</div>
+                </div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
+                  <button type="button" class="{{ c.cls }}" aria-label="{{ c.aria }}" onClick="{{ c.pick }}"><span class="mk" aria-hidden="true"></span>{{ c.label }}</button>
+                </sc-for>
+              </div>
+            </sc-for>
+            <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 56px 20px; text-align: center; color: var(--ink2)">No skills match this filter. <button type="button" class="btn" onClick="{{ clear }}">Clear filters</button></div>
+            </sc-if>
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--line); background: var(--surface)">
+              <span style="font-size: 13px; color: var(--mute)">Showing {{ shown }} of 142</span>
+              <button type="button" class="btn" style="height: 32px">Show 50 more</button>
+            </div>
+          </div>
+        </section>
+        <div style="display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--mute)">
+          <span><span class="kbd">↑</span> <span class="kbd">↓</span> <span class="kbd">←</span> <span class="kbd">→</span> move between squares</span>
+          <span><span class="kbd">Space</span> turn on or off</span>
+          <span><span class="kbd">Enter</span> open the skill</span>
+          <span><span class="kbd">/</span> search</span>
+        </div>
+      </div>
+
+      <aside aria-label="Selected square" style="flex: 1 1 340px; max-width: 392px; position: sticky; top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-sizing: border-box; box-shadow: var(--shadow)">
+        <div style="display: flex; align-items: center; gap: 9px"><span class="ag" aria-hidden="true" data-a="{{ p.mono }}">{{ p.mono }}</span><span style="font-size: 13px; color: var(--ink2); font-weight: 500">{{ p.agent }}</span></div>
+        <h2 style="margin: 14px 0 4px; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em">{{ p.skill }}</h2>
+        <div class="mono" style="margin-bottom: 18px">{{ p.path }}</div>
+        <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.55; color: var(--ink2)">{{ p.line }}</p>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap">
+          <span class="pill {{ p.nowCls }}"><span class="mk" aria-hidden="true"></span>{{ p.now }}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--faint-text)" aria-label="becomes" role="img"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <span class="pill {{ p.afterCls }}"><span class="mk" aria-hidden="true"></span>{{ p.after }}</span>
+        </div>
+        <button type="button" onClick="{{ act }}" style="width: 100%; height: 46px; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--acc); color: var(--acc-ink); border: 0; border-radius: 11px; font: 600 15px/1 'IBM Plex Sans', sans-serif; cursor: pointer">{{ p.primary }}<span style="font: 500 11px/1 'IBM Plex Mono', monospace; opacity: .75">{{ p.key }}</span></button>
+        <p style="margin: 12px 2px 20px; font-size: 13px; line-height: 1.55; color: var(--mute)">{{ p.what }}</p>
+        <div style="border-top: 1px solid var(--line2); padding-top: 14px">
+          <div style="font-size: 12px; font-weight: 600; color: var(--mute); letter-spacing: .02em; margin-bottom: 6px">Other places</div>
+          <sc-for list="{{ p.others }}" as="o" hint-placeholder-count="4">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13.5px"><span style="display: inline-flex; align-items: center; gap: 8px; color: var(--ink2)"><span class="ag" data-a="{{ o.agent }}" aria-hidden="true"></span>{{ o.agent }}</span><span class="{{ o.cls }}" style="display: flex; gap: 8px; align-items: center; font-weight: 500"><span class="mk" aria-hidden="true"></span>{{ o.label }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 18px; margin-top: 16px; font-size: 14px; font-weight: 500">
+          <a href="D04-Skill-Page.dc.html">Open skill</a>
+          <a href="D07-Why-Not-Running.dc.html">Why isn’t it running?</a>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <sc-if value="{{ hasUndo }}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 18px; background: var(--toast); color: var(--toast-ink); border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.22); font-size: 14px; z-index: 5">
+      <span>{{ undoText }}</span>
+      <button type="button" onClick="{{ undo }}" style="height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid rgba(127,127,127,.45); background: transparent; color: var(--toast-ink); font: 600 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer">Undo</button>
+      <button type="button" aria-label="Dismiss" onClick="{{ dismiss }}" style="width: 32px; height: 32px; border: 0; background: transparent; color: var(--toast-ink); font-size: 16px; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":1300}}'>
+const AGENTS = [
+  { name: 'Claude Code', mono: 'CC', path: '~/.claude/skills' }, { name: 'Codex', mono: 'CX', path: '~/.codex/skills' }, { name: 'OpenCode', mono: 'OC', path: '~/.config/opencode/skills' }, { name: 'Shared folder', mono: 'SH', path: '~/.agents/skills' }, { name: 'This project', mono: 'PJ', path: './.claude/skills' }
+];
+const ROWS = [
+  { name: 'code-review', desc: 'Review a diff for bugs before you commit.', s: ['on', 'on', 'on', 'on', 'none'] },
+  { name: 'debugging-and-error-recovery', desc: 'Find the root cause before changing code.', s: ['on', 'diff', 'on', 'on', 'none'] },
+  { name: 'design-system', desc: 'Lock an approved screen into tokens and components.', s: ['on', 'none', 'none', 'none', 'on'] },
+  { name: 'docker-compose-patterns', desc: 'Write and fix Compose files the safe way.', s: ['off', 'off', 'none', 'none', 'none'] },
+  { name: 'frontend-performance', desc: 'Measure first, then fix slow pages.', s: ['on', 'on', 'none', 'on', 'none'] },
+  { name: 'git-workflow', desc: 'Branches, commits and pull requests, done cleanly.', s: ['set', 'on', 'on', 'on', 'none'] },
+  { name: 'idea-brainstorm', desc: 'Think an idea through before building it.', s: ['on', 'none', 'none', 'none', 'on'] },
+  { name: 'journey-map', desc: 'Draw the user journey before any UI.', s: ['on', 'none', 'none', 'none', 'on'] },
+  { name: 'security-review', desc: 'Check changes for risky patterns.', s: ['on', 'bad', 'on', 'none', 'none'] },
+  { name: 'test-driven-development', desc: 'Write the failing test first.', s: ['on', 'on', 'diff', 'on', 'none'] },
+  { name: 'ux-review', desc: 'Review a working app the way a user would.', s: ['on', 'none', 'none', 'none', 'on'] },
+  { name: 'uxui-workflow', desc: 'Requirements, then UX, then UI.', s: ['on', 'none', 'none', 'none', 'on'] }
+];
+const LABEL = { on: 'On', off: 'Off', set: 'Off in settings', diff: 'Different', bad: "Can't read", none: 'Not here' };
+const NEXT = { on: 'off', off: 'on', none: 'on' };
+const DONE = { on: 'Turned off', off: 'Turned on', none: 'Added' };
+function verdict(r) {
+  const n = r.s.filter(k => k !== 'none').length; const d = r.s.findIndex(k => k === 'diff'); const b = r.s.findIndex(k => k === 'bad'); const st = r.s.findIndex(k => k === 'set');
+  if (b >= 0) return { verdict: AGENTS[b].name + '’s file can’t be read', vcls: 'v-bad' };
+  if (d >= 0) return { verdict: AGENTS[d].name + ' has a different copy', vcls: 'v-warn' };
+  if (st >= 0) return { verdict: 'Off in ' + AGENTS[st].name + ' settings', vcls: 'v-ok' };
+  if (r.s.every(k => k === 'off' || k === 'none')) return { verdict: 'Off everywhere', vcls: 'v-ok' };
+  if (r.s.some(k => k === 'off')) return { verdict: 'On in ' + r.s.filter(k => k === 'on').length + ', off in ' + r.s.filter(k => k === 'off').length, vcls: 'v-ok' };
+  return { verdict: 'Same copy in ' + n + ' place' + (n === 1 ? '' : 's'), vcls: 'v-ok' };
+}
+function panelFor(row, i) {
+  const a = AGENTS[i].name; const k = row.s[i];
+  const p = { skill: row.name, agent: a, mono: AGENTS[i].mono, path: AGENTS[i].path + '/' + row.name, now: LABEL[k], nowCls: 'k-' + k };
+  if (k === 'on') Object.assign(p, { after: 'Off', afterCls: 'k-off', line: a + ' can use this skill.', primary: 'Turn off in ' + a, key: 'Space', what: 'The file is renamed so ' + a + ' skips it. Nothing is deleted, and you can undo it.' });
+  if (k === 'off') Object.assign(p, { after: 'On', afterCls: 'k-on', line: a + ' skips this skill.', primary: 'Turn on in ' + a, key: 'Space', what: 'The file is renamed back so ' + a + ' can use it again. You can undo it.' });
+  if (k === 'set') Object.assign(p, { after: 'On', afterCls: 'k-on', line: 'The file is on, but ' + a + '’s own settings switch this skill off.', primary: 'Open the settings file', key: 'Enter', what: 'Skills Manager never changes agent settings files. Remove the line that turns it off, then refresh.' });
+  if (k === 'diff') Object.assign(p, { after: 'Same copy', afterCls: 'k-on', line: a + ' has its own version. The other places share one.', primary: 'Compare the two versions', key: 'Enter', what: 'You choose which version wins. Nothing changes until you confirm.' });
+  if (k === 'bad') Object.assign(p, { after: 'Readable', afterCls: 'k-on', line: 'The file in ' + a + ' is damaged, so ' + a + ' may not load it.', primary: 'Preview a replacement', key: 'Enter', what: 'The replacement comes from Claude Code. The damaged file goes to Trash, so you can get it back.' });
+  if (k === 'none') Object.assign(p, { after: 'On', afterCls: 'k-on', line: a + ' doesn’t have this skill yet.', primary: 'Add to ' + a, key: 'Space', what: 'A copy is made from Claude Code (12 lines, 1 extra file). You can undo it.' });
+  p.others = row.s.map((s, j) => ({ agent: AGENTS[j].name, label: LABEL[s], cls: 'k-' + s, j })).filter(o => o.j !== i);
+  return p;
+}
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { q: '', only: false, sel: { r: 'code-review', c: 1 }, dark: null, over: {}, undo: null }; }
+  renderVals() {
+    const q = (this.state.q || '').toLowerCase(); const only = !!this.state.only; const sel = this.state.sel; const over = this.state.over;
+    const dark = this.state.dark === null ? !!(this.props.dark ?? true) : this.state.dark;
+    const eff = ROWS.map(r => ({ name: r.name, desc: r.desc, s: r.s.map((k, i) => over[r.name + '|' + i] || k) }));
+    const list = eff.filter(r => (!q || (r.name + ' ' + r.desc).toLowerCase().includes(q)) && (!only || r.s.some(k => k === 'diff' || k === 'bad')));
+    const rows = list.map(r => Object.assign({ name: r.name, desc: r.desc, cells: r.s.map((k, i) => ({ label: LABEL[k], cls: 'cell k-' + k + (sel.r === r.name && sel.c === i ? ' sel' : ''), aria: r.name + ' in ' + AGENTS[i].name + ': ' + LABEL[k], pick: () => this.setState({ sel: { r: r.name, c: i } }) })) }, verdict(r)));
+    const selRow = eff.find(r => r.name === sel.r) || eff[0];
+    const cur = selRow.s[sel.c];
+    const key = selRow.name + '|' + sel.c;
+    return {
+      theme: dark ? 'theme-dark' : 'theme-light',
+      toggleTheme: () => this.setState({ dark: !dark }),
+      agents: AGENTS, rows, shown: rows.length, empty: rows.length === 0,
+      q: this.state.q, onQ: (e) => this.setState({ q: e.target.value }),
+      onlyPressed: only ? 'true' : 'false',
+      toggleOnly: () => this.setState({ only: !this.state.only }),
+      clear: () => this.setState({ q: '', only: false }),
+      p: panelFor(selRow, sel.c),
+      act: () => { if (!NEXT[cur]) return; this.setState({ over: Object.assign({}, over, { [key]: NEXT[cur] }), undo: { key, prev: cur, text: DONE[cur] + ' ' + selRow.name + ' in ' + AGENTS[sel.c].name + '.' } }); },
+      hasUndo: !!this.state.undo,
+      undoText: this.state.undo ? this.state.undo.text : '',
+      undo: () => { const u = this.state.undo; if (!u) return; this.setState({ over: Object.assign({}, this.state.over, { [u.key]: u.prev }), undo: null }); },
+      dismiss: () => this.setState({ undo: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

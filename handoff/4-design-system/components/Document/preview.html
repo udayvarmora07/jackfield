@@ -1,0 +1,26 @@
+<!-- @dsCard group="Content" height=470 subtitle="Rendered skill and its exact file text" -->
+<!doctype html>
+<html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>body{margin:0}</style></head>
+<body><div class="sm-root" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+  <div class="sm-doc" style="flex: 1 1 360px; max-width: 520px">
+    <p>Write a test that fails for the right reason before you change any code.</p>
+    <h2 style="margin-top: 0">Steps</h2>
+    <ol>
+      <li>Write one small test for the next behavior. Run it and watch it fail.</li>
+      <li>Write the simplest code that makes it pass.</li>
+    </ol>
+    <p>The test comes first and fails, because <code>slug()</code> doesn’t exist yet.</p>
+    <pre>def test_slug_drops_spaces():
+    assert slug("Code Review") == "code-review"</pre>
+  </div>
+  <pre class="sm-filetext" style="flex: 1 1 300px; max-width: 420px">---
+name: test-driven-development
+description: Write the failing test first, then the
+  smallest code that makes it pass.
+---
+
+## Steps
+
+1. Write one small test for the next behavior.
+2. Write the simplest code that makes it pass.</pre>
+</div></body></html>

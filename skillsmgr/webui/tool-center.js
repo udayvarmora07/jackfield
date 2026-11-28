@@ -10,6 +10,17 @@
   const SCAN_MODES=['off','static','llm'];
   const BASELINE_KEY='skillsmgr-document-baseline-v1';
   const BASELINES=window.SkillsV2Model.documentBaseline;
+  const DOCTOR_INDEX_CHECKS = [
+    ['orphan_dirs', 'Skills missing from the index'],
+    ['stale_rows', 'Index entries without skill folders'],
+    ['filesystem_index_drift', 'Skill files that differ from the index'],
+    ['undecodable_documents', 'Skill documents that could not be read as UTF-8'],
+    ['conflicting_documents', 'Folders with both enabled and disabled documents'],
+    ['transaction_artifacts', 'Unfinished transaction files'],
+    ['temporary_files', 'Leftover temporary files'],
+    ['stale_snapshots', 'Leftover recovery snapshots'],
+  ];
+  const reportedCount = (value) => Number.isInteger(value) && value >= 0 ? value : null;
   const projectPicker=(action)=>`
         <form class="tp-project card tp-panel" @submit.prevent="${action}">
           <label class="tp-field" for="tp-proj">Project path
@@ -33,18 +44,18 @@
               <p v-for="(n,i) in (${ev}.egress||[])" :key="'g'+i" class="tp-fine">Data sent: {{n}}.</p>
             </section>`;
 
-  const { toolGroups: TOOL_GROUPS } = window.SkillsV2Model;
+  const { toolGroups: TOOL_GROUPS, toolItems: TOOL_ITEMS } = window.SkillsV2Model;
 
   window.SkillsV2ToolCenter = {
-    props: {page:String, records:{type:Array,default:()=>[]}, scopes:{type:Array,default:()=>[]}, target:Object, sourceReviewHandoff:Object, groupsOn:{type:Object,default:()=>({})}, trackingLine:{type:String,default:''}},
-    emits:['tool-group','changed','inspect','preference','use-draft','open-source-review','source-review-consumed','open-record'],
+    props: {page:String, records:{type:Array,default:()=>[]}, scopes:{type:Array,default:()=>[]}, target:Object, sourceReviewHandoff:Object, groupsOn:{type:Object,default:()=>({})}, trackingLine:{type:String,default:''}, trackingReady:{type:Boolean,default:true}, trackingError:String},
+    emits:['tool-group','changed','inspect','preference','use-draft','open-source-review','source-review-consumed','open-record','retry-tracking'],
     data() { return {
       busy:false,error:'',result:null,sequence:0,readTokens:{},loading:{},qualityEnvelope:null, tab:'registry', source:'',op:'browse',view:'all-time',stale:false, pageNo:0,review:null,trust:false,
       runnerPreview:'',runnerPlan:null,runnerPlanError:'',runnerGeneration:0,runner:'npx',runnerScope:'global',agents:'',filter:'',copy:false,listOnly:false,files:[],reviewedFiles:[],folderReviewed:false,folderTrust:false,folderDocuments:[],
       catalog:null,profile:{name:'',description:'',skills:'',targets:'',nativeOff:''},profileBase:null,profilePreview:null,plan:null,planTargets:[],
-      toolQuery:'',
       templates:null,templateName:'',templateBody:'',templatePreview:null,creating:false,skill:{name:'',description:'',category:'',version:'',license:'',compatibility:'',allowed_tools:'',body:'',scope:'global'},
       quality:null,severity:'all',search:'',report:null,reportKind:'',validateTarget:'',validationName:'',validationScope:'global',windowSize:'claude',project:'',projectRoots:[],projectCatalog:null,workspace:null,consumer:'',
+      doctorReport:null,doctorDetailsOpen:false,
       documentBaseline:null,baselineRaw:null,baselineError:'',baselineMessage:'',baselineSaving:false,discoveryName:'',
       systemDark:matchMedia('(prefers-color-scheme: dark)').matches,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches, theme:stored('skillsmgr-theme','system'),size:stored('skillsmgr-text-size','standard'),locale:stored('skillsmgr-locale','system'),
       profileFilter:'',profileExtra:'',chosen:'',findingsShown:50,copyFilter:'',sourceReview:null,sourceTarget:null,sourceSuccess:null,snapshots:null,historyName:stored('skillsmgr-history-name',''),externalScan:SCAN_MODES.includes(stored('skillsmgr-external-scan','off'))?stored('skillsmgr-external-scan','off'):'off',historyScope:stored('skillsmgr-history-scope','global'),history:null,textSnapshots:null,textSnapshotTarget:null,
@@ -55,24 +66,40 @@
        * so a bulk import is one row, not a screen of identical lines. A single
        * event stays a plain row; the names stay reachable in a native <details>. */
       historyGroups(){const out=[];for(const row of (this.history||[])){const minute=String(row.at||'').slice(0,16);const last=out[out.length-1];if(last&&last.action===row.action&&last.minute===minute&&row.action){last.rows.push(row);}else{out.push({action:row.action,minute,at:row.at,rows:[row]});}}return out;},
-      /* Switched-off tool groups (What to track) leave the directory, the nav and
-       * search. Settings belongs to no group, so it always stays. */
+      /* Settings belongs to no switchable group, so it always stays in the nav. */
       toolGroups(){return TOOL_GROUPS.map(g=>(this.groupsOn||{})[g.key]===false?{...g,items:g.items.filter(i=>i.id==='settings')}:g).filter(g=>g.items.length);},
-      allGroupsOff(){return TOOL_GROUPS.every(g=>(this.groupsOn||{})[g.key]===false);},
-      offGroup(){if(this.page==='settings'||this.page==='tools'||this.page==='recovery-extra')return null;const g=TOOL_GROUPS.find(x=>x.items.some(i=>i.id===this.page));return g&&(this.groupsOn||{})[g.key]===false?g:null;},
+      offGroup(){if(this.page==='settings'||this.page==='recovery-extra')return null;const g=TOOL_GROUPS.find(x=>x.items.some(i=>i.id===this.page));return g&&(this.groupsOn||{})[g.key]===false?g:null;},
       offGroupName(){const g=this.offGroup;return g?{add:'Add skills',inspect:'Check my setup',ai:'AI assist'}[g.key]:'';},
-      matchingToolGroups() {
-        const terms = this.toolQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
-        if (!terms.length) return this.toolGroups;
-        return this.toolGroups.map(group => ({
-          ...group,
-          items: group.items.filter(item => {
-            const text = [group.label, item.name, item.text, item.commandLabel].join(' ').toLowerCase();
-            return terms.every(term => text.includes(term));
-          }),
-        })).filter(group => group.items.length);
+      availableToolPage() {
+        if (this.page === 'settings' || this.page === 'recovery-extra') return this.page;
+        return this.trackingReady !== false && !this.trackingError && !this.offGroup ? this.page : null;
       },
-      matchingToolCount(){return this.matchingToolGroups.reduce((total, group) => total + group.items.length, 0);},
+      toolName() {
+        return TOOL_ITEMS.find(item => item.id === this.page)?.name || 'Advanced';
+      },
+      doctorSummary() {
+        const r = this.doctorReport;
+        if (!r) return null;
+        const h = r.hygiene?.summary;
+        const locations = !r.degraded?.length && Array.isArray(r.scopes) ? r.scopes.length : null;
+        const findings = reportedCount(h?.finding_count);
+        return {
+          index: r.ok === true ? {text:'No index issues reported', tone:'ok'} :
+            r.ok === false ? {text:'Index needs attention', tone:'warn'} : {text:'Index check unavailable', tone:'off'},
+          partial: typeof r.ok !== 'boolean' || locations === null || findings === null ||
+            h?.partial === true || Boolean(r.hygiene?.degraded?.length),
+          indexIssues: DOCTOR_INDEX_CHECKS.filter(([key]) => Array.isArray(r[key]) && r[key].length)
+            .map(([key, label]) => ({label, count:r[key].length})),
+          librarySkills: reportedCount(r.skills_on_disk),
+          locations,
+          duplicates: locations !== null && Array.isArray(r.duplicates) ? r.duplicates.length : null,
+          observed: reportedCount(h?.physical_instances),
+          findings,
+          errors: reportedCount(h?.errors),
+          warnings: reportedCount(h?.warnings),
+          unavailable: reportedCount(h?.unavailable),
+        };
+      },
       qualitySections() {
         const sections = [];
         if (this.quality) {
@@ -132,22 +159,44 @@
       },
       localePreview(){try{return new Intl.NumberFormat(this.locale==='system'?undefined:this.locale).format(1234567.89)}catch(e){return 'Unavailable'}},
     },
-    watch:{runnerSignature(){this.runnerGeneration++;this.runnerPreview='';this.runnerPlan=null;this.runnerPlanError='';if(this.page==='install'&&this.tab==='runner')this.result=null;},severity(){this.findingsShown=50;},search(){this.findingsShown=50;},page:{immediate:true,handler(p,previous){this.sequence++;this.runnerGeneration++;this.runnerPreview='';this.runnerPlan=null;this.runnerPlanError='';this.loading={};if(previous==='source-update'&&p!=='source-update')this.retireSource();this.error='';
-      this.result=null;
-      this.report=null;
-       this.$nextTick(this.revealActiveTool);
-       if(p==='source-update'&&this.sourceReviewHandoff)this.$nextTick(()=>this.loadSourceHandoff(this.sourceReviewHandoff));
-       if(p==='profiles') this.loadCatalog();
-       if(p==='templates') this.loadTemplates();
-       if(p==='quality'){this.loadProjectRoots();this.loadQuality();}
-       if(p==='workspaces') this.loadWorkspace();
-       if(p==='recovery-extra') this.loadHistory();
+    watch:{runnerSignature(){this.runnerGeneration++;this.runnerPreview='';this.runnerPlan=null;this.runnerPlanError='';if(this.page==='install'&&this.tab==='runner')this.result=null;},severity(){this.findingsShown=50;},search(){this.findingsShown=50;},availableToolPage:{immediate:true,handler(page, previous) {
+        this.sequence++;
+        this.runnerGeneration++;
+        this.runnerPreview = '';
+        this.runnerPlan = null;
+        this.runnerPlanError = '';
+        this.loading = {};
+        if (previous === 'source-update') this.retireSource();
+        this.error = '';
+        this.result = null;
+        this.report = null;
+        this.doctorReport = null;
+        this.doctorDetailsOpen = false;
+        this.$nextTick(this.revealActiveTool);
+        if (page) this.loadPageEvidence(page);
       }}, target(){this.sequence++;this.retireSource();
       this.snapshots=null;
       }, chosen(){this.sequence++;this.retireSource();
       this.snapshots=null;
       }, historyName(v){remember('skillsmgr-history-name',v)}, historyScope(v){remember('skillsmgr-history-scope',v)}},
     methods:{
+      loadPageEvidence(page) {
+        if (page === 'source-update' && this.sourceReviewHandoff) {
+          this.$nextTick(() => {
+            if (this.alive && this.availableToolPage === page && this.sourceReviewHandoff) {
+              this.loadSourceHandoff(this.sourceReviewHandoff);
+            }
+          });
+        }
+        if (page === 'profiles') this.loadCatalog();
+        if (page === 'templates') this.loadTemplates();
+        if (page === 'quality') {
+          this.loadProjectRoots();
+          this.loadQuality();
+        }
+        if (page === 'workspaces') this.loadWorkspace();
+        if (page === 'recovery-extra') this.loadHistory();
+      },
       revealActiveTool() {
         /* Only the groups scroll; the "All tools" link above them stays put. */
         const nav = this.$refs.toolNav?.querySelector('.v2-tool-nav-scroll');
@@ -335,6 +384,18 @@
       this.report=null;
       const url=kind==='doctor'?'/api/doctor?scope=all':'/api/stats?window='+enc(this.windowSize);
       await this.read(url,'report')},
+      async loadDoctor() {
+        if (this.availableToolPage !== 'doctor' || this.loading.doctorReport) return;
+        this.doctorReport = null;
+        this.doctorDetailsOpen = false;
+        const generation = this.sequence;
+        const pending = this.read('/api/doctor?scope=all&hygiene=1', 'doctorReport');
+        const token = this.readTokens.doctorReport;
+        await pending;
+        if (generation === this.sequence && token === this.readTokens.doctorReport && !this.doctorReport && !this.error) {
+          this.error = 'The server returned no report.';
+        }
+      },
       async validate(){const r=this.records[Number(this.validateTarget)];
       if(!r)return;
       await this.task(async()=>{this.reportKind='validate';this.report=null;
@@ -419,6 +480,7 @@
       this.motionMedia.addEventListener('change',this.motionListener);
       window.addEventListener('resize', this.revealActiveTool)},
     beforeUnmount(){this.alive=false;
+      this.sequence++;
       window.removeEventListener('storage',this.baselineStorageListener);
       window.removeEventListener('resize', this.revealActiveTool);
       this.darkMedia.removeEventListener('change',this.darkListener);
@@ -427,11 +489,11 @@
       },
     template:`
     <section :class="['v2-tools', page==='recovery-extra'?'':'page']" :aria-busy="busy">
-      <div :class="['v2-tool-layout', {'v2-tool-layout-solo': page==='recovery-extra'||page==='tools'}]">
-        <nav v-if="page!=='recovery-extra'&&page!=='tools'" ref="toolNav" class="v2-tool-nav" aria-label="Tools navigation">
+      <div :class="['v2-tool-layout', {'v2-tool-layout-solo': page==='recovery-extra'}]">
+        <nav v-if="page!=='recovery-extra'" ref="toolNav" class="v2-tool-nav" aria-label="Tools navigation">
           <a class="v2-tool-nav-home" href="#/advanced"><span aria-hidden="true">←</span> All tools</a>
           <div class="v2-tool-nav-scroll">
-          <template v-for="g in toolGroups" :key="g.label">
+          <template v-for="g in (trackingReady && !trackingError ? toolGroups : [])" :key="g.label">
             <details class="v2-tool-nav-group" :open="g.key!=='ai' || page.startsWith('ai-')">
               <summary class="v2-tool-nav-label">{{g.label}}</summary>
               <a v-for="item in g.items" :key="item.id" :href="item.id === 'settings' ? '#/settings' : '#/advanced/' + item.id" :aria-current="page===item.id?'page':null">{{item.name}}</a>
@@ -440,38 +502,53 @@
           </div>
         </nav>
         <div class="v2-tool-content" :data-tool-page="page">
-      <p v-if="error" class="v2-tool-error" role="alert">{{ error }}</p>
-      <p v-if="busy" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Working…</p><p v-else-if="page!=='quality' && Object.values(loading).some(Boolean)" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Reading current evidence…</p>
+      <p v-if="availableToolPage && error && page!=='doctor'" class="v2-tool-error" role="alert">{{ error }}</p>
+      <p v-if="availableToolPage && busy" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Working…</p><p v-else-if="availableToolPage && page!=='quality' && page!=='doctor' && Object.values(loading).some(Boolean)" class="v2-tool-status" role="status"><span class="v2-dot" aria-hidden="true"></span>Reading current evidence…</p>
 
-      <template v-if="offGroup">
+      <template v-if="offGroup && !trackingError">
         <h1 class="h1" id="h1" tabindex="-1">{{offGroupName}} is switched off</h1>
         <p class="lede">This tool belongs to {{offGroupName}}, which is switched off in What to track. Its settings are kept.</p>
         <div class="tp-acts"><button type="button" class="btn btn-ink" @click="$emit('tool-group',offGroup.key,true)">Turn it on</button><a class="btn btn-line" href="#/settings/tracking">Open What to track</a></div>
       </template>
-      <template v-else-if="page==='tools'">
-        <h1 class="h1" id="h1" tabindex="-1">Tools</h1>
-        <p class="lede">Install skills, check your library, and configure Jackfield.</p>
-        <p v-if="allGroupsOff" class="tp-fine">Tool groups are switched off. Turn them on in <a href="#/settings/tracking">What to track</a>.</p>
-        <div class="tp-directory-search" role="search" aria-label="Tool directory">
-          <div class="tp-directory-field">
-            <ic name="search"></ic>
-            <label class="sr-only" for="tp-dir-query">Find a tool</label>
-            <input id="tp-dir-query" class="field" type="search" v-model="toolQuery" placeholder="Find a tool…" autocomplete="off">
-          </div>
-          <p class="tp-count" role="status">{{toolQuery.trim() ? pl(matchingToolCount, 'matching tool') : ''}}</p>
+      <template v-else-if="!availableToolPage">
+        <h1 class="h1" id="h1" tabindex="-1">{{toolName}}</h1>
+        <p v-if="!trackingError" class="tp-fine" role="status">Reading tool group settings…</p>
+        <div v-else class="tp-acts"><p class="tp-fine" role="alert">Could not read tool group settings.</p><button type="button" class="btn btn-line" @click="$emit('retry-tracking')">Retry settings</button></div>
+      </template>
+      <template v-else-if="page==='doctor'">
+        <h1 class="h1" id="h1" tabindex="-1">Doctor</h1>
+        <p class="lede">Compare your library index with the files on disk and check the skill documents and settings Jackfield can read.</p>
+        <div class="tp-acts">
+          <button type="button" class="btn btn-ink" :aria-disabled="loading.doctorReport || null" @click="loadDoctor">{{error ? 'Try again' : doctorReport ? 'Run again' : 'Run Doctor'}}</button>
+          <p v-if="loading.doctorReport" class="tp-fine" role="status">Checking local setup…</p>
         </div>
-        <div class="tp-index">
-          <section v-for="g in matchingToolGroups" :key="g.key" :class="{'tp-index-ai':g.key==='ai'}" :aria-labelledby="'tg-'+g.key">
-            <h2 class="tp-eyebrow" :id="'tg-'+g.key">{{g.label}}</h2>
-            <div class="v2-tool-links">
-              <a v-for="item in g.items" :key="item.id" :href="item.id === 'settings' ? '#/settings' : '#/advanced/' + item.id">
-                <span><strong>{{item.name}}</strong><small>{{item.text}}</small></span>
-                <ic name="arrow" cls="i-s"></ic>
-              </a>
-            </div>
-          </section>
-          <p v-if="!matchingToolCount" class="tp-empty">Try a tool name or a task, such as “profile” or “registry”.</p>
-        </div>
+        <p v-if="error" class="v2-tool-error" role="alert">Could not run Doctor. {{error}}</p>
+        <p class="sr-only" role="status"><template v-if="doctorSummary">Doctor results ready. {{doctorSummary.index.text}}.<template v-if="doctorSummary.partial"> Some checks could not be completed.</template></template></p>
+
+        <section v-if="doctorSummary" class="card tp-panel" aria-labelledby="tp-doctor-h">
+          <header class="tp-panel-h">
+            <h2 id="tp-doctor-h">Doctor results</h2>
+            <span :class="['pill', doctorSummary.index.tone]">{{doctorSummary.index.text}}</span>
+          </header>
+          <p v-if="doctorSummary.partial" class="tp-fine">Some checks could not be completed. The report shows the evidence that was available.</p>
+          <dl class="tp-dl">
+            <template v-if="doctorSummary.librarySkills !== null"><dt>Library on disk</dt><dd>{{pl(doctorSummary.librarySkills, 'skill')}}</dd></template>
+            <template v-if="doctorSummary.locations !== null"><dt>Skill locations</dt><dd>{{pl(doctorSummary.locations, 'location')}} reported<span v-if="doctorSummary.duplicates !== null"> · {{pl(doctorSummary.duplicates, 'name')}} found in more than one location</span></dd></template>
+            <template v-if="doctorSummary.observed !== null"><dt>Skill copies observed</dt><dd>{{fmtN(doctorSummary.observed)}}</dd></template>
+            <template v-if="doctorSummary.findings !== null">
+              <dt>Skill checks</dt><dd>{{doctorSummary.findings === 0 ? 'No findings in the evidence checked' : pl(doctorSummary.findings, 'finding')}}<span v-if="doctorSummary.errors"> · {{pl(doctorSummary.errors, 'error')}}</span><span v-if="doctorSummary.warnings"> · {{pl(doctorSummary.warnings, 'warning')}}</span></dd>
+            </template>
+            <template v-if="doctorSummary.unavailable"><dt>Evidence gaps</dt><dd>{{pl(doctorSummary.unavailable, 'unavailable signal')}}</dd></template>
+          </dl>
+          <ul v-if="doctorSummary.indexIssues.length" class="tp-rows">
+            <li v-for="issue in doctorSummary.indexIssues" :key="issue.label" class="v2-tool-row"><span>{{issue.label}}</span><b class="num">{{fmtN(issue.count)}}</b></li>
+          </ul>
+          <p v-if="doctorReport.repair?.length" class="tp-fine">Open <a href="#/settings">Settings</a> to review index maintenance.</p>
+          <details class="tp-more" @toggle="doctorDetailsOpen = $event.target.open">
+            <summary>Full report</summary>
+            <pre v-if="doctorDetailsOpen" role="region" tabindex="0" aria-label="Raw Doctor evidence">{{pretty(doctorReport)}}</pre>
+          </details>
+        </section>
       </template>
 
       <template v-else-if="page.startsWith('ai-')">

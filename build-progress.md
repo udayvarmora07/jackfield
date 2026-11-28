@@ -40,7 +40,7 @@ Jackfield name and mark. Their project sources are in `branding/jackfield/`.
 - [x] Phase 3 · The Skill page, Editor, New skill and diagnosis landed on
   `main` as `614bc4b`. All 17
   [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46056334181) passed.
-- [ ] Phase 4 · Needs attention and Trash & backups are approved. Hosted CI is the integration gate.
+- [x] Phase 4 · Needs attention and Trash & backups are approved, landed at `382364b`, and passed all 17 [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46113385797).
 - [ ] Phases 5–8 · Remaining screens, migration cleanup and acceptance.
 
 ## Phase 3 · Everyday jobs
@@ -148,7 +148,27 @@ Local verification completed on Linux. The 2,557-test suite passed on Python
 including F7 and F8. Headed Chrome passed at 200% and 400% zoom. Store and Web
 smoke tests, HTTP contracts, the classic browser harness, and clean wheel and
 source distribution installs also passed. The maintainer approved the screen
-and continued to Phase 4 integration.
+and continued to Phase 4 integration. Phase 4 landed at `382364b` and all 17
+[GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46113385797)
+passed.
+
+## Phase 5 · Advanced
+
+The maintainer approved the Advanced tool mapping (Q2). The directory
+keeps the 21 existing tools and adds Doctor and a What to track link.
+The Add skills switch controls Update from folder. Doctor lives under
+Check my setup and uses Jackfield's existing hygiene report.
+
+The desktop directory uses two columns when all four groups are visible,
+keeping Settings alongside the expanded AI list. The visual comparison
+uses browser widths of 390, 1280, 1440 and 1920 pixels in both themes.
+Physical phone testing is part of the later acceptance work.
+
+S9 passed the 2,557-test suite on Python 3.11–3.14 with platform-specific
+skips, all 104 Chromium checks, and headed Chrome zoom at 200% and 400%.
+The classic browser harness also passed with synthetic inventory failures.
+Store and Web smoke tests, HTTP contracts, and clean wheel and source
+distribution installs passed. Advanced is ready for the maintainer's review.
 
 ## Findings checked in Phase 0
 

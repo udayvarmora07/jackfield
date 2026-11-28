@@ -7,6 +7,27 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper Advanced directory
+
+**[NOTE]** The maintainer approved Q2. Advanced groups existing tools by
+task, keeps Settings and What to track available when tool groups are off,
+and preserves the directory search when returning from a tool. The Add
+skills switch now controls Update from folder. Doctor has its own report
+in Check my setup and uses the existing hygiene API.
+
+**[NOTE]** The maintainer requested all current work be pushed to main,
+including the older handoff package. The S9 screen remains ready for review.
+
+**[NOTE]** Local verification passed on Python 3.11–3.14 and in all 104
+Chromium checks. Advanced is ready for the maintainer's S9 screen review.
+
+## 2026-11-28 — Phase 4 passed hosted CI
+
+**[NOTE]** Needs attention and Trash & backups landed at `382364b` on `main`.
+All 17 GitHub CI jobs passed. The Advanced tool mapping decision (Q2)
+precedes Phase 5 implementation.
+[GitHub CI run](https://github.com/udayvarmora07/jackfield/actions/runs/46113385797).
+
 ## 2026-11-28 — Paper Trash & backups
 
 **[NOTE]** The maintainer approved Needs attention and delegated the scope

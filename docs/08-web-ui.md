@@ -391,10 +391,10 @@ drawn on the unshipped "one table" redesign; they are placed on today's pages:
 - Skills toolbar: the project picker (S19), "Manage agents", the Found-agent
   notice (T7), the broken-file notice (T8), the missing-project strip and the
   "No agents are tracked." empty state (T9; also on the Sync map).
-- Tools stands in for "Advanced": switched-off groups (`add` → add-skills,
-  `inspect` → check-setup, `ai` → ai-assist) leave the directory, the tool nav
-  and the command palette; Settings always stays; a switched-off tool page says
-  so with Turn it on. Tools → Settings gets a "What to track" first row.
+- In Advanced, switched-off groups (`add` → add-skills, `inspect` → check-setup,
+  `ai` → ai-assist) are hidden from the directory, tool navigation and command
+  palette. Settings and What to track remain available. A direct link to a
+  switched-off tool offers Turn it on. Update from folder follows Add skills.
 
 ## REST API
 
@@ -874,13 +874,14 @@ links to Quality for the underlying evidence. Refreshing inventory reloads the
 estimates; late results and results after leaving Home are discarded. It does
 not infer agent loading or replace the separate full-document reading meter.
 
-**[SPEC] Tools pages share one composition (2026-11-06 design pass).** Tools is a
-real primary tab at every width (the former floating "Tools & settings" link was
-hidden below 1200px and is gone, as is the header's second search button; the
-command palette stays on Ctrl/Cmd K). The index groups destinations and filters
-by words in tool names, descriptions, groups and command labels. Tool pages
-show a grouped sidebar above 860px and an All tools link at narrower widths.
-The search remains in place when returning from a tool in the same visit.
+**[SPEC] Advanced directory.** Advanced groups tools under Add skills, Check my
+setup, AI assist, and Settings. The directory filters by names, descriptions,
+groups and command labels. It retains the search when returning from a tool in
+the same visit. Tool pages show a grouped sidebar above 860px and an All tools
+link at narrower widths. Switchable tools wait for the tracking settings, even
+if the Skills inventory failed to load. Doctor runs the existing
+`GET /api/doctor?scope=all&hygiene=1` check on request and shows the reported
+evidence and any incomplete reads.
 Page and section titles use IBM Plex Sans. Settings-like forms are label-left /
 control-right rows; Profiles and Templates are list + detail panes; Quality is a
 severity filter that doubles as the count summary over one findings list, with

@@ -74,7 +74,7 @@ assert tokens.count('unicode-range:') >= len(faces), 'fonts must declare their U
 assert all((root / 'webui' / name).is_file() for name in ('system.css', 'layout.css')), 'Paper styles are missing'
 shell = ('state.js', 'router.js', 'ui-core.js', 'ui-table.js', 'ui-doc.js',
          'screen-not-found.js', 'screen-skills.js', 'screen-new.js', 'screen-why.js',
-         'screen-attention.js', 'screen-trash.js', 'palette.js')
+         'screen-attention.js', 'screen-trash.js', 'screen-advanced.js', 'palette.js')
 html = (root / 'webui/index.html').read_text(encoding='utf-8')
 assert all((root / 'webui' / name).is_file() and f'src="{name}"' in html
            for name in shell), 'Paper shell scripts are missing or are not loaded'

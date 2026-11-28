@@ -206,7 +206,11 @@
           this.loadSkillHistory();
           this.showRouteScreen();
         } catch (e) {
-          if (gen === this.refreshGen) this.loadError = this.friendly(e.message || "The skills could not be read.");
+          if (gen === this.refreshGen) {
+            this.loadError = this.friendly(e.message || "The skills could not be read.");
+            // Advanced reads its tool switches independently of the Skills inventory.
+            if (!this.tracking) this.loadTracking();
+          }
         } finally { if (gen === this.refreshGen) this.loading = false; }
       },
       async change(kind, target) {

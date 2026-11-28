@@ -1,0 +1,25 @@
+<!-- @dsCard group="Inputs" height=420 subtitle="Filter field, form field with live rules, description, Save-to checkbox" -->
+<!doctype html>
+<html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>body{margin:0}</style></head>
+<body><div class="sm-root" style="padding: 20px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <label class="sm-field" style="width: 320px"><span class="sm-sr">Filter skills</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="color: var(--mute)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input placeholder="Filter by name or what it does"></label>
+    <label class="sm-field" style="width: 320px"><span class="sm-sr">Filter skills</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="color: var(--mute)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input value="review"></label>
+    <label style="display: flex; align-items: center; gap: 12px; width: 320px; padding: 12px 0; border-top: 1px solid var(--line-subtle)"><input type="checkbox" class="sm-checkbox" checked><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 500">Codex</span><span class="sm-hint">Will be updated.</span></span></label>
+    <label style="display: flex; align-items: center; gap: 12px; width: 320px; padding: 12px 0; border-top: 1px solid var(--line-subtle)"><input type="checkbox" class="sm-checkbox"><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 500">OpenCode</span><span style="font-size: 13px; color: var(--warn)">Has its own version, so it is left out. Tick to replace it.</span></span></label>
+  </div>
+  <div style="width: 360px">
+    <label class="sm-label" for="pv-name">Name</label>
+    <p class="sm-hint" style="margin: 4px 0 8px">The folder name every agent sees.</p>
+    <label class="sm-field" style="border-color: var(--bad)"><span class="sm-sr">Name</span><input id="pv-name" value="explain code" aria-invalid="true"></label>
+    <ul style="list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px">
+      <li class="sm-rule is-fail"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="sm-sr">Not yet: </span>Small letters, numbers and dashes only</li>
+      <li class="sm-rule is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg><span class="sm-sr">Done: </span>Up to 64 characters (12 used)</li>
+      <li class="sm-rule is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg><span class="sm-sr">Done: </span>No other skill has this name</li>
+    </ul>
+    <p style="margin: 10px 0 16px"><button type="button" class="sm-btn" style="height: 32px; font-weight: 600">Use “explain-code” instead</button></p>
+    <label class="sm-label" for="pv-desc">What it does and when to use it</label>
+    <textarea id="pv-desc" class="sm-textarea" rows="2" style="margin-top: 8px">Explain what a piece of code does in plain words, step by step.</textarea>
+    <p class="sm-hint" style="margin: 6px 0 0">64 of 1,024 characters</p>
+  </div>
+</div></body></html>

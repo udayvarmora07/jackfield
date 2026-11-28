@@ -551,11 +551,12 @@
       { id: "install", name: "Install", text: "Bring skills in from the skills.sh registry, a package command or a local folder.", commandLabel: "Install" },
       { id: "profiles", name: "Profiles", text: "Save named sets of skills and switch them on together.", commandLabel: "Profiles" },
       { id: "templates", name: "Templates", text: "Keep starting documents for new skills.", commandLabel: "Templates" },
+      { id: "source-update", name: "Update from folder", text: "Replace one exact copy with a newer folder, after a full review." },
     ] },
     { key: "inspect", label: "Inspect and maintain", items: [
       { id: "quality", name: "Quality", text: "Find broken documents, weak descriptions and copies that drifted apart.", commandLabel: "Quality and validation" },
       { id: "workspaces", name: "Workspaces", text: "See where each agent looks for skills and what a project adds.", commandLabel: "Workspaces" },
-      { id: "source-update", name: "Update from folder", text: "Replace one exact copy with a newer folder, after a full review." },
+      { id: "doctor", name: "Doctor", text: "Check the library index and skill folders for problems." },
       { id: "settings", name: "Settings", text: "Theme, text size, number format and index maintenance.", commandLabel: "Settings and index maintenance" },
     ] },
     { key: "ai", label: "AI assist (your own key)", items: [
@@ -577,6 +578,32 @@
   ].map((group) => Object.freeze({ ...group, items: Object.freeze(group.items.map((item) => Object.freeze(item))) }));
   const toolItems = Object.freeze(toolGroups.flatMap((group) => group.items));
   const toolIds = Object.freeze(toolItems.map((item) => item.id));
+  const toolById = new Map(toolItems.map((item) => [item.id, item]));
+  const trackingTool = Object.freeze({ id: "tracking", name: "What to track",
+    text: "Choose which agents, project folders and tool groups Jackfield shows." });
+  const advancedGroup = (key, label, text, sections) => Object.freeze({ key, label, text,
+    sections: Object.freeze(sections.map(([heading, items]) => Object.freeze({ label: heading, items: Object.freeze(items) }))),
+  });
+  const toolsById = (...ids) => ids.map((id) => toolById.get(id));
+  const advancedGroups = Object.freeze([
+    advancedGroup("add", "Add skills", "Bring in skills from outside, or start from a pattern.", [
+      ["", toolsById("install", "templates", "profiles", "source-update")],
+    ]),
+    advancedGroup("inspect", "Check my setup", "Find out what’s wrong and why.", [
+      ["", [toolById.get("quality"), Object.freeze({ ...toolById.get("workspaces"), name: "Where agents look" }),
+        toolById.get("doctor")]],
+    ]),
+    advancedGroup("ai", "AI assist", "Uses your own AI service. You see what’s sent first, every time.", [
+      ["", [Object.freeze({ ...toolById.get("ai-settings"), name: "Connection" })]],
+      ["Write", toolsById("ai-draft", "ai-improve", "ai-profile", "ai-port", "ai-ask")],
+      ["Test", toolsById("ai-trigger", "ai-evals", "ai-ablate")],
+      ["Shorten", toolsById("ai-concise", "ai-budget")],
+      ["Find conflicts", toolsById("ai-conflicts", "ai-overlap", "ai-explain")],
+    ]),
+    advancedGroup("settings", "Settings", "Manage Jackfield and choose what it shows.", [
+      ["", [...toolsById("settings"), trackingTool]],
+    ]),
+  ]);
 
   const titleCase = (n) => String(n).split("-").map((w, i) => ACRONYMS[w.toLowerCase()] || (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
 
@@ -672,7 +699,7 @@
   window.SkillsV2Model = Object.freeze({
     agentMark, hasOffCopy, plural, join, words, titleCase, shortPath, build, STATUS, BROKEN_WHY, validName,
     tableAgents, squareCamps, squareStatus, rowVerdict, attentionItems,
-    toolGroups: Object.freeze(toolGroups), toolItems, toolIds,
+    toolGroups: Object.freeze(toolGroups), toolItems, toolIds, advancedGroups,
     diffLines, changes, documentPreview, plainLine, renderDoc, stripFrontmatter, documentBaseline, consumerDiscovery,
   });
 })();

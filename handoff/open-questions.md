@@ -1,0 +1,29 @@
+# Open questions: Skills Manager UI redesign
+
+Everything still undecided, most important first. Gathered from the redesign record, from what this handoff found when it compared the record with the repository on 2026-11-26, and from the maintainer's answers while the package was being made.
+
+| # | Question | Where it came from | Why it matters | Who decides |
+|---|---|---|---|---|
+| 1 | **A page to choose which agents to track.** The maintainer's words (2026-11-26): *"i think we need add page like which agent you need to track and all other features you want and in future also users can update or add agents selection."* What does the page hold, where does it live, and how does a user add or change agents later? | Maintainer, during this handoff. Not in `requirements.md`, `ux-brief.md` or the approved screens | A new feature. It touches first launch (A6: agents are found automatically), "Where agents look" in Advanced, and the place columns in the Skills table. Saving a tracked-agents choice may need new config or Store methods, and those need approval under `AGENTS.md` | Maintainer: add it to `requirements.md`, then run UX and UI for it before building |
+| 2 | **Marks and columns for Cursor, Gemini and Command Code.** The approved screens and the design system define marks for 5 places only (Claude Code, Codex, OpenCode, Shared folder, This project). `requirements.md` lists 8 places | Comparing the design system's Iconography table with `requirements.md` · Platform | The table, side panel, Save-to and Add-it-to lists all show marks. A missing `data-a` code renders a blank tile. It also matters how the table fits more than 5 place columns | Maintainer (marks, brand-use check); designer or developer (layout for 6+ columns). Linked to #1 |
+| 3 | **States in the brief that no screen draws.** The square states "Evenly split", "Unknown" (in the table), "working" and "failed"; the first-launch "Looking for your agents…" step; a skill page for an unreadable file; and the 1,000-row case beyond "Show 50 more" | `design-brief.md` · Square states, S1 and S3 states, compared with A01–A14 | The builder has the words and the rules (DS status vocabulary, UX principle 1), but no picture. Guessing risks a wrong or green status | Developer, following the brief and the DS rules; maintainer reviews. Or design them first |
+| 4 | **The product still has the old look.** `skillsmgr/webui/styles.css` and the root `DESIGN.md` use the cool bone ground `#f2f3f1` and a teal accent `#0d6a63`. `check_design_tokens.py` treats `DESIGN.md` as the contract: it fails when a `DESIGN.md` colour differs from the matching `styles.css` token, and it recomputes contrast from `styles.css`. Should `DESIGN.md` be rewritten from the design system's `tokens.json`, or should the gate read `tokens.json` instead? | Repo check during this handoff; `requirements.md` A8 | Two sources of truth for the look will drift. The token gate must change with the tokens or it will block the build | Maintainer (fate of `DESIGN.md`); developer (update styles and gate together) |
+| 5 | **Font packaging is partly done already.** The repo ships Plex Sans (variable, weight 100–700, latin + latin-ext) and Plex Mono 400/500/600 in `skillsmgr/webui/static/fonts/`, wired in `styles.css` and asserted by `check_package_data.py`. Still missing: the **SIL OFL licence text** in the package, and `@font-face` rules for the Mono `latin-ext` files, which ship but are never loaded | Repo check during this handoff. `ui-progress.md` still lists bundling as to-do | OFL 1.1 requires the licence to travel with the fonts. Unused files add weight | Developer, under the packaging rules in `AGENTS.md` (SEC-8, SEC-13; `check_package_data.py`) |
+| 6 | **Brand guidelines for the Claude and OpenCode logos.** "Check each brand's guidelines before release." | Design system README · Iconography | Trademarks are used to name each tool. A release that breaks a brand's terms is hard to undo | Maintainer, before release |
+| 7 | **Clean-up helper for "Too many skills" (scenario 3).** Today it is served only by sorting and agent filters. A dedicated helper would be a new feature | `ux-brief.md` · Flags | The scenario is in the requirements but only partly served | Maintainer: add to `requirements.md` first, if wanted |
+| 8 | **Profiles and Templates** are kept in Advanced but not designed beyond the shared tool-page template | `ux-brief.md` · Flags; `design-brief.md` · Won't have | The builder will use the S10 template for them | Maintainer |
+| 9 | **"Fix all…" batch on Needs attention** (from option C) | `ui-progress.md` · S7 pick | Possible later addition; not in the approved B design | Maintainer, after real use |
+| 10 | **Light phone and states boards (A02, A03) have no theme switch** | `ui-progress.md` · Dark theme row | Design-only gap: dark copies D02/D03 exist. The product should follow the theme setting everywhere | Developer (no design change needed) |
+| 11 | Websites whose look the maintainer dislikes | `requirements.md` · Open questions (optional) | Nice to know for future visual work | Maintainer, optional |
+
+## Already settled, noted so nobody reopens them
+
+- **Codex mark:** keep the neutral terminal icon (`decisions.md` row 45).
+- **Typeface:** IBM Plex replaced Inter (row 39). The "Inter is the only typeface" item in `ui-progress.md` is stale.
+- **Text glyphs ✓ / ✕ in A07, A12 and the ChecksGrid preview** (listed as "low, optional" in `ui-progress.md`) were replaced by inline SVG in icons pass 1 (row 41).
+
+## Next steps from the record (not questions)
+
+1. Implementation, in the order the requirements set: bugs → everyday jobs → all other pages (R, A10).
+2. The maintainer personally tries 5 everyday tasks for about 20 minutes before release (R, A14).
+3. Then `/ux-review` and `/launch`.

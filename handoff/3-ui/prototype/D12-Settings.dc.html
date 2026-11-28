@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+body{margin:0}
+.sm-root{--bg:#F6F6F3;--surface:#FFFFFF;--raise:#F5F5F3;--line:#ECECE9;--line-subtle:#F3F3F1;--ink:#191917;--ink-2:#3B3B37;--mute:#666660;--text-faint:#6E6E67;--mark-faint:#9A9A93;--accent:#2D58D0;--on-accent:#FFFFFF;--accent-soft:#EDF1FC;--warn:#8A4700;--bad:#A3261A;--bad-soft:#FDEEEC;--font-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--radius-xs:5px;--radius-sm:9px;--control:36px;--touch:44px}
+.sm-root.dark{--bg:#121211;--surface:#1A1A19;--raise:#222220;--line:#2C2C2A;--line-subtle:#242422;--ink:#EDEDEA;--ink-2:#CFCFCA;--mute:#B0B0A9;--text-faint:#9A9A93;--mark-faint:#77776F;--accent:#8CAEFF;--on-accent:#0C1430;--accent-soft:#1C2540;--warn:#F2B866;--bad:#FF9C8F;--bad-soft:#2E1714}
+.sm-root{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font-sans);font-size:14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.sm-root.big{font-size:16px}
+.sm-root a{color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
+.sm-root button:focus-visible,.sm-root a:focus-visible,.sm-root select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sm-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:var(--control);padding:0 14px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 14px/1 var(--font-sans);cursor:pointer;box-sizing:border-box;white-space:nowrap}
+.sm-btn:hover{border-color:var(--mark-faint)}
+.sm-btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.sm-btn--icon{width:34px;height:34px;padding:0}
+@media (max-width:640px){.sm-btn--icon{width:var(--touch);height:var(--touch)}}
+.sm-kbd{font:500 11px/1 var(--font-mono);color:var(--mute);border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--radius-xs);padding:2px 5px;background:var(--surface)}
+.sm-nav{display:flex;align-items:center;gap:32px;min-height:60px;padding:0 40px;border-bottom:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+.sm-root .sm-nav__link{display:inline-block;color:var(--mute);text-decoration:none;font:500 14px/1 var(--font-sans);padding:22px 0 20px;border-bottom:1.5px solid transparent}
+.sm-root .sm-nav__link[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+.sm-nav__count{color:var(--warn);font-weight:600;margin-left:5px}
+.sm-search{display:flex;align-items:center;gap:10px;width:280px;max-width:100%;height:34px;padding:0 10px 0 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--mute);font:400 14px/1 var(--font-sans);cursor:pointer}
+.sm-mono{font:400 11.5px/16px var(--font-mono);letter-spacing:-.01em;color:var(--text-faint)}
+.sm-hint{font:400 13px/1.5 var(--font-sans);color:var(--mute)}
+.sm-main{margin:0 auto;padding:0 40px 96px;box-sizing:border-box}
+@media (max-width:640px){.sm-nav{padding:0 16px;gap:14px}.sm-main{padding:0 16px 96px}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.card > h2{margin:0;padding:18px 22px 6px;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.set{display:flex;align-items:center;gap:12px 24px;flex-wrap:wrap;padding:16px 22px;border-top:1px solid var(--line-subtle)}
+.set:first-of-type{border-top:0}
+.set .lab{flex:1 1 260px;min-width:0}
+.set .lab b{display:block;font-size:14px;font-weight:600}
+.seg{display:flex;gap:4px;padding:3px;background:var(--raise);border:1px solid var(--line);border-radius:11px}
+.seg .sm-btn{height:30px;border-color:transparent}
+.sm-input{height:38px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:400 14px/1 var(--font-sans);width:320px;max-width:100%;box-sizing:border-box}
+.sm-input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.sm-select{height:38px;padding:0 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:500 14px/1 var(--font-sans)}
+.saved{font-size:12.5px;color:var(--mute);display:inline-flex;align-items:center;gap:6px}
+.conn{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:11px;font-size:14px;line-height:1.5}
+.conn.untested{background:var(--raise);color:var(--ink-2)}
+.conn.failed{background:var(--bad-soft);color:var(--bad)}
+.conn.ok{background:var(--accent-soft);color:var(--ink)}
+
+/* Icons (2026-11-25): agent marks and state icons drawn as masks so they follow the theme colour. */
+span.ag[data-a],span.sm-ag[data-a]{flex:none;width:20px;height:20px;box-sizing:border-box;font-size:0!important;line-height:0;color:var(--ink-2,var(--ink2))}
+span.ag[data-a]::before,span.sm-ag[data-a]::before{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-a="CC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="OC"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="CX"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="SH"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="PJ"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+
+/* Icons pass 2 (2026-11-25): agent marks by name, inline marks, state and choice icons. */
+span.ag[data-a],span.sm-ag[data-a]{display:inline-grid;place-items:center;border-radius:5px;background:var(--raise);border:1px solid var(--line)}
+[data-a="Claude Code"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z'/%3E%3C/svg%3E")}
+[data-a="Codex"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2.5'/%3E%3Cpath d='m7.5 9.5 3 2.5-3 2.5M13 15h3.5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="OpenCode"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M22 24H2V0h20zM17 4.8H7v14.4h10z'/%3E%3C/svg%3E")}
+[data-a="Shared folder"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-a="This project"]{--agi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8.5 7-5 5 5 5M15.5 7l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E")}
+span.agm[data-a]{display:inline-block;flex:none;width:14px;height:14px;vertical-align:-2px;background:currentColor;-webkit-mask:var(--agi) center/contain no-repeat;mask:var(--agi) center/contain no-repeat}
+[data-i="Light"]::before,[data-i="Dark"]::before,[data-i="Match my computer"]::before,[data-i="Blank"]::before,[data-i="Step by step"]::before,[data-i="Checklist"]::before{content:"";flex:none;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ii) center/contain no-repeat;mask:var(--ii) center/contain no-repeat}
+[data-i="Light"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Dark"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Match my computer"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='12' rx='2'/%3E%3Cpath d='M8 20h8M12 16v4'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Blank"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z'/%3E%3Cpath d='M14 3v5h5'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Step by step"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h11M10 12h11M10 18h11M4 5h1.5v4M4 9h3M4 15.5c0-1 3-1.3 3 0 0 1-3 1.6-3 3h3'/%3E%3C/g%3E%3C/svg%3E")}
+[data-i="Checklist"]{--ii:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 7 2 2 4-4M3 15l2 2 4-4M13 7h8M13 15h8'/%3E%3C/g%3E%3C/svg%3E")}
+.conn::before{content:"";flex:none;width:18px;height:18px;margin-top:1px;background:currentColor;-webkit-mask:var(--ci) center/contain no-repeat;mask:var(--ci) center/contain no-repeat}
+.conn.failed{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v5M12 16.5h.01'/%3E%3C/g%3E%3C/svg%3E")}.conn.ok{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/g%3E%3C/svg%3E")}.conn.untested{--ci:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/g%3E%3C/svg%3E")}
+details>summary{list-style:none;display:flex;align-items:center;gap:6px;cursor:pointer}details>summary::-webkit-details-marker{display:none}details>summary::before{content:"";width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;transition:transform .12s}details[open]>summary::before{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){details>summary::before{transition:none}}
+</style>
+</helmet>
+<div class="sm-root {{ theme }} {{ size }}">
+  <header class="sm-nav">
+    <a href="D01-Skills.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px; letter-spacing: -0.01em">
+      <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style="fill: currentColor"><rect x="1" y="1" width="5" height="5" rx="1.3"/><rect x="7.5" y="1" width="5" height="5" rx="1.3"/><rect x="14" y="1" width="5" height="5" rx="1.3"/><rect x="1" y="7.5" width="5" height="5" rx="1.3"/><rect x="7.5" y="7.5" width="5" height="5" rx="1.3" style="fill: var(--accent)"/><rect x="14" y="7.5" width="5" height="5" rx="1.3"/><rect x="1" y="14" width="5" height="5" rx="1.3"/><rect x="7.5" y="14" width="5" height="5" rx="1.3"/><rect x="14" y="14" width="5" height="5" rx="1.3"/></svg>
+      Skills Manager
+    </a>
+    <nav aria-label="Main" style="display: flex; gap: 26px; flex-wrap: wrap">
+      <a class="sm-nav__link" href="D01-Skills.dc.html">Skills</a>
+      <a class="sm-nav__link" href="D08-Needs-Attention.dc.html">Needs attention<span class="sm-nav__count">3</span></a>
+      <a class="sm-nav__link" href="D09-Trash-Backups.dc.html">Trash &amp; backups</a>
+      <a class="sm-nav__link" href="D10-Advanced.dc.html" aria-current="page">Advanced</a>
+    </nav>
+    <div style="flex: 1 1 auto"></div>
+    <button type="button" class="sm-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span style="flex: 1; text-align: left">Search skills and actions</span><span class="sm-kbd">/</span></button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Switch theme" onClick="{{ toggleTheme }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button type="button" class="sm-btn sm-btn--icon" aria-label="Help"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17.3h.01"/></svg></button>
+  </header>
+
+  <main class="sm-main" style="max-width: 900px">
+    <div style="padding: 28px 0 22px">
+      <nav aria-label="Breadcrumb" style="display: flex; gap: 8px; font-size: 13px; color: var(--mute); margin-bottom: 6px"><a href="D10-Advanced.dc.html" style="color: var(--mute)">Advanced</a><span aria-hidden="true">/</span><span aria-current="page">Settings</span></nav>
+      <h1 style="margin: 0; font-size: 30px; line-height: 1.12; font-weight: 600; letter-spacing: -.02em">Settings</h1>
+      <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: var(--ink-2)">Changes save as soon as you make them.</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 20px">
+      <section class="card" aria-labelledby="s-look">
+        <h2 id="s-look">Look</h2>
+        <div class="set">
+          <div class="lab"><b id="s-theme">Theme</b><span class="sm-hint">Light and dark are both fully supported.</span></div>
+          <div class="seg" role="group" aria-labelledby="s-theme">
+            <sc-for list="{{ themes }}" as="t" hint-placeholder-count="3"><button type="button" class="sm-btn" aria-pressed="{{ t.pressed }}" onClick="{{ t.pick }}" data-i="{{ t.name }}">{{ t.name }}</button></sc-for>
+          </div>
+          <sc-if value="{{ savedTheme }}" hint-placeholder-val="{{ false }}"><span class="saved" role="status"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -2px; margin-right: 4px"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Saved</span></sc-if>
+        </div>
+        <div class="set">
+          <div class="lab"><b id="s-size">Text size</b><span class="sm-hint">Makes all text in Skills Manager bigger.</span></div>
+          <div class="seg" role="group" aria-labelledby="s-size">
+            <sc-for list="{{ sizes }}" as="t" hint-placeholder-count="2"><button type="button" class="sm-btn" aria-pressed="{{ t.pressed }}" onClick="{{ t.pick }}" data-i="{{ t.name }}">{{ t.name }}</button></sc-for>
+          </div>
+        </div>
+        <div class="set">
+          <div class="lab"><label for="s-date" style="display: block; font-size: 14px; font-weight: 600">Dates</label><span class="sm-hint">How dates appear in history and Trash.</span></div>
+          <select id="s-date" class="sm-select"><option>24 Nov 2026</option><option>Nov 24, 2026</option><option>2026-11-24</option></select>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="s-ai">
+        <h2 id="s-ai">AI connection</h2>
+        <p class="sm-hint" style="margin: 0; padding: 0 22px 8px">Used only by the AI assist tools. You always see what is sent before it’s sent.</p>
+        <div class="set">
+          <div class="lab"><label for="s-addr" style="display: block; font-size: 14px; font-weight: 600">Address</label><span class="sm-hint">Where your AI service answers.</span></div>
+          <input id="s-addr" class="sm-input" value="https://ai.example.com/v1" readonly="">
+        </div>
+        <div class="set">
+          <div class="lab"><label for="s-model" style="display: block; font-size: 14px; font-weight: 600">Model</label><span class="sm-hint">The model name your service expects.</span></div>
+          <input id="s-model" class="sm-input" value="your-model" readonly="">
+        </div>
+        <div class="set" style="align-items: flex-start">
+          <div class="lab"><b>Status</b><span class="sm-hint">We only say it works after a test answers.</span></div>
+          <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+            <div class="conn {{ connCls }}" role="status">{{ connText }}</div>
+            <button type="button" class="sm-btn" onClick="{{ test }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5"/></svg>Test the connection</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="s-keep">
+        <h2 id="s-keep">Upkeep</h2>
+        <div class="set">
+          <div class="lab"><b>Re-read all skill folders</b><span class="sm-hint">Use if the table looks out of date. Your skill files are not changed.</span></div>
+          <button type="button" class="sm-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Re-read now</button>
+        </div>
+        <div class="set">
+          <div class="lab"><b>Where Skills Manager keeps its own data</b><span class="sm-mono" style="display: block; margin-top: 2px">~/.local/share/skills-manager</span></div>
+          <button type="button" class="sm-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>Copy the path</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"connection":{"editor":"enum","options":["untested","failed","ok"],"default":"failed"},"$preview":{"width":1440,"height":1180}}'>
+const CONN = {
+  untested: ['untested', 'Not tested yet. AI tools stay off until a test answers.'],
+  failed: ['failed', 'Couldn’t reach your AI service at this address (tested just now). Check the address and that the service is running. AI tools stay off.'],
+  ok: ['ok', 'Answered in 0.8 seconds (tested just now). AI tools are ready.']
+};
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { dark: null, mode: 'system', size: 'default', saved: false, conn: null }; }
+  renderVals() {
+    const dark = this.state.dark === null ? !!(this.props.dark ?? true) : this.state.dark;
+    const c = CONN[this.state.conn || this.props.connection || 'failed'];
+    const pickTheme = (m) => this.setState({ mode: m, dark: m === 'dark' ? true : (m === 'light' ? false : this.state.dark), saved: true });
+    return {
+      theme: dark ? 'dark' : 'light', size: this.state.size === 'big' ? 'big' : '',
+      toggleTheme: () => this.setState({ dark: !dark }),
+      themes: [['light', 'Light'], ['dark', 'Dark'], ['system', 'Match my computer']].map(t => ({ name: t[1], pressed: this.state.mode === t[0] ? 'true' : 'false', pick: () => pickTheme(t[0]) })),
+      sizes: [['default', 'Default'], ['big', 'Larger']].map(t => ({ name: t[1], pressed: this.state.size === t[0] ? 'true' : 'false', pick: () => this.setState({ size: t[0] }) })),
+      savedTheme: this.state.saved,
+      connCls: c[0], connText: c[1],
+      test: () => this.setState({ conn: (this.state.conn || this.props.connection || 'failed') === 'failed' ? 'ok' : 'failed' })
+    };
+  }
+}
+</script>
+</body>
+</html>

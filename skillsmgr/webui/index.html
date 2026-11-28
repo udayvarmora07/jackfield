@@ -24,7 +24,14 @@
   <main id="main" ref="main" tabindex="-1" :inert="!!dialog">
     <!-- loading / failure -->
     <jf-not-found v-if="route.page === 'missing'" :route="route"></jf-not-found>
-    <tool-center v-else-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine" @tool-group="trackGroupByKey" :page="route.tool || 'tools'" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()" @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
+    <jf-advanced-screen v-else-if="route.page === 'tools' && route.tool === 'tools'"
+      :groups-on="toolGroupsOn" :tracking-ready="!!tracking" :tracking-error="trackingError"
+      @retry-tracking="loadTracking()" v-model:query="advancedQuery"></jf-advanced-screen>
+    <tool-center v-else-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine"
+      :tracking-ready="!!tracking" :tracking-error="trackingError" @retry-tracking="loadTracking()" @tool-group="trackGroupByKey"
+      :page="route.tool" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff"
+      @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()"
+      @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
     <jf-skills-screen v-else-if="route.page === 'skills' && !route.view && route.screen !== 'new'" :rows="tableRows" :agents="tableColumns"
       :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError"
       :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.screen"
@@ -935,6 +942,7 @@
 <script src="screen-why.js"></script>
 <script src="screen-attention.js"></script>
 <script src="screen-trash.js"></script>
+<script src="screen-advanced.js"></script>
 <script src="palette.js"></script>
 <script src="library-tools.js"></script>
 <script src="ai-center.js"></script>
