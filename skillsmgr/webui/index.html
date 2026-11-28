@@ -31,7 +31,14 @@
       :tracking-ready="!!tracking" :tracking-error="trackingError" @retry-tracking="loadTracking()" @tool-group="trackGroupByKey"
       :page="route.tool" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" :attention-count="tableProblems.length"
       @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()"
-      @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
+      @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)">
+      <template #instances>
+        <p class="state-note err" role="alert" v-if="catalogError">Tags and profiles are unavailable: {{catalogError}} <button class="btn btn-line btn-sm" @click="loadCatalog()">Retry</button></p>
+        <p v-if="loadError" class="state-note err" role="alert">Could not read skill copies: {{loadError}} <button type="button" class="btn btn-line btn-sm" @click="refresh()">Try again</button></p>
+        <p v-else-if="!m" class="state-note" role="status">Reading skill copies…</p>
+        <library-tools v-else :records="records" :scopes="scopes" :catalog="catalog" @changed="refresh()" @catalog-changed="catalogChanged($event)" @inspect="openRecord($event)" @source="openSource($event)" @removed="removedBatch($event)"></library-tools>
+      </template>
+    </tool-center>
     <jf-skills-screen v-else-if="route.page === 'skills' && !route.view && route.screen !== 'new'" :rows="tableRows" :agents="tableColumns"
       :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError" :working="tableWorking"
       :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.agent && !route.only && !route.screen"
@@ -325,11 +332,10 @@
         <label class="sr-only" for="tag-f">Tag</label>
         <select class="field" id="tag-f" v-model="tagFilter"><option value="">All tags</option><option value="__untagged">Untagged</option><option v-for="tag in catalogTags" :key="tag" :value="tag">{{tag}}</option></select>
       </div>
-      <div class="instance-filters"><div class="seg" role="group" aria-label="Library view"><button type="button" :aria-pressed="libraryView==='shelf'" @click="libraryView='shelf'">Shelf</button><button type="button" :aria-pressed="libraryView==='instances'" @click="libraryView='instances'">Exact instances</button></div><div class="seg" role="group" aria-label="Card density" v-if="libraryView==='shelf'"><button type="button" :aria-pressed="density==='comfortable'" @click="density='comfortable'">Comfortable</button><button type="button" :aria-pressed="density==='compact'" @click="density='compact'">Compact</button></div><a v-if="query.trim()" class="link map-carry" href="#/skills?view=map" @click.exact.left.prevent="findInMap()">Find name in Sync map</a><span class="count" aria-live="polite">{{ visible.length === shelfTotal ? fmt(shelfTotal) + (shelfTotal === 1 ? ' skill' : ' skills') : 'Showing ' + fmt(visible.length) + ' of ' + fmt(shelfTotal) }}</span><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading" title="Re-read every skill folder from disk">{{ loading ? 'Refreshing…' : 'Refresh files' }}</button></div>
+      <div class="instance-filters"><div class="seg" role="group" aria-label="Card density"><button type="button" :aria-pressed="density==='comfortable'" @click="density='comfortable'">Comfortable</button><button type="button" :aria-pressed="density==='compact'" @click="density='compact'">Compact</button></div><a v-if="query.trim()" class="link map-carry" href="#/skills?view=map" @click.exact.left.prevent="findInMap()">Find name in Sync map</a><span class="count" aria-live="polite">{{ visible.length === shelfTotal ? fmt(shelfTotal) + (shelfTotal === 1 ? ' skill' : ' skills') : 'Showing ' + fmt(visible.length) + ' of ' + fmt(shelfTotal) }}</span><button class="btn btn-line btn-sm" @click="refresh()" :disabled="loading" title="Re-read every skill folder from disk">{{ loading ? 'Refreshing…' : 'Refresh files' }}</button></div>
       <p class="state-note err" role="alert" v-if="catalogError">Tags and profiles are unavailable: {{catalogError}} <button class="btn btn-line btn-sm" @click="loadCatalog()">Retry</button></p>
       <div class="ribbon" v-if="careCount && filter !== 'care'"><ic name="warn"></ic><b>{{ plural(careCount, 'skill needs', 'skills need') }} review</b><div class="ribbon-actions"><button type="button" class="link" @click="filter = 'care'; capReset()">Show only these</button><a class="btn btn-line btn-sm" href="#/attention">Review in Needs attention</a></div></div>
-      <library-tools v-if="libraryView==='instances'" :records="records" :scopes="scopes" :names="visibleNames" :agent-filter="agentFilter" :catalog="catalog" @changed="refresh()" @inspect="openRecord($event)" @source="openSource($event)" @removed="removedBatch($event)"></library-tools>
-      <template v-else-if="groups.length">
+      <template v-if="groups.length">
         <section class="cat" v-for="g in groups" :key="g.id" role="group" :aria-label="grouping === 'letter' && sortBy === 'name' ? 'Skills starting with ' + g.id : g.id">
           <div class="cat-h"><h2 class="h2" :id="'cat-' + g.key">{{ g.id }}</h2><span>{{ plural(g.items.length, 'skill') }}</span></div>
           <div :class="['shelf', { compact: density === 'compact' }]">

@@ -26,7 +26,8 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Apply the before-launch review fixes to the shipped screens and record
   what could be reproduced in @docs/62-redesign-review-2026-11-28.md.
 - [x] Restore the browser smoke checks on the Paper Skills table.
-- [ ] Restore the selected-copy tools under Advanced and verify a linked copy.
+- [x] Restore the selected-copy tools under Advanced and verify linked-copy
+  guards, tag and profile changes, and reviewed removal with Undo.
 - [ ] Keep confirmations through navigation triggered by their own actions.
 - [ ] Fix the remaining Paper recovery, copy and layout findings. Verify hosted
   CI after the follow-up commits.

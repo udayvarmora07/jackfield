@@ -262,10 +262,15 @@ visit. A read finishing after navigation cannot reopen the old review.
 - **Every existing tool keeps a home** (BD-10). The maintainer approved this
   mapping in Q2 on 2026-11-28. The Add skills switch now controls Update from
   folder. Doctor is a standalone report in Check my setup.
+- **Skill copies** (`#/advanced/instances`): select individual folders for
+  reviewed file operations, edit tags shared by copies of a skill, or save the
+  selected skill names and places to a new or existing profile. Linked copies
+  can be opened for reading. The page shows the first 200 copies and can
+  reveal more in groups of 200.
 
 | Group | Board rows | Existing tools placed there |
 |---|---|---|
-| Add skills | Install, Templates, Profiles | `install`, `templates`, `profiles`, `source-update` (Update from folder) |
+| Add skills | Install, Templates, Profiles | `install`, `templates`, `profiles`, `source-update` (Update from folder), `instances` (Skill copies, maintainer follow-up) |
 | Check my setup | Quality, Where agents look, Doctor | `quality`, `workspaces` (Where agents look), Doctor (`/api/doctor?scope=all&hygiene=1` report) |
 | AI assist | Connection; Write; Test; Shorten; Find conflicts | Connection `ai-settings`; Write `ai-draft`, `ai-improve`, `ai-profile`, `ai-port`, `ai-ask`; Test `ai-trigger`, `ai-evals`, `ai-ablate`; Shorten `ai-concise`, `ai-budget`; Find conflicts `ai-conflicts`, `ai-overlap`, `ai-explain` |
 | Settings | Settings, What to track | `settings`, tracking |

@@ -17,6 +17,7 @@ Q8 on 2026-11-27. Q2 and Q5 record decisions made on 2026-11-28.
 |---|---|
 | Q1 | Cursor and custom-agent squares say **On** when the file is found, readable and switched on. The side panel's details say "Cursor's own settings aren't checked", and S6 shows "Settings allow it" as Unknown for them |
 | Q2 | Advanced uses the S9 mapping. Add skills controls Update from folder. Check my setup includes a standalone Doctor report with hygiene checks. The AI assist tools appear under Write, Test, Shorten and Find conflicts. |
+| Q2 follow-up | On 2026-11-28 the maintainer chose Advanced → Add skills → Skill copies for bulk tags, assigning selected skills to profiles and operations on individual folders. |
 | Q3 | `check_design_tokens.py` reads `design/tokens.json` (the only source of values); `DESIGN.md` is rewritten as a short guide (voice, statuses, rules) **with no colour values** |
 | Q4 | "Off in settings" does **not** count in Needs attention; it shows on its square and is listed among the things checked in S7's empty state |
 | Q5 | Backups show the most recent download start and its size after browser handoff. The line is omitted until a download is observed. This is stored per browser. Decided 2026-11-28. |

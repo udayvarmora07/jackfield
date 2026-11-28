@@ -7,17 +7,21 @@
   const exact = (r) => ({ name: r.name, scope: r.scope, path: r.path || r.physical_path || "", physical_path: r.physical_path || r.path || "" });
 
   window.SkillsV2LibraryTools = {
-    props: { records: Array, scopes: Array, names: Array, agentFilter: String, catalog: Object },
-    emits: ["changed", "inspect", "source", "removed"],
-    data() { return { selected: [], cap: 200, busy: false, error: "", result: null, notice: "", operation: "", frozen: [], excluded: [], plan: null, planPayload: null, targets: [], force: false, tags: "", tagOperation: "add", profile: "", opener: null, sequence: 0 }; },
+    props: { records: Array, scopes: Array, catalog: Object },
+    emits: ["changed", "catalog-changed", "inspect", "source", "removed"],
+    data() { return { selected: [], cap: 200, busy: false, error: "", result: null, notice: "", operation: "", frozen: [], excluded: [], plan: null, planPayload: null, targets: [], force: false, tags: "", tagOperation: "add", profile: "", profileChoice: "", profileBase: null, opener: null, sequence: 0, query: "", scopeFilter: "all", tagFilter: "" }; },
     computed: {
       rows() {
-        const names = new Set(this.names || []), seen = new Set();
+        const seen = new Set(), query = this.query.trim().toLowerCase();
         return (this.records || []).filter(r => {
-          if (!names.has(r.name) || (this.agentFilter !== "all" && r.scope !== this.agentFilter)) return false;
+          if ((this.scopeFilter !== "all" && r.scope !== this.scopeFilter) ||
+              !String(r.name).toLowerCase().includes(query) ||
+              (this.tagFilter === "__untagged" ? this.tagsFor(r).length > 0 : this.tagFilter && !this.tagsFor(r).includes(this.tagFilter.slice(4)))) return false;
           const id = key(r); if (seen.has(id)) return false; seen.add(id); return true;
         });
       },
+      profileNames() { return Object.keys(this.catalog?.profiles || {}).sort(); },
+      tagOptions() { return [...new Set(Object.values(this.catalog?.tags || {}).flat())].sort(); },
       shown() { return this.rows.slice(0, this.cap); },
       selectedRows() { const ids = new Set(this.selected); return (this.records || []).filter(r => ids.has(key(r))); },
       hidden() { const ids = new Set(this.rows.map(key)); return this.selected.filter(id => !ids.has(id)).length; },
@@ -31,11 +35,15 @@
       selectable(r) {return window.SkillsV2Model.validName(r.name);},
       fileState(r) {const state=window.SkillManagerDomain.observeRecord(r);return state.linkEscape?"Linked outside root":state.notAddressable?"Not addressable":state.isDisabled?"File disabled":"File enabled";},
       needsReview(r) {const state=window.SkillManagerDomain.observeRecord(r);return state.malformedDocument&&!state.linkEscape;},
-      tagsFor(r) { return this.catalog?.tags?.[r.name] || []; },
+      tagsFor(r) {
+        const tags = this.catalog?.tags?.[r.name];
+        return Array.isArray(tags) ? tags : [];
+      },
       scopeLabel(id) { return (this.scopes || []).find(s => s.id === id)?.label || id; },
       selectShown() { this.selected = [...new Set([...this.selected, ...this.shown.filter(r=>this.selectable(r)&&this.writable(r)).map(key)])]; },
       begin(operation) {
         this.opener = document.activeElement; this.operation = operation; this.error = ""; this.plan = null; this.planPayload = null;
+        if (operation === "profile") { this.profile = ""; this.profileChoice = ""; this.profileBase = null; }
         const metadata=["tags","profile"].includes(operation);
         this.frozen = this.selectedRows.filter(metadata?this.selectable:this.writable).map(exact);
         this.excluded=metadata?[]:this.selectedRows.filter(r=>!this.writable(r)).map(exact);this.targets = []; this.force = false;
@@ -67,18 +75,28 @@
       async updateTags() {
         if (this.busy || !this.tags.trim()) return;
         this.busy = true; this.error = "";
-        try { await request("/api/catalog/tags", { names: [...new Set(this.frozen.map(r => r.name))], operation: this.tagOperation, tags: this.tags.split(",").map(t => t.trim()).filter(Boolean) }); this.notice=`Tags updated for ${new Set(this.frozen.map(r=>r.name)).size} logical skill names.`;this.$refs.review.close(); this.$emit("changed"); }
+        try { const catalog = await request("/api/catalog/tags", { names: [...new Set(this.frozen.map(r => r.name))], operation: this.tagOperation, tags: this.tags.split(",").map(t => t.trim()).filter(Boolean) }); this.notice=`Tags updated for ${new Set(this.frozen.map(r=>r.name)).size} logical skill names.`;this.$refs.review.close(); this.$emit("catalog-changed", catalog); }
         catch (e) { this.error = e.message; } finally { this.busy = false; }
       },
+      chooseProfile() {
+        const previous = this.catalog?.profiles?.[this.profileChoice];
+        this.profileBase = previous ? JSON.parse(JSON.stringify(previous)) : null;
+        this.error = "";
+      },
       async saveProfile() {
-        if (this.busy || !this.profile.trim()) return;
+        const name = this.profileChoice || this.profile.trim(), previous = this.profileBase;
+        if (this.busy || !name || (this.profileChoice && !previous)) return;
         this.busy = true; this.error = "";
-        try { await request("/api/catalog/profiles", { name: this.profile.trim(), skills: [...new Set(this.frozen.map(r => r.name))], targets: [...new Set(this.frozen.map(r => r.scope))] }); this.$refs.review.close(); this.$emit("changed"); }
+        const payload = { ...(previous || {}), name, expected_profile: previous,
+          skills: [...new Set([...(previous?.skills || []), ...this.frozen.map(r => r.name)])],
+          targets: [...new Set([...(previous?.targets || []), ...this.frozen.map(r => r.scope)])] };
+        try { const catalog = await request("/api/catalog/profiles", payload); this.notice = `Selection saved to ${name}.`; this.$refs.review.close(); this.$emit("catalog-changed", catalog); }
         catch (e) { this.error = e.message; } finally { this.busy = false; }
       },
     },
     template: `
-      <section class="v2-instances" aria-label="Exact skill instances">
+      <section class="v2-instances" aria-label="Skill copies">
+        <div class="instance-filters"><label>Find a skill<input class="field" type="search" v-model="query"></label><label>Location<select class="field" v-model="scopeFilter"><option value="all">All locations</option><option v-for="scope in scopes" :key="scope.id" :value="scope.id">{{scope.label || scope.id}}</option></select></label><label>Tag<select aria-label="Tag" class="field" v-model="tagFilter"><option value="">All tags</option><option value="__untagged">Untagged</option><option v-for="tag in tagOptions" :key="tag" :value="'tag:' + tag">{{tag}}</option></select></label></div>
         <p class="state-note" v-if="notice" role="status">{{notice}}</p>
         <div class="instance-bar"><button type="button" class="btn btn-line btn-sm" @click="selectShown">Select shown copies</button><span>{{ shown.length }} of {{ rows.length === 1 ? '1 copy' : rows.length + ' copies' }} shown</span></div>
         <div class="instance-selection" v-if="selected.length"><b>{{ selected.length }} exact copies selected</b><span v-if="hidden">, {{ hidden }} hidden by filters</span><div class="instance-actions"><button class="btn btn-line btn-sm" v-for="op in ['enable','disable','sync','remove','tags','profile']" :key="op" @click="begin(op)">{{ {enable:'Enable',disable:'Disable',sync:'Sync',remove:'Move to trash',tags:'Edit tags',profile:'Save as profile'}[op] }}</button><button class="btn btn-soft btn-sm" @click="selected=[]">Clear selection</button></div></div>
@@ -88,10 +106,10 @@
         <dialog class="instance-dialog" ref="review" aria-labelledby="instance-review-title" @cancel.prevent="close" @close="restoreFocus"><h2 id="instance-review-title" class="h2">{{operation==='tags'?'Edit logical skill tags':operation==='profile'?'Save selection as profile':'Review '+operation}}</h2><p>{{frozen.length}} exact copies · {{new Set(frozen.map(r=>r.name)).size}} skill names</p><p v-if="operation==='remove'" class="state-note">Removal moves each selected copy to that agent's own trash folder. You can restore it from Trash &amp; backups while the copy is still there, and the result toast offers Undo.</p><p v-if="syncAmbiguous" role="alert" class="state-note err">Select one source copy per skill name before syncing. Multiple selected sources could disagree.</p><ul class="instance-targets" tabindex="0" aria-label="Selected skill copies"><li v-for="r in frozen" :key="key(r)"><b>{{r.name}} · {{scopeLabel(r.scope)}}</b><code>{{r.physical_path}}</code></li></ul>
           <template v-if="operation==='sync'"><fieldset><legend>Copy to these scopes</legend><label v-for="s in writableScopes" :key="s.id"><input type="checkbox" v-model="targets" :value="s.id" :disabled="busy" @change="invalidate">{{s.label || s.id}}</label></fieldset><label><input type="checkbox" v-model="force" :disabled="busy" @change="invalidate">Overwrite existing copies</label><button type="button" class="btn btn-line" :disabled="busy || !targets.length || syncAmbiguous" @click="preview">Review target plan</button></template>
           <template v-if="operation==='tags'"><p>Tags apply across every copy of these logical skill names. They are catalog metadata, not document frontmatter.</p><label>Operation<select class="field" v-model="tagOperation"><option value="add">Add</option><option value="remove">Remove</option></select></label><label>Tags, separated by commas<input class="field" v-model="tags"></label></template>
-          <template v-if="operation==='profile'"><p>Save desired names and target scopes. Saving does not change skill files.</p><label>Profile name<input class="field" v-model="profile"></label></template>
+          <template v-if="operation==='profile'"><p>Add selected names and locations to a profile. Saving does not change skill files.</p><label>Choose a profile<select aria-label="Choose a profile" class="field" v-model="profileChoice" @change="chooseProfile"><option value="">Create a new profile</option><option v-for="name in profileNames" :key="name" :value="name">{{name}}</option></select></label><label v-if="!profileChoice">Profile name<input class="field" v-model="profile"></label></template>
           <p class="state-note" v-if="excluded.length">{{excluded.length}} selected copies are excluded because file writes are unavailable. Tags and profile metadata can still be changed for those names.</p><ul class="instance-targets" v-if="excluded.length"><li v-for="r in excluded" :key="key(r)">{{r.name}} · {{scopeLabel(r.scope)}}<code>{{r.physical_path}}</code></li></ul><p class="state-note" v-if="!frozen.length">No selected copies support this operation.</p>
           <p class="state-note" v-if="busy" role="status">Working…</p><p class="state-note err" v-if="error" role="alert">{{error}}</p><button class="btn btn-line" v-if="!plan && frozen.length && !busy && !['sync','tags','profile'].includes(operation)" @click="preview">Review again</button><p class="state-note" v-if="plan">{{plan.target_count}} targets reviewed. The plan fixes target identities and options; it does not freeze source bytes. Targets may succeed or fail independently.</p>
-          <div class="instance-actions"><button class="btn btn-line" :disabled="busy" @click="close">Cancel</button><button v-if="operation==='tags'" class="btn btn-ink" :disabled="busy||!tags.trim()" @click="updateTags">Update tags</button><button v-else-if="operation==='profile'" class="btn btn-ink" :disabled="busy||!profile.trim()" @click="saveProfile">Save profile</button><button v-else class="btn btn-ink" :disabled="busy||!plan?.plan_id" @click="execute">Apply reviewed {{operation}}</button></div>
+          <div class="instance-actions"><button class="btn btn-line" :disabled="busy" @click="close">Cancel</button><button v-if="operation==='tags'" class="btn btn-ink" :disabled="busy||!tags.trim()" @click="updateTags">Update tags</button><button v-else-if="operation==='profile'" class="btn btn-ink" :disabled="busy||(!profileChoice && !profile.trim())" @click="saveProfile">Save profile</button><button v-else class="btn btn-ink" :disabled="busy||!plan?.plan_id" @click="execute">Apply reviewed {{operation}}</button></div>
         </dialog>
       </section>`,
   };

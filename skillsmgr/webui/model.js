@@ -566,6 +566,7 @@
   const toolGroups = [
     { key: "add", label: "Add and organize", items: [
       { id: "install", name: "Install", text: "Bring skills in from the skills.sh registry, a package command or a local folder.", commandLabel: "Install" },
+      { id: "instances", name: "Skill copies", text: "Select exact copies to manage files, tags and profiles." },
       { id: "profiles", name: "Profiles", text: "Save named sets of skills and switch them on together.", commandLabel: "Profiles" },
       { id: "templates", name: "Templates", text: "Keep starting documents for new skills.", commandLabel: "Templates" },
       { id: "source-update", name: "Update from folder", text: "Replace one exact copy with a newer folder, after a full review." },
@@ -605,7 +606,7 @@
   const advancedGroups = Object.freeze([
     advancedGroup("add", "Add skills", "Bring in skills from outside, or start from a pattern.", [
       ["", [toolById.get("install"), Object.freeze({ ...toolById.get("templates"), text: "Starting layouts for new skills. Add your own." }),
-        Object.freeze({ ...toolById.get("profiles"), text: "Named sets of skills you can turn on together." }), toolById.get("source-update")]],
+        Object.freeze({ ...toolById.get("profiles"), text: "Named sets of skills you can turn on together." }), toolById.get("source-update"), toolById.get("instances")]],
     ]),
     advancedGroup("inspect", "Check my setup", "Find out what’s wrong and why.", [
       ["", toolsById("quality", "workspaces", "doctor")],

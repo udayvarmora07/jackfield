@@ -44,6 +44,15 @@ cleanup, and Phase 8 acceptance. S9 maintainer review remains open. The
 screen-reader, physical-phone, actual Safari, and pixel-overlay checks remain
 open. The checked-in boards were compared by markup, copy, and widths.
 
+## Follow-up fixes
+
+| Finding | Disposition |
+| --- | --- |
+| Browser smoke waits for the retired view | Fixed in `7b69ebe`. The populated probe dismisses the welcome card and checks the Paper table and its Needs attention count. |
+| Bulk tags, profile assignment and exact-copy tools are unreachable | The maintainer chose Advanced → Add skills → Skill copies. The page restores checked file actions, tag filtering and editing, and adding selections to profiles. A followed link stays read-only. |
+| Create and permanent removal confirmations disappear | Pending. |
+| Remaining Paper review findings | Pending. |
+
 ## Scope and evidence
 
 **[NOTE]** Sources: the approved boards in `designs/final/`, @DESIGN.md,

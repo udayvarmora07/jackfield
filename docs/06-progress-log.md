@@ -7,6 +7,15 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Advanced Skill copies
+
+**[NOTE]** The maintainer chose Advanced → Add skills → Skill copies for bulk
+tags, profile assignment and operations on individual folders. A profile save
+preserves the existing profile's description and native settings and refuses
+a stale edit. Linked copies remain read-only. Chromium covers selection,
+tagging, creating and extending profiles, inventory retry, and removal with
+Undo.
+
 ## 2026-11-28 — Paper browser smoke
 
 **[NOTE]** The browser smoke harness opens the Paper Skills route and waits

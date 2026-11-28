@@ -1563,6 +1563,7 @@ const app = createApp({
         if (gen === this.historyGen) this.skillHistory = (Array.isArray(rows) ? rows : []).slice(0, 3);
       } catch (e) { if (gen === this.historyGen) this.skillHistoryError=this.friendly(e.message); }
     },
+    catalogChanged(catalog) { ++this.catalogGen; this.catalog = catalog; this.catalogError = ""; },
     async loadCatalog() {
       const gen = ++this.catalogGen;
       try {

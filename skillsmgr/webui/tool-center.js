@@ -515,6 +515,11 @@
         <p v-if="!trackingError" class="tp-fine" role="status">Reading tool group settings…</p>
         <div v-else class="tp-acts"><p class="tp-fine" role="alert">Could not read tool group settings.</p><button type="button" class="btn btn-line" @click="$emit('retry-tracking')">Retry settings</button></div>
       </template>
+      <template v-else-if="page==='instances'">
+        <h1 class="h1" id="h1" tabindex="-1">Skill copies</h1>
+        <p class="lede">Select exact copies to manage files, tags and profiles.</p>
+        <slot name="instances"></slot>
+      </template>
       <template v-else-if="page==='doctor'">
         <h1 class="h1" id="h1" tabindex="-1">Doctor</h1>
         <p class="lede">Compare your library index with the files on disk and check the skill documents and settings Jackfield can read.</p>

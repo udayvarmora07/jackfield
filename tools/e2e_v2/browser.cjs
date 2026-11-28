@@ -2494,6 +2494,122 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await evidence.press('Enter');
     await finding.getByRole('region', {name:/^Evidence for /}).waitFor();
   });
+  await test('Skill copies restores exact selection, tags and profiles', async () => {
+    const name = 'constructor';
+    const created = await page.request.post(base+'/api/skills?scope=agents', {data:{name,description:'Exact copies browser fixture.',body:'# Owner\n'}});
+    assert(created.ok(), await created.text());
+    const owner = path.join(home,'.agents','skills',name), link = path.join(home,'.claude','skills',name);
+    fs.symlinkSync(owner,link,'dir');
+    const originalProfile = {name:'browser-existing', description:'Keep this description', skills:['sole-copy'], targets:['claude-code'], native:{off:['sole-copy']}, expected_profile:null};
+    const seeded = await page.request.post(base+'/api/catalog/profiles',{data:originalProfile});
+    assert(seeded.ok(),await seeded.text());
+    try {
+      await go('advanced');
+      await page.getByRole('link',{name:/^Skill copies/}).click();
+      await page.getByRole('heading',{name:'Skill copies',exact:true}).waitFor();
+      await page.getByLabel('Find a skill').fill(name);
+      const rows = page.locator('.instance-row').filter({hasText:name});
+      assert.equal(await rows.count(),2);
+      await page.getByLabel('Tag',{exact:true}).selectOption('__untagged');
+      assert.equal(await rows.count(),2);
+      await page.getByLabel('Tag',{exact:true}).selectOption('');
+      const linked = rows.filter({hasText:'linked copy is read-only'}), writable = rows.filter({hasNotText:'linked copy is read-only'});
+      assert(await linked.getByRole('checkbox').isDisabled());
+      assert(await linked.getByRole('button',{name:'Review update'}).isDisabled());
+      assert(await writable.getByRole('checkbox').isEnabled());
+      await writable.getByRole('checkbox').check();
+      await page.getByRole('button',{name:'Edit tags'}).click();
+      await page.getByLabel('Tags, separated by commas').fill('browser-tag, __untagged');
+      await page.getByRole('button',{name:'Update tags'}).click();
+      await page.locator('.instance-tags').getByText('browser-tag',{exact:true}).first().waitFor();
+      await page.getByLabel('Tag',{exact:true}).selectOption('tag:browser-tag');
+      assert.equal(await rows.count(),2);
+      await page.getByLabel('Tag',{exact:true}).selectOption('tag:__untagged');
+      assert.equal(await rows.count(),2);
+      await page.getByLabel('Tag',{exact:true}).selectOption('__untagged');
+      assert.equal(await rows.count(),0);
+      await page.getByLabel('Tag',{exact:true}).selectOption('');
+      await page.getByRole('button',{name:'Save as profile'}).click();
+      await page.getByLabel('Profile name').fill('browser-profile');
+      const saved = page.waitForResponse(r => r.url().endsWith('/api/catalog/profiles') && r.request().method() === 'POST');
+      await page.getByRole('button',{name:'Save profile',exact:true}).click();
+      assert.equal((await saved).status(),200);
+      const catalog = await (await page.request.get(base+'/api/catalog')).json();
+      assert(catalog.profiles['browser-profile'].skills.includes(name));
+      await page.getByRole('button',{name:'Save as profile'}).click();
+      assert.equal(await page.getByLabel('Choose a profile').locator('option[value="browser-profile"]').count(),1);
+      await page.getByLabel('Choose a profile').selectOption('browser-existing');
+      const merged = page.waitForResponse(r => r.url().endsWith('/api/catalog/profiles') && r.request().method() === 'POST');
+      await page.getByRole('button',{name:'Save profile',exact:true}).click();
+      assert.equal((await merged).status(),200);
+      const afterMerge = (await (await page.request.get(base+'/api/catalog')).json()).profiles['browser-existing'];
+      assert.equal(afterMerge.description,'Keep this description');
+      assert.deepEqual(afterMerge.native,{off:['sole-copy']});
+      assert.deepEqual(afterMerge.skills.sort(),[name,'sole-copy'].sort());
+      assert.deepEqual(afterMerge.targets.sort(),['agents','claude-code'].sort());
+      await page.getByRole('button',{name:'Save as profile'}).click();
+      await page.getByLabel('Choose a profile').selectOption('browser-existing');
+      const changed = await page.request.post(base+'/api/catalog/profiles',{data:{...afterMerge,name:'browser-existing',description:'Changed elsewhere',expected_profile:afterMerge}});
+      assert(changed.ok(),await changed.text());
+      const stale = page.waitForResponse(r => r.url().endsWith('/api/catalog/profiles') && r.request().method() === 'POST');
+      await page.getByRole('button',{name:'Save profile',exact:true}).click();
+      assert.equal((await stale).status(),400);
+      await page.getByRole('dialog').getByRole('alert').waitFor();
+      assert.equal((await (await page.request.get(base+'/api/catalog')).json()).profiles['browser-existing'].description,'Changed elsewhere');
+      await page.getByRole('dialog').getByRole('button',{name:'Cancel'}).click();
+      await page.getByRole('button',{name:'Move to trash',exact:true}).click();
+      const dialog = page.getByRole('dialog',{name:'Review remove'});
+      await dialog.getByText(/targets reviewed/).waitFor();
+      await dialog.getByRole('button',{name:'Apply reviewed remove'}).click();
+      const undo = page.locator('.toast').getByRole('button',{name:'Undo'}).last();
+      await undo.waitFor();
+      assert(!fs.existsSync(owner));
+      const restored = page.waitForResponse(r => new URL(r.url()).pathname === '/api/trash/' + name && r.request().method() === 'POST');
+      await undo.click();
+      assert.equal((await restored).status(),200);
+      assert(fs.existsSync(path.join(owner,'SKILL.md')));
+    } finally { fs.unlinkSync(link); fs.rmSync(owner,{recursive:true,force:true}); }
+  });
+  await test('Skill copies ignores a stale catalog read after saving', async () => {
+    const oldCatalog = await (await page.request.get(base+'/api/catalog')).json();
+    let release, started;
+    const pending = new Promise(resolve => { release = resolve; });
+    const requested = new Promise(resolve => { started = resolve; });
+    const match = url => url.pathname === '/api/catalog';
+    const delay = async route => { started(); await pending; await route.fulfill({json:oldCatalog}); };
+    await page.route(match,delay);
+    try {
+      await page.goto(base+'/?fixture-step='+(++navigation)+'#/advanced/instances',{waitUntil:'domcontentloaded'});
+      await requested;
+      const copy = page.locator('.instance-row').filter({hasText:'sole-copy'}).first();
+      await copy.getByRole('checkbox').check();
+      await page.getByRole('button',{name:'Save as profile'}).click();
+      await page.getByLabel('Profile name').fill('stale-read-profile');
+      const saved = page.waitForResponse(r => r.url().endsWith('/api/catalog/profiles') && r.request().method() === 'POST');
+      await page.getByRole('button',{name:'Save profile',exact:true}).click();
+      assert.equal((await saved).status(),200);
+      const oldRead = page.waitForResponse(r => new URL(r.url()).pathname === '/api/catalog' && r.request().method() === 'GET');
+      release();
+      await oldRead;
+      await page.getByRole('button',{name:'Save as profile'}).click();
+      assert.equal(await page.getByLabel('Choose a profile').locator('option[value="stale-read-profile"]').count(),1);
+      await page.getByRole('dialog').getByRole('button',{name:'Cancel'}).click();
+    } finally { release(); await page.unroute(match,delay); }
+  });
+  await test('Skill copies inventory failure offers retry', async () => {
+    const match = url => url.pathname === '/api/skills' && url.searchParams.get('scope') === 'all';
+    const fail = route => route.fulfill({status:503,contentType:'application/json',body:'{"error":"Inventory unavailable"}'});
+    await page.route(match,fail);
+    try {
+      await go('advanced/instances');
+      const error = page.getByRole('alert').filter({hasText:'Could not read skill copies'});
+      await error.waitFor();
+      assert.equal(await page.locator('.v2-instances').count(),0);
+      await page.unroute(match,fail);
+      await error.getByRole('button',{name:'Try again'}).click();
+      await page.locator('.instance-row').first().waitFor();
+    } finally { await page.unroute(match,fail); }
+  });
   await test('Advanced lists tools and retains its search after opening one',async()=>{
     await page.setViewportSize({width:390,height:844});
     await go('advanced');
@@ -2556,7 +2672,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert.equal(await screen.locator('a[href="#/settings"]').count(),1);
       assert.equal(await screen.locator('a[href="#/advanced/source-update"],a[href="#/advanced/doctor"],a[href="#/advanced/ai-draft"]').count(),0);
       for (const [tool, group] of [['source-update','Add skills'],['doctor','Check my setup'],
-        ['profiles','Add skills'],['quality','Check my setup']]) {
+        ['profiles','Add skills'],['instances','Add skills'],['quality','Check my setup']]) {
         requests.length=0;
         await go('advanced/'+tool);
         await page.getByRole('heading',{name:group+' is switched off',exact:true}).waitFor();
