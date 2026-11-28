@@ -65,9 +65,20 @@ const hashes=['#/skills?view=agents&q=a+b&agent=codex&only=problems&sel=one',
  '#/skills/%00','#/skills/one/edit/extra','#/advanced/unknown'];
 console.log(JSON.stringify(hashes.map(h=>R.parseRoute(h))));""")
         self.assertEqual({k: result[0][k] for k in ('page','search','agent','only','selected')},
-                         {'page':'home','search':'a b','agent':'codex','only':'problems','selected':'one'})
-        self.assertEqual(result[1]['page'], 'map')
+                         {'page':'skills','search':'a b','agent':'codex','only':'problems','selected':'one'})
+        self.assertEqual(result[0]['href'], '#/skills?q=a+b&agent=codex&only=problems&sel=one')
+        self.assertIsNone(result[0]['view'])
+        self.assertEqual(result[1]['page'], 'skills')
+        self.assertEqual(result[1]['href'], '#/skills')
         self.assertTrue(all(route['page'] == 'missing' for route in result[2:]))
+        retired = run_js("""
+const views=['shelf','instances','unknown'];
+console.log(JSON.stringify(views.map(view=>R.parseRoute('#/skills?view='+view+'&q=a%20b'))));""")
+        for route in retired:
+            self.assertEqual(route['page'], 'skills')
+            self.assertIsNone(route['view'])
+            self.assertEqual(route['search'], 'a b')
+            self.assertEqual(route['href'], '#/skills?q=a+b')
 
     def test_palette_search_respects_disabled_tools_and_encodes_names(self):
         result = run_js("""

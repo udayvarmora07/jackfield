@@ -29,12 +29,12 @@
       @retry-tracking="loadTracking()" v-model:query="advancedQuery"></jf-advanced-screen>
     <tool-center v-else-if="route.page === 'tools'" :groups-on="toolGroupsOn" :tracking-line="trackSettingsLine"
       :tracking-ready="!!tracking" :tracking-error="trackingError" @retry-tracking="loadTracking()" @tool-group="trackGroupByKey"
-      :page="route.tool" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff"
+      :page="route.tool" :records="records" :scopes="scopes" :target="toolTarget" :source-review-handoff="sourceReviewHandoff" :attention-count="tableProblems.length"
       @changed="refresh()" @inspect="inspectRecord($event)" @open-record="openRecord($event)" @preference="preferencesChanged()"
       @use-draft="useDraft($event)" @open-source-review="openConciseReview($event)" @source-review-consumed="sourceReviewConsumed($event)"></tool-center>
     <jf-skills-screen v-else-if="route.page === 'skills' && !route.view && route.screen !== 'new'" :rows="tableRows" :agents="tableColumns"
       :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError"
-      :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.screen"
+      :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.agent && !route.only && !route.screen"
       :agents-found="!!tracking?.agents.some((agent) => agent.folder_status === 'ok')"
       :busy="busy" :projects="tracking?.projects || []" :showing="tracking?.showing || ''" :changed-rows="changedRows"
       :attention-count="tableProblemNames.size" :attention-detail="tableAttentionDetail" :sheet-viewport="tableNarrow"

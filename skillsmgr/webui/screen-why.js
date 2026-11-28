@@ -112,24 +112,31 @@
       const label = scope.id === "agents" ? "Shared skills folder" : scope.label || agent.name;
       const report = reports.get(discoveryQuery(scope, project, name));
       return { ...agent, id: scope.id, name: label, path: scope.path,
+        hasCopies: (byScope.get(scope.id) || []).length > 0,
         checks: placeChecks(byScope.get(scope.id) || [], scope, report, name) };
     });
   }
 
   function nextStep(places) {
-    for (const place of places) {
+    // A missing copy in another place does not explain a problem with a copy
+    // that exists. Keep each place's first failing check, but show real copy
+    // failures before optional availability in another place.
+    const ordered = [...places].sort((a, b) =>
+      Number(a.checks[0].word === "No copy here") - Number(b.checks[0].word === "No copy here"));
+    for (const place of ordered) {
+      if (place.checks[0].word === "No copy here" && places.some((item) => item.hasCopies)) continue;
       const failed = place.checks.findIndex((cell) => cell.state === "fail");
       if (failed === -1) continue;
       const { path, word } = place.checks[failed];
       const suggestions = [
         { title: word === "No skill file" ? "The skill file is missing in " + place.name : "There’s no copy in " + place.name,
-          text: "Open the skill page to see where a copy is available, then add it to this place." },
+          text: word === "No copy here" ? "This only matters if you want to use the skill in this place. Open the skill page to add a copy." : "Open the skill page to see where a copy is available, then add it to this place." },
         { title: place.name + "’s copy can’t be read", text: "Open the skill page to compare copies and see how to repair the file." },
         { title: "The file is switched off in " + place.name, text: "Open the skill page and use the square for this place to turn it on." },
         { title: place.name + "’s own settings turn this skill off",
           text: "The file is readable and switched on. Review the setting that turns it off, then check again." },
       ];
-      return { ...suggestions[failed], place, path };
+      return { ...suggestions[failed], place, path, skillLink: failed < 3 };
     }
     return null;
   }
@@ -222,11 +229,13 @@
           </div>
           <div class="jf-why-actions">
             <button v-if="next.path" type="button" class="sm-btn sm-btn--accent" :disabled="pending" @click="copySettingsPath">Copy settings path</button>
-            <button type="button" class="sm-btn" :class="{ 'sm-btn--accent': !next.path }" :disabled="pending" @click="checkAgain"><ic name="refresh"></ic>Check again</button>
+            <a v-else-if="next.skillLink" :href="href" class="sm-btn sm-btn--accent">Open skill page</a>
+            <button type="button" class="sm-btn" :class="{ 'sm-btn--accent': !next.path && !next.skillLink }" :disabled="pending" @click="checkAgain"><ic name="refresh"></ic>Check again</button>
           </div>
         </section>
         <div v-else class="jf-why-no-failure">
-          <p>{{ error ? 'The latest results are unavailable.' : places.length ? 'We found no failed checks in the places we could read.' : 'There are no tracked places to check.' }}</p>
+          <p>{{ error ? 'The latest results are unavailable.' : places.length ? 'We found no failed checks in the copies we could read. Missing copies matter only if you want to use the skill in those places.' : 'There are no tracked places to check.' }}</p>
+          <a v-if="!error && places.some(place => place.checks[0].word === 'No copy here')" :href="href" class="sm-btn">Open skill page</a>
           <button type="button" class="sm-btn" :disabled="pending" @click="checkAgain"><ic name="refresh"></ic>Check again</button>
         </div>
         <div v-if="places.length" class="jf-why-grid-wrap" tabindex="0" role="region" aria-label="Checks in each place" :aria-busy="pending">

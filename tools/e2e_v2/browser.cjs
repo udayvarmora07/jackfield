@@ -27,7 +27,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   const page = await context.newPage(); page.setDefaultTimeout(5000);
   page.on('pageerror', e => exceptions.push(e.message));
   let navigation = 0;
-  async function go(route) { route = ({home:'skills?view=agents', map:'skills?view=map'})[route] || route; await page.goto(base+'/?fixture-step='+(++navigation)+'#/'+route); await page.locator('main').waitFor(); await page.waitForLoadState('networkidle'); if (route.startsWith('skill/')) await page.locator('.jf-reader-heading').waitFor(); await page.waitForTimeout(200); }
+  async function go(route) {
+    await page.goto(base + '/?fixture-step=' + (++navigation) + '#/' + route);
+    await page.locator('main').waitFor();
+    await page.waitForLoadState('networkidle');
+    if (route.startsWith('skill/')) await page.locator('.jf-reader-heading').waitFor();
+  }
   async function theme(t) { for (let i=0;i<3 && await page.locator('html').getAttribute('data-theme')!==t;i++) { const button = page.locator('.themebtn:visible').first(); if (await button.count()) await button.click(); else { await page.keyboard.press('Control+k'); await page.getByRole('combobox', {name:'Search skills, actions and pages'}).fill('Switch theme'); await page.getByRole('option', {name:/Switch theme/}).click(); } } assert.equal(await page.locator('html').getAttribute('data-theme'),t); }
   const file=(scope,name='same-everywhere')=>path.join(home,scope,'skills',name,'SKILL.md');
   const libraryFile = name => path.join(root, 'data', 'jackfield', 'skills', name, 'SKILL.md');
@@ -55,7 +60,111 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.getByRole('button', {name:'same-everywhere in Codex: On'}).click();
     await page.locator('.jf-panel').getByRole('button', {name:/^Turn off/}).click();
   }
+  await test('Paper disclosure chevrons keep their size, rotation and reduced motion', async () => {
+    const checkDisclosure = async (summary, reduced) => {
+      await summary.waitFor();
+      if (await summary.evaluate(element => element.parentElement.open)) {
+        await summary.click();
+        await page.waitForFunction(element => getComputedStyle(element, '::before').transform === 'none', await summary.elementHandle());
+      }
+      const style = () => summary.evaluate(element => {
+        const {width, height, transform, transitionDuration, maskImage} = getComputedStyle(element, '::before');
+        return {width, height, transform, transitionDuration, maskImage};
+      });
+      const closed = await style();
+      assert.equal(closed.width, '14px');
+      assert.equal(closed.height, '14px');
+      assert.equal(closed.transform, 'none');
+      assert.notEqual(closed.maskImage, 'none');
+      const duration = Number.parseFloat(closed.transitionDuration);
+      if (reduced) assert(duration < 0.001);
+      else assert.equal(duration, 0.12);
+      await summary.click();
+      await page.waitForFunction(element => getComputedStyle(element, '::before').transform === 'matrix(0, 1, -1, 0, 0, 0)', await summary.elementHandle());
+    };
+    try {
+      for (const mode of ['light', 'dark']) {
+        for (const reduced of [false, true]) {
+          await page.emulateMedia({colorScheme:mode, reducedMotion:reduced ? 'reduce' : 'no-preference'});
+          await go('skill/same-everywhere');
+          await theme(mode);
+          await checkDisclosure(page.locator('.native-settings > summary'), reduced);
+          await page.getByRole('button', {name:'Edit', exact:true}).click();
+          await checkDisclosure(page.locator('.instance-metadata > summary:visible'), reduced);
+          await go('trash');
+          await checkDisclosure(page.locator('summary').filter({hasText:'History and text snapshots'}), reduced);
+          await go('tools/quality');
+          const finding = page.locator('.tp-findings > li > details > summary').first();
+          await finding.waitFor();
+          assert.equal(await finding.evaluate(element => getComputedStyle(element, '::before').content), 'none');
+          await checkDisclosure(page.locator('.v2-tool-nav-group > summary').last(), reduced);
+          await go('settings');
+          await checkDisclosure(page.locator('.v2-tool-nav-group > summary').first(), reduced);
+        }
+      }
+    } finally {
+      await page.emulateMedia({colorScheme:null, reducedMotion:null});
+      await theme('light');
+    }
+  });
+  await test('Paper first launch shows the scanning state, agent folders and next action (F9)', async () => {
+    for (const colorScheme of ['light', 'dark']) {
+      const first = await browser.newContext({colorScheme});
+      const welcome = await first.newPage();
+      let release;
+      const pending = new Promise(resolve => { release = resolve; });
+      await welcome.route('**/api/scopes', async route => { await pending; await route.continue(); });
+      try {
+        welcome.on('pageerror', error => exceptions.push(error.message));
+        await welcome.goto(base + '/#/skills');
+        await welcome.getByRole('heading', {name:'Looking for your agents…'}).waitFor({timeout:5000});
+        release();
+        await welcome.getByRole('heading', {name:/Found 4 agents and \d+ skills/}).waitFor({timeout:5000});
+        const paths = await welcome.locator('.jf-welcome-path').allTextContents();
+        assert.equal(paths.length, 4);
+        assert(paths.every(path => path.trim().length > 0));
+        assert(paths.some(path => path.endsWith('.codex/skills')));
+        await welcome.getByText(/^Tip:/).waitFor();
+        const show = welcome.getByRole('button', {name:'Show my skills', exact:true});
+        assert(await show.evaluate(element => element.classList.contains('sm-btn--accent')));
+        await show.click();
+        await welcome.getByRole('grid', {name:'Skills table'}).waitFor();
+      } finally {
+        release();
+        await first.close();
+      }
+    }
+  });
   await test('Default entry serves the interface at / with query and hash intact',async()=>{await page.goto(base+'/?window=claude#/skills');await page.waitForLoadState('networkidle');assert.equal(page.url(),base+'/?window=claude#/skills');const show=page.getByRole('button',{name:'Show my skills'});if(await show.isVisible())await show.click();assert(await page.getByRole('grid',{name:'Skills table'}).locator('tbody tr').count()>0);});
+  await test('Retired overview and map links replace history with the Skills table', async () => {
+    for (const old of ['#/home', '#/map', '#/skills?view=agents', '#/skills?view=map']) {
+      await go('trash');
+      await page.evaluate(hash => { location.hash = hash; }, old);
+      await page.waitForURL(url => url.hash === '#/skills');
+      const welcome = page.getByRole('button', {name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      await page.getByRole('grid', {name:'Skills table'}).waitFor();
+      await page.goBack();
+      await page.waitForURL(url => url.hash === '#/trash');
+    }
+    await page.goto(base+'/?fixture-step='+(++navigation)+'#/skills?view=map&q=sole-copy');
+    await page.waitForURL(url => url.hash === '#/skills?q=sole-copy');
+    assert.equal(await page.getByRole('searchbox', {name:'Filter skills'}).inputValue(), 'sole-copy');
+  });
+  await test('Global search opens a library skill when no agent is available', async () => {
+    await page.route('**/api/scopes', route => route.fulfill({json:[]}));
+    try {
+      await go('skills');
+      const welcome = page.getByRole('button', {name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      await page.getByRole('heading', {name:/No agents are tracked|No agent skills found yet/}).waitFor();
+      await page.getByRole('button', {name:'Search skills, actions and pages'}).click();
+      await page.getByRole('combobox', {name:'Search skills, actions and pages'}).fill('library-fixture');
+      await page.getByRole('option', {name:/library-fixture/}).first().click();
+      await page.waitForURL(url => url.hash === '#/skills/library-fixture');
+      await page.locator('.jf-reader-heading').waitFor();
+    } finally { await page.unrouteAll({behavior:'wait'}); }
+  });
   await test('Four primary places navigate and identify the current page', async () => {
     try {
       for (const width of [1280, 390]) {
@@ -406,14 +515,14 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.waitForURL(url => url.hash === '#/skills/sole-copy');
     await page.locator('.jf-reader-heading').waitFor();
   });
-  await test('Home listing budgets use real evidence and recover from a failed read', async () => {
-    await go('home');
-    let card = page.getByRole('region', {name:'Skill listing budgets', exact:true});
-    assert.equal(await card.locator('.listing-budget').count(), 2);
-    assert.match(await card.innerText(), /Claude Code[\s\S]*characters[\s\S]*Codex[\s\S]*tokens/);
-    assert.match(await card.innerText(), /partial evidence/);
+  await test('Quality lists observed Claude Code evidence and recovers from a failed read', async () => {
+    await go('tools/quality');
+    const card = page.getByRole('region', {name:'What Claude Code sees', exact:true});
     const report = await (await context.request.get(base+'/api/doctor?scope=all&hygiene=1')).json();
-    assert((await card.innerText()).includes('~'+new Intl.NumberFormat().format(report.hygiene.claude_listing.listing_chars)));
+    const listing = report.hygiene.claude_listing;
+    const format = new Intl.NumberFormat().format;
+    await card.getByText(`${format(listing.listing_chars)} of ~${format(listing.budget.budget_chars_estimate)} characters`, {exact:true}).waitFor();
+    assert.equal(await card.getByText('Partial', {exact:true}).count() > 0, listing.confidence === 'partial');
     for (const width of [1280, 320]) for (const mode of ['dark', 'light']) {
       await page.setViewportSize({width,height:900});
       await theme(mode);
@@ -427,20 +536,17 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const handler = route => attempts++===0 ? route.fulfill({status:503,contentType:'application/json',body:'{"error":"fixture unavailable"}'}) : route.continue();
     await page.route(matches, handler);
     try {
-      await go('home');
-      card = page.getByRole('region', {name:'Skill listing budgets', exact:true});
-      assert.match(await card.getByRole('alert').innerText(), /Couldn't read listing estimates/);
-      assert(await page.locator('.room').count()>0, 'inventory remains usable');
-      await card.getByRole('button', {name:'Retry listing estimates', exact:true}).focus();
+      await go('tools/quality');
+      await page.getByText('Hygiene evidence is unavailable.', {exact:false}).waitFor();
+      assert.equal(await card.count(), 0);
+      await page.getByRole('button', {name:'Retry', exact:true}).focus();
       await page.keyboard.press('Enter');
-      await card.getByRole('heading', {name:'Claude Code', exact:true}).waitFor();
-      assert.equal(await card.getByRole('alert').count(), 0);
-      await card.getByRole('link', {name:'Review listing evidence'}).click();
-      await page.waitForURL(url => url.hash === '#/advanced/quality');
+      await card.waitFor();
+      assert.equal(await page.getByText('Hygiene evidence is unavailable.', {exact:false}).count(), 0);
     } finally { await page.unroute(matches, handler); }
   });
   await test('Unmodified shortcuts leave focused controls alone', async () => {
-    await go('home');
+    await go('skills');
     for (const control of [page.getByRole('button', {name:'Keyboard shortcuts'}), page.getByRole('link', {name:'Skills', exact:true})]) {
       await control.focus();
       // Dispatch to the page so Firefox's own quick-find shortcut cannot take focus.
@@ -493,7 +599,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       for (const copy of copies) {
         const folder = path.join(fixture, copy.branch, name);
         fs.mkdirSync(path.join(folder, 'references'), {recursive:true});
-        copy.label = 'OpenCode — ' + fs.realpathSync(folder);
+        copy.path = fs.realpathSync(folder);
+        copy.label = 'OpenCode — ' + copy.path;
         copy.raw = `---\nname: ${name}\ndescription: Use this fixture for exact reader checks.\n---\n\n${copy.body}\n`;
         fs.writeFileSync(path.join(folder, 'SKILL.md'), copy.raw);
         fs.writeFileSync(path.join(folder, notes), copy.notes);
@@ -522,6 +629,22 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         assert.equal(await raw.textContent(), copy.raw);
         await page.getByRole('button', {name:'Read', exact:true}).click();
       }
+      const exact = copies[1];
+      const qualityRequest = url => url.pathname === '/api/doctor' && url.searchParams.get('hygiene') === '1';
+      const mockQuality = route => route.fulfill({json:{hygiene:{findings:[{
+        title:'Fixture exact copy', severity:'warning', instances:[{name, scope:'opencode', path:exact.path}],
+      }]}}});
+      await page.route(qualityRequest, mockQuality);
+      try {
+        await go('tools/quality');
+        const finding = page.locator('.tp-findings > li > details').filter({hasText:'Fixture exact copy'});
+        await finding.locator(':scope > summary').click();
+        await finding.getByRole('button', {name:'Open', exact:true}).click();
+        await document.locator('.doc').getByText(exact.body, {exact:true}).waitFor();
+        assert.equal(new URLSearchParams(new URL(page.url()).hash.split('?')[1]).get('copy'), exact.path);
+        await page.reload();
+        await document.locator('.doc').getByText(exact.body, {exact:true}).waitFor();
+      } finally { await page.unroute(qualityRequest, mockQuality); }
     } finally {
       fs.rmSync(fixture, {recursive:true, force:true});
     }
@@ -552,9 +675,11 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await square.waitFor();
       assert(fs.existsSync(file('.codex')));
       await details.getByText('SKILL.md', {exact:true}).waitFor();
-      await go('skills?view=shelf&sel=same-everywhere%3Acodex');
+      await go('skills?sel=same-everywhere%3Acodex');
+      await panel.waitFor();
+      await page.keyboard.press('Escape');
+      await panel.waitFor({state:'hidden'});
       assert(await page.getByRole('link', {name:'Jackfield home'}).isVisible());
-      assert.equal(await page.getByRole('dialog', {name:'same-everywhere'}).count(), 0);
     } finally { await page.setViewportSize({width:1280,height:900}); }
   });
   await test('Skill history follows navigation and ignores an older response', async () => {
@@ -732,7 +857,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   });
   await test('Skip link keeps the current page and focuses its heading (SR-2)',async()=>{await go('skill/same-everywhere');await page.locator('a.skip').focus();await page.keyboard.press('Enter');await page.waitForTimeout(200);assert(page.url().endsWith('#/skills/same-everywhere'),page.url());assert.equal(await page.evaluate(()=>document.activeElement&&document.activeElement.id),'h1');});
   await test('Navigation names the Needs attention count and stays outside the dialog tab order', async () => {
-    await go('home');
+    await go('skills');
     const badge = page.locator('.tabs a[href="#/attention"] .sm-nav__count');
     const count = Number(await badge.innerText());
     assert(count > 1, 'fixture includes multiple problems');
@@ -786,9 +911,9 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await dialog.waitFor({state:'hidden'});
   });
   await test('Search includes skills despite prior Skills filters and excludes observations', async () => {
-    await go('skills?view=shelf');
-        await page.getByLabel('Agent', {exact:true}).selectOption('codex');
-    await page.getByRole('button', {name:/Turned off/}).click();
+    await go('skills?agent=codex&only=problems');
+    await page.getByRole('button', {name:'Show only these', exact:true}).waitFor();
+    assert.equal(await page.getByRole('button', {name:'sole-copy',exact:true}).count(), 0);
     await page.getByRole('button', {name:'Search skills, actions and pages'}).click();
     const search = page.getByRole('combobox', {name:'Search skills, actions and pages'});
     await search.fill('sole-copy');
@@ -808,7 +933,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   await test('Command palette has a desktop pointer entry and restores focus', async () => {
     await page.setViewportSize({width:1366,height:768});
     try {
-      await go('home');
+      await go('skills');
       const launcher = page.getByRole('button', {name:'Search skills, actions and pages'});
       await launcher.click();
       const dialog = page.getByRole('dialog', {name:'Search skills, actions and pages'});
@@ -820,7 +945,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     }
   });
   await test('Browser Back leaves a pristine New skill page and focuses the destination', async () => {
-    await go('home');
+    await go('advanced');
     await page.locator('.tabs').getByRole('link', {name:'Skills', exact:true}).click();
     await page.getByRole('link', {name:'New skill', exact:true}).click();
     const dialog = page.locator('.jf-create');
@@ -831,29 +956,44 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await heading.waitFor();
     assert(await heading.evaluate(el => el === document.activeElement));
   });
-  await test('Sync map sidebar actions fit the panel for tied copies', async () => {
+  await test('Skills panel actions fit at phone and desktop widths for tied copies', async () => {
     const endpoint = /[/]api[/]skills[?]scope=all(?:&body=0)?$/;
     const inventory = await (await page.request.get(base + '/api/skills?scope=all')).json();
     await page.route(endpoint, route => route.fulfill({json:inventory.filter(record => record.name === 'split-even')}));
     try {
       for (const width of [1366, 1024, 320]) {
         await page.setViewportSize({width,height:768});
-        await go('map');
-        await page.getByRole('button', {name:'OpenCode', exact:true}).click();
-        const action = page.getByRole('link', {name:'Choose which copies to keep in Needs attention'});
+        await go('skills?q=split-even');
+        await page.getByRole('button', {name:/^split-even in Claude Code: Version/}).click();
+        const action = page.getByRole('button', {name:'Compare the two versions', exact:true});
         await action.scrollIntoViewIfNeeded();
         assert(await action.evaluate(el => {
-          const panel = el.closest('.mpanel');
+          const panel = el.closest('.jf-panel');
           const bounds = el.getBoundingClientRect();
           return bounds.left >= 0 && bounds.right <= innerWidth && panel.scrollWidth <= panel.clientWidth + 1;
-        }), `Sync map action clips at ${width}px`);
+        }), `Compare action clips at ${width}px`);
       }
     } finally {
       await page.unrouteAll({behavior:'wait'});
       await page.setViewportSize({width:1280,height:900});
     }
   });
-  await test('Accessible names: brand at phone width, differing copy on its square, distinct Fix and Peek names (SR-4/6/7/11)',async()=>{await page.setViewportSize({width:390,height:844});try{await go('home');assert.equal(await page.locator('a.brand').getAttribute('aria-label'),'Jackfield home');const fixes=await page.locator('.look a').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert.equal(new Set(fixes).size,fixes.length);}finally{await page.setViewportSize({width:1280,height:900});}await go('skill/majority-minor');assert(await page.getByRole('button',{name:'majority-minor in Codex: Different'}).isVisible());await go('map');await page.getByRole('button',{name:'Codex',exact:true}).click();const peeks=await page.locator('.peek').evaluateAll(a=>a.map(x=>x.getAttribute('aria-label')));assert(peeks.length>0&&new Set(peeks).size===peeks.length,peeks.join(' | '));});
+  await test('Accessible names distinguish the brand, review items and comparison squares (SR-4/6/7/11)', async () => {
+    await page.setViewportSize({width:390,height:844});
+    try {
+      await openAttention();
+      assert.equal(await page.locator('a.brand').getAttribute('aria-label'), 'Jackfield home');
+      const issues = await attention.getByRole('navigation', {name:'Problems'}).getByRole('button').allTextContents();
+      assert(issues.length > 1);
+      assert.equal(new Set(issues).size, issues.length);
+    } finally { await page.setViewportSize({width:1280,height:900}); }
+    await go('skill/majority-minor');
+    assert(await page.getByRole('button', {name:'majority-minor in Codex: Different'}).isVisible());
+    await go('skills?q=majority-minor');
+    const squares = await page.getByRole('button', {name:/^majority-minor in /}).evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label')));
+    assert(squares.length > 1);
+    assert.equal(new Set(squares).size, squares.length);
+  });
   await test('An Undo toast stays while focused (SR-3)',async()=>{await go('skill/same-everywhere');await turnOffCodexFromReader();const undo=page.locator('.toast button').filter({hasText:'Undo'}).last();await undo.waitFor();await undo.focus();const held=await page.evaluate(()=>!!document.activeElement.closest('.toast'));assert(held);await undo.click();await page.waitForTimeout(700);assert(fs.existsSync(file('.codex')));});
   await test('Reader replacement previews before writing and ignores a repeated confirmation', async () => {
     await go('skill/majority-minor');
@@ -1002,6 +1142,66 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       fs.rmSync(companion, {force:true});
     }
   });
+  await test('Needs attention clears failed review controls on a return visit', async () => {
+    const endpoint = '**/api/batch/execute';
+    const refuse = route => route.fulfill({status:409, json:{error:'Fixture refused the write'}});
+    await page.route(endpoint, refuse);
+    try {
+      await openAttention('majority-minor:codex:different');
+      await attention.getByRole('button', {name:/^The shared version/}).click();
+      await attention.locator('[data-primary]:enabled').click();
+      const retry = attention.getByRole('button', {name:'Check again', exact:true});
+      await retry.waitFor();
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.waitForURL(url => url.hash === '#/skills');
+      await attentionNav.click();
+      await attentionHeading.waitFor();
+      await retry.waitFor({state:'hidden'});
+      assert(await attention.getByRole('button', {name:'Skip for now', exact:true}).isEnabled());
+    } finally { await page.unroute(endpoint, refuse); }
+  });
+  await test('A delayed write failure is announced without restoring the old review state', async () => {
+    const endpoint = '**/api/batch/execute';
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    const delayed = async route => {
+      await pending;
+      await route.fulfill({status:409, json:{error:'Fixture write did not complete'}});
+    };
+    await page.route(endpoint, delayed);
+    try {
+      await openAttention('majority-minor:codex:different');
+      await attention.getByRole('button', {name:/^The shared version/}).click();
+      const requested = page.waitForRequest(attentionWrites);
+      await attention.locator('[data-primary]:enabled').click();
+      await requested;
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.locator('.jf-skills-screen').waitFor();
+      release();
+      await page.locator('.toast').getByText(/couldn’t confirm which folders changed/).waitFor();
+      await attentionNav.click();
+      await attentionHeading.waitFor();
+      assert.equal(await attention.getByRole('button', {name:'Check again', exact:true}).count(), 0);
+    } finally {
+      release();
+      await page.unroute(endpoint, delayed);
+    }
+  });
+  await test('A completed change does not carry its Undo to a different screen', async () => {
+    const active = file('.codex'), disabled = active + '.disabled';
+    try {
+      await go('skill/same-everywhere');
+      await turnOffCodexFromReader();
+      const undo = page.locator('.toast').getByRole('button', {name:'Undo', exact:true});
+      await undo.waitFor();
+      const edit = page.getByRole('button', {name:'Edit', exact:true});
+      await edit.click();
+      await page.locator('#ed-desc').waitFor();
+      await undo.waitFor({state:'hidden'});
+      assert.equal(await page.locator('#app > .sr-only[aria-live]').textContent(), '');
+      assert(fs.existsSync(disabled));
+    } finally { if (fs.existsSync(disabled) && !fs.existsSync(active)) fs.renameSync(disabled, active); }
+  });
   await test('Stale file toggle reports error without resurrecting fixture',async()=>{await go('skill/same-everywhere');const f=file('.codex'),old=fs.readFileSync(f);fs.unlinkSync(f);try{await turnOffCodexFromReader();await page.waitForTimeout(600);assert(!fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));await page.locator('.jf-panel').getByRole('alert').waitFor();}finally{fs.writeFileSync(f,old);}});
   await test('Native setting evidence is partial and file switch Undo preserves files',async()=>{await go('skill/same-everywhere');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/partial/i);assert.match(t,/loading is unknown/i);assert.match(t,/Declared setting: off/);assert.match(t,/Declared setting: deny/);const f=file('.codex');await turnOffCodexFromReader();await page.waitForTimeout(500);assert(fs.existsSync(f+'.disabled'));await page.locator('.toast button').filter({hasText:'Undo'}).last().click();await page.waitForTimeout(600);assert(fs.existsSync(f));assert(!fs.existsSync(f+'.disabled'));});
   await test('Native invalid and unavailable settings render without exposing values',async()=>{let config=path.join(home,'.config/opencode/opencode.json'),saved=fs.readFileSync(config),claude=path.join(home,'.claude/settings.json'),oldClaude=fs.readFileSync(claude);fs.writeFileSync(config,'{"private":"fixture-secret",');fs.writeFileSync(claude,JSON.stringify({skillOverrides:{'majority-minor':'invalid-fixture-value'}}));try{await go('skill/majority-minor');await page.locator('.native-settings summary').click();let t=await page.locator('.native-settings').innerText();assert.match(t,/invalid/);assert.match(t,/unavailable/);assert.doesNotMatch(t,/fixture-secret|invalid-fixture-value/);}finally{fs.writeFileSync(config,saved);fs.writeFileSync(claude,oldClaude);}});
@@ -1026,6 +1226,11 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const restored = trashList.getByRole('link', {name:'Show restored copy', exact:true});
     await restored.waitFor();
     assert.match(await restored.getAttribute('href'), /scope=global/);
+    await page.locator('.tabs a[href="#/skills"]').click();
+    await page.waitForURL(url => url.hash === '#/skills');
+    await page.locator('.tabs a[href="#/trash"]').click();
+    await trashScreen.getByRole('heading', {name:'Trash & backups', exact:true}).waitFor();
+    assert.equal(await restored.count(), 0);
   });
   await test('Trash & backups restores the exact library copy of a skill named purge', async () => {
     const trashed = [];
@@ -1213,6 +1418,24 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await page.setViewportSize({width:1280,height:900});
     }
   });
+  await test('Why prioritizes problems in existing copies and links to the skill', async () => {
+    const enabled = file('.agents', 'share-three'), disabled = enabled + '.disabled';
+    try {
+      await go('skills/share-three/why');
+      const card = page.locator('.jf-why-next');
+      const noFailure = page.locator('.jf-why-no-failure');
+      await noFailure.getByText(/Missing copies matter only/).waitFor();
+      assert.equal(await card.count(), 0);
+      assert.equal(await noFailure.getByRole('link', {name:'Open skill page'}).getAttribute('href'), '#/skills/share-three');
+      fs.renameSync(enabled, disabled);
+      await noFailure.getByRole('button', {name:'Check again'}).click();
+      await card.getByRole('heading', {name:'The file is switched off in Shared skills folder'}).waitFor();
+      await card.getByRole('link', {name:'Open skill page'}).click();
+      await page.locator('.jf-reader-heading').waitFor();
+    } finally {
+      if (fs.existsSync(disabled)) fs.renameSync(disabled, enabled);
+    }
+  });
   await test('Porting notes and risk findings run with AI off', async () => {
     await go('skill/sole-copy');
     await page.getByText('AI maintenance', {exact:true}).click();
@@ -1268,12 +1491,25 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert.equal(downloads,0);
       assert.equal(await lastDownload.count(), 0);
       await page.unroute(pattern);
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.waitForURL(url => url.hash === '#/skills');
+      await page.locator('.tabs a[href="#/trash"]').click();
+      await backup.waitFor();
+      assert.equal(await alert.count(), 0);
       const success=page.waitForEvent('download');
       await full.click();
       assert.equal((await success).suggestedFilename(),'full-export.tar.gz');
       await alert.waitFor({state:'detached'});
       await lastDownload.waitFor();
       const date = await lastDownload.innerText();
+      const live = page.locator('#app > .sr-only[aria-live]');
+      assert.equal(await live.textContent(), 'Backup download started.');
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.locator('.jf-skills-screen').waitFor();
+      assert.equal(await live.textContent(), '');
+      assert.equal(await page.locator('.toast').getByText('Backup download started.').count(), 0);
+      await page.locator('.tabs a[href="#/trash"]').click();
+      await lastDownload.waitFor();
       await page.reload();
       await lastDownload.waitFor();
       assert.equal(await lastDownload.innerText(), date);
@@ -1333,6 +1569,14 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert(await preview.evaluate(button => button === document.activeElement));
       assert.equal(requests.length, 1);
       assert(!fs.existsSync(installed));
+      await preview.click();
+      await load.waitFor();
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.waitForURL(url => url.hash === '#/skills');
+      await page.locator('.tabs a[href="#/trash"]').click();
+      await section.waitFor();
+      assert.equal(await load.count(), 0);
+      assert.equal(await input.evaluate(element => element.files.length), 0);
       await input.setInputFiles(saved);
       await preview.click();
       await load.waitFor();
@@ -1360,15 +1604,20 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       const committed = commitResponse();
       await load.click();
       assert((await committed).ok());
-      assert.deepEqual(requests.map(q => q.get('preview')), ['1', '1', null, '1', null]);
-      assert(requests[2].get('plan_id'));
-      assert(requests[4].get('plan_id'));
+      assert.deepEqual(requests.map(q => q.get('preview')), ['1', '1', '1', null, '1', null]);
+      assert(requests[3].get('plan_id'));
+      assert(requests[5].get('plan_id'));
       assert.deepEqual(fs.readFileSync(installed), original);
       assert.deepEqual(fs.readFileSync(companion), companionBytes);
       assert.deepEqual(fs.readFileSync(collision), collisionBefore);
       await section.getByText(/1 skill imported/).waitFor();
       await section.getByText('Skipped entries', {exact:true}).click();
       await section.getByText('library-fixture', {exact:true}).waitFor();
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.locator('.jf-skills-screen').waitFor();
+      await page.locator('.tabs a[href="#/trash"]').click();
+      await section.waitFor();
+      assert.equal(await section.getByText(/1 skill imported/).count(), 0);
 
       const bad = path.join(root, 'bad-archive.tar.gz');
       fs.writeFileSync(bad, 'not an archive');
@@ -1379,67 +1628,57 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert.match(error, /not a backup archive/);
       assert.doesNotMatch(error, /ReadError|Traceback|[/]tmp[/]/);
       assert(!(await load.isVisible()));
+      await input.setInputFiles({name:'wrong.txt', mimeType:'text/plain', buffer:Buffer.from('fixture')});
+      await section.getByRole('alert').filter({hasText:/not a backup file/}).waitFor();
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.locator('.jf-skills-screen').waitFor();
+      await page.locator('.tabs a[href="#/trash"]').click();
+      await section.waitFor();
+      assert.equal(await section.getByRole('alert').count(), 0);
     } finally { page.off('request', observe); }
     await page.route('**/api/scopes',route=>route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({error:'Traceback /home/private/secret PermissionError'})}));
     try{await go('home');assert.doesNotMatch(await page.locator('main').innerText(),/Traceback|PermissionError|[/]home[/]private/);}finally{await page.unrouteAll({behavior:'wait'});}
   });
-  await test('Sync map totals, singular grammar and top-link target size',async()=>{
-    await go('skills?view=shelf');const total=Number((await page.locator('.seg button').first().innerText()).match(/\d+/)?.[0]);
-    await go('map');
-    assert.equal(await page.locator('.map-total').innerText(), `Open all ${total.toLocaleString()} in Skills`);
+  await test('Skills totals and navigation targets remain usable',async()=>{
+    await go('skills');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    assert.match(await page.locator('.jf-grid-count').innerText(), /^Showing \d+ of \d+$/);
     assert.doesNotMatch(await page.locator('main').innerText(),/1 copy differ(?!s)/);
-    await page.setViewportSize({width:1280,height:900});
     const box=await page.locator('.top .tabs a[href="#/advanced"]').boundingBox();assert(box.height>=24);assert(box.width>=24);
   });
-  await test('Shelf density persists across reload and is scoped to Shelf', async () => {
-    await go('skills?view=shelf');
-    const compact = page.getByRole('button', {name:'Compact', exact:true});
-    const card = page.locator('.shelf .sk').first();
-    const before = await card.boundingBox();
-    try {
-      await compact.click();
-      await go('skills?view=shelf');
-      assert.equal(await compact.getAttribute('aria-pressed'), 'true');
-      assert((await card.boundingBox()).height < before.height);
-      await page.getByRole('button', {name:'Exact instances', exact:true}).click();
-      assert.equal(await compact.count(), 0);
-      await page.getByRole('button', {name:'Shelf', exact:true}).click();
-      assert.equal(await compact.getAttribute('aria-pressed'), 'true');
-    } finally {
-      await page.evaluate(() => localStorage.removeItem('skillsmgr-v2-density'));
-    }
+  await test('Retired shelf links retain search on reload', async () => {
+    await page.goto(base+'/?fixture-step='+(++navigation)+'#/skills?view=shelf&q=majority-minor');
+    await page.waitForURL(url => url.hash === '#/skills?q=majority-minor');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    const filter = page.getByRole('searchbox',{name:'Filter skills'});
+    assert.equal(await filter.inputValue(),'majority-minor');
+    await page.reload();
+    assert.equal(await filter.inputValue(),'majority-minor');
+    assert.equal(await page.locator('.jf-grid tbody tr').count(), 1);
   });
-  await test('Sync map reads copy states, searches, and returns keyboard focus from details', async () => {
-    await page.setViewportSize({width:320,height:760});
+  await test('Skills reads copy states, filters, and returns keyboard focus from details', async () => {
+    await page.setViewportSize({width:768,height:900});
     try {
-      await go('map');
-      const table = page.getByRole('table', {name:'Skill copies by agent'});
-      const codexCopy = table.getByRole('button', {name:/majority-minor, Codex:.*Different copy/});
-      await table.getByRole('button', {name:/damaged-one, Codex: Can't be read/}).waitFor();
-      await table.getByRole('button', {name:/target-disabled, Codex: Turned off on disk.*no majority/}).waitFor();
-      await table.getByRole('button', {name:/same-everywhere, Codex:.*Document text matches the reference/}).waitFor();
-      assert((await table.getByRole('row').filter({hasText:'sole-copy'}).getByText('No copy listed').count()) > 0);
-      assert(await page.locator('.map-scroll').evaluate(el => el.scrollWidth > el.clientWidth));
-      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-      const search = page.getByRole('searchbox', {name:'Find a skill in Sync map'});
-      await search.fill('majority-minor');
-      assert.equal(await table.getByRole('row').count(), 2);
-      await codexCopy.focus();
+      await go('skills');
+      const welcome = page.getByRole('button', {name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      const filter = page.getByRole('searchbox', {name:'Filter skills'});
+      const square = page.getByRole('button', {name:'majority-minor in Codex: Different'});
+      await square.waitFor();
+      await filter.fill('majority-minor');
+      assert.equal(await page.locator('.jf-grid tbody tr').count(), 1);
+      await square.focus();
       await page.keyboard.press('Enter');
-      assert(await page.getByRole('heading', {name:'Codex', exact:true}).evaluate(el => el === document.activeElement));
-      const details = page.locator('#map-details');
-      assert.match(await details.innerText(), /majority-minor[\s\S]*Different copy/);
-      assert(await details.getByRole('button', {name:'Select skills to sync'}).isDisabled());
-      await page.keyboard.press('Tab');
-      await page.keyboard.press('Enter');
-      assert(await codexCopy.evaluate(el => el === document.activeElement));
-      await codexCopy.click();
-      await details.getByRole('link', {name:'Open this copy'}).click();
-      await page.waitForURL(url => url.hash === '#/skills/majority-minor');
-      await go('map');
-      await search.fill('no-such-fixture');
-      await page.getByText('No skills match this search.').waitFor();
-      assert.equal(await table.count(), 0);
+      const panel = page.getByRole('dialog', {name:'majority-minor'});
+      await panel.waitFor();
+      assert(await panel.evaluate(el => el.contains(document.activeElement)));
+      await page.keyboard.press('Escape');
+      await panel.waitFor({state:'hidden'});
+      assert(await square.evaluate(el => el === document.activeElement));
+      await filter.fill('no-such-fixture');
+      await page.getByText('No skills match this filter.').waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     } finally {
       await page.setViewportSize({width:1280,height:900});
@@ -1456,10 +1695,8 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.route(match, request);
     try {
       await page.setViewportSize({width:1440,height:960});
-      await go('map');
-      await page.getByRole('button', {name:/majority-minor, Codex:.*Different copy/}).click();
-      await page.getByRole('button', {name:'Show changes in majority-minor'}).focus();
-      await page.keyboard.press('Enter');
+      await openAttention('majority-minor:codex:different');
+      await attention.getByRole('button', {name:/^The shared version/}).click();
       const panel = page.getByRole('region', {name:'Document comparison'});
       assert.match(await panel.getByRole('alert').innerText(), /Codex.*Fixture read unavailable/);
       assert((await panel.innerText()).includes(path.dirname(target)));
@@ -1469,7 +1706,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       const removed = panel.locator('.compare-line.del code').filter({hasText:longLine});
       await removed.waitFor();
       assert.equal(await panel.getByRole('alert').count(), 0);
-      assert.equal(await page.evaluate(()=>document.activeElement.textContent.trim()), 'Document comparison');
+      assert(await panel.isVisible());
       const chooser = panel.getByRole('button', {name:'Unified view'});
       assert(await chooser.isVisible());
       assert.equal(await chooser.getAttribute('aria-pressed'), 'false');
@@ -1484,95 +1721,77 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
         await panel.screenshot({path:path.join(root,'copy-comparison-'+width+'.png')});
       }
-      await page.getByRole('button', {name:'Hide changes in majority-minor'}).focus();
-      await page.keyboard.press('Enter');
-      assert.equal(await panel.count(), 0);
-      assert.equal(await page.getByRole('button',{name:'Show changes in majority-minor'}).getAttribute('aria-expanded'),'false');
+
     } finally {
       fs.writeFileSync(target, original);
       await page.unroute(match, request);
       await page.setViewportSize({width:1280,height:900});
     }
   });
-  await test('Skills retains the search when opening Sync map', async () => {
-    await go('skills?view=shelf');
-    await page.getByRole('searchbox',{name:'Search skills',exact:true}).fill('majority-minor');
-    await page.getByRole('button',{name:'Exact instances',exact:true}).click();
-    assert.equal(await page.getByRole('searchbox',{name:'Search skills',exact:true}).inputValue(),'majority-minor');
-    try {
-      await page.getByRole('link',{name:'Find name in Sync map'}).focus();
-      await page.keyboard.press('Enter');
-      const mapSearch = page.getByRole('searchbox',{name:'Find a skill in Sync map'});
-      await mapSearch.waitFor();
-      assert.equal(await mapSearch.inputValue(),'majority-minor');
-      assert.equal(await page.getByRole('rowheader',{name:'majority-minor',exact:true}).count(),1);
-    } finally {
-      await go('skills?view=shelf');
-      await page.getByRole('button',{name:'Shelf',exact:true}).click();
-    }
+  await test('Skills retains the search when opening a details panel', async () => {
+    await go('skills?q=majority-minor');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    const filter=page.getByRole('searchbox',{name:'Filter skills'});
+    await page.getByRole('button',{name:'majority-minor in Codex: Different'}).click();
+    await page.locator('.jf-panel').waitFor();
+    assert.equal(await filter.inputValue(),'majority-minor');
+    assert.equal(await page.locator('.jf-grid tbody tr').count(),1);
   });
-  await test('Sync map bounds rows and resets pagination on search', async () => {
+  await test('Skills bounds rows and filters a large inventory', async () => {
     const list = /[/]api[/]skills[?]scope=all(?:&body=0)?$/;
     const records = await (await page.request.get(base+'/api/skills?scope=all')).json();
     const row = records.find(record => record.scope === 'codex' && record.name === 'same-everywhere');
     const many = Array.from({length:10000}, (_, i) => ({
       ...row, name:'fixture-'+String(i).padStart(5,'0'), path:undefined, physical_path:undefined, body:undefined,
     }));
-    for (const i of [0, 9999]) many[i] = {...many[i], decode_error:'not valid UTF-8'};
     try {
       await page.route(list, route => route.fulfill({json:many}));
-      await go('map');
-      const table = page.getByRole('table', {name:'Skill copies by agent'});
-      assert.equal(await table.locator('tbody tr').count(), 48);
-      await page.getByRole('button', {name:'Next', exact:true}).click();
-      assert.equal(await table.locator('tbody th').first().innerText(), 'fixture-00048');
-      await page.getByRole('searchbox', {name:'Find a skill in Sync map'}).fill('fixture-09999');
-      assert.deepEqual(await table.locator('tbody th').allInnerTexts(), ['fixture-09999']);
-      await page.getByRole('searchbox', {name:'Find a skill in Sync map'}).clear();
-      await page.getByRole('button', {name:'Next', exact:true}).click();
-      await page.getByRole('checkbox', {name:'Needs review only'}).check();
-      assert.deepEqual(await table.locator('tbody th').allInnerTexts(), ['fixture-00000', 'fixture-09999']);
-    } finally {
-      await page.unrouteAll({behavior:'wait'});
-    }
+      await go('skills');
+      const welcome = page.getByRole('button', {name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      const table = page.getByRole('grid', {name:'Skills table'});
+      assert.equal(await table.locator('tbody tr').count(), 50);
+      await page.getByRole('button', {name:/Show 50 more/}).click();
+      assert.equal(await table.locator('tbody tr').count(), 100);
+      const filter = page.getByRole('searchbox', {name:'Filter skills'});
+      await filter.fill('fixture-09999');
+      assert.equal(await table.locator('tbody tr').count(), 1);
+      assert.match(await table.locator('tbody tr').innerText(), /fixture-09999/);
+    } finally { await page.unrouteAll({behavior:'wait'}); }
   });
-  await test('Sync map clears scope selections when opening a copy in that scope', async () => {
-    await go('map');
-    const table = page.getByRole('table', {name:'Skill copies by agent'});
-    const panel = page.locator('#map-details');
-    const checkbox = panel.getByRole('checkbox', {name:'Make majority-minor match'});
-    const select = panel.getByRole('button', {name:'Select skills to sync'});
-    const scope = table.getByRole('button', {name:'Codex', exact:true});
-    await scope.click();
-    assert(await checkbox.isChecked());
-    await table.getByRole('button', {name:/same-everywhere, Codex:/}).click();
-    assert(await select.isDisabled());
-    assert(!(await checkbox.isChecked()));
-    await scope.click();
-    assert(await checkbox.isChecked());
+  await test('Skills clears selected rows without changing files', async () => {
+    await go('skills');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    const target=file('.codex','majority-minor'), before=fs.readFileSync(target);
+    const select=page.getByRole('checkbox',{name:'Select majority-minor'});
+    await select.check();
+    await page.getByText('1 selected', {exact:true}).waitFor();
+    await page.getByRole('button',{name:'Clear selection'}).click();
+    assert(!(await select.isChecked()));
+    assert.deepEqual(fs.readFileSync(target),before);
   });
-  await test('Sync map review filter combines with search and keeps actionable rows', async () => {
-    await go('map');
-    const table = page.getByRole('table', {name:'Skill copies by agent'});
-    const review = page.getByRole('checkbox', {name:'Needs review only'});
-    const rows = table.locator('tbody th');
-    const search = page.getByRole('searchbox', {name:'Find a skill in Sync map'});
-    await review.check();
-    const names = await rows.allInnerTexts();
+  await test('Skills problem filter combines with name search', async () => {
+    await go('skills');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    const table = page.getByRole('grid', {name:'Skills table'});
+    const review = page.getByRole('button', {name:'Show only these', exact:true});
+    const search = page.getByRole('searchbox', {name:'Filter skills'});
+    await review.click();
     for (const name of ['damaged-one', 'majority-minor', 'split-even']) {
-      assert(names.includes(name), `${name} needs review`);
+      assert(await table.getByRole('button',{name,exact:true}).isVisible(), name + ' needs review');
     }
-    for (const name of ['sole-copy', 'same-everywhere', 'library-fixture']) {
-      assert(!names.includes(name), `${name} has no flagged agent copies`);
-    }
+    assert.equal(await table.getByRole('button',{name:'sole-copy',exact:true}).count(), 0);
     await search.fill('damaged');
-    assert.deepEqual(await rows.allInnerTexts(), ['damaged-fm', 'damaged-one']);
-    await search.fill('same-everywhere');
-    await page.getByRole('status').filter({hasText:'No skills match the review filter.'}).waitFor();
-    await review.uncheck();
-    assert.deepEqual(await rows.allInnerTexts(), ['same-everywhere']);
+    assert(await table.getByRole('button',{name:'damaged-one',exact:true}).isVisible());
+    await search.fill('sole-copy');
+    await page.getByText('No skills match this filter.').waitFor();
+    await review.click();
+    assert(await table.getByRole('button',{name:'sole-copy',exact:true}).isVisible());
   });
-  await test('Sync map review filter includes duplicated copies and uninspected links', async () => {
+  await test('Skills displays duplicated copies and uninspected links', async () => {
     const list = '**/api/skills?scope=all&body=0';
     const records = await (await page.request.get(base+'/api/skills?scope=all&body=0')).json();
     const copy = records.find(record => record.scope === 'codex' && record.name === 'same-everywhere');
@@ -1582,46 +1801,63 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     }];
     try {
       await page.route(list, route => route.fulfill({json:fixtures}));
-      await go('map');
-      await page.getByRole('checkbox', {name:'Needs review only'}).check();
-      const table = page.getByRole('table', {name:'Skill copies by agent'});
-      assert.deepEqual(await table.locator('tbody th').allInnerTexts(), ['repeated', 'uninspected']);
-      assert.equal(await table.getByRole('button', {name:/Multiple copies listed/}).count(), 1);
-      assert.equal(await table.getByRole('button', {name:/Link target not inspected/}).count(), 1);
+      await go('skills');
+      const welcome = page.getByRole('button', {name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      const table = page.getByRole('grid', {name:'Skills table'});
+      assert(await table.getByRole('button', {name:'repeated', exact:true}).isVisible());
+      assert(await table.getByRole('button', {name:'uninspected', exact:true}).isVisible());
+      assert(await table.getByRole('button', {name:"uninspected in Codex: Can't read"}).isVisible());
+      await table.getByRole('button', {name:'repeated', exact:true}).click();
+      const choices = await page.getByLabel('Read copy').locator('option').allTextContents();
+      assert(choices.some(text => text.includes('/fixture/repeated/one')));
+      assert(choices.some(text => text.includes('/fixture/repeated/two')));
     } finally {
       await page.unroute(list);
     }
   });
-  await test('Sync map keeps Undo when a later copy fails to sync', async () => {
-    const name = 'zz-map-failure-fixture';
+  await test('Skills keeps Undo and restores the unsuccessful copy after a partial batch', async () => {
+    const name = 'zz-batch-failure-fixture';
     const target = file('.codex', 'majority-minor');
     const before = fs.readFileSync(target);
     const additions = ['.claude', '.codex', '.agents'].map(scope => file(scope, name));
-    const syncCalls = [];
-    const syncRoute = '**/api/sync';
+    const secondBefore = 'Different.';
+    const endpoint = '**/api/batch/execute';
     try {
       for (const [i, filename] of additions.entries()) {
         fs.mkdirSync(path.dirname(filename));
-        fs.writeFileSync(filename, `---\nname: ${name}\ndescription: Exercise partial sync.\n---\n${i === 1 ? 'Different.' : 'Reference.'}\n`);
+        fs.writeFileSync(filename, `---\nname: ${name}\ndescription: Exercise partial sync.\n---\n${i === 1 ? secondBefore : 'Reference.'}\n`);
       }
-      await page.route(syncRoute, route => {
-        const requested = route.request().postDataJSON().name;
-        syncCalls.push(requested);
-        return requested === name ? route.fulfill({status:503, json:{error:'Fixture sync interrupted'}}) : route.continue();
+      const secondBytes = fs.readFileSync(additions[1]);
+      await page.route(endpoint, async route => {
+        if (route.request().postDataJSON().operation !== 'sync') return route.continue();
+        const response = await route.fetch();
+        const body = await response.json();
+        const failed = body.results.find(row => row.name === name);
+        assert(failed && failed.status === 'ok');
+        fs.rmSync(path.dirname(additions[1]), {recursive:true, force:true});
+        Object.assign(failed, {status:'failed', error:'Fixture sync interrupted', synced:[]});
+        body.ok = false; body.partial = true;
+        await route.fulfill({response, json:body});
       });
-      await go('map');
-      await page.getByRole('button', {name:'Codex', exact:true}).click();
-      await page.getByRole('button', {name:'Make 2 skills match in Codex', exact:true}).click();
-      const toast = page.locator('.toast').filter({hasText:'Fixture sync interrupted'});
+      await go('skills');
+      const welcome = page.getByRole('button', {name:'Show my skills'});
+      if (await welcome.isVisible()) await welcome.click();
+      await page.getByRole('checkbox', {name:'Select majority-minor'}).check();
+      await page.getByRole('checkbox', {name:`Select ${name}`}).check();
+      await page.getByLabel('Destination').selectOption('codex');
+      await page.getByRole('button', {name:'Make these match in Codex'}).click();
+      await page.getByRole('dialog').getByRole('button', {name:'Make these match',exact:true}).click();
+      const toast = page.locator('.toast').filter({hasText:'1 copies changed. 1 could not be changed.'});
       await toast.waitFor();
-      assert.deepEqual(syncCalls, ['majority-minor', name]);
-      assert.match(await toast.innerText(), /1 skill now matches in Codex/);
       assert.notDeepEqual(fs.readFileSync(target), before);
+      assert.deepEqual(fs.readFileSync(additions[1]), secondBytes);
       await toast.getByRole('button', {name:'Undo', exact:true}).click();
       await page.locator('.toast').filter({hasText:'Undone'}).waitFor();
       assert.deepEqual(fs.readFileSync(target), before);
+      assert.deepEqual(fs.readFileSync(additions[1]), secondBytes);
     } finally {
-      await page.unroute(syncRoute);
+      await page.unroute(endpoint);
       fs.writeFileSync(target, before);
       for (const filename of additions) fs.rmSync(path.dirname(filename), {recursive:true, force:true});
     }
@@ -1634,7 +1870,7 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
           await page.setViewportSize({width, height});
           await go('home');
           await theme(mode);
-          for (const route of ['home', 'skills', 'skill/same-everywhere', 'map', 'attention', 'trash']) {
+          for (const route of ['skills', 'skill/same-everywhere', 'attention', 'trash']) {
             await go(route);
             assert.equal(await page.locator('html').getAttribute('data-theme'), mode);
             assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1),
@@ -1645,29 +1881,35 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       }
     } finally { await page.setViewportSize(viewport); }
   });
-  await test('Phone dark Sync map sampled text contrast',async()=>{
-    await page.setViewportSize({width:390,height:844});await go('map');await theme('dark');
-    const samples=await page.locator('.map-table .map-state').evaluateAll(rows=>rows.map(row=>{
-      const style=getComputedStyle(row),rgb=value=>value.match(/[0-9.]+/g).slice(0,3).map(Number);
+  await test('Phone dark Skills sampled text contrast',async()=>{
+    await page.setViewportSize({width:390,height:844});await go('skills');await theme('dark');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    const samples=await page.locator('.jf-grid-skill button').evaluateAll(rows=>rows.map(row=>{
+      const rgb=value=>value.match(/[0-9.]+/g).slice(0,3).map(Number);
       const lum=value=>rgb(value).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((n,v,i)=>n+v*[.2126,.7152,.0722][i],0);
-      const foreground=style.color,background=style.backgroundColor,a=lum(foreground),b=lum(background);
+      const foreground=getComputedStyle(row).color;
+      let parent=row, background='';
+      while(parent){const value=getComputedStyle(parent).backgroundColor;if(!/rgba\([^)]*,\s*0\)$/.test(value)){background=value;break;}parent=parent.parentElement;}
+      const a=lum(foreground),b=lum(background);
       return {foreground,background,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
     }));
     assert(samples.length);for(const sample of samples)assert(sample.ratio>=4.5,JSON.stringify(sample));
-    fs.writeFileSync(path.join(root,'map-contrast.json'),JSON.stringify(samples,null,2)+'\n');
+    fs.writeFileSync(path.join(root,'skills-contrast.json'),JSON.stringify(samples,null,2)+'\n');
+    await page.setViewportSize({width:1280,height:900});
   });
-  await test('Empty and one-record shelves render without stale cards',async()=>{
+  await test('Empty and one-record Skills tables render without stale rows',async()=>{
     const response=await page.request.get(base+'/api/skills?scope=all'),records=await response.json();
-    const selected=records.find(r=>r.name==='library-fixture');assert(selected);
+    const selected=records.find(r=>r.name==='same-everywhere' && r.scope==='codex');assert(selected);
     for(const fixture of [[],[selected]]){
       await page.route(/[/]api[/]skills[?]scope=all(?:&body=0)?$/,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fixture)}));
       try {
-        await go('skills?view=shelf');
-        assert.equal(await page.locator('.sk').count(),fixture.length);
-        if (fixture.length) assert.equal(await page.locator('.instance-filters .count').innerText(), '1 skill');
+        await go('skills');
+        const welcome = page.getByRole('button', {name:'Show my skills'});
+        if (await welcome.isVisible()) await welcome.click();
+        assert.equal(await page.locator('.jf-grid tbody tr').count(),fixture.length);
+        if (fixture.length) assert(await page.getByRole('button',{name:/^same-everywhere in Codex:/}).isVisible());
         else assert(await page.getByRole('heading', {name:'No skills yet'}).isVisible());
-        await go('map');
-        assert.equal(await page.locator('.map-table tbody tr').count(),fixture.length);
       } finally {
         await page.unrouteAll({behavior:'wait'});
       }
@@ -1766,18 +2008,12 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     const listed=await page.request.get(base+'/api/skills?scope=claude-code&body=1');
     assert(listed.ok());const alias=(await listed.json()).find(row=>row.name===name);
     assert(alias);assert.equal(alias.body,'# Original owner text\n');assert.equal(alias.link_followed,true);assert.equal(alias.read_only,true);
-    await go('skills?view=shelf');
+    await go('skills');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
     await page.getByRole('button',{name:'Refresh files',exact:true}).click();
-    await page.waitForTimeout(350);
-    await page.locator('#agent-f').selectOption('claude-code');
-    const card=page.locator('.sk').filter({hasText:name});await card.waitFor();
-    await page.locator('.instance-filters').getByRole('button',{name:'Exact instances',exact:true}).click();
-    const instance=page.locator('.instance-row').filter({hasText:name});await instance.waitFor();
-    assert.match(await instance.innerText(),/linked copy is read-only/);
-    assert(await instance.locator('input[type="checkbox"]').isDisabled());
-    assert(await instance.getByRole('button',{name:'Review update',exact:true}).isDisabled());
-    await page.locator('.instance-filters').getByRole('button',{name:'Shelf',exact:true}).click();
-    await card.click();
+    await page.getByRole('searchbox',{name:'Filter skills'}).fill(name);
+    await page.getByRole('button',{name,exact:true}).click();
     const copyPicker=page.getByLabel('Read copy');
     await copyPicker.selectOption({label:'Claude Code'});
     assert(await page.getByRole('button',{name:/^Edit/}).isDisabled());
@@ -1984,6 +2220,11 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await page.getByRole('button',{name:'Run Doctor',exact:true}).click();
       assert.equal((await response).status(),200);
       await page.getByRole('heading',{name:'Doctor results',exact:true}).waitFor();
+      const report = page.getByRole('region',{name:'Doctor results'});
+      assert.match(await report.innerText(), /index result covers the library index only/i);
+      assert.match(await report.innerText(), /Skills table counts affected skill names/);
+      assert.match(await report.innerText(), /Information not available/);
+      assert.equal(await report.getByRole('link',{name:'Review Needs attention'}).getAttribute('href'),'#/attention');
       await go('advanced/source-update');
       await page.getByRole('heading',{name:'Add skills is switched off',exact:true}).waitFor();
     } finally {
@@ -2029,23 +2270,25 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
   });
   await test('Stop tracking an agent leaves its files alone and Undo brings its column back', async () => {
     const f=file('.codex','same-everywhere'), bytes=fs.readFileSync(f);
-    const heads=async()=>(await page.locator('.map-table thead th').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
-    await go('map');
-    assert((await heads()).some(t=>t.startsWith('Codex')));
+    const heads=async()=>(await page.locator('.jf-grid thead th').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
+    await go('skills');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    assert((await heads()).some(t=>t.includes('Codex')));
     await page.getByRole('button',{name:'Codex options',exact:true}).click();
-    await page.getByRole('menuitem',{name:'Stop tracking Codex…'}).click();
-    const form=page.locator('.trk-confirm');
+    await page.getByRole('button',{name:'Stop tracking Codex…'}).click();
+    const form=page.locator('.jf-panel');
     assert.match(await form.innerText(),/The Codex column and its counts leave the table[\s\S]*Nothing on disk changes/);
-    assert.equal(await page.evaluate(()=>document.activeElement.id),'map-confirm-h');
+    assert(await form.evaluate(el => el.contains(document.activeElement)));
     await form.getByRole('button',{name:'Stop tracking Codex',exact:true}).click();
     const toast=page.locator('.toast',{hasText:'Stopped tracking Codex. Nothing on disk changed.'});
     await toast.waitFor();
-    assert(!(await heads()).some(t=>t.startsWith('Codex')));
+    assert(!(await heads()).some(t=>t.includes('Codex')));
     assert(!(await (await context.request.get(base+'/api/scopes')).json()).some(s=>s.id==='codex'));
     assert.deepEqual(fs.readFileSync(f),bytes);
     await toast.getByRole('button',{name:'Undo'}).click();
     await page.locator('.toast',{hasText:'Tracking Codex again.'}).waitFor();
-    assert((await heads()).some(t=>t.startsWith('Codex')));
+    assert((await heads()).some(t=>t.includes('Codex')));
     assert((await (await context.request.get(base+'/api/scopes')).json()).some(s=>s.id==='codex'));
   });
   await test('Add other agent checks the folder live, adds a column, and Remove keeps its folder', async () => {
@@ -2062,8 +2305,10 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.locator('.toast',{hasText:'Added Kilo.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'#/settings/tracking');
     assert.match(await page.locator('#trk-st-custom-kilo').innerText(),/Tracked · 1 skill/);
-    await go('map');
-    assert((await page.locator('.map-table thead th').allInnerTexts()).some(t=>t.includes('Kilo')));
+    await go('skills');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    assert((await page.locator('.jf-grid thead th').allInnerTexts()).some(t=>t.includes('Kilo')));
     await go('settings/tracking');
     await page.locator('.trk-row',{hasText:'Kilo'}).getByRole('button',{name:'Details'}).click();
     await page.locator('.trk-row',{hasText:'Kilo'}).getByRole('button',{name:'Remove'}).click();
@@ -2240,6 +2485,35 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       assert(!(await page.getByRole('checkbox', {name:'Select sole-copy'}).isChecked()));
       assert.equal(writes, 0);
     } finally { page.off('request', observe); }
+  });
+  await test('A backup preview that finishes after navigation belongs to the old Trash visit', async () => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    const previewRequest = url => url.pathname === '/api/import' && url.searchParams.get('preview') === '1';
+    const delayedPreview = async route => {
+      await pending;
+      await route.fulfill({json:{plan_id:'fixture-preview', entries:[{name:'synthetic', action:'add'}]}});
+    };
+    await page.route(previewRequest, delayedPreview);
+    try {
+      await go('trash');
+      await trashScreen.locator('#imp-file').setInputFiles({name:'synthetic.zip', mimeType:'application/zip', buffer:Buffer.from('fixture')});
+      const requested = page.waitForRequest(request => previewRequest(new URL(request.url())));
+      await trashScreen.getByRole('button', {name:'Preview backup', exact:true}).click();
+      await requested;
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.locator('.jf-skills-screen').waitFor();
+      await page.locator('.tabs a[href="#/trash"]').click();
+      await trashScreen.waitFor();
+      release();
+      await page.waitForFunction(() => !document.getElementById('imp-file').disabled);
+      assert.equal(await trashScreen.getByRole('region', {name:'Backup preview', exact:true}).count(), 0);
+      assert.equal(await trashScreen.getByRole('button', {name:'Load backup', exact:true}).count(), 0);
+      assert.equal(await trashScreen.getByText('synthetic.zip', {exact:true}).count(), 0);
+    } finally {
+      release();
+      await page.unroute(previewRequest, delayedPreview);
+    }
   });
   await test('Phase 2 add a missing copy and Undo restores the filesystem', async () => {
     const name = 'phase-two-add', source = file('.claude', name), target = file('.codex', name);

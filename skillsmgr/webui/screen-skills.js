@@ -236,9 +236,11 @@ window.Jackfield.register((app) => {
           <p>Welcome to Jackfield</p><h2>Found {{ agents.length }} agents and {{ rows.length }} skills</h2>
           <div v-for="agent in agents" :key="agent.id" class="jf-welcome-agent">
             <jf-agent :agent="{...agent, path: ''}"></jf-agent><span>{{ agent.count }} skills</span>
+            <span class="jf-welcome-path" :title="agent.path">{{ agent.path }}</span>
           </div>
-          <p>Click any square in the table to turn a skill on or off for that agent.</p>
-          <button type="button" class="sm-btn sm-btn--accent" @click="$emit('first-launch-done')">Show my skills</button>
+          <div class="jf-welcome-tip"><span>Tip: click any square in the table to turn a skill on or off for that agent.</span>
+            <button type="button" class="sm-btn sm-btn--accent" @click="$emit('first-launch-done')">Show my skills</button>
+          </div>
         </section>
         <section v-else-if="loaded && !agents.length" class="jf-skills-empty">
           <h2>{{ agentsFound ? 'No agents are tracked.' : 'No agent skills found yet' }}</h2>
@@ -246,7 +248,6 @@ window.Jackfield.register((app) => {
           <button v-if="agentsFound" type="button" class="sm-btn" @click="$emit('manage-agents')">Choose agents</button>
           <template v-else><a href="#/settings/tracking/add-agent" class="sm-btn">Add a folder</a>
             <button type="button" class="sm-btn" @click="$emit('refresh')">Look again</button></template>
-          <a v-if="rows.length" href="#/skills?view=instances">Show library skills</a>
         </section>
         <template v-else-if="loaded">
           <jf-attention-banner :count="attentionCount" :detail="attentionDetail" :pressed="onlyAttention" @toggle="onlyAttention = !onlyAttention"></jf-attention-banner>
@@ -352,7 +353,7 @@ window.Jackfield.register((app) => {
           </table>
           <button v-if="visibleRows.length < filtered.length" type="button" class="jf-skills-more sm-btn" @click="limit += 50">Show 50 more</button>
           <p v-if="rows.length" class="jf-skills-hint">↑ ↓ ← → move between squares · Space turn on or off · Enter open · Shift+Space select row · / search</p>
-          <footer class="jf-skills-footer"><a href="#/skills?view=instances">Exact instances</a> <a v-if="!narrow" href="#/settings/tracking">Manage agents</a></footer>
+          <footer class="jf-skills-footer"><a v-if="!narrow" href="#/settings/tracking">Manage agents</a></footer>
         </div>
         <div v-if="sheet" class="jf-panel-scrim" aria-hidden="true" @click.self="closePanel"></div>
         <jf-side-panel v-if="panel" :panel="panel" :modal="sheet" :focus-heading="panelFocus" @close="closePanel"

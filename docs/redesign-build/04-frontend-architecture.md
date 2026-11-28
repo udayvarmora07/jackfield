@@ -88,6 +88,7 @@ not matter.
 |---|---|
 | `#/home`, `#/`, empty | `#/skills` |
 | `#/map` | `#/skills` |
+| `#/skills?view=…` | `#/skills` with the other query parameters retained |
 | `#/inbox` | `#/attention` |
 | `#/recovery` | `#/trash` |
 | `#/tools` | `#/advanced` |
@@ -95,10 +96,9 @@ not matter.
 | `#/tools/<id>` | `#/advanced/<id>` |
 | `#/skill/<name>` | `#/skills/<name>` |
 
-**[NOTE]** In phase 1, the Skills views menu links to `#/skills?view=agents`
-and `#/skills?view=map` so the existing Agents overview and Sync map remain
-available. Phase 2 replaces those workflows with the Skills table and its
-details panel.
+**[NOTE]** The Paper table and its details panel replace the phase 1 view
+switcher. The Skill page’s Read copy picker distinguishes same-name copies
+by folder. Exact links from tools carry `scope` and `copy` through reloads.
 
 **[NOTE]** A skill can legally be named `new`, `edit` or `why`. `#/new` is
 top-level, and `#/skills/<name>/<sub>` only treats the **third** segment as a

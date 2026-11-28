@@ -7,6 +7,20 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper review fixes, Batch 1
+
+**[NOTE]** First launch shows the detected folders and the A16 welcome card.
+The Paper disclosure icon keeps its size across the reader, Editor, Trash
+and tool and Settings rails. Old Skills routes replace their history entry
+with the Paper table. The Skill page’s Read copy picker retains access to
+same-name copies, including reloads from an exact tool result.
+
+**[NOTE]** Doctor separates index health from its broader findings and
+links to Needs attention when there are items. Why checks existing copies
+first and links to the Skill page. Trash receipts, backup reviews, Needs
+attention errors, and success notices clear on navigation. In-flight write
+failures still appear when they finish. See @docs/62-redesign-review-2026-11-28.md.
+
 ## 2026-11-28 — Redesign review at Phase 5
 
 **[NOTE]** Five parallel read-only reviews covered design fidelity, UX,

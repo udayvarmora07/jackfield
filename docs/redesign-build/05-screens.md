@@ -186,6 +186,8 @@ open and offers Undo for the confirmed writes.
 
 **[NOTE]** The browser can copy the confirmed Claude user settings path. For
 the other settings sources the screen offers a recheck and explains the block.
+The headline prioritizes findings in existing copies. A missing copy can
+explain why the skill is unavailable in that place only.
 
 ## S7 · Needs attention
 
@@ -237,6 +239,8 @@ do not identify exact snapshots, so recovering a snapshot is a separate
 action under History and text snapshots. The backup plan lists the observed
 library changes and requires another preview if its evidence changes. The
 most recent successful download start and its size are saved per browser.
+Restore messages, backup reviews and inline errors belong to the current
+visit. A read finishing after navigation cannot reopen the old review.
 
 ## S9 · Advanced
 

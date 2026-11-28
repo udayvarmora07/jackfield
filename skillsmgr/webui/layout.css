@@ -321,9 +321,15 @@
 .jf-panel-choice, .jf-skills-footer, .jf-welcome-agent { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 .jf-panel-choice { margin-block: var(--space-4); }
 .jf-skills-footer { padding: var(--space-3) var(--space-4); }
+.jf-skills-welcome { box-sizing: border-box; max-width: 620px; margin: var(--space-10) auto; padding: var(--space-8); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.jf-skills-welcome > p { margin: 0 0 var(--space-2); }
+.jf-skills-welcome h2 { margin: 0 0 var(--space-5); color: var(--ink); }
 .jf-welcome-agent + .jf-welcome-agent { margin-top: var(--space-2); }
-.jf-skills-welcome { max-width: 45rem; margin-inline: auto; }
-.jf-skills-welcome .jf-welcome-agent { justify-content: center; }
+.jf-welcome-agent .jf-agent { min-width: 140px; color: var(--ink); }
+.jf-welcome-path { flex: 1 1 140px; min-width: 0; margin-inline-start: auto; overflow: hidden; color: var(--text-faint); font: var(--type-path-weight) var(--type-path-size)/var(--type-path-line) var(--font-mono); text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.jf-welcome-tip { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--accent-soft); color: var(--ink-2); }
+.jf-welcome-tip > span { flex: 1 1 260px; }
+.jf-skills-empty .jf-welcome-tip button { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .jf-grid tr.is-changed { background: var(--accent-soft); }
 .jf-grid-count { margin-inline-start: auto; }
 .jf-panel-scrim { position: fixed; inset: 0; z-index: 19; background: color-mix(in srgb, var(--ink) 34%, transparent); }

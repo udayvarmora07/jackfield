@@ -426,7 +426,7 @@ class ToolBehaviorTests(unittest.TestCase):
           Object.assign(ctx.window.SkillManagerDomain,{formatCompat:v=>v||'',formatTools:v=>v||''});
           loadJackfield(ctx, V2+'/app.js');
           const refCopy={name:'divergent',scope:'codex',path:'/codex/divergent',hash:'h1',description:'Selected copy description',body:'# Selected',bodyLoaded:true,record:{}};
-          const h={...component.methods,skill:{name:'divergent',description:'Primary description'},
+          const h={...component.methods,skill:{name:'divergent',description:'Primary description'},toasts:[],live:'',screenVisit:0,
             route:{page:'skill',name:'divergent',href:'#/skills/divergent?scope=codex&copy=%2Fcodex%2Fdivergent',copyScope:'codex',copyPath:refCopy.path},
             refCopy,editTargets:[refCopy,{scope:'claude-code',hash:'h1'}],$nextTick:()=>{},bodies:{},bodyErrors:{},ensureBodies:async()=>{},toast:()=>{}};
           h.editPlaces=new Map(h.editTargets.map(copy=>[copy.scope,{scope:copy.scope,copy,evidence:h.bodyKey(copy)}]));

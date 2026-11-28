@@ -980,10 +980,13 @@ const attentionMixin = {
       const href = Router.routeHref("attention", { item: id });
       Router.replace(href);
       this.route = Router.parseRoute(href);
+      this.clearAttentionReview();
+      this.$nextTick(() => (document.getElementById("attention-detail-heading") || document.getElementById("h1"))?.focus());
+    },
+    clearAttentionReview() {
       this.attentionChoice = null;
       this.attentionCompare = "";
       this.attentionError = "";
-      this.$nextTick(() => (document.getElementById("attention-detail-heading") || document.getElementById("h1"))?.focus());
     },
     attentionChoose(id) {
       const option = this.attentionOptions.find((row) => row.id === id);
@@ -1015,6 +1018,7 @@ const attentionMixin = {
         name === item.name && (id === item.id || originals.some((copy) => agent && columnScopes(agent).includes(copy.scope))));
       const skipped = this.attentionSkipped;
       const selection = this.route.item;
+      const visit = this.screenVisit;
       this.attentionError = "";
       return this.change("copy", { sources: [option.source], scopes: originals.map((copy) => copy.scope), originals,
         keys: originals.map((copy) => tableKey(copy.name, copy.scope)), message: "Fixed " + item.name + ".",
@@ -1023,7 +1027,7 @@ const attentionMixin = {
           const nowFixed = new Set(resolved.map(({ id }) => id));
           this.attentionFixed = [...this.attentionFixed.filter((row) => !nowFixed.has(row.id)), ...resolved];
           this.attentionSkipped = this.attentionSkipped.filter((id) => !nowFixed.has(id));
-          if (this.route.page === "inbox" && this.route.item === selection && nowFixed.has(item.id)) {
+          if (visit === this.screenVisit && this.route.item === selection && nowFixed.has(item.id)) {
             this.attentionSelect(this.attentionToFix[0]?.id || this.attentionItems[0]?.id || null);
           }
           if (!nowFixed.has(item.id)) return "Copies changed. Check the remaining issues.";
@@ -1032,7 +1036,7 @@ const attentionMixin = {
           const live = new Set(this.tableProblems.map(({ id }) => id));
           this.attentionFixed = this.attentionFixed.filter(({ id }) => !live.has(id));
           this.attentionSkipped = [...new Set([...this.attentionSkipped, ...skipped.filter((id) => live.has(id))])];
-          if (this.route.page === "inbox" && live.has(item.id)) this.attentionSelect(item.id);
+          if (visit === this.screenVisit && live.has(item.id)) this.attentionSelect(item.id);
         },
         onError: (failure) => {
           if (this.route.page !== "inbox") return false;
@@ -1274,7 +1278,7 @@ const app = createApp({
     docWhy() {
       const c = this.refCopy;
       if (!c && (this.route.copyScope || (this.readCopyName === this.skill?.name && this.readCopyScope))) {
-        return { title: "Selected copy is no longer listed", text: "Refresh files or choose another copy from Exact instances.", missing: true };
+        return { title: "Selected copy is no longer listed", text: "Refresh files or choose another copy using Read copy.", missing: true };
       }
       if (!c || this.bodyFetchable(c)) return null;
       const why = BROKEN_WHY[c.kind];
@@ -1432,11 +1436,12 @@ const app = createApp({
     openSkillTool(tool) { if (this.refCopy) { this.toolTarget = markRaw(this.refCopy.record); Router.go(Router.toolHref(tool)); } },
     openConciseReview(handoff) { if(!handoff||!handoff.target||!handoff.reviewId)return;this.toolTarget=markRaw(handoff.target);this.sourceReviewHandoff={...handoff,target:this.toolTarget};Router.go(Router.toolHref("source-update")); },
     sourceReviewConsumed(reviewId) { if(this.sourceReviewHandoff&&this.sourceReviewHandoff.reviewId===reviewId)this.sourceReviewHandoff=null; },
-    inspectRecord(record) {
-      this.libraryView = "instances";
-      Router.go(Router.routeHref("skills", { view: "instances", q: record.name, agent: record.scope || "all" }));
+    inspectRecord(record) { this.openRecord(record); },
+    openRecord(record) {
+      this.toolTarget = markRaw(record);
+      const path = record.physical_path || record.path;
+      Router.go(Router.skillHref(record.name, "", path ? { scope: record.scope, copy: path } : undefined));
     },
-    openRecord(record) {this.toolTarget=markRaw(record);this.readCopyPath=record.physical_path||record.path||"";this.readCopyScope=record.scope||"";this.readCopyName=record.name||"";Router.go(Router.skillHref(record.name));},
     goTo(href) { Router.go(href); },
     openCommands() {
       if (this.dialog || this.busy) return;
@@ -1848,7 +1853,7 @@ const app = createApp({
     reviewReaderChange(copy) {
       const place = copy && this.tableColumns.find((column) => columnScopes(column).includes(copy.scope));
       if (place) this.tableSelect({ name: this.skill.name, agent: place.id });
-      else this.toast("This copy has no square in the Skills table. Open Exact instances to review it.", { err: true });
+      else this.toast("This copy has no square in the Skills table. Choose it using Read copy.", { err: true });
     },
     syncDiffering() {
       const s = this.skill;
@@ -2124,19 +2129,21 @@ const app = createApp({
     },
     async restoreAgentTrash(t) {
       if (this.busy) return;
-      const dialog = this.dialog;
+      const dialog = this.dialog, visit = this.screenVisit;
       this.busy = true;
       try {
         const result = await this.restoreTrashed(t.name, t.scope, t.trash_path);
-        this.dialog = null;
+        if (this.dialog === dialog) this.dialog = null;
         await this.refresh();
-        this.restoredTrash = this.confirmRestoredTrash(t, result);
-        if (this.route.page === "recovery") document.getElementById("rec-trash")?.focus();
+        if (visit === this.screenVisit) {
+          this.restoredTrash = this.confirmRestoredTrash(t, result);
+          document.getElementById("rec-trash")?.focus();
+        }
       } catch (e) {
         if (this.dialog === dialog) {
           dialog.error = this.friendly(e.message);
           this.$nextTick(() => this.$refs.restoreError?.focus());
-        }
+        } else this.toast(e.message, { err: true });
       } finally { this.busy = false; }
     },
     confirmRestoredTrash(row, result) {
@@ -2178,6 +2185,7 @@ const app = createApp({
     },
     async exportBackup(full) {
       if (this.busy) return;
+      const visit = this.screenVisit;
       this.busy = true; this.exportPending = true; this.exportError = "";
       try {
         const { blob, filename } = await Domain.apiBlob("/api/export" + (full ? "?full=1" : ""));
@@ -2193,10 +2201,11 @@ const app = createApp({
           try { localStorage.setItem(LAST_LIBRARY_DOWNLOAD, JSON.stringify(this.libraryDownload)); }
           catch { /* The current page can still show the observed download. */ }
         }
-        this.toast("Backup download started.");
+        if (visit === this.screenVisit) this.toast("Backup download started.");
       } catch (e) {
-        this.exportError = Domain.archiveDownloadError(e);
-        if (this.route.page !== "recovery") this.toast(this.exportError, { err: true });
+        const error = Domain.archiveDownloadError(e);
+        if (visit === this.screenVisit && this.route.page === "recovery") this.exportError = error;
+        else this.toast(error, { err: true });
       } finally { this.busy = false; this.exportPending = false; }
     },
     /* The picker filters by `accept`; a dropped file is not, so check its name.
@@ -2225,32 +2234,38 @@ const app = createApp({
       return api("/api/import?" + query, { method: "PUT", body: file });
     },
     async previewImport() {
-      const file = this.importFile;
+      const file = this.importFile, visit = this.screenVisit;
       if (!file || this.busy) return;
       this.clearImportReview();
       this.busy = true; this.importPending = true;
       try {
         const plan = await this.archiveImportRequest(file, { preview: "1" });
+        if (visit !== this.screenVisit) return;
         if (!plan.plan_id || !Array.isArray(plan.entries)) throw new Error("Jackfield could not read the backup preview.");
         this.importPlan = plan;
-      } catch (e) { this.importError = this.friendly(e.message); }
+      } catch (e) { if (visit === this.screenVisit) this.importError = this.friendly(e.message); }
       finally { this.busy = false; this.importPending = false; }
     },
     archiveImportSummary(result) { return Domain.archiveImportSummary(result); },
     async doImport() {
-      const file = this.importFile, plan = this.importPlan;
+      const file = this.importFile, plan = this.importPlan, visit = this.screenVisit;
       if (!file || !plan?.entries.some((entry) => entry.action !== "skip") || this.busy) return;
       this.busy = true; this.importPending = true;
       this.importError = ""; this.importResult = null;
       try {
         const r = await this.archiveImportRequest(file, { plan_id: plan.plan_id });
-        this.importPlan = null;
-        this.importResult = r;
-        this.live = this.archiveImportSummary(r);
-        this.importFile = null;
-        const input = document.getElementById("imp-file"); if (input) input.value = "";
+        if (visit === this.screenVisit) {
+          this.importPlan = null;
+          this.importResult = r;
+          this.live = this.archiveImportSummary(r);
+          this.importFile = null;
+          const input = document.getElementById("imp-file"); if (input) input.value = "";
+        }
         await this.refresh();
-      } catch (e) { this.importPlan = null; this.importError = this.friendly(e.message); }
+      } catch (e) {
+        if (visit === this.screenVisit) { this.importPlan = null; this.importError = this.friendly(e.message); }
+        else this.toast(e.message, { err: true });
+      }
       finally { this.busy = false; this.importPending = false; }
     },
     applyTheme() {
@@ -2302,7 +2317,9 @@ const app = createApp({
     },
     showSkillView(screen = "") {
       const href = Router.skillHref(this.route.name, screen, this.readerRouteOptions());
-      this.route = Router.parseRoute(href);
+      const next = Router.parseRoute(href);
+      this.resetScreenFeedback(next);
+      this.route = next;
       this.routeAction = href;
       Router.replace(href);
       this.updatePageTitle();
@@ -2628,7 +2645,7 @@ const app = createApp({
       Router.go(Router.routeHref("attention", { item: issue?.id }));
     },
     reviewProblemHref(problem) {
-      if (problem.noteOnly) return Router.routeHref("skills", { view: "instances", q: problem.skill });
+      if (problem.noteOnly) return Router.skillHref(problem.skill);
       if (problem.key === "info") return Router.toolHref("quality");
       return Router.routeHref("attention", { item: problem.id });
     },
@@ -2694,9 +2711,7 @@ const app = createApp({
       Router.replace(next.href);
       this.closeDialog(false);
       if (next.screen !== "edit" || next.name !== this.route.name) this.edit = null;
-      if (next.page !== this.route.page || next.name !== this.route.name) {
-        this.leaveUndo(next.href);
-      }
+      this.resetScreenFeedback(next);
       this.mapMenu = ""; this.projectMenu = false;
       this.tableStopAgent = "";
       this.tableMode = ""; this.tableVersion = ""; this.tableError = null;
@@ -2713,6 +2728,20 @@ const app = createApp({
       window.scrollTo(0, 0);
       if (next.screen !== "new") this.focusH1();
       this.showRouteScreen();
+    },
+    resetScreenFeedback(next) {
+      const previous = this.route;
+      if (["page", "name", "screen", "tool", "view"].some((key) => next[key] !== previous[key])) {
+        this.leaveScreen(next.href);
+      }
+      if (previous.page === "inbox" && next.page !== "inbox") this.clearAttentionReview();
+      if (previous.page === "recovery" && next.page !== "recovery") {
+        this.restoredTrash = null;
+        this.importFile = null;
+        this.importReject = "";
+        this.exportError = "";
+        this.clearImportReview();
+      }
     },
   },
   mounted() {

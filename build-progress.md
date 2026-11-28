@@ -43,6 +43,16 @@ Jackfield name and mark. Their project sources are in `branding/jackfield/`.
 - [x] Phase 4 · Needs attention and Trash & backups are approved, landed at `382364b`, and passed all 17 [GitHub CI jobs](https://github.com/udayvarmora07/jackfield/actions/runs/46113385797).
 - [ ] Phases 5–8 · Remaining screens, migration cleanup and acceptance.
 
+## Paper review fixes
+
+The first review batch restores the A16 welcome card and shared disclosure
+chevrons. Classic view bookmarks open the Paper Skills table with their
+filters. The Skill page handles same-name copy selection using folder paths.
+Doctor explains its count scope, Why leads with problems in existing copies,
+and route changes clear stale reviews and success feedback. The application
+still offers Undo after an automatic post-write redirect when the original
+view is no longer available. See [the review](docs/62-redesign-review-2026-11-28.md).
+
 ## Phase 3 · Everyday jobs
 
 | Screen | Behavior |

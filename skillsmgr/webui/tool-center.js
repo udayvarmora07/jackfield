@@ -47,7 +47,7 @@
   const { toolGroups: TOOL_GROUPS, toolItems: TOOL_ITEMS } = window.SkillsV2Model;
 
   window.SkillsV2ToolCenter = {
-    props: {page:String, records:{type:Array,default:()=>[]}, scopes:{type:Array,default:()=>[]}, target:Object, sourceReviewHandoff:Object, groupsOn:{type:Object,default:()=>({})}, trackingLine:{type:String,default:''}, trackingReady:{type:Boolean,default:true}, trackingError:String},
+    props: {page:String, records:{type:Array,default:()=>[]}, scopes:{type:Array,default:()=>[]}, target:Object, sourceReviewHandoff:Object, attentionCount:{type:Number,default:0}, groupsOn:{type:Object,default:()=>({})}, trackingLine:{type:String,default:''}, trackingReady:{type:Boolean,default:true}, trackingError:String},
     emits:['tool-group','changed','inspect','preference','use-draft','open-source-review','source-review-consumed','open-record','retry-tracking'],
     data() { return {
       busy:false,error:'',result:null,sequence:0,readTokens:{},loading:{},qualityEnvelope:null, tab:'registry', source:'',op:'browse',view:'all-time',stale:false, pageNo:0,review:null,trust:false,
@@ -538,8 +538,10 @@
             <template v-if="doctorSummary.findings !== null">
               <dt>Skill checks</dt><dd>{{doctorSummary.findings === 0 ? 'No findings in the evidence checked' : pl(doctorSummary.findings, 'finding')}}<span v-if="doctorSummary.errors"> · {{pl(doctorSummary.errors, 'error')}}</span><span v-if="doctorSummary.warnings"> · {{pl(doctorSummary.warnings, 'warning')}}</span></dd>
             </template>
-            <template v-if="doctorSummary.unavailable"><dt>Evidence gaps</dt><dd>{{pl(doctorSummary.unavailable, 'unavailable signal')}}</dd></template>
+            <template v-if="doctorSummary.unavailable"><dt>Information not available</dt><dd>{{pl(doctorSummary.unavailable, 'item')}} could not be checked, including information about usage and loading.</dd></template>
           </dl>
+          <p class="tp-fine">The index result covers the library index only. Skill checks count findings across copies and settings; the Skills table counts affected skill names, while Needs attention counts specific copy problems and split versions.</p>
+          <p v-if="attentionCount" class="tp-fine"><a href="#/attention">Review Needs attention</a></p>
           <ul v-if="doctorSummary.indexIssues.length" class="tp-rows">
             <li v-for="issue in doctorSummary.indexIssues" :key="issue.label" class="v2-tool-row"><span>{{issue.label}}</span><b class="num">{{fmtN(issue.count)}}</b></li>
           </ul>

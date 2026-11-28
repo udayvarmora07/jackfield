@@ -115,6 +115,10 @@ Undo, dismiss. An available Undo has no time limit. Stays on the page where the 
 navigation; a newer change replaces it. If a change cannot be undone, say so
 **before** acting, never here.
 
+**[NOTE]** An automatic redirect after a tracking form saves or the last skill
+copy is removed carries the Undo to the destination once. A failure that
+finishes after the user leaves is still announced.
+
 ### Navigation
 
 **[SPEC]** Desktop `sm-nav` (60px): Jackfield lockup linking to Skills

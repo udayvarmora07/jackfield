@@ -832,8 +832,6 @@ html, .tree, .dlg, .map-scroll, .mpanel, .instance-dialog { scrollbar-color: var
 /* Disclosures carry a drawn chevron instead of the browser's black triangle. */
 details > summary { list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
-details > summary::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 10px 2px 2px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .12s var(--ease); flex: none; vertical-align: middle; }
-details[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; }
 :focus-visible { outline-color: var(--brand); }
 .tp-findings > li > details > summary::before { content: none; }
 .tp-more summary, .tp-hist-group summary { display: block; }

@@ -62,9 +62,9 @@ const rec=(name,scope,over)=>Object.assign({name,scope,scope_label:scope,descrip
 BODY_CONTEXT_JS = (
     "const BODY_METHODS=['bodyKey','bodyReady','bodyOf','bodyErrorOf','applyBody','bodyFetchable',"
     "'bodyPairKey','modelCopies','bodyPairs','bodyDuplicated','pairCopies','bodiesByPath','duplicateBodyMap',"
-    "'namedBody','ensureBodies','readerRouteOptions','showSkillView'];"
+    "'namedBody','ensureBodies','readerRouteOptions','showSkillView','resetScreenFeedback','leaveScreen'];"
     "const bodyContext=(M,extra)=>{"
-    "const context=Object.assign({},extra||{});"
+    "const context=Object.assign({toasts:[], live:'', screenVisit:0},extra||{});"
     "if(!context.bodies)context.bodies={};"
     "if(!context.bodyInflight)context.bodyInflight={};"
     "if(!context.bodyErrors)context.bodyErrors={};"

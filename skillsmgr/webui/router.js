@@ -65,8 +65,7 @@
     switch (path) {
       case "skills": {
         const view = query.get("view");
-        const page = view === "agents" ? "home" : view === "map" ? "map" : "skills";
-        return { page, view, search: query.get("q"), agent: query.get("agent"), only: query.get("only"), selected: query.get("sel") };
+        return { page: "skills", view, search: query.get("q"), agent: query.get("agent"), only: query.get("only"), selected: query.get("sel") };
       }
       case "new": return { page: "skills", screen: "new", template: query.get("template") };
       case "attention": return { page: "inbox", item: query.get("item") };
@@ -80,8 +79,16 @@
   function parseRoute(hash, toolIds = window.SkillsV2Model.toolIds) {
     const { path, query } = partsOf(hash);
     const canonical = canonicalPath(path);
+    const params = new URLSearchParams(query);
+    // Retired Skills views are replaced by the table. Keep its other filters.
+    if (canonical === "skills" && params.has("view")) {
+      params.delete("view");
+      const remaining = params.toString();
+      const href = "#/skills" + (remaining ? "?" + remaining : "");
+      return { ...match(canonical, params, toolIds), href };
+    }
     const href = "#/" + canonical + query;
-    return { ...match(canonical, new URLSearchParams(query), toolIds), href };
+    return { ...match(canonical, params, toolIds), href };
   }
 
   const current = () => parseRoute(location.hash);

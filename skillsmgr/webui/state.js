@@ -161,7 +161,7 @@
     // Vue makes this contribution reactive as part of the one root data object.
     createState: () => ({
       refreshGen: 0, m: null, loading: true, loadError: "", history: [], historyError: "", checkedAt: 0,
-      records: [], scopes: [], busy: false, toasts: [], live: "", toastSeq: 0,
+      records: [], scopes: [], busy: false, toasts: [], live: "", toastSeq: 0, screenVisit: 0,
       tableWorking: [], tableError: null, diskChanges: [], changedRows: [], highlightsTimer: null,
     }),
     stateActions: {
@@ -215,7 +215,7 @@
       },
       async change(kind, target) {
         if (this.busy) return;
-        const origin = this.route;
+        const visit = this.screenVisit;
         this.busy = true;
         this.tableError = null;
         this.tableWorking = target.keys;
@@ -240,19 +240,22 @@
           if (result?.skipped) message = `${result.copiesMade.length} copies changed. ${result.skipped} could not be changed.`;
           if (result && !undo) message += " Undo isn’t available for these copies.";
           if (result?.unavailable || (result && !undo && target.originals.length)) message += " Check Trash for previous copies.";
-          const reader = origin.page === "skill" && !origin.screen;
-          const attention = origin.page === "inbox" && this.route.page === "inbox";
-          if (attention || this.route.page === "skills" || (reader && this.route.page === "skill" &&
-              this.route.name === origin.name && !this.route.screen)) {
+          if (visit === this.screenVisit) {
             const selected = this.tableSelection;
             if (selected && this.tableSheetOpen && target.keys.includes(selected.name + ":" + selected.agent)) {
               if (this.route.page === "skill") this.closeReaderSquare();
               else this.tableClose();
             }
             this.toast(message, { undo, onUndo: target.onUndo, err: !!result?.skipped });
+          } else if (result?.skipped || result?.unavailable) {
+            this.toast(message, { err: true });
           }
         } catch (error) {
           await this.refresh();
+          if (visit !== this.screenVisit) {
+            this.toast(error.message, { err: true });
+            return;
+          }
           this.tableError = { key: target.keys[0], reason: this.friendly(error.message),
             details: error.cause ? this.friendly(error.cause.message) : "", verify: wrote || !!error.verify };
           if (target.onError?.(this.tableError)) return;
@@ -291,17 +294,29 @@
         clearTimeout(t.timer);
         this.toasts = this.toasts.filter((note) => note.id !== t.id);
       },
-      leaveUndo(href) {
-        for (const note of this.toasts.filter((item) => item.undo)) {
+      leaveScreen(href) {
+        this.screenVisit++;
+        this.live = "";
+        for (const note of this.toasts) {
           if (note.undoAt === href) note.undoAt = null;
           else this.dismissToast(note);
         }
       },
       async runUndo(t) {
         if (this.busy) return;
+        const visit = this.screenVisit;
         this.dismissToast(t);
         this.busy = true;
-        try { await t.undo(); await this.refresh(); if (t.onUndo) t.onUndo(); this.toast(t.undoText); } catch (e) { await this.refresh(); if (t.onUndo) t.onUndo(); this.toast("Couldn't undo: " + e.message, { err: true }); } finally { this.busy = false; }
+        try {
+          await t.undo();
+          await this.refresh();
+          t.onUndo?.();
+          if (visit === this.screenVisit) this.toast(t.undoText);
+        } catch (e) {
+          await this.refresh();
+          t.onUndo?.();
+          this.toast("Couldn't undo: " + e.message, { err: true });
+        } finally { this.busy = false; }
       },
     },
   };
