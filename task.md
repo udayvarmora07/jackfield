@@ -29,8 +29,8 @@ Spec: @docs/61-redesign-build-spec-2026-11-27.md (detail in
 - [x] Restore the selected-copy tools under Advanced and verify linked-copy
   guards, tag and profile changes, and reviewed removal with Undo.
 - [x] Keep confirmations through navigation triggered by their own actions.
-- [ ] Fix the remaining Paper recovery, copy and layout findings. Verify hosted
-  CI after the follow-up commits.
+- [x] Fix the remaining Paper recovery, copy and layout findings. Record the
+  follow-up decisions and coverage in @docs/62-redesign-review-2026-11-28.md.
 - [ ] Maintainer review of S9. Confirm any future change to the approved page
   widths during design acceptance.
 - [ ] Remaining open questions Q6–Q7, Q9–Q11 in

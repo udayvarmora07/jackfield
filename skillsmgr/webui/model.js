@@ -21,10 +21,11 @@
     ["claude-code", "CC"], ["codex", "CX"], ["opencode", "OC"], ["cursor", "Cursor"],
     ["gemini", "Gemini"], ["commandcode", "Command Code"], ["agents", "SH"],
   ]);
+  const projectScope = (id) => id === "project" || String(id).startsWith("project-");
 
   function markFor(id) {
     id = String(id);
-    if (id.startsWith("project-")) return "PJ";
+    if (projectScope(id)) return "PJ";
     if (id.startsWith("custom-")) return "Custom agent";
     return AGENT_MARKS.get(id) || null;
   }
@@ -206,7 +207,7 @@
       if (agent.kind !== "project") { result.push(agent); continue; }
       let project = result.find((a) => a.id === "project" && a.scopes);
       if (!project) {
-        project = { id: "project", name: "This project", kind: "project", scopes: [], path: agent.path, writable: agent.writable };
+        project = { ...agentMark("project"), kind: "project", scopes: [], path: agent.path, writable: agent.writable };
         result.push(project);
       }
       project.scopes.push(agent.id);
@@ -709,6 +710,7 @@
   function scopeName(id, label, kind) {
     if (id === "global" || kind === "global") return "Your library";
     if (id === "agents") return "Shared folder";
+    if (kind === "project" || projectScope(id)) return "This project";
     return label || id;
   }
 

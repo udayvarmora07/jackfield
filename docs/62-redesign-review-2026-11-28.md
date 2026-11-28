@@ -46,12 +46,22 @@ open. The checked-in boards were compared by markup, copy, and widths.
 
 ## Follow-up fixes
 
+**[NOTE]** The remaining screen fixes below are in the commit titled
+`fix(webui): resolve remaining Paper review findings`.
+
 | Finding | Disposition |
 | --- | --- |
 | Browser smoke waits for the retired view | Fixed in `7b69ebe`. The populated probe dismisses the welcome card and checks the Paper table and its Needs attention count. |
 | Bulk tags, profile assignment and exact-copy tools are unreachable | Fixed in `e7879f0`. The maintainer chose Advanced → Add skills → Skill copies. The page restores checked file actions, tag filtering and editing, and adding selections to profiles. A followed link stays read-only. |
-| Create and permanent removal confirmations disappear | Fixed in `fix(webui): keep confirmations through action redirects`. An action's confirmation stays visible and in the live region on its destination. A manual screen change clears old success feedback. |
-| Remaining Paper review findings | Pending. |
+| Create and permanent removal confirmations disappear | Fixed in `7cba8af`. An action's confirmation stays visible and in the live region on its destination. A manual screen change clears old success feedback. |
+| Needs attention keeps outdated repair guidance after a failed write | Fixed. A return visit reads the current folders and recalculates available repairs. |
+| New skill hides a place after a failed write | Fixed. A return visit reads which places are writable. |
+| Doctor and New skill chevrons | Fixed. Full report shows its disclosure chevron, and the New skill dialog action shows a chevron. |
+| Project name and mark vary across screens | Fixed. The screens use **This project** with its board mark. The Read copy picker includes each project copy's folder. |
+| 390 px targets and Skills checkbox placement | Fixed. The affected targets meet 44 px at 390 and 600 px. Skills keeps the selection checkbox beside the skill name. |
+| Quality mentions missing evidence and the characters-per-token formula | Fixed. Quality explains incomplete checks and identifies the text-length estimate in plain language. |
+| Skill panel and welcome rows are misaligned | Fixed. The Skill panel disclosures share an inset. Welcome counts and paths use aligned columns. |
+| Retired `route.view` branches | Fixed. Old bookmarks still open the Paper table with their filters. The wider classic-code cleanup remains in Phase 7. |
 
 ## Scope and evidence
 

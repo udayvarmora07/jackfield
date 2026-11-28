@@ -60,6 +60,15 @@ The approved desktop boards use centered main widths of 1,440, 1,280 and
 1,040 px for Skills, Needs attention and Trash respectively. Their title
 offsets follow those widths. S9 still awaits the maintainer’s review.
 
+The follow-up restores bulk tags, profile assignment and operations on
+individual folders under Advanced → Add skills → Skill copies. Create and
+permanent removal confirmations follow the actions that opened their
+destination. Returning to New skill or Needs attention checks the current
+folders again. The final screen fixes align the project name and mark,
+disclosures, phone targets and welcome rows, and simplify Quality copy.
+[Follow-up fixes](docs/62-redesign-review-2026-11-28.md#follow-up-fixes) ·
+[Hosted browser smoke recovery](https://github.com/udayvarmora07/jackfield/actions/runs/46130850147)
+
 ## Phase 3 · Everyday jobs
 
 | Screen | Behavior |

@@ -552,7 +552,6 @@ const tableMixin = {
       });
     },
     tableSelected() {
-      if (this.route.page === "skills" && this.route.view) return null;
       const value = this.route.selected || "";
       const index = value.lastIndexOf(":");
       if (index < 1) return null;
@@ -1056,7 +1055,7 @@ const attentionMixin = {
 const app = createApp({
   data() {
     return { ...Jack.createState(), ...trackingMixin.data(), ...tableMixin.data(), ...attentionMixin.data(), historyGen: 0, catalogGen: 0, trashGen: 0, agentTrashGen: 0,
-      route: Router.current(), routeAction: "", catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", libraryView: savedPreference("skillsmgr-v2-library-view",["shelf","instances"],"shelf"), density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
+      route: Router.current(), routeAction: "", catalog: {tags:{}, profiles:{}}, catalogError: "", tagFilter: "", density: savedPreference("skillsmgr-v2-density",["comfortable","compact"],"comfortable"), toolTarget: null, sourceReviewHandoff: null, readCopyPath: "", readCopyScope: "", readCopyName: "",
       skillHistoryError: "", trashError: "", trashLoading: false, importFull: false, importResult: null, createTemplates: [], commandQuery: "", commandActive: 0,
       exportPending: false, exportError: "", libraryDownload: savedLibraryDownload(),
       query: "", filter: "all", agentFilter: "all", extra: {}, sortBy: "name", advancedQuery: "",
@@ -1123,7 +1122,7 @@ const app = createApp({
       return result ? { summary: this.archiveImportSummary(result),
         reasons: [...(result.skipped || []), ...(result.skipped_full || [])] } : null;
     },
-    tableHero() { return this.route.page === "skills" && !this.route.view; },
+    tableHero() { return this.route.page === "skills"; },
     activePlace() {
       return { inbox: "#/attention", recovery: "#/trash", tools: "#/advanced", tracking: "#/advanced" }[this.route.page]
         || (this.route.page === "missing" ? "" : "#/skills");
@@ -1151,7 +1150,6 @@ const app = createApp({
     shelfTotal() { return this.shelfSkills.length; },
     careCount() { return this.m ? this.m.skills.filter((s) => s.status.key === "warn" || s.status.key === "bad").length : 0; },
     catalogTags() { return [...new Set(Object.values(this.catalog.tags || {}).flat())].sort(); },
-    visibleNames() { return this.visible.map(s => s.name); },
     commandGroups() {
       if (!this.dialog?.commands) return [];
       return Jack.palette.search(this.commandQuery, this.shelfSkills,
@@ -1405,13 +1403,15 @@ const app = createApp({
       if (f.desc.length > 1024) e.desc = "Keep the description under 1024 characters.";
       return e;
     },
+    newSkillInventoryBlocked() {
+      return this.route.screen === "new" && (this.loading || !!this.loadError);
+    },
     formInvalid() {
       const f = this.dialog && this.dialog.form;
-      return !f || !f.name.trim() || !f.desc.trim() || !!this.formErrors.name || !!this.formErrors.desc;
+      return this.newSkillInventoryBlocked || !f || !f.name.trim() || !f.desc.trim() || !!this.formErrors.name || !!this.formErrors.desc;
     },
   },
   watch: {
-    libraryView(value) {try{localStorage.setItem("skillsmgr-v2-library-view",value);}catch(e){}},
     density(value) {try{localStorage.setItem("skillsmgr-v2-density",value);}catch(e){}},
     attentionReadKey() { if (this.route.page === "inbox") this.ensureBodies(this.attentionReads); },
     "route.name"() { this.compareWith = ""; this.leadOpen = false; this.loadSkillHistory(); this.primeBodies(); },
@@ -2049,6 +2049,7 @@ const app = createApp({
       if (destination) Router.go(destination);
     },
     openCreate(prefill = {}) {
+      if (this.newSkillInventoryBlocked) return;
       const first = this.createTargets.find((x) => !x.library) || this.createTargets[0];
       const target = this.createTargets.find((x) => x.id === prefill.scope);
       this.openDialog({
@@ -2689,7 +2690,6 @@ const app = createApp({
     },
     applyRouteOptions(route, previous) {
       if (route.page === "skills") {
-        if (route.view === "instances") this.libraryView = "instances";
         const hasFilters = (r) => r?.page === "skills" && [r.search, r.agent, r.only].some((value) => value != null);
         if (hasFilters(route) || hasFilters(previous)) {
           this.pickAgent(route.agent || "all", route.search || "");
@@ -2759,6 +2759,8 @@ const app = createApp({
         this.openTrackForm(next.name);
       }
       this.route = next;
+      if (!this.busy && ((next.page === "inbox" && previous.page !== "inbox") ||
+          (next.screen === "new" && previous.screen !== "new"))) this.refresh();
       this.applyRouteOptions(next, previous);
       this.loadSkillHistory();
       this.primeBodies();
@@ -2769,7 +2771,7 @@ const app = createApp({
     },
     resetScreenFeedback(next) {
       const previous = this.route;
-      if (["page", "name", "screen", "tool", "view"].some((key) => next[key] !== previous[key])) {
+      if (["page", "name", "screen", "tool"].some((key) => next[key] !== previous[key])) {
         this.leaveScreen(next.href);
       }
       if (previous.page === "inbox" && next.page !== "inbox") this.clearAttentionReview();
@@ -2822,7 +2824,7 @@ const app = createApp({
     let lastLoad = Date.now();
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState !== "visible" || this.edit || this.busy || Date.now() - lastLoad < 15000) return;
-      lastLoad = Date.now(); this.refresh({ observe: this.route.page === "skills" && !this.route.view });
+      lastLoad = Date.now(); this.refresh({ observe: this.route.page === "skills" });
     });
     if (window.matchMedia) {
       const tablet = window.matchMedia("(width < 900px)");

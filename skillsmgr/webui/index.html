@@ -39,7 +39,7 @@
         <library-tools v-else :records="records" :scopes="scopes" :catalog="catalog" @changed="refresh()" @catalog-changed="catalogChanged($event)" @inspect="openRecord($event)" @source="openSource($event)" @removed="removedBatch($event)"></library-tools>
       </template>
     </tool-center>
-    <jf-skills-screen v-else-if="route.page === 'skills' && !route.view && route.screen !== 'new'" :rows="tableRows" :agents="tableColumns"
+    <jf-skills-screen v-else-if="route.page === 'skills' && route.screen !== 'new'" :rows="tableRows" :agents="tableColumns"
       :panel="tablePanel" :selected="tableSelection" :route="route" :loading="loading" :loaded="!!m" :error="loadError" :working="tableWorking"
       :tracking-notices="tableNotices" :batch-limit="tableBatchLimit" :first-launch="m && tableColumns.length && !tableFirstSeen && !route.selected && !route.search && !route.agent && !route.only && !route.screen"
       :agents-found="!!tracking?.agents.some((agent) => agent.folder_status === 'ok')"
@@ -288,7 +288,7 @@
 
     <!-- ========== SKILLS ========== -->
     <jf-new-skill v-else-if="route.screen === 'new'" :key="route.template" ref="newSkill" :agents="createTargets" :scopes="scopes"
-      :records="records" :template="route.template || ''" :friendly="friendly" @created="newSkillCreated($event)" @refresh="refresh()" @ai="openCreate($event)"></jf-new-skill>
+      :records="records" :template="route.template || ''" :friendly="friendly" :loading="loading" :inventory-error="loadError" @created="newSkillCreated($event)" @refresh="refresh()" @ai="openCreate($event)"></jf-new-skill>
     <div class="page" v-else-if="route.page === 'skills'">
       <div class="shelf-head">
         <div><h1 class="h1" id="h1" tabindex="-1">Skills</h1>
@@ -400,7 +400,7 @@
               <label v-if="skill.copies.length > 1">Read copy
                 <select class="field" :value="readerCopyValue(refCopy)" @change="chooseReaderCopy($event.target.value)">
                   <option value="" disabled>Choose a copy</option>
-                  <option v-for="copy in skill.copies" :key="readerCopyValue(copy)" :value="readerCopyValue(copy)">{{ agentOf(copy.scope).name }}<template v-if="skill.copies.some(other => other !== copy && other.scope === copy.scope)"> — {{ copy.path }}</template></option>
+                  <option v-for="copy in skill.copies" :key="readerCopyValue(copy)" :value="readerCopyValue(copy)">{{ agentOf(copy.scope).name }}<template v-if="agentOf(copy.scope).kind === 'project' || skill.copies.some(other => other !== copy && other.scope === copy.scope)"> — {{ copy.path }}</template></option>
                 </select>
               </label>
               <span v-else>Reading from <b>{{ agentOf(refCopy.scope).name }}</b></span>
@@ -485,7 +485,7 @@
                   <p>{{ copy.record.native_state.reason }}</p>
                 </div>
               </details>
-              <div class="note"><details class="paths folder-paths">
+              <div><details class="paths folder-paths">
                 <summary>Folder locations and source updates</summary>
                 <div v-for="c in skill.copies" :key="c.scope + '/' + (c.record.path || c.path)">
                   <b>{{ agentOf(c.scope).name }}</b>
@@ -493,7 +493,7 @@
                   <button type="button" class="btn btn-line btn-sm" v-if="!c.readOnly && c.record.addressable !== false && agentOf(c.scope).writable && c.state !== 'link'" @click="openSource(c.record)">Review local update</button>
                 </div>
               </details></div>
-              <div class="note" v-if="refCopy"><details class="paths"><summary>AI maintenance</summary>
+              <div v-if="refCopy"><details class="paths"><summary>AI maintenance</summary>
                 <div class="tp-acts"><button type="button" class="btn btn-line btn-sm" @click="openAiDiagnosis()">Test a prompt or trace</button><button type="button" class="btn btn-line btn-sm" @click="openSkillTool('ai-ask')">Find related skills</button><button type="button" class="btn btn-line btn-sm" v-if="refCopy.state === 'on'" @click="openSkillTool('ai-port')">Check agent compatibility</button><a class="tp-link" href="#/advanced/ai-overlap">Check collection overlap</a><a class="tp-link" href="#/advanced/ai-profile">Suggest a project profile</a></div>
               </details></div>
               <details><summary>Permanent removal</summary><p class="sub">Deletes selected copies without trash or Undo.</p><button type="button" class="btn btn-danger btn-sm" @click="openPermanentDelete()">Delete permanently</button></details>

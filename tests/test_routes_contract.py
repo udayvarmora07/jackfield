@@ -93,3 +93,10 @@ console.log(JSON.stringify({skill:search('alpha'),hidden:search('hidden'),instal
         self.assertEqual(result['hidden'], [])
         self.assertTrue(any(item['path'] == '#/advanced/install' for group in result['install'] for item in group['items']))
         self.assertEqual(result['guess']['name'], 'alpha')
+
+    def test_app_has_no_branches_for_retired_skills_views(self):
+        webui = ROOT / 'skillsmgr' / 'webui'
+        for name in ('app.js', 'index.html'):
+            with self.subTest(name=name):
+                source = (webui / name).read_text(encoding='utf-8')
+                self.assertNotRegex(source, r'\b(?:route\.view|libraryView)\b')

@@ -27,6 +27,12 @@ class DisclosureCssContract(unittest.TestCase):
                         self.assertNotRegex(declarations, r"(?:^|;)\s*(?:width|height|transform|border(?:-[\w-]+)?|margin(?:-[\w-]+)?)\s*:",
                                             f"{sheet}: {part} overrides the shared chevron")
 
+    def test_doctor_summary_keeps_shared_chevron_as_a_flex_item(self):
+        css = (WEB / "styles.css").read_text(encoding="utf-8")
+        self.assertNotRegex(css, r"\.tp-more\s+summary[^{}]*\{[^{}]*display:\s*block")
+        tools = (WEB / "tools.css").read_text(encoding="utf-8")
+        self.assertRegex(tools, r"\.tp-more\s+summary[^{}]*\{[^{}]*display:\s*flex")
+
     def test_findings_exception_is_preserved(self):
         css = (WEB / "styles.css").read_text(encoding="utf-8")
         self.assertRegex(css, r"\.tp-findings\s*>\s*li\s*>\s*details\s*>\s*summary::before\s*\{\s*content:\s*none")

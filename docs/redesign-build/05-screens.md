@@ -121,7 +121,9 @@ the user to another page.
   Markdown raw HTML stays inert.
 
 **[NOTE]** Both views read the current on-disk document from the selected
-folder, including same-name copies in one recursive scope. Details reports
+folder, including same-name copies in one recursive scope. Project folders
+use the **This project** name and mark. Read copy shows the folder path for
+each project copy. Details reports
 the main document’s line count and counts for supporting files read during
 the bounded traversal. The personal Claude Code listing-space estimate uses
 observed user settings. It shares the Details panel with library events and
@@ -172,6 +174,8 @@ open and offers Undo for the confirmed writes.
 
 **[NOTE]** Picking a new layout or stored template asks before replacing
 edited instructions. A failed or superseded template read preserves the draft.
+Returning to New skill checks which folders can receive a copy. The action
+waits for the check before using the selected places.
 
 ## S6 · Why isn't it running?
 
@@ -211,8 +215,9 @@ explain why the skill is unavailable in that place only.
 **[NOTE]** Skipped items stay in view for the session and leave the To fix
 count. A verified repair moves the resolved item to Fixed. Undo checks the
 installed tree before restoring its exact prior folder from Trash. The review
-names the source of the replacement. Binary or ambiguous copies show manual
-guidance. Selection requires an explicit version choice for both differing and
+names the source of the replacement. A return visit checks the folders again
+before enabling repairs. Binary or ambiguous copies show manual guidance.
+Selection requires an explicit version choice for both differing and
 evenly split copies. Large groups reveal up to 50 more items at a time and
 keep the current selection visible.
 

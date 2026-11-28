@@ -60,6 +60,89 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.getByRole('button', {name:'same-everywhere in Codex: On'}).click();
     await page.locator('.jf-panel').getByRole('button', {name:/^Turn off/}).click();
   }
+  await test('Geometry Doctor chevron', async () => {
+    await go('advanced/doctor');
+    await page.getByRole('button', {name:'Run Doctor', exact:true}).click();
+    const report = page.locator('.tp-more > summary').filter({hasText:'Full report'});
+    await report.waitFor();
+    assert.equal(await report.evaluate(e => getComputedStyle(e).display), 'flex');
+    const icon = await report.evaluate(e => { const s=getComputedStyle(e, '::before'); return {content:s.content, mask:s.maskImage, width:s.width, height:s.height}; });
+    assert.notEqual(icon.content, 'none'); assert.notEqual(icon.mask, 'none');
+    assert.equal(icon.width, '14px'); assert.equal(icon.height, '14px');
+    await page.setViewportSize({width:390,height:900});
+    assert((await report.boundingBox()).height >= 44);
+    await report.click();
+    await page.waitForFunction(e => getComputedStyle(e, '::before').transform === 'matrix(0, 1, -1, 0, 0, 0)', await report.elementHandle());
+    await page.setViewportSize({width:1280,height:900});
+  });
+  await test('Geometry New AI doorway', async () => {
+    await go('new');
+    const ai = page.getByRole('button', {name:'Create with AI or add metadata'});
+    await ai.waitFor(); assert(await ai.locator('svg.jf-chevron').isVisible());
+    const dialog = page.locator('[role="dialog"]');
+    await ai.click();
+    await dialog.waitFor();
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({state:'hidden'});
+  });
+  await test('Geometry phone checkbox row', async () => {
+    await go('skills');
+    const welcome = page.getByRole('button', {name:'Show my skills'});
+    if (await welcome.isVisible()) await welcome.click();
+    for (const width of [390, 600]) {
+      await page.setViewportSize({width, height:900});
+      const row = page.locator('.jf-grid tbody tr').first(); await row.waitFor();
+      const checkbox = row.locator('.jf-grid-checkbox'), name = row.locator('.jf-grid-skill > button');
+      const cb = await checkbox.boundingBox(), nb = await name.boundingBox();
+      assert(cb.width >= 44 && cb.height >= 44); assert(Math.abs(cb.y - nb.y) < 8, 'checkbox and skill name must share a row');
+      assert(cb.x + cb.width <= nb.x + 1, 'checkbox and name touch areas overlap');
+      const input=checkbox.locator('input'), before=await input.isChecked(); await checkbox.click({position:{x:5,y:5}}); assert.notEqual(await input.isChecked(),before);
+    }
+    await page.setViewportSize({width:1280,height:900});
+  });
+  await test('Geometry phone skill targets', async () => {
+    const viewport = page.viewportSize();
+    const sites = [
+      ['skill/same-everywhere', page.locator('.jf-reader-details summary, .jf-reader-actions button, .jf-reader-details a[href="#/trash"]').filter({visible:true})],
+      ['skill/split-even', page.getByRole('button', {name:'Review a different copy', exact:true})],
+      ['skills/same-everywhere/why', page.getByRole('button', {name:'Check again', exact:true})],
+    ];
+    try {
+      for (const [route, targets] of sites) {
+        await go(route);
+        for (const width of [390, 600]) {
+          await page.setViewportSize({width, height:900});
+          await targets.first().waitFor();
+          for (const target of await targets.all()) {
+            const box = await target.boundingBox();
+            assert(box.height >= 44 && box.width >= 44, `small target at ${width}px: ${await target.innerText()}`);
+          }
+        }
+      }
+    } finally {
+      await page.setViewportSize(viewport);
+    }
+  });
+  await test('Geometry Skill panel disclosures align', async () => {
+    await go('skill/same-everywhere');
+    const details=page.locator('.jf-reader-details'); await details.waitFor();
+    const headings=details.locator('summary');
+    const boxes=await Promise.all((await headings.all()).map(el=>el.boundingBox()));
+    assert(boxes.length >= 3); assert(boxes.every(box => Math.abs(box.x-boxes[0].x) < 1), 'details summaries have different left edges');
+  });
+  await test('Geometry welcome columns align', async () => {
+    for (const width of [390, 1440]) {
+      const first=await browser.newContext({viewport:{width,height:900}}), welcome=await first.newPage();
+      try {
+        await welcome.goto(base+'/#/skills'); await welcome.locator('.jf-welcome-agent').first().waitFor();
+        const rows=welcome.locator('.jf-welcome-agent'); assert((await rows.count()) >= 2);
+        const coords=await rows.evaluateAll(items=>items.map(row=>{const a=row.children[1].getBoundingClientRect(), b=row.children[2].getBoundingClientRect();return {count:a.x,path:b.x,pathWidth:b.width,rowWidth:row.getBoundingClientRect().width};}));
+        assert(coords.every(item=>Math.abs(item.count-coords[0].count)<1 && Math.abs(item.path-coords[0].path)<1), 'welcome columns differ');
+        if (width === 390) assert(coords.every(item=>item.pathWidth >= item.rowWidth - 1), 'phone paths need a full row');
+        assert.equal(await welcome.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      } finally { await first.close(); }
+    }
+  });
   await test('Paper disclosure chevrons keep their size, rotation and reduced motion', async () => {
     const checkDisclosure = async (summary, reduced) => {
       await summary.waitFor();
@@ -82,26 +165,31 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await summary.click();
       await page.waitForFunction(element => getComputedStyle(element, '::before').transform === 'matrix(0, 1, -1, 0, 0, 0)', await summary.elementHandle());
     };
-    try {
+    const checkPreferences = async (check) => {
       for (const mode of ['light', 'dark']) {
         for (const reduced of [false, true]) {
           await page.emulateMedia({colorScheme:mode, reducedMotion:reduced ? 'reduce' : 'no-preference'});
-          await go('skill/same-everywhere');
           await theme(mode);
-          await checkDisclosure(page.locator('.native-settings > summary'), reduced);
-          await page.getByRole('button', {name:'Edit', exact:true}).click();
-          await checkDisclosure(page.locator('.instance-metadata > summary:visible'), reduced);
-          await go('trash');
-          await checkDisclosure(page.locator('summary').filter({hasText:'History and text snapshots'}), reduced);
-          await go('tools/quality');
-          const finding = page.locator('.tp-findings > li > details > summary').first();
-          await finding.waitFor();
-          assert.equal(await finding.evaluate(element => getComputedStyle(element, '::before').content), 'none');
-          await checkDisclosure(page.locator('.v2-tool-nav-group > summary').last(), reduced);
-          await go('settings');
-          await checkDisclosure(page.locator('.v2-tool-nav-group > summary').first(), reduced);
+          await check(reduced);
         }
       }
+    };
+    try {
+      await go('skill/same-everywhere');
+      await checkPreferences(reduced => checkDisclosure(page.locator('.native-settings > summary'), reduced));
+      await page.getByRole('button', {name:'Edit', exact:true}).click();
+      await checkPreferences(reduced => checkDisclosure(page.locator('.instance-metadata > summary:visible'), reduced));
+      await go('trash');
+      await checkPreferences(reduced => checkDisclosure(page.locator('summary').filter({hasText:'History and text snapshots'}), reduced));
+      await go('tools/quality');
+      await checkPreferences(async reduced => {
+        const finding = page.locator('.tp-findings > li > details > summary').first();
+        await finding.waitFor();
+        assert.equal(await finding.evaluate(element => getComputedStyle(element, '::before').content), 'none');
+        await checkDisclosure(page.locator('.v2-tool-nav-group > summary').last(), reduced);
+      });
+      await go('settings');
+      await checkPreferences(reduced => checkDisclosure(page.locator('.v2-tool-nav-group > summary').first(), reduced));
     } finally {
       await page.emulateMedia({colorScheme:null, reducedMotion:null});
       await theme('light');
@@ -150,6 +238,55 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await page.goto(base+'/?fixture-step='+(++navigation)+'#/skills?view=map&q=sole-copy');
     await page.waitForURL(url => url.hash === '#/skills?q=sole-copy');
     assert.equal(await page.getByRole('searchbox', {name:'Filter skills'}).inputValue(), 'sole-copy');
+  });
+  await test('Paper follow-up uses one project name and mark across screens', async () => {
+    const workspace = path.join(home, 'workspace');
+    const project = path.join(workspace, '.claude');
+    const folder = path.join(project, 'skills', 'majority-minor');
+    const viewport = page.viewportSize();
+    const tracking = base + '/api/tracking';
+    const readTracking = async () => (await page.request.get(tracking)).json();
+    const saveTracking = async (settings) => {
+      const response = await page.request.put(tracking, {headers:{Origin:base}, data:settings});
+      assert.equal(response.status(), 200, await response.text());
+    };
+    const previous = (await readTracking()).settings;
+    let showingProject = false;
+    fs.mkdirSync(folder, {recursive:true});
+    fs.copyFileSync(file('.codex', 'majority-minor'), path.join(folder, 'SKILL.md'));
+    try {
+      await saveTracking({...previous, projects:{
+        folders:[...new Set([...previous.projects.folders, workspace])], showing:workspace,
+      }});
+      showingProject = true;
+      await go('skills?q=majority-minor');
+      const column = page.getByRole('columnheader', {name:/This project/});
+      await column.locator('[data-a="PJ"]').waitFor();
+      await go('skill/majority-minor');
+      const picker = page.locator('.jf-reader-source select');
+      await picker.waitFor();
+      const options = await picker.locator('option').allTextContents();
+      assert(options.some(option => option.startsWith('This project — ') && option.endsWith(folder)), JSON.stringify(options));
+      for (const width of [390, 1440]) {
+        await page.setViewportSize({width, height:900});
+        assert(await picker.evaluate(select => select.getBoundingClientRect().right <=
+          select.closest('article').getBoundingClientRect().right + 1), `copy picker exceeds the document at ${width}px`);
+      }
+      await page.setViewportSize(viewport);
+      await page.locator('.jf-reader-places .jf-agent').filter({hasText:'This project'}).locator('[data-a="PJ"]').waitFor();
+      await go('skills/majority-minor/why');
+      await page.locator('.jf-why-grid .jf-agent').filter({hasText:'This project'}).locator('[data-a="PJ"]').waitFor();
+      await go('new');
+      await page.locator('.jf-editor-place').filter({hasText:'This project'}).locator('[data-a="PJ"]').waitFor();
+      await openAttention('majority-minor:project:different');
+      await attention.locator('.jf-attention-detail .jf-agent').filter({hasText:'This project'}).locator('[data-a="PJ"]').waitFor();
+    } finally {
+      await page.setViewportSize(viewport);
+      fs.rmSync(folder, {recursive:true, force:true});
+      fs.rmdirSync(path.join(project, 'skills'));
+      fs.rmdirSync(project);
+      if (showingProject) await saveTracking({...previous, revision:(await readTracking()).revision});
+    }
   });
   await test('Global search opens a library skill when no agent is available', async () => {
     await page.route('**/api/scopes', route => route.fulfill({json:[]}));
@@ -500,12 +637,13 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       const button = create.getByRole('button', {name:'Create in 1 place'});
       await page.waitForFunction(el => !el.disabled, await button.elementHandle());
       const write = url => url.pathname === '/api/skills' && url.searchParams.has('scope');
-      await page.route(write, fail);
+      const failWrite = route => route.request().method() === 'POST' ? fail(route) : route.continue();
+      await page.route(write, failWrite);
       try {
         await button.click();
-        await create.getByText(/The operation could not be completed/).waitFor();
+        await create.getByRole('group', {name:'Add it to'}).getByText(/The operation could not be completed/).waitFor();
         assert.doesNotMatch(await create.innerText(), /PermissionError|\/private\/fixture/);
-      } finally { await page.unroute(write, fail); }
+      } finally { await page.unroute(write, failWrite); }
     } finally { await page.unroute(list, listHandler); await page.unroute(detail, detailHandler); }
   });
   await test('Batch 2 starter selection cancels an earlier pending template', async () => {
@@ -637,6 +775,69 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await create.getByRole('link', {name:'Open it'}).click();
       await page.waitForURL(url => url.hash === '#/skills/' + name);
     } finally { await page.unroute(codex, fail); }
+  });
+  await test('New skill restores a place after permissions recover on a new visit', async () => {
+    const name = 'recover-create-permission';
+    let readOnly = false;
+    const scopes = url => url.pathname === '/api/scopes';
+    const scopeHandler = async route => {
+      const response = await route.fetch(), rows = await response.json();
+      if (readOnly) Object.assign(rows.find(row => row.id === 'codex'), {writable:false, availability:'read-only'});
+      await route.fulfill({response, json:rows});
+    };
+    const write = url => url.pathname === '/api/skills' && url.searchParams.get('scope') === 'codex';
+    const refuse = route => { readOnly = true; return route.fulfill({status:409, json:{error:'Fixture write refused'}}); };
+    await page.route(scopes, scopeHandler);
+    await page.route(write, refuse);
+    try {
+      await go('new');
+      const create = page.locator('.jf-create');
+      await create.getByLabel('Name', {exact:true}).fill(name);
+      await create.getByLabel('What it does and when to use it').fill('Use for permission recovery.');
+      await create.getByRole('checkbox', {name:/Codex/}).check();
+      await create.getByRole('button', {name:'Create in 2 places'}).click();
+      await create.getByText(/Some places couldn.t be confirmed/).waitFor();
+      await create.getByRole('checkbox', {name:/Codex/}).waitFor({state:'hidden'});
+      assert(fs.existsSync(file('.claude', name)));
+      readOnly = false;
+      await create.getByRole('link', {name:'Open it'}).click();
+      await page.getByRole('button', {name:'Edit', exact:true}).waitFor();
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.getByRole('link', {name:'New skill', exact:true}).first().click();
+      await create.getByRole('checkbox', {name:/Codex/}).waitFor();
+      assert(await create.getByRole('checkbox', {name:/Codex/}).isEnabled());
+    } finally {
+      await page.unroute(scopes, scopeHandler);
+      await page.unroute(write, refuse);
+      await page.request.delete(`${base}/api/skills/${name}?scope=claude-code&purge=1`);
+    }
+  });
+  await test('New skill reports an inventory error and retries without losing the draft', async () => {
+    const scopes = url => url.pathname === '/api/scopes';
+    let reject = true;
+    const scopeHandler = route => reject ? route.fulfill({status:503, json:{error:'Fixture inventory unavailable'}}) : route.continue();
+    await go('skills');
+    await page.route(scopes, scopeHandler);
+    try {
+      await page.getByRole('link', {name:'New skill', exact:true}).first().click();
+      const create = page.locator('.jf-create');
+      await create.getByLabel('Name', {exact:true}).fill('inventory-retry-fixture');
+      await create.getByLabel('What it does and when to use it').fill('Use to check inventory retry.');
+      await create.getByRole('alert').getByText(/inventory unavailable/i).waitFor();
+      assert(await create.getByRole('button', {name:/^Create in/}).isDisabled());
+      const ai = create.getByRole('button', {name:'Create with AI or add metadata'});
+      assert(await ai.isDisabled());
+      await ai.evaluate(button => button.dispatchEvent(new MouseEvent('click', {bubbles:true})));
+      assert.equal(await page.getByRole('dialog').count(), 0);
+      reject = false;
+      await create.getByRole('button', {name:'Try again', exact:true}).click();
+      await create.getByRole('alert').waitFor({state:'hidden'});
+      await page.waitForFunction(() => !document.querySelector('.jf-create button[form="jf-create-form"]')?.disabled);
+      assert(await create.getByRole('button', {name:/^Create in/}).isEnabled());
+      assert(await ai.isEnabled());
+      assert.equal(await create.getByLabel('Name', {exact:true}).inputValue(), 'inventory-retry-fixture');
+      assert.equal(await create.getByLabel('What it does and when to use it').inputValue(), 'Use to check inventory retry.');
+    } finally { await page.unroute(scopes, scopeHandler); }
   });
   await test('New skill can target the library before it has a folder', async () => {
     const scopes = url => url.pathname === '/api/scopes';
@@ -1407,8 +1608,38 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       await attentionNav.click();
       await attentionHeading.waitFor();
       await retry.waitFor({state:'hidden'});
+      await attention.locator('.jf-attention-detail[aria-busy="false"]').waitFor();
       assert(await attention.getByRole('button', {name:'Skip for now', exact:true}).isEnabled());
     } finally { await page.unroute(endpoint, refuse); }
+  });
+  await test('Needs attention restores fix choices when permissions recover on return', async () => {
+    let readOnly = false;
+    const scopes = url => url.pathname === '/api/scopes';
+    const scopeHandler = async route => {
+      const response = await route.fetch(), rows = await response.json();
+      if (readOnly) Object.assign(rows.find(row => row.id === 'codex'), {writable:false, availability:'read-only'});
+      await route.fulfill({response, json:rows});
+    };
+    const endpoint = '**/api/batch/execute';
+    const refuse = route => { readOnly = true; return route.fulfill({status:409, json:{error:'Fixture write refused'}}); };
+    await page.route(scopes, scopeHandler);
+    await page.route(endpoint, refuse);
+    try {
+      await openAttention('majority-minor:codex:different');
+      await attention.getByRole('button', {name:/^The shared version/}).click();
+      await attention.locator('[data-primary]:enabled').click();
+      await attention.getByText(/can.t safely identify the folders/).waitFor();
+      readOnly = false;
+      await page.locator('.tabs a[href="#/skills"]').click();
+      await page.waitForURL(url => url.hash === '#/skills');
+      await attentionNav.click();
+      await attentionHeading.waitFor();
+      await attentionItem('majority-minor:codex:different').click();
+      await attention.getByRole('button', {name:/^The shared version/}).waitFor();
+    } finally {
+      await page.unroute(scopes, scopeHandler);
+      await page.unroute(endpoint, refuse);
+    }
   });
   await test('A delayed write failure is announced without restoring the old review state', async () => {
     const endpoint = '**/api/batch/execute';
@@ -2261,10 +2492,10 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
       for (const [label, width, height] of [['desktop', 1280, 900], ['phone', 390, 844]]) {
         for (const mode of ['light', 'dark']) {
           await page.setViewportSize({width, height});
-          await go('home');
+          await go('skills');
           await theme(mode);
           for (const route of ['skills', 'skill/same-everywhere', 'attention', 'trash']) {
-            await go(route);
+            if (route !== 'skills') await go(route);
             assert.equal(await page.locator('html').getAttribute('data-theme'), mode);
             assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1),
               false, `${label} ${mode} ${route}`);
@@ -2551,6 +2782,34 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     await evidence.press('Enter');
     await finding.getByRole('region', {name:/^Evidence for /}).waitFor();
   });
+  await test('Paper follow-up explains incomplete Quality scans and estimates plainly', async () => {
+    const doctor = url => url.pathname === '/api/doctor' && url.searchParams.get('hygiene') === '1';
+    const stats = url => url.pathname === '/api/stats';
+    const partial = async route => {
+      const response = await route.fetch(), json = await response.json();
+      json.hygiene.document_fingerprints.status = 'observed';
+      json.hygiene.document_fingerprints.omitted = 0;
+      json.degraded = [{section:'settings'}];
+      await route.fulfill({response, json});
+    };
+    const estimated = async route => {
+      const response = await route.fetch(), json = await response.json();
+      json.has_tiktoken = false;
+      await route.fulfill({response, json});
+    };
+    await page.route(doctor, partial);
+    await page.route(stats, estimated);
+    try {
+      await go('advanced/quality');
+      await page.getByText('Jackfield could not finish all checks. The saved baseline cannot be updated.').waitFor();
+      assert(await page.getByRole('button', {name:'Save browser baseline'}).isDisabled());
+      await page.getByRole('button', {name:'Statistics', exact:true}).click();
+      await page.getByText('Estimated from text length. The available space can vary.').waitFor();
+    } finally {
+      await page.unroute(doctor, partial);
+      await page.unroute(stats, estimated);
+    }
+  });
   await test('Skill copies restores exact selection, tags and profiles', async () => {
     const name = 'constructor';
     const created = await page.request.post(base+'/api/skills?scope=agents', {data:{name,description:'Exact copies browser fixture.',body:'# Owner\n'}});
@@ -2770,16 +3029,18 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
     }
   });
   await test('All v2 tool routes fit desktop and small phone in both themes',async()=>{
-    for (const width of [320,768,1280]) {
-      // Each theme has its own browser preferences and makes only read requests.
-      const outcomes = await Promise.allSettled(['light','dark'].map(async mode => {
-        const themeContext = await browser.newContext({viewport:{width,height:900}, colorScheme:mode});
-        try {
-          const view = await themeContext.newPage();
-          view.setDefaultTimeout(5000);
-          view.on('pageerror', error => exceptions.push(error.message));
-          await go('tools/settings', view);
-          await view.getByLabel('Theme',{exact:true}).selectOption(mode);
+    // Reuse one browser context per theme across the widths. Each route still
+    // loads and settles at each width before its layout checks.
+    const outcomes = await Promise.allSettled(['light','dark'].map(async mode => {
+      const themeContext = await browser.newContext({viewport:{width:320,height:900}, colorScheme:mode});
+      try {
+        const view = await themeContext.newPage();
+        view.setDefaultTimeout(5000);
+        view.on('pageerror', error => exceptions.push(error.message));
+        await go('tools/settings', view);
+        await view.getByLabel('Theme',{exact:true}).selectOption(mode);
+        for (const width of [320,768,1280]) {
+          await view.setViewportSize({width,height:900});
           for (const route of ['tools','tools/install','tools/profiles','tools/instances','tools/templates','tools/quality',
             'tools/workspaces','tools/doctor','tools/settings','tools/source-update','tools/ai-settings','skills','trash',
             'settings/tracking','settings/tracking/add-agent']) {
@@ -2798,10 +3059,10 @@ async function test(name, fn) { if(process.env.BROWSER_TEST_FILTER && !name.incl
               }), `active tool is clipped on ${route} at ${width}px`);
             }
           }
-        } finally { await themeContext.close(); }
-      }));
-      for (const outcome of outcomes) if (outcome.status === 'rejected') throw outcome.reason;
-    }
+        }
+      } finally { await themeContext.close(); }
+    }));
+    for (const outcome of outcomes) if (outcome.status === 'rejected') throw outcome.reason;
     await page.setViewportSize({width:1280,height:900});
     await go('tools');
     await theme('dark');

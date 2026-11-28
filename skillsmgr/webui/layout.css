@@ -114,7 +114,7 @@
 .jf-reader-body { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, var(--panel)); align-items: start; gap: var(--space-10); margin-top: var(--space-8); }
 .jf-reader-document { min-width: 0; overflow-wrap: anywhere; }
 .jf-reader-document .jf-file-text { margin-top: var(--space-2); }
-.jf-reader-source { display: grid; gap: var(--space-1); margin-bottom: var(--space-3); color: var(--mute); }
+.jf-reader-source { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); margin-bottom: var(--space-3); color: var(--mute); }
 .jf-reader-source label { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
 .jf-reader-source select { max-width: 100%; min-width: 0; }
 .jf-reader-source code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -177,7 +177,16 @@
   .jf-reader-body, .jf-editor .jf-reader-body, .jf-create .jf-reader-body { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
 }
 @media (max-width: 600px) {
-  .jf-grid-checkbox { display: inline-flex; align-items: center; justify-content: center; min-width: var(--touch); min-height: var(--touch); }
+  .jf-grid-checkbox { position: absolute; inset-block-start: var(--space-3); inset-inline-start: 0; display: inline-flex; align-items: center; justify-content: center; width: var(--touch); height: var(--touch); }
+  .jf-grid-skill .jf-grid-checkbox input { position: static; }
+  .jf-skills-screen .jf-grid-skill button, .jf-skills-screen .jf-grid-skill .jf-grid-description, .jf-skills-screen .jf-grid-skill .jf-grid-verdict { margin-inline-start: var(--touch); }
+  .jf-skills-screen .jf-grid-skill button { max-width: calc(100% - var(--touch)); }
+  .sm-root details > summary { min-height: var(--touch); }
+  .jf-reader-actions .sm-btn,
+  .jf-skill-reader .reader-comparison-controls button,
+  .jf-why-screen .sm-btn,
+  .jf-create .sm-btn--quiet, .jf-create .state-note .sm-btn { min-height: var(--touch); }
+  .jf-reader-details a[href="#/trash"] { display: inline-flex; align-items: center; min-height: var(--touch); }
   .jf-skill-reader, .jf-why-screen { padding-bottom: calc(var(--space-10) + var(--touch)); }
   .jf-reader-heading { position: static; gap: var(--space-2); }
   .jf-reader-title { flex-basis: 100%; }
@@ -328,15 +337,20 @@
   color: var(--ink-2);
   font: 400 var(--type-file-text-size)/var(--type-file-text-line) var(--font-mono);
 }
-.jf-panel-choice, .jf-skills-footer, .jf-welcome-agent { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.jf-panel-choice, .jf-skills-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 .jf-panel-choice { margin-block: var(--space-4); }
 .jf-skills-footer { padding: var(--space-3) var(--space-4); }
 .jf-skills-welcome { box-sizing: border-box; max-width: 620px; margin: var(--space-10) auto; padding: var(--space-8); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .jf-skills-welcome > p { margin: 0 0 var(--space-2); }
 .jf-skills-welcome h2 { margin: 0 0 var(--space-5); color: var(--ink); }
+.jf-welcome-agent { display: grid; grid-template-columns: 140px 5rem minmax(0, 1fr); align-items: center; gap: var(--space-4); }
 .jf-welcome-agent + .jf-welcome-agent { margin-top: var(--space-2); }
-.jf-welcome-agent .jf-agent { min-width: 140px; color: var(--ink); }
-.jf-welcome-path { flex: 1 1 140px; min-width: 0; margin-inline-start: auto; overflow: hidden; color: var(--text-faint); font: var(--type-path-weight) var(--type-path-size)/var(--type-path-line) var(--font-mono); text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.jf-welcome-agent .jf-agent { min-width: 0; color: var(--ink); }
+.jf-welcome-path { min-width: 0; overflow: hidden; color: var(--text-faint); font: var(--type-path-weight) var(--type-path-size)/var(--type-path-line) var(--font-mono); text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 600px) {
+  .jf-welcome-agent { grid-template-columns: minmax(0, 1fr) 5rem; gap: var(--space-1) var(--space-3); }
+  .jf-welcome-path { grid-column: 1 / -1; text-align: start; }
+}
 .jf-welcome-tip { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--accent-soft); color: var(--ink-2); }
 .jf-welcome-tip > span { flex: 1 1 260px; }
 .jf-skills-empty .jf-welcome-tip button { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }

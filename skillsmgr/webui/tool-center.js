@@ -817,7 +817,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
               <p v-if="documentComparison.changed_count>documentComparison.changed.length" class="tp-fine">Only the first {{documentComparison.changed.length}} changed documents are shown.</p>
               <p v-if="documentComparison.unobserved_count" class="tp-fine">{{fmtN(documentComparison.unobserved_count)}} saved entries were not observed in this scan. Their current state is unknown.</p>
             </template>
-            <p v-if="documentScan&&documentScan.partial" class="tp-fine">This scan reports missing evidence. The saved baseline cannot be updated.</p>
+            <p v-if="documentScan&&documentScan.partial" class="tp-fine">Jackfield could not finish all checks. The saved baseline cannot be updated.</p>
             <div class="tp-acts">
               <button v-if="documentComparison.status==='other-context'" type="button" class="btn btn-line" :disabled="!canSaveDocumentBaseline" @click="saveDocumentBaseline(true)">Replace baseline for this context</button>
               <button v-else type="button" class="btn btn-line" :disabled="!canSaveDocumentBaseline" @click="saveDocumentBaseline()">{{documentBaseline?'Update baseline with this scan':'Save browser baseline'}}</button>
@@ -923,7 +923,7 @@ ${scanPanel('(review.inspection||{}).external_scan')}
             <span v-if="reportKind==='doctor'" :class="['pill', report.ok===true?'ok':report.ok===false?'warn':'off']">Index consistency: {{report.ok===true?'No issues reported':report.ok===false?'Attention needed':'See details'}}</span></header>
           <template v-if="reportKind==='stats'">
             <div class="tp-stats"><div><b class="num">{{fmtN(report.all_total)}}</b><small>copies observed</small></div><div><b class="num">{{fmtN(report.all_tokens)}}</b><small>estimated tokens</small></div><div><b class="num">{{report.window_tokens ? (Math.round(1000*report.all_tokens/report.window_tokens)/10)+'%' : '—'}}</b><small>of the {{report.window}} window</small></div></div>
-            <p class="tp-fine">{{report.has_tiktoken?'Counted with a tokenizer.':'Heuristic estimate (about four characters per token).'}} Not a guarantee of available context.</p>
+            <p class="tp-fine">{{report.has_tiktoken?'Counted from the text.':'Estimated from text length.'}} The available space can vary.</p>
             <ul class="tp-rows"><li v-for="s in report.scopes||[]" :key="s.id" class="v2-tool-row"><span>{{scopeLabel(s.id)}}</span><span class="tp-count num">{{fmtN(s.count)}} {{s.count===1?'skill':'skills'}} · {{fmtN(s.tokens)}} tokens</span></li></ul>
             <h3 v-if="(report.largest||[]).length" class="tp-eyebrow tp-gap">Largest</h3>
             <ul class="tp-rows"><li v-for="(r,i) in report.largest||[]" :key="i" class="v2-tool-row"><span class="tp-row-main"><strong class="tp-mono">{{r.name}}</strong><small>{{scopeLabel(r.scope)}} · {{fmtN(r.tokens)}} tokens</small></span><button class="btn btn-line btn-sm" @click="inspectInstance(r)">Open</button></li></ul>

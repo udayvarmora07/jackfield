@@ -7,6 +7,15 @@ Earlier entries moved verbatim to @docs/archive/06-progress-log-through-2026-11-
 older archives remain indexed by @docs/archive/README.md. The live queue is
 @task.md. Retained historical sections are explicitly labeled below.
 
+## 2026-11-28 — Paper follow-up recovery and layout
+
+**[NOTE]** Returning to Needs attention or New skill refreshes folder
+observations after a failed write. The project name and mark are consistent,
+and the Read copy picker identifies project folders by path. The remaining
+phone targets, disclosure chevrons, panel insets and welcome rows have
+browser checks. Quality explains partial scans and text-length estimates in
+plain language. See @docs/62-redesign-review-2026-11-28.md.
+
 ## 2026-11-28 — Paper write confirmations
 
 **[NOTE]** Create and permanent removal confirmations stay visible and in

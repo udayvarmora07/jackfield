@@ -13,7 +13,7 @@ window.Jackfield.register((app) => {
   const emptyForm = () => ({ name: "", description: "", body: layouts[0].body, template: "", layout: "Blank" });
 
   app.component("jf-new-skill", {
-    props: { agents: Array, scopes: Array, records: Array, template: String, friendly: Function },
+    props: { agents: Array, scopes: Array, records: Array, template: String, friendly: Function, loading: Boolean, inventoryError: String },
     emits: ["created", "refresh", "ai"],
     data: () => ({ form: emptyForm(), selected: [], baseline: "", templates: [], templateGeneration: 0,
       templateLoading: false, previewGeneration: 0, previewTimer: null, preview: null, previewError: "",
@@ -45,7 +45,7 @@ window.Jackfield.register((app) => {
         return { name: this.name, description: this.form.description.trim(), body: this.form.body.replaceAll("{name}", this.name) };
       },
       payloadKey() { return this.payload ? JSON.stringify(this.payload) : ""; },
-      ready() { return !this.writing && !this.pendingStarter && this.targets.length > 0 && this.preview?.key === this.payloadKey; },
+      ready() { return !this.loading && !this.inventoryError && !this.writing && !this.pendingStarter && this.targets.length > 0 && this.preview?.key === this.payloadKey; },
       skillHref() { return window.Jackfield.router.skillHref(this.name); },
       canOpen() { return this.existing.size > 0 || [...this.results.values()].some((result) => result.created); },
     },
@@ -187,6 +187,7 @@ window.Jackfield.register((app) => {
             <textarea class="sm-textarea" id="nf-desc" v-model="form.description" rows="3" aria-describedby="jf-create-count"></textarea>
             <p id="jf-create-count" class="sm-hint">{{ descriptionLength }} of 1,024 characters</p>
             <p class="sm-label" id="jf-create-places-title">Add it to</p>
+            <p v-if="inventoryError" class="state-note err" role="alert">Couldn’t read available places: <span>{{ inventoryError }}</span> <button type="button" class="sm-btn" @click="$emit('refresh')">Try again</button></p>
             <div role="group" aria-labelledby="jf-create-places-title">
               <p class="sm-hint">Pick one or more. Each folder gets its own copy.</p>
               <label v-for="place in places" :key="place.id" class="jf-editor-place">
@@ -211,7 +212,8 @@ window.Jackfield.register((app) => {
               <button type="button" class="sm-btn" @click="applyStarter(pendingStarter)">Replace instructions</button>
             </div>
             <textarea class="sm-textarea sm-textarea--file" ref="body" id="nf-body" rows="8" v-model="form.body" :disabled="templateLoading"></textarea>
-            <button type="button" class="sm-btn sm-btn--quiet" @click="$emit('ai', { name: form.name, description: form.description, body: form.body, scope: selected[0] })">Create with AI or add metadata</button>
+            <button type="button" class="sm-btn sm-btn--quiet" :disabled="loading || !!inventoryError"
+              @click="$emit('ai', { name: form.name, description: form.description, body: form.body, scope: selected[0] })">Create with AI or add metadata<svg class="jf-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
           </fieldset>
         </form>
         <aside class="jf-reader-details jf-create-preview" aria-label="What will be created">

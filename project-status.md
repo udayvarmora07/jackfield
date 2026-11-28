@@ -32,11 +32,11 @@ approved UX brief contains the journey maps for the redesign and Agent tracking.
 ## Last check
 
 2026-11-28 · Step 8, Build in progress. Phases 0–4 landed and passed hosted
-CI. Both Paper review batches have been applied to the shipped screens.
-The [redesign review](docs/62-redesign-review-2026-11-28.md) records the
-verification and remaining decisions. Advanced and Doctor (S9) still await
-the maintainer’s review. The tool page (S10), Settings (S11), and What to
-track (S14–S19) remain in Phase 5.
+CI. The Paper follow-up restored the browser smoke gate, moved Skill copies
+under Advanced, and fixed the confirmation, recovery and layout regressions.
+Advanced and Doctor (S9) still await the maintainer’s review. The full tool
+page migration (S10), Settings (S11), and What to track (S14–S19) remain in
+Phase 5. [Follow-up fixes](docs/62-redesign-review-2026-11-28.md#follow-up-fixes)
 
 Recommended next step is to review S9, then continue Phase 5 with `/build`.
 [Build progress](build-progress.md) ·
